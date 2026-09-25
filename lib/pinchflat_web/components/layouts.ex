@@ -16,11 +16,19 @@ defmodule PinchflatWeb.Layouts do
   attr :href, :any, required: true
   attr :target, :any, default: "_self"
   attr :icon_class, :string, default: ""
+  attr :current_path, :string, default: nil
 
   def sidebar_item(assigns) do
     ~H"""
     <li class="text-bodydark1">
-      <.sidebar_link icon={@icon} text={@text} href={@href} target={@target} icon_class={@icon_class} />
+      <.sidebar_link
+        icon={@icon}
+        text={@text}
+        href={@href}
+        target={@target}
+        icon_class={@icon_class}
+        active={active_path?(@href, @current_path)}
+      />
     </li>
     """
   end
@@ -55,9 +63,8 @@ defmodule PinchflatWeb.Layouts do
       <span
         class={[
           "font-medium cursor-pointer",
-          "group relative flex items-center justify-between rounded-sm px-4 py-2 duration-300 ease-in-out",
-          "duration-300 ease-in-out",
-          "hover:bg-meta-4"
+          "group relative flex items-center justify-between rounded-lg px-3 py-1.5 text-sm",
+          "hover:bg-meta-4 hover:text-white"
         ]}
         x-on:click="selected = !selected"
       >
@@ -65,13 +72,20 @@ defmodule PinchflatWeb.Layouts do
           <.icon name={@icon} /> {@text}
         </span>
         <span class="text-bodydark2">
-          <.icon name="hero-chevron-down" x-bind:class="{ 'rotate-180': selected }" />
+          <.icon name="hero-chevron-down" class="h-4 w-4" x-bind:class="{ 'rotate-180': selected }" />
         </span>
       </span>
 
       <ul x-cloak x-show="selected">
         <li :for={menu <- @submenu} class="text-bodydark2">
-          <.sidebar_link icon={menu[:icon]} text={menu[:text]} href={menu[:href]} target={menu[:target]} class="pl-10" />
+          <.sidebar_link
+            icon={menu[:icon]}
+            text={menu[:text]}
+            href={menu[:href]}
+            target={menu[:target]}
+            class="pl-10"
+            active={menu[:href] == @current_path}
+          />
         </li>
       </ul>
     </li>
@@ -91,6 +105,7 @@ defmodule PinchflatWeb.Layouts do
   attr :target, :any, default: "_self"
   attr :class, :string, default: ""
   attr :icon_class, :string, default: ""
+  attr :active, :boolean, default: false
 
   def sidebar_link(assigns) do
     ~H"""
@@ -99,9 +114,9 @@ defmodule PinchflatWeb.Layouts do
       target={@target}
       class={[
         "font-medium",
-        "group relative flex items-center gap-2.5 rounded-sm px-4 py-2 duration-300 ease-in-out",
-        "duration-300 ease-in-out",
-        "hover:bg-meta-4",
+        "group relative flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm",
+        "hover:bg-meta-4 hover:text-white",
+        @active && "bg-meta-4 text-white",
         @class
       ]}
     >
@@ -109,4 +124,9 @@ defmodule PinchflatWeb.Layouts do
     </.link>
     """
   end
+
+  defp active_path?(_href, nil), do: false
+  defp active_path?(href, current_path) when href == current_path, do: true
+  defp active_path?("/", _current_path), do: false
+  defp active_path?(href, current_path), do: String.starts_with?(current_path, href <> "/")
 end

@@ -68,9 +68,9 @@ defmodule PinchflatWeb.CoreComponents do
               phx-window-keydown={@allow_close && JS.exec("data-cancel", to: "##{@id}")}
               phx-key="escape"
               phx-click-away={@allow_close && JS.exec("data-cancel", to: "##{@id}")}
-              class="shadow-zinc-700/10 ring-zinc-700/10 relative hidden rounded-2xl bg-graydark p-8 sm:p-14 shadow-lg ring-1 transition"
+              class="relative hidden rounded-xl border border-strokedark bg-graydark p-5 sm:p-8 shadow-lg transition"
             >
-              <div :if={@allow_close} class="absolute top-6 right-5">
+              <div :if={@allow_close} class="absolute top-4 right-4">
                 <button
                   phx-click={JS.exec("data-cancel", to: "##{@id}")}
                   type="button"
@@ -114,27 +114,27 @@ defmodule PinchflatWeb.CoreComponents do
     <div
       :if={msg = render_slot(@inner_block) || Phoenix.Flash.get(@flash, @kind)}
       id={@id}
-      class="pb-8"
+      class="pb-3"
       role="alert"
       {@rest}
     >
       <div class={[
-        "flex justify-between w-full border-l-6 bg-opacity-[50%] p-5 shadow-md dark:bg-opacity-40 dark:text-white",
-        @kind == :info && "border-[#34D399] bg-[#34D399]",
-        @kind == :error && "border-[#F87171] bg-[#F87171]"
+        "flex justify-between gap-3 w-full rounded-lg border border-l-4 px-4 py-3 text-white",
+        @kind == :info && "border-emerald-500/40 border-l-emerald-400 bg-emerald-500/15",
+        @kind == :error && "border-red-500/40 border-l-red-400 bg-red-500/15"
       ]}>
         <main>
-          <h5 :if={@title} class="mb-2 text-lg font-bold">
+          <h5 :if={@title} class="font-semibold">
             {@title}
           </h5>
-          <p class="mt-2 text-md leading-5 opacity-80">{msg}</p>
+          <p class="mt-0.5 text-sm leading-5 text-bodydark">{msg}</p>
         </main>
         <button
           type="button"
           aria-label={gettext("close")}
           phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
         >
-          <.icon name="hero-x-mark-solid" class="h-7 w-7 opacity-70 hover:opacity-100" />
+          <.icon name="hero-x-mark-solid" class="h-5 w-5 opacity-70 hover:opacity-100" />
         </button>
       </div>
     </div>
@@ -153,7 +153,7 @@ defmodule PinchflatWeb.CoreComponents do
 
   def flash_group(assigns) do
     ~H"""
-    <div class="flex flex-col gap-7.5" id={@id}>
+    <div class="flex flex-col" id={@id}>
       <.flash kind={:info} title="Success!" flash={@flash} />
       <.flash kind={:error} title="Error!" flash={@flash} />
       <.flash
@@ -311,7 +311,7 @@ defmodule PinchflatWeb.CoreComponents do
       <.label for={@id}>
         {@label}<span :if={@label_suffix} class="text-xs text-bodydark">{@label_suffix}</span>
       </.label>
-      <section class="grid grid-cols-1 gap-2 md:grid-cols-2 max-w-prose mb-4 ml-1">
+      <section class="grid grid-cols-1 gap-1.5 md:grid-cols-2 max-w-prose mb-2 ml-1">
         <div :for={{option_name, option_value} <- @options} class="flex items-center">
           <input
             type="checkbox"
@@ -319,7 +319,11 @@ defmodule PinchflatWeb.CoreComponents do
             name={"#{@name}[]"}
             value={option_value}
             checked={option_value in @value}
-            class={["rounded focus:ring-offset-0 ring-offset-0 focus:ring-0 h-5 w-5 ", @inputclass]}
+            class={[
+              "rounded border-form-strokedark bg-form-input text-primary h-4 w-4",
+              "focus:ring-offset-0 ring-offset-0 focus:ring-0",
+              @inputclass
+            ]}
           />
           <label for={"#{@id}-#{option_value}"} class="ml-2 cursor-pointer select-none">
             {option_name}
@@ -348,11 +352,15 @@ defmodule PinchflatWeb.CoreComponents do
         <input type="hidden" id={@id} name={@name} x-bind:value="enabled" {@rest} />
         <%!-- This triggers a `change` event on the hidden input when the toggle is clicked --%>
         <div class="inline-block cursor-pointer" @click={"enabled = !enabled; dispatchFor('#{@id}', 'change')"}>
-          <div x-bind:class="enabled && '!bg-primary'" class="block h-8 w-14 rounded-full bg-black"></div>
           <div
-            x-bind:class="enabled && '!right-1 !translate-x-full'"
+            x-bind:class="enabled && '!bg-primary !border-primary'"
+            class="block h-6 w-11 rounded-full border border-form-strokedark bg-meta-4 transition"
+          >
+          </div>
+          <div
+            x-bind:class="enabled && '!translate-x-5'"
             class={[
-              "absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white transition",
+              "absolute left-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-white transition",
               @inputclass
             ]}
           >
@@ -376,8 +384,9 @@ defmodule PinchflatWeb.CoreComponents do
           id={@id}
           name={@name}
           class={[
-            "relative z-20 w-full appearance-none rounded border border-form-strokedark py-3 pl-5 pr-12 outline-none transition",
-            "focus:border-primary active:border-primary bg-form-input text-black text-white",
+            "relative z-20 w-full appearance-none rounded-lg border border-form-strokedark",
+            "py-2 pl-3 pr-10 outline-none transition",
+            "focus:border-primary focus:ring-0 active:border-primary bg-form-input text-white",
             "disabled:text-opacity-50 disabled:cursor-not-allowed disabled:border-black",
             @inputclass
           ]}
@@ -405,10 +414,10 @@ defmodule PinchflatWeb.CoreComponents do
         id={@id}
         name={@name}
         class={[
-          "mt-2 block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm sm:leading-6",
-          "min-h-[6rem] phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400",
+          "block w-full rounded-lg bg-form-input text-white focus:ring-0 sm:text-sm sm:leading-6",
+          "min-h-[6rem] phx-no-feedback:border-form-strokedark phx-no-feedback:focus:border-primary",
           @inputclass,
-          @errors == [] && "border-zinc-300 focus:border-zinc-400",
+          @errors == [] && "border-form-strokedark focus:border-primary",
           @errors != [] && "border-rose-400 focus:border-rose-400"
         ]}
         {@rest}
@@ -433,9 +442,9 @@ defmodule PinchflatWeb.CoreComponents do
           id={@id}
           value={Phoenix.HTML.Form.normalize_value(@type, @value)}
           class={[
-            "w-full rounded-lg border-[1.5px] px-5 py-3 font-normal border-form-strokedark bg-form-input",
+            "w-full rounded-lg border px-3 py-2 font-normal border-form-strokedark bg-form-input",
             "outline-none transition active:border-primary disabled:cursor-default disabled:bg-whiter",
-            "text-white focus:border-primary",
+            "text-white placeholder:text-bodydark2 focus:border-primary focus:ring-0",
             @inputclass,
             @errors != [] && "border-rose-400 focus:border-rose-400"
           ]}
@@ -456,7 +465,7 @@ defmodule PinchflatWeb.CoreComponents do
 
   def help(assigns) do
     ~H"""
-    <p class="mt-1 text-sm leading-5">
+    <p class="mt-1 text-sm leading-5 text-bodydark2">
       {render_slot(@inner_block)}
     </p>
     """
@@ -470,7 +479,7 @@ defmodule PinchflatWeb.CoreComponents do
 
   def label(assigns) do
     ~H"""
-    <label for={@for} class="mt-5 mb-2 inline-block text-md font-medium text-black dark:text-white">
+    <label for={@for} class="mt-4 mb-1.5 inline-block text-sm font-medium text-white">
       {render_slot(@inner_block)}
     </label>
     """
@@ -483,8 +492,8 @@ defmodule PinchflatWeb.CoreComponents do
 
   def error(assigns) do
     ~H"""
-    <p class="mt-1 mb-5 flex gap-3 text-md leading-6 text-rose-600 phx-no-feedback:hidden">
-      <.icon name="hero-exclamation-circle-mini" class="mt-0.5 h-5 w-5 flex-none" />
+    <p class="mt-1 mb-3 flex gap-2 text-sm leading-6 text-rose-400 phx-no-feedback:hidden">
+      <.icon name="hero-exclamation-circle-mini" class="mt-1 h-4 w-4 flex-none" />
       {render_slot(@inner_block)}
     </p>
     """
@@ -642,9 +651,12 @@ defmodule PinchflatWeb.CoreComponents do
 
     ~H"""
     <ul>
-      <li :for={{k, v} <- @iterable_attributes} class="mb-2 w-2/3">
+      <li
+        :for={{k, v} <- @iterable_attributes}
+        class="py-1 border-b border-strokedark last:border-b-0 break-words md:w-2/3"
+      >
         <strong>{k}:</strong>
-        <code class="inline-block text-sm font-mono text-gray p-0.5 mx-0.5">
+        <code class="inline text-sm font-mono text-bodydark break-all p-0.5 mx-0.5">
           <%= if is_binary(v) && URI.parse(v).scheme && URI.parse(v).scheme =~ "http" do %>
             <TextComponents.inline_link href={v}>{v}</TextComponents.inline_link>
           <% else %>

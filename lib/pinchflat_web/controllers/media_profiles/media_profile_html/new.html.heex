@@ -1,13 +1,13 @@
-<div class="mb-6 flex gap-3 flex-row items-center">
+<div class="page-header justify-start">
   <.link :if={!Settings.get!(:onboarding)} href={~p"/media_profiles"}>
-    <.icon name="hero-arrow-left" class="w-10 h-10 hover:dark:text-white" />
+    <.icon name="hero-arrow-left" class="back-link" />
   </.link>
-  <h2 class="text-title-md2 font-bold text-black dark:text-white ml-4">New Media Profile</h2>
+  <h2 class="page-title">New Media Profile</h2>
 </div>
 
-<div class="rounded-sm border border-stroke bg-white px-5 pb-2.5 pt-6 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5 xl:pb-1">
+<div class="card card-body">
   <div class="max-w-full">
-    <div class="flex flex-col gap-10">
+    <div class="flex flex-col gap-6">
       <.media_profile_form changeset={@changeset} action={~p"/media_profiles"} method="post" />
     </div>
   </div>

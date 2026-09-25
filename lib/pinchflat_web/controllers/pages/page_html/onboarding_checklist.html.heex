@@ -1,4 +1,4 @@
-<div class="rounded-sm border border-stroke bg-white px-5 py-5 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5">
+<div class="card card-body">
   <div class="max-w-full overflow-x-auto">
     <div class="flex flex-col gap-10 items-center dark:text-white">
       <section class="text-center">
@@ -12,7 +12,7 @@
         <div class="mt-8">
           <.link href={~p"/media_profiles/new"}>
             <.button color="bg-primary" rounding="rounded-lg" disabled={@media_profiles_exist}>
-              <span class="font-bold mx-2">+</span> New Media Profile
+              <.icon name="hero-plus" class="h-4 w-4" /> New Media Profile
             </.button>
           </.link>
         </div>
@@ -26,7 +26,7 @@
         <div class="mt-8">
           <.link href={~p"/sources/new"}>
             <.button color="bg-primary" rounding="rounded-lg" disabled={not @media_profiles_exist}>
-              <span class="font-bold mx-2">+</span> New Source
+              <.icon name="hero-plus" class="h-4 w-4" /> New Source
             </.button>
           </.link>
         </div>

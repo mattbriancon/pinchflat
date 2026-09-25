@@ -11,7 +11,7 @@ defmodule PinchflatWeb.Sources.MediaItemTableLive do
   def render(%{total_record_count: 0} = assigns) do
     ~H"""
     <div class="mb-4 flex items-center">
-      <.icon_button icon_name="hero-arrow-path" class="h-10 w-10" phx-click="reload_page" />
+      <.icon_button icon_name="hero-arrow-path" class="h-8 w-8" phx-click="reload_page" />
       <p class="ml-2">Nothing Here!</p>
     </div>
     """
@@ -22,7 +22,7 @@ defmodule PinchflatWeb.Sources.MediaItemTableLive do
     <div>
       <header class="flex justify-between items-center mb-4">
         <span class="flex items-center">
-          <.icon_button icon_name="hero-arrow-path" class="h-10 w-10" phx-click="reload_page" tooltip="Refresh" />
+          <.icon_button icon_name="hero-arrow-path" class="h-8 w-8" phx-click="reload_page" tooltip="Refresh" />
           <span class="mx-2">
             Showing <.localized_number number={length(@records)} /> of <.localized_number number={@filtered_record_count} />
           </span>
@@ -46,7 +46,7 @@ defmodule PinchflatWeb.Sources.MediaItemTableLive do
         </div>
       </header>
       <.table rows={@records} table_class="text-white">
-        <:col :let={media_item} label="Title" class="max-w-xs">
+        <:col :let={media_item} label="Title" class="max-w-56 sm:max-w-xs">
           <section class="flex items-center space-x-1">
             <.tooltip
               :if={media_item.last_error}

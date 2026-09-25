@@ -1,11 +1,11 @@
-<div class="mb-6 flex gap-3 flex-row items-center justify-between">
+<div class="page-header">
   <div class="flex gap-3 items-center">
-    <h2 class="text-title-md2 font-bold text-black dark:text-white ml-4">
+    <h2 class="page-title">
       Settings
     </h2>
   </div>
 </div>
-<div class="rounded-sm border border-stroke bg-white px-5 py-5 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5">
+<div class="card card-body">
   <div class="max-w-full">
     <.setting_form conn={@conn} changeset={@changeset} action={~p"/settings"} />
   </div>

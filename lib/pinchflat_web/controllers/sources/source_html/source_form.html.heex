@@ -12,7 +12,7 @@
 
   <section x-data="{ mediaProfileId: null }">
     <section class="flex justify-between items-center mt-4">
-      <h3 class="text-2xl text-white">
+      <h3 class="section-title">
         General Options
       </h3>
       <span class="cursor-pointer hover:underline" x-on:click="advancedMode = !advancedMode">
@@ -44,7 +44,7 @@
       x-model.fill="mediaProfileId"
     />
 
-    <h3 class="mt-8 text-2xl text-black dark:text-white">
+    <h3 class="mt-6 section-title">
       Indexing Options
     </h3>
 
@@ -75,7 +75,7 @@
       </div>
     </section>
 
-    <h3 class="mt-8 text-2xl text-black dark:text-white">
+    <h3 class="mt-6 section-title">
       Downloading Options
     </h3>
 
@@ -148,7 +148,7 @@
     />
 
     <section x-show="advancedMode">
-      <h3 class="mt-8 text-2xl text-black dark:text-white">
+      <h3 class="mt-6 section-title">
         Advanced Options
       </h3>
       <p class="text-sm mt-2">
@@ -188,7 +188,7 @@
       </section>
     </section>
 
-    <.button class="my-10 sm:mb-7.5 w-full sm:w-auto" rounding="rounded-lg">Save Source</.button>
+    <.button class="my-6 w-full sm:w-auto" rounding="rounded-lg">Save Source</.button>
 
     <div class="rounded-sm dark:bg-meta-4 p-4 md:p-6 mb-5">
       <.fast_indexing_help />
