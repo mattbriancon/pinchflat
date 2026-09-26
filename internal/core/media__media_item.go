@@ -38,7 +38,7 @@ type MediaItem struct {
 	UpdatedAt              db.UTCDateTime       `db:"updated_at"`
 
 	// Virtual field (populated by queries with FULL OUTER JOIN or similar)
-	MatchingSearchTerm *string `db:"-"`
+	MatchingSearchTerm *string `db:"matching_search_term,virtual"`
 
 	// Associations
 	Source                *Source                `db:"-"`

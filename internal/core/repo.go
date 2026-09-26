@@ -41,7 +41,7 @@ func Columns[T Schema](alias ...string) []string {
 				continue
 			}
 			name := strings.Split(f.Tag.Get("db"), ",")[0]
-			if name == "" || name == "-" {
+			if name == "" || name == "-" || isVirtual(f.Tag.Get("db")) {
 				continue
 			}
 			if len(alias) > 0 && alias[0] != "" {
@@ -313,7 +313,7 @@ func orderedColumns(t reflect.Type) []string {
 				continue
 			}
 			name := strings.Split(f.Tag.Get("db"), ",")[0]
-			if name != "" && name != "-" {
+			if name != "" && name != "-" && !isVirtual(f.Tag.Get("db")) {
 				out = append(out, name)
 			}
 		}
@@ -372,4 +372,16 @@ func snakeToCamel(s string) string {
 		}
 	}
 	return strings.Join(parts, "")
+}
+
+// isVirtual reports a `db:"name,virtual"` tag: a field that queries may
+// select into (e.g. media_items.matching_search_term) but that is not a
+// table column, so it's excluded from Columns, inserts and updates.
+func isVirtual(tag string) bool {
+	for _, opt := range strings.Split(tag, ",")[1:] {
+		if opt == "virtual" {
+			return true
+		}
+	}
+	return false
 }

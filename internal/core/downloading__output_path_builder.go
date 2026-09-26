@@ -7,7 +7,3 @@ func OutputPathBuilderBuild(templateString string, additionalTemplateOptions map
 	panic("unported: Pinchflat.Downloading.OutputPathBuilder.build/2")
 }
 
-// OutputPathBuilderBuild/1
-func OutputPathBuilderBuild1(templateString string) (string, error) {
-	panic("unported: Pinchflat.Downloading.OutputPathBuilder.build/1")
-}

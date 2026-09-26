@@ -1,106 +1,217 @@
 package core
 
-// MediaQuery.new/0
-func MediaQueryNew() {
-	panic("unported: Pinchflat.Media.MediaQuery.new/0")
+// Port of lib/pinchflat/media/media_query.ex. Hand-written in W0 because it
+// defines the query-builder type the Media context and web tables compose.
+//
+// Table aliases match the Ecto binding names so fragments copy verbatim:
+// media_items AS mi, sources AS source, media_profiles AS media_profile,
+// and media_items_search_index (unaliased; FTS5 MATCH needs the table name).
+
+import (
+	"regexp"
+	"strings"
+	"time"
+
+	sq "github.com/Masterminds/squirrel"
+	"github.com/mattbriancon/pinchflat/internal/db"
+)
+
+// MediaQ is an Ecto query over media_items: a select builder plus the named
+// bindings (joins) it already has, so RequireAssoc doesn't join twice.
+// Methods return a new MediaQ; the receiver is not modified.
+type MediaQ struct {
+	B      sq.SelectBuilder
+	joined map[string]bool
 }
 
-// MediaQuery.for_source/1
-func MediaQueryForSource(sourceID int64) {
-	panic("unported: Pinchflat.Media.MediaQuery.for_source/1")
+// new/0: every media_items column, aliased mi.
+func MediaQueryNew() *MediaQ {
+	return &MediaQ{B: From[MediaItem]("mi"), joined: map[string]bool{}}
 }
 
-// MediaQuery.for_source/1 (with Source struct)
-func MediaQueryForSourceStruct(source *Source) {
-	panic("unported: Pinchflat.Media.MediaQuery.for_source/1")
+func (q *MediaQ) with(b sq.SelectBuilder) *MediaQ {
+	j := make(map[string]bool, len(q.joined))
+	for k, v := range q.joined {
+		j[k] = v
+	}
+	return &MediaQ{B: b, joined: j}
 }
 
-// MediaQuery.downloaded/0
-func MediaQueryDownloaded() {
-	panic("unported: Pinchflat.Media.MediaQuery.downloaded/0")
+// Where adds a predicate (Ecto `where(^dynamic)`).
+func (q *MediaQ) Where(pred sq.Sqlizer) *MediaQ { return q.with(q.B.Where(pred)) }
+
+// Map applies arbitrary builder changes (order_by, limit, select, ...).
+func (q *MediaQ) Map(fn func(sq.SelectBuilder) sq.SelectBuilder) *MediaQ { return q.with(fn(q.B)) }
+
+// ToSql implements sq.Sqlizer.
+func (q *MediaQ) ToSql() (string, []any, error) { return q.B.ToSql() }
+
+// Not negates a predicate: `not (^pred)`.
+func Not(pred sq.Sqlizer) sq.Sqlizer {
+	return sqlizerFunc(func() (string, []any, error) {
+		s, args, err := pred.ToSql()
+		return "NOT (" + s + ")", args, err
+	})
 }
 
-// MediaQuery.download_prevented/0
-func MediaQueryDownloadPrevented() {
-	panic("unported: Pinchflat.Media.MediaQuery.download_prevented/0")
+type sqlizerFunc func() (string, []any, error)
+
+func (f sqlizerFunc) ToSql() (string, []any, error) { return f() }
+
+// for_source/1 (Elixir accepts an id or a %Source{}; pass source.ID).
+func MediaQueryForSource(sourceID int64) sq.Sqlizer { return sq.Eq{"mi.source_id": sourceID} }
+
+// downloaded/0
+func MediaQueryDownloaded() sq.Sqlizer { return sq.Expr("mi.media_filepath IS NOT NULL") }
+
+// download_prevented/0
+func MediaQueryDownloadPrevented() sq.Sqlizer { return sq.Expr("mi.prevent_download = 1") }
+
+// culling_prevented/0
+func MediaQueryCullingPrevented() sq.Sqlizer { return sq.Expr("mi.prevent_culling = 1") }
+
+// redownloaded/0
+func MediaQueryRedownloaded() sq.Sqlizer { return sq.Expr("mi.media_redownloaded_at IS NOT NULL") }
+
+// upload_date_matches/1
+func MediaQueryUploadDateMatches(otherDate time.Time) sq.Sqlizer {
+	return sq.Expr("date(mi.uploaded_at) = date(?)", db.UTCDateTime{Time: otherDate})
 }
 
-// MediaQuery.culling_prevented/0
-func MediaQueryCullingPrevented() {
-	panic("unported: Pinchflat.Media.MediaQuery.culling_prevented/0")
+// upload_date_after_source_cutoff/0 (needs the source binding)
+func MediaQueryUploadDateAfterSourceCutoff() sq.Sqlizer {
+	return sq.Expr("(source.download_cutoff_date IS NULL OR date(mi.uploaded_at) >= source.download_cutoff_date)")
 }
 
-// MediaQuery.redownloaded/0
-func MediaQueryRedownloaded() {
-	panic("unported: Pinchflat.Media.MediaQuery.redownloaded/0")
+// format_matching_profile_preference/0 (needs the media_profile binding)
+func MediaQueryFormatMatchingProfilePreference() sq.Sqlizer {
+	return sq.Expr(`CASE
+          WHEN shorts_behaviour = 'only' AND livestream_behaviour = 'only' THEN
+            livestream = true OR short_form_content = true
+          WHEN shorts_behaviour = 'only' THEN
+            short_form_content = true
+          WHEN livestream_behaviour = 'only' THEN
+            livestream = true
+          WHEN shorts_behaviour = 'exclude' AND livestream_behaviour = 'exclude' THEN
+            short_form_content = false AND livestream = false
+          WHEN shorts_behaviour = 'exclude' THEN
+            short_form_content = false
+          WHEN livestream_behaviour = 'exclude' THEN
+            livestream = false
+          ELSE
+            true
+        END`)
 }
 
-// MediaQuery.upload_date_matches/1
-func MediaQueryUploadDateMatches(otherDate any) {
-	panic("unported: Pinchflat.Media.MediaQuery.upload_date_matches/1")
+// matches_source_title_regex/0 (needs the source binding)
+func MediaQueryMatchesSourceTitleRegex() sq.Sqlizer {
+	return sq.Expr("(source.title_filter_regex IS NULL OR regexp_like(mi.title, source.title_filter_regex))")
 }
 
-// MediaQuery.upload_date_after_source_cutoff/0
-func MediaQueryUploadDateAfterSourceCutoff() {
-	panic("unported: Pinchflat.Media.MediaQuery.upload_date_after_source_cutoff/0")
+// meets_min_and_max_duration/0 (needs the source binding)
+func MediaQueryMeetsMinAndMaxDuration() sq.Sqlizer {
+	return sq.Expr("((source.min_duration_seconds IS NULL OR duration_seconds >= source.min_duration_seconds) AND " +
+		"(source.max_duration_seconds IS NULL OR duration_seconds <= source.max_duration_seconds))")
 }
 
-// MediaQuery.format_matching_profile_preference/0
-func MediaQueryFormatMatchingProfilePreference() {
-	panic("unported: Pinchflat.Media.MediaQuery.format_matching_profile_preference/0")
+// past_retention_period/0 (needs the source binding)
+func MediaQueryPastRetentionPeriod() sq.Sqlizer {
+	return sq.Expr(`IFNULL(retention_period_days, 0) > 0 AND
+        DATETIME(media_downloaded_at, '+' || retention_period_days || ' day') < DATETIME('now')`)
 }
 
-// MediaQuery.matches_source_title_regex/0
-func MediaQueryMatchesSourceTitleRegex() {
-	panic("unported: Pinchflat.Media.MediaQuery.matches_source_title_regex/0")
+// past_redownload_delay/0 (needs the media_profile binding)
+func MediaQueryPastRedownloadDelay() sq.Sqlizer {
+	return sq.Expr(`IFNULL(redownload_delay_days, 0) > 0 AND
+        DATE('now', '-' || redownload_delay_days || ' day') > DATE(uploaded_at) AND
+        DATE(media_downloaded_at, '-' || redownload_delay_days || ' day') < DATE(uploaded_at)`)
 }
 
-// MediaQuery.meets_min_and_max_duration/0
-func MediaQueryMeetsMinAndMaxDuration() {
-	panic("unported: Pinchflat.Media.MediaQuery.meets_min_and_max_duration/0")
+// cullable/0
+func MediaQueryCullable() sq.Sqlizer {
+	return sq.And{MediaQueryDownloaded(), Not(MediaQueryCullingPrevented()), MediaQueryPastRetentionPeriod()}
 }
 
-// MediaQuery.past_retention_period/0
-func MediaQueryPastRetentionPeriod() {
-	panic("unported: Pinchflat.Media.MediaQuery.past_retention_period/0")
+// deletable_based_on_source_cutoff/0
+func MediaQueryDeletableBasedOnSourceCutoff() sq.Sqlizer {
+	return sq.And{MediaQueryDownloaded(), Not(MediaQueryUploadDateAfterSourceCutoff()), Not(MediaQueryCullingPrevented())}
 }
 
-// MediaQuery.past_redownload_delay/0
-func MediaQueryPastRedownloadDelay() {
-	panic("unported: Pinchflat.Media.MediaQuery.past_redownload_delay/0")
+// pending/0 (needs source and media_profile bindings)
+func MediaQueryPending() sq.Sqlizer {
+	return sq.And{
+		Not(MediaQueryDownloaded()),
+		Not(MediaQueryDownloadPrevented()),
+		MediaQueryUploadDateAfterSourceCutoff(),
+		MediaQueryFormatMatchingProfilePreference(),
+		MediaQueryMatchesSourceTitleRegex(),
+		MediaQueryMeetsMinAndMaxDuration(),
+	}
 }
 
-// MediaQuery.cullable/0
-func MediaQueryCullable() {
-	panic("unported: Pinchflat.Media.MediaQuery.cullable/0")
+// upgradeable/0 (needs the media_profile binding)
+func MediaQueryUpgradeable() sq.Sqlizer {
+	return sq.And{MediaQueryDownloaded(), Not(MediaQueryDownloadPrevented()), Not(MediaQueryRedownloaded()), MediaQueryPastRedownloadDelay()}
 }
 
-// MediaQuery.deletable_based_on_source_cutoff/0
-func MediaQueryDeletableBasedOnSourceCutoff() {
-	panic("unported: Pinchflat.Media.MediaQuery.deletable_based_on_source_cutoff/0")
+// matches_search_term/1 (needs the media_items_search_index binding unless
+// the term is blank).
+func MediaQueryMatchesSearchTerm(term *string) sq.Sqlizer {
+	if term == nil || strings.TrimSpace(*term) == "" {
+		return sq.Expr("1 = 1")
+	}
+	return sq.Expr("media_items_search_index MATCH ?", mediaQueryCleanSearchTerm(*term))
 }
 
-// MediaQuery.pending/0
-func MediaQueryPending() {
-	panic("unported: Pinchflat.Media.MediaQuery.pending/0")
+// require_assoc/2: joins the named binding unless already present.
+// identifier is "source", "media_profile" or "media_items_search_index".
+func (q *MediaQ) RequireAssoc(identifier string) *MediaQ {
+	if q.joined[identifier] {
+		return q
+	}
+	var out *MediaQ
+	switch identifier {
+	case "media_items_search_index":
+		out = q.with(q.B.Join("media_items_search_index ON media_items_search_index.rowid = mi.id"))
+	case "source":
+		out = q.with(q.B.Join("sources AS source ON source.id = mi.source_id"))
+	case "media_profile":
+		q = q.RequireAssoc("source")
+		out = q.with(q.B.Join("media_profiles AS media_profile ON media_profile.id = source.media_profile_id"))
+	default:
+		panic("require_assoc: unknown binding " + identifier)
+	}
+	out.joined[identifier] = true
+	return out
 }
 
-// MediaQuery.upgradeable/0
-func MediaQueryUpgradeable() {
-	panic("unported: Pinchflat.Media.MediaQuery.upgradeable/0")
+// matching_search_term/2: filters by the FTS term, selects the highlighted
+// snippet into matching_search_term and orders by rank.
+func (q *MediaQ) MatchingSearchTerm(term *string) *MediaQ {
+	if term == nil {
+		return q
+	}
+	escaped := mediaQueryCleanSearchTerm(*term)
+	q = q.RequireAssoc("media_items_search_index")
+	return q.with(q.B.
+		Where("media_items_search_index MATCH ?", escaped).
+		Column(`coalesce(snippet(media_items_search_index, 0, '[PF_HIGHLIGHT]', '[/PF_HIGHLIGHT]', '...', 20), '') ||
+            ' ' ||
+            coalesce(snippet(media_items_search_index, 1, '[PF_HIGHLIGHT]', '[/PF_HIGHLIGHT]', '...', 20), '') AS matching_search_term`).
+		OrderBy("rank DESC"))
 }
 
-// MediaQuery.matches_search_term/1
-func MediaQueryMatchesSearchTerm(term *string) {
-	panic("unported: Pinchflat.Media.MediaQuery.matches_search_term/1")
-}
+var whitespaceRe = regexp.MustCompile(`\s+`)
 
-// MediaQuery.require_assoc/2
-func MediaQueryRequireAssoc(query any, identifier string) any {
-	panic("unported: Pinchflat.Media.MediaQuery.require_assoc/2")
-}
-
-// MediaQuery.matching_search_term/2
-func MediaQueryMatchingSearchTerm(query any, term *string) any {
-	panic("unported: Pinchflat.Media.MediaQuery.matching_search_term/2")
+// SQLite's FTS5 is picky about search terms: collapse whitespace, strip
+// quotes and quote each word.
+func mediaQueryCleanSearchTerm(term string) string {
+	if term == "" {
+		return ""
+	}
+	words := whitespaceRe.Split(strings.TrimSpace(whitespaceRe.ReplaceAllString(term, " ")), -1)
+	for i, w := range words {
+		words[i] = `"` + strings.ReplaceAll(w, `"`, "") + `"`
+	}
+	return strings.Join(words, " ")
 }

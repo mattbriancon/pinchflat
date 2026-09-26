@@ -32,7 +32,7 @@ func (a *App) TasksCreateTaskWithRecord(ctx context.Context, job *obanlite.Job, 
 }
 
 // TasksCreateJobWithTask/2
-func (a *App) TasksCreateJobWithTask(ctx context.Context, jobAttrs KW, taskAttachedRecord any) (*Task, error) {
+func (a *App) TasksCreateJobWithTask(ctx context.Context, job obanlite.JobSpec, taskAttachedRecord any) (*Task, error) {
 	panic("unported: Pinchflat.Tasks.create_job_with_task/2")
 }
 

@@ -14,7 +14,7 @@ var fileSyncingWorkerOpts = obanlite.WorkerOpts{
 }
 
 // FileSyncingWorker.kickoff_with_task/2
-func (a *App) FileSyncingWorkerKickoffWithTask(ctx context.Context, source *Source, opts ...KW) (*Task, error) {
+func (a *App) FileSyncingWorkerKickoffWithTask(ctx context.Context, source *Source, opts KW) (*Task, error) {
 	panic("unported: Pinchflat.Media.FileSyncingWorker.kickoff_with_task/2")
 }
 

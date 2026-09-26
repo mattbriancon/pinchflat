@@ -2,17 +2,25 @@ package core
 
 import "context"
 
-// YtDlpCommandRunnerRun/5
-func (a *App) YtDlpCommandRunnerRun(ctx context.Context, url string, actionName string, commandOpts KW, outputTemplate string, addlOpts KW) (string, error) {
+// YtDlpCommandRunner is Pinchflat.YtDlp.CommandRunner, the real yt-dlp
+// runner. It implements YtDlpRunner (app.go).
+type YtDlpCommandRunner struct {
+	App *App
+}
+
+var _ YtDlpRunner = (*YtDlpCommandRunner)(nil)
+
+// run/5 — {:ok, output} | {:error, output, status} (as *CommandError)
+func (r *YtDlpCommandRunner) Run(ctx context.Context, url string, actionName string, commandOpts KW, outputTemplate string, addlOpts KW) (string, error) {
 	panic("unported: Pinchflat.YtDlp.CommandRunner.run/5")
 }
 
-// YtDlpCommandRunnerVersion/0
-func (a *App) YtDlpCommandRunnerVersion(ctx context.Context) (string, error) {
+// version/0
+func (r *YtDlpCommandRunner) Version(ctx context.Context) (string, error) {
 	panic("unported: Pinchflat.YtDlp.CommandRunner.version/0")
 }
 
-// YtDlpCommandRunnerUpdate/0
-func (a *App) YtDlpCommandRunnerUpdate(ctx context.Context) (string, error) {
+// update/0
+func (r *YtDlpCommandRunner) Update(ctx context.Context) (string, error) {
 	panic("unported: Pinchflat.YtDlp.CommandRunner.update/0")
 }

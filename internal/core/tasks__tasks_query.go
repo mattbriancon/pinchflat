@@ -1,25 +1,22 @@
 package core
 
-import (
-	sq "github.com/Masterminds/squirrel"
-)
+// Port of lib/pinchflat/tasks/tasks_query.ex (aliases: tasks AS t, oban_jobs AS j).
 
-// TasksQueryNew/0
-func TasksQueryNew() sq.SelectBuilder {
-	panic("unported: Pinchflat.Tasks.TasksQuery.new/0")
-}
+import sq "github.com/Masterminds/squirrel"
 
-// TasksQueryJoinJob/1
+// new/0
+func TasksQueryNew() sq.SelectBuilder { return From[Task]("t") }
+
+// join_job/1: LEFT JOIN oban_jobs AS j. Elixir also preloads the job; in Go
+// call PreloadTaskJob on the results.
 func TasksQueryJoinJob(query sq.SelectBuilder) sq.SelectBuilder {
-	panic("unported: Pinchflat.Tasks.TasksQuery.join_job/1")
+	return query.LeftJoin("oban_jobs AS j ON j.id = t.job_id")
 }
 
-// TasksQueryInState/1
-func TasksQueryInState(states []string) sq.Sqlizer {
-	panic("unported: Pinchflat.Tasks.TasksQuery.in_state/1")
-}
+// in_state/1 (needs join_job)
+func TasksQueryInState(states []string) sq.Sqlizer { return sq.Eq{"j.state": states} }
 
-// TasksQueryHasTag/1
+// has_tag/1 (needs join_job): `^tag in j.tags` on a JSON array column.
 func TasksQueryHasTag(tag string) sq.Sqlizer {
-	panic("unported: Pinchflat.Tasks.TasksQuery.has_tag/1")
+	return sq.Expr("? IN (SELECT value FROM json_each(j.tags))", tag)
 }

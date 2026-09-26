@@ -25,7 +25,7 @@ func (a *App) FilesystemUtilsGenerateMetadataTmpfile(ctx context.Context, typeSt
 
 // FilesystemUtilsWriteP(ctx, file, content, modes...)
 // Writes content to a file, creating directories as needed.
-func FilesystemUtilsWriteP(ctx context.Context, file string, content string, modes ...interface{}) error {
+func FilesystemUtilsWriteP(ctx context.Context, file string, content string, modes []string) error {
 	panic("unported: Pinchflat.Utils.FilesystemUtils.write_p/3")
 }
 

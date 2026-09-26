@@ -127,6 +127,31 @@ sources, err := All[Source](ctx, a.Q(ctx), q)
 - Timestamps as query args: pass `db.UTCDateTime{Time: t}` (or `db.Now()`), never a bare `time.Time`.
 - Booleans in SQL compare as `= 1` / `= 0` or `= true` / `= false` (SQLite accepts both); keep whatever the Elixir fragment used.
 
+### Query modules (already written, don't rewrite)
+
+- `MediaQuery` (`media__media_query.go`): `MediaQueryNew()` returns a `*MediaQ` (`media_items AS mi`). Chain `.RequireAssoc("source" | "media_profile" | "media_items_search_index")`, `.Where(pred)`, `.MatchingSearchTerm(term)` and `.Map(func(sq.SelectBuilder) sq.SelectBuilder)`, then run it with `All[MediaItem](ctx, a.Q(ctx), q)`. Predicates such as `MediaQueryPending()` are `sq.Sqlizer` values; negate one with `Not(pred)`. Aliases match the Ecto binding names: `mi`, `source`, `media_profile`.
+- `SourcesQueryNew()` (`sources AS s`), `ProfilesQueryNew()` (`media_profiles AS mp`) and `TasksQueryNew()` (`tasks AS t`) return `sq.SelectBuilder`. `TasksQueryJoinJob` joins `oban_jobs AS j`.
+- Virtual fields that queries select into use `db:"name,virtual"` (e.g. `MediaItem.MatchingSearchTerm`).
+
+### Real runners
+
+The swappable modules are types that implement the `app.go` interfaces:
+- `YtDlpCommandRunner{App}`
+- `NotificationsCommandRunner{App}`
+- `UserScriptsCommandRunner{App}` (plus `RunWithResult` for the full `{:ok, output, code}`)
+- `HTTPClientImpl{}`
+
+Everything else calls them through `a.YtDlp`, `a.Apprise`, `a.UserScripts` and `a.HTTP`, never directly, so tests can mock them.
+
+### Boot tasks
+
+The GenServers are gone. `(a *App) PreJobStartupTasksInit(ctx) error` and `PostBootStartupTasksInit(ctx) error` do the init work, and `main` calls them. `FileFollowerServer` is a struct with a goroutine: `FileFollowerServerStartLink(ctx, poll)`, `.WatchFile(path, handler)`, `.Stop()`.
+
+### Tricky returns already decided
+
+- `MediaDownloaderDownloadForMediaItem` returns `(*MediaDownloaderResult, error)`: `{:recovered, ...}` sets `Recovered`, and `{:error, atom, msg}` is a `*MediaDownloaderError{Reason, Message}`.
+- `TasksCreateJobWithTask(ctx, obanlite.JobSpec, record)`: the job changeset (`Worker.new(args, opts)`) becomes a `JobSpec`.
+
 ## Jobs (Oban workers)
 
 ```go

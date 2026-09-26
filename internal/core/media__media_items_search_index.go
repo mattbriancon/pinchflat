@@ -7,7 +7,7 @@ type MediaItemsSearchIndex struct {
 	Description *string `db:"description"`
 
 	// rank is a virtual field populated by FTS5 queries
-	Rank *float64 `db:"-"`
+	Rank *float64 `db:"rank,virtual"`
 }
 
 func (MediaItemsSearchIndex) TableName() string { return "media_items_search_index" }

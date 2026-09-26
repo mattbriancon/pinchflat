@@ -1,21 +1,12 @@
 package core
 
-import (
-	"context"
-)
+import "context"
 
-// PreJobStartupTasks runs startup tasks before the job runner has initialized.
+// PreJobStartupTasks runs before the job runner starts. The GenServer
+// wrapper is gone: main calls PreJobStartupTasksInit directly (and skips
+// it in the test env, like the Elixir init(%{env: :test}) clause).
 
-type PreJobStartupTasks struct {
-	// GenServer state will be added during implementation
-}
-
-// PreJobStartupTasksStartLink/1
-func PreJobStartupTasksStartLink(ctx context.Context, opts KW) (any, error) {
-	panic("unported: Pinchflat.Boot.PreJobStartupTasks.start_link/1")
-}
-
-// PreJobStartupTasksInit/1
-func (p *PreJobStartupTasks) PreJobStartupTasksInit(ctx context.Context, state map[string]any) (map[string]any, error) {
+// init/1
+func (a *App) PreJobStartupTasksInit(ctx context.Context) error {
 	panic("unported: Pinchflat.Boot.PreJobStartupTasks.init/1")
 }

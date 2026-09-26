@@ -414,7 +414,7 @@ func fieldsOf(t reflect.Type) map[string]fieldInfo {
 				continue
 			}
 			name := strings.Split(f.Tag.Get("db"), ",")[0]
-			if name == "" || name == "-" {
+			if name == "" || name == "-" || isVirtual(f.Tag.Get("db")) {
 				continue
 			}
 			fi := fieldInfo{name: name, index: idx, typ: f.Type}

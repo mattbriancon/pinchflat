@@ -1,7 +1,6 @@
 package core
 
 import (
-	"regexp"
 
 	"github.com/mattbriancon/pinchflat/internal/db"
 )
@@ -144,6 +143,6 @@ func SourceJsonExcludedFields() []string {
 }
 
 // youtube_channel_or_playlist_regex/0
-func SourceYoutubeChannelOrPlaylistRegex() *regexp.Regexp {
+func SourceYoutubeChannelOrPlaylistRegex() string {
 	panic("unported: Pinchflat.Sources.Source.youtube_channel_or_playlist_regex/0")
 }

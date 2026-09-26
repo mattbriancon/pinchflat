@@ -14,7 +14,7 @@ var mediaProfileDeletionWorkerOpts = obanlite.WorkerOpts{
 }
 
 // MediaProfileDeletionWorker.kickoff/1, kickoff/2, kickoff/3
-func (a *App) MediaProfileDeletionWorkerKickoff(ctx context.Context, profile *MediaProfile, jobArgs ...Attrs) (*obanlite.Job, error) {
+func (a *App) MediaProfileDeletionWorkerKickoff(ctx context.Context, profile *MediaProfile, jobArgs Attrs, jobOpts KW) (*obanlite.Job, error) {
 	panic("unported: Pinchflat.Profiles.MediaProfileDeletionWorker.kickoff/3")
 }
 

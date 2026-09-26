@@ -1,21 +1,11 @@
 package core
 
-import (
-	"context"
-)
+import "context"
 
-// PostBootStartupTasks runs startup tasks after the app has fully booted.
+// PostBootStartupTasks runs once the app has booted. main calls
+// PostBootStartupTasksInit directly (skipped in the test env).
 
-type PostBootStartupTasks struct {
-	// GenServer state will be added during implementation
-}
-
-// PostBootStartupTasksStartLink/1
-func PostBootStartupTasksStartLink(ctx context.Context, opts KW) (any, error) {
-	panic("unported: Pinchflat.Boot.PostBootStartupTasks.start_link/1")
-}
-
-// PostBootStartupTasksInit/1
-func (p *PostBootStartupTasks) PostBootStartupTasksInit(ctx context.Context, state map[string]any) (map[string]any, error) {
+// init/1
+func (a *App) PostBootStartupTasksInit(ctx context.Context) error {
 	panic("unported: Pinchflat.Boot.PostBootStartupTasks.init/1")
 }

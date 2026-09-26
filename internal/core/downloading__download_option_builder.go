@@ -9,11 +9,6 @@ func (a *App) DownloadOptionBuilderBuild(ctx context.Context, mediaItem *MediaIt
 	panic("unported: Pinchflat.Downloading.DownloadOptionBuilder.build/2")
 }
 
-// DownloadOptionBuilderBuild/1
-func (a *App) DownloadOptionBuilderBuild1(ctx context.Context, mediaItem *MediaItem) (KW, error) {
-	panic("unported: Pinchflat.Downloading.DownloadOptionBuilder.build/1")
-}
-
 // DownloadOptionBuilderBuildOutputPathForSource/1
 func (a *App) DownloadOptionBuilderBuildOutputPathForSource(ctx context.Context, source *Source) string {
 	panic("unported: Pinchflat.Downloading.DownloadOptionBuilder.build_output_path_for/1")

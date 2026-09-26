@@ -14,7 +14,7 @@ var sourceDeletionWorkerOpts = obanlite.WorkerOpts{
 }
 
 // SourceDeletionWorker.kickoff/1, kickoff/2, kickoff/3
-func (a *App) SourceDeletionWorkerKickoff(ctx context.Context, source *Source, jobArgs ...Attrs) (*obanlite.Job, error) {
+func (a *App) SourceDeletionWorkerKickoff(ctx context.Context, source *Source, jobArgs Attrs, jobOpts KW) (*obanlite.Job, error) {
 	panic("unported: Pinchflat.Sources.SourceDeletionWorker.kickoff/3")
 }
 

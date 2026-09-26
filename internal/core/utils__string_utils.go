@@ -9,7 +9,7 @@ func StringUtilsToKebabCase(str string) string {
 // StringUtilsRandomString(length)
 // Returns a random string of the given length. Base 16 encoded, lower case.
 // Default length is 32.
-func StringUtilsRandomString(length ...int) string {
+func StringUtilsRandomString(length int) string {
 	panic("unported: Pinchflat.Utils.StringUtils.random_string/1")
 }
 
