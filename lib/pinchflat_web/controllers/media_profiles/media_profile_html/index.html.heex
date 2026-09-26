@@ -1,20 +1,20 @@
-<div class="mb-6 flex gap-3 flex-row items-center justify-between">
-  <h2 class="text-title-md2 font-bold text-black dark:text-white">
+<div class="page-header">
+  <h2 class="page-title">
     Media Profiles
   </h2>
   <nav>
     <.link href={~p"/media_profiles/new"}>
       <.button color="bg-primary" rounding="rounded-lg">
-        <span class="font-bold text-xl mx-2">+</span> New <span class="hidden sm:inline pl-1">Media Profile</span>
+        <.icon name="hero-plus" class="h-4 w-4" /> New <span class="hidden sm:inline pl-1">Media Profile</span>
       </.button>
     </.link>
   </nav>
 </div>
-<div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
+<div class="card overflow-hidden">
   <div class="max-w-full overflow-x-auto">
-    <div class="flex flex-col gap-10 min-w-max">
+    <div class="flex flex-col">
       <.table rows={@media_profiles} table_class="text-black dark:text-white">
-        <:col :let={media_profile} label="Name" class="truncate max-w-xs">
+        <:col :let={media_profile} label="Name" class="cell-wrap">
           <.subtle_link href={~p"/media_profiles/#{media_profile.id}"}>
             {media_profile.name}
           </.subtle_link>

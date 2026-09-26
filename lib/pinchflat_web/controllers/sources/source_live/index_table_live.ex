@@ -17,7 +17,9 @@ defmodule PinchflatWeb.Sources.SourceLive.IndexTableLive do
       Map.merge(
         %{
           sort_key: session["initial_sort_key"],
-          sort_direction: session["initial_sort_direction"]
+          sort_direction: session["initial_sort_direction"],
+          # Built from the request's conn so feed links use the host the user is browsing from
+          feed_base_url: session["feed_base_url"] || url(~p"/sources")
         },
         get_pagination_attributes(sources_query(), 1, limit)
       )
@@ -57,6 +59,11 @@ defmodule PinchflatWeb.Sources.SourceLive.IndexTableLive do
   defp sort_attr(:media_profile_name), do: dynamic([s, mp], fragment("? COLLATE NOCASE", mp.name))
   defp sort_attr(:custom_name), do: dynamic([s], fragment("? COLLATE NOCASE", s.custom_name))
   defp sort_attr(:enabled), do: dynamic([s], s.enabled)
+
+  defp rss_feed_url(feed_base_url, source), do: "#{feed_base_url}/#{source.uuid}/feed.xml"
+
+  # The podcast:// scheme hands the feed to the device's podcast app (Apple Podcasts on iOS/macOS)
+  defp podcast_app_url(feed_url), do: String.replace(feed_url, ~r{^https?://}, "podcast://")
 
   defp set_sources(%{assigns: assigns} = socket) do
     sources =

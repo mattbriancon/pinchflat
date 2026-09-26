@@ -33,6 +33,25 @@ defmodule PinchflatWeb.Sources.SourceLive.IndexTableLiveTest do
 
       refute html =~ source.custom_name
     end
+
+    test "links each source's RSS feed to the podcast app", %{conn: conn} do
+      source = source_fixture()
+      session = Map.put(create_session(), "feed_base_url", "http://pinchflat.local/sources")
+
+      {:ok, _view, html} = live_isolated(conn, IndexTableLive, session: session)
+
+      assert html =~ "podcast://pinchflat.local/sources/#{source.uuid}/feed.xml"
+      assert html =~ "http://pinchflat.local/sources/#{source.uuid}/feed.xml"
+    end
+
+    test "falls back to the endpoint URL for RSS feeds", %{conn: conn} do
+      source = source_fixture()
+
+      {:ok, _view, html} = live_isolated(conn, IndexTableLive, session: create_session())
+
+      assert html =~ "podcast://"
+      assert html =~ "/sources/#{source.uuid}/feed.xml"
+    end
   end
 
   describe "when testing sorting" do

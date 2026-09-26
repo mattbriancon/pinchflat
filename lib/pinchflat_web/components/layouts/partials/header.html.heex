@@ -1,29 +1,33 @@
-<header class="sticky top-0 z-999 flex min-h-20 w-full bg-white drop-shadow-1 dark:bg-boxdark dark:drop-shadow-none">
-  <div class="flex flex-grow items-center justify-between lg:justify-end px-4 py-4 shadow-2 md:px-6 2xl:px-11">
-    <div class="flex items-center gap-2 sm:gap-4 lg:hidden w-2/6">
-      <section class="pr-1">
-        <img src={~p"/images/icon-2024-03-20.png"} alt="Pinchflat" class="w-10" />
-      </section>
+<header class="sticky top-0 z-999 w-full border-b border-strokedark bg-boxdark">
+  <div class="mx-auto flex max-w-screen-2xl flex-wrap items-center gap-x-3 gap-y-1 px-3 pt-2 sm:px-4 lg:flex-nowrap lg:gap-x-6 lg:px-6 lg:py-2">
+    <a href={~p"/"} class="flex shrink-0 items-center gap-2">
+      <img src={~p"/images/icon-2024-03-20.png"} alt="Pinchflat" class="h-8 w-8" />
+      <span class="hidden text-lg font-bold text-white sm:inline">Pinchflat</span>
+    </a>
 
-      <button
-        class="z-99999 block mx-2 rounded-sm border border-stroke bg-white p-1.5 shadow-sm dark:border-strokedark dark:bg-boxdark lg:hidden"
-        @click.stop="sidebarVisible = !sidebarVisible"
-      >
-        <.icon name="hero-bars-3" />
-      </button>
-    </div>
-    <div class="bg-meta-4 rounded-md w-4/6 lg:w-3/6 xl:w-2/6">
+    <nav
+      aria-label="Main navigation"
+      class="no-scrollbar order-last -mx-3 flex w-[calc(100%+1.5rem)] gap-0.5 overflow-x-auto px-2 pb-2 sm:gap-1 sm:-mx-4 sm:w-[calc(100%+2rem)] sm:px-3 lg:order-none lg:mx-0 lg:w-auto lg:flex-1 lg:px-0 lg:pb-0"
+    >
+      <.nav_link text="Home" href={~p"/"} conn={@conn} />
+      <.nav_link text="Sources" href={~p"/sources"} conn={@conn} />
+      <.nav_link text="Media Profiles" href={~p"/media_profiles"} conn={@conn} />
+      <.nav_link text="Settings" href={~p"/settings"} conn={@conn} />
+      <.nav_link text="App Info" href={~p"/app_info"} conn={@conn} />
+    </nav>
+
+    <div class="min-w-0 flex-1 rounded-lg border border-strokedark bg-form-input focus-within:border-primary lg:w-80 lg:flex-none">
       <div class="relative">
-        <span class="absolute left-2 top-1/2 -translate-y-1/2 flex">
-          <.icon name="hero-magnifying-glass" />
+        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 flex text-bodydark2">
+          <.icon name="hero-magnifying-glass" class="h-4 w-4" />
         </span>
         <form action={~p"/search"}>
           <input
             type="text"
             name="q"
-            value={@params["q"]}
+            value={@conn.params["q"]}
             placeholder="Search all media..."
-            class="w-full bg-transparent pl-9 pr-4 border-0 focus:ring-0 focus:outline-none"
+            class="w-full bg-transparent py-1.5 pl-8 pr-3 text-sm text-white placeholder:text-bodydark2 border-0 focus:ring-0 focus:outline-none"
           />
         </form>
       </div>

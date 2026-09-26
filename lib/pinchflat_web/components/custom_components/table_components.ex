@@ -31,40 +31,45 @@ defmodule PinchflatWeb.CustomComponents.TableComponents do
 
   def table(assigns) do
     ~H"""
-    <table class={["w-full table-auto bg-boxdark", @table_class]}>
-      <thead>
-        <tr class="text-left bg-meta-4">
-          <th
-            :for={col <- @col}
-            class={["px-4 py-4 font-medium text-white", col[:sort_key] && "cursor-pointer"]}
-            phx-click={col[:sort_key] && "sort_update"}
-            phx-value-sort_key={col[:sort_key]}
-          >
-            <div class="relative">
-              {col[:label]}
-              <.icon
-                :if={to_string(@sort_key) == col[:sort_key]}
-                name={if @sort_direction == :asc, do: "hero-chevron-up", else: "hero-chevron-down"}
-                class="w-3 h-3 mt-2 ml-1 absolute"
-              />
-            </div>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr :for={row <- @rows} class="hover:bg-strokedark">
-          <td
-            :for={col <- @col}
-            class={[
-              "px-4 py-5",
-              col[:class]
-            ]}
-          >
-            {render_slot(col, @row_item.(row))}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="max-w-full overflow-x-auto">
+      <table class={["w-full table-auto bg-boxdark text-sm", @table_class]}>
+        <thead>
+          <tr class="text-left bg-meta-4 border-b border-strokedark">
+            <th
+              :for={col <- @col}
+              class={[
+                "px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-bodydark2 whitespace-nowrap",
+                col[:sort_key] && "cursor-pointer hover:text-white"
+              ]}
+              phx-click={col[:sort_key] && "sort_update"}
+              phx-value-sort_key={col[:sort_key]}
+            >
+              <div class="relative">
+                {col[:label]}
+                <.icon
+                  :if={to_string(@sort_key) == col[:sort_key]}
+                  name={if @sort_direction == :asc, do: "hero-chevron-up", else: "hero-chevron-down"}
+                  class="w-3 h-3 mt-0.5 ml-1 absolute"
+                />
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr :for={row <- @rows} class="border-b border-strokedark last:border-b-0 hover:bg-meta-4">
+            <td
+              :for={col <- @col}
+              class={[
+                "px-3 py-2 whitespace-nowrap",
+                col[:class]
+              ]}
+            >
+              {render_slot(col, @row_item.(row))}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     """
   end
 
@@ -85,9 +90,9 @@ defmodule PinchflatWeb.CustomComponents.TableComponents do
         <li>
           <span
             class={[
-              "pagination-prev h-8 w-8 items-center justify-center rounded",
+              "pagination-prev flex h-8 w-8 items-center justify-center rounded",
               @page_number != 1 && "cursor-pointer hover:bg-primary hover:text-white",
-              @page_number <= 1 && "cursor-not-allowed"
+              @page_number <= 1 && "cursor-not-allowed opacity-40"
             ]}
             phx-click={@page_number != 1 && "page_change"}
             phx-value-direction="dec"
@@ -96,7 +101,7 @@ defmodule PinchflatWeb.CustomComponents.TableComponents do
           </span>
         </li>
         <li>
-          <span class="mx-2">
+          <span class="mx-2 text-sm">
             Page <.localized_number number={@page_number} /> of <.localized_number number={@total_pages} />
           </span>
         </li>
@@ -105,7 +110,7 @@ defmodule PinchflatWeb.CustomComponents.TableComponents do
             class={[
               "pagination-next flex h-8 w-8 items-center justify-center rounded",
               @page_number != @total_pages && "cursor-pointer hover:bg-primary hover:text-white",
-              @page_number >= @total_pages && "cursor-not-allowed"
+              @page_number >= @total_pages && "cursor-not-allowed opacity-40"
             ]}
             phx-click={@page_number != @total_pages && "page_change"}
             phx-value-direction="inc"

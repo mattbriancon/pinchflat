@@ -1,46 +1,46 @@
-<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-  <div class="flex flex-col justify-center rounded-sm border px-7.5 py-6 shadow-default border-strokedark bg-boxdark">
-    <a href={~p"/media_profiles"} class="flex flex-col items-center py-2">
-      <span class="text-md font-medium">
+<div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+  <div class="card flex flex-col justify-center px-3 py-2.5 sm:px-4 sm:py-3">
+    <a href={~p"/media_profiles"} class="flex flex-col">
+      <span class="text-xs font-medium uppercase tracking-wide text-bodydark2">
         Media <.pluralize count={@media_profile_count} word="Profile" />
       </span>
-      <h4 class="text-title-md font-bold text-white">
+      <h4 class="text-xl font-bold text-white sm:text-2xl">
         <.localized_number number={@media_profile_count} />
       </h4>
     </a>
   </div>
-  <div class="flex flex-col justify-center rounded-sm border px-7.5 py-6 shadow-default border-strokedark bg-boxdark">
-    <a href={~p"/sources"} class="flex flex-col items-center py-2">
-      <span class="text-md font-medium">
+  <div class="card flex flex-col justify-center px-3 py-2.5 sm:px-4 sm:py-3">
+    <a href={~p"/sources"} class="flex flex-col">
+      <span class="text-xs font-medium uppercase tracking-wide text-bodydark2">
         <.pluralize count={@source_count} word="Source" />
       </span>
-      <h4 class="text-title-md font-bold text-white">
+      <h4 class="text-xl font-bold text-white sm:text-2xl">
         <.localized_number number={@source_count} />
       </h4>
     </a>
   </div>
-  <div class="flex flex-col justify-center rounded-sm border px-7.5 py-6 shadow-default border-strokedark bg-boxdark">
-    <span class="flex flex-col items-center py-2">
-      <span class="text-md font-medium">
+  <div class="card flex flex-col justify-center px-3 py-2.5 sm:px-4 sm:py-3">
+    <span class="flex flex-col">
+      <span class="text-xs font-medium uppercase tracking-wide text-bodydark2">
         <.pluralize count={@media_item_count} word="Download" />
       </span>
-      <h4 class="text-title-md font-bold text-white">
+      <h4 class="text-xl font-bold text-white sm:text-2xl">
         <.localized_number number={@media_item_count} />
       </h4>
     </span>
   </div>
-  <div class="flex flex-col justify-center rounded-sm border px-7.5 py-6 shadow-default border-strokedark bg-boxdark">
-    <span class="flex flex-col items-center py-2">
-      <span class="text-md font-medium">Library Size</span>
-      <h4 class="text-title-md font-bold text-white">
+  <div class="card flex flex-col justify-center px-3 py-2.5 sm:px-4 sm:py-3">
+    <span class="flex flex-col">
+      <span class="text-xs font-medium uppercase tracking-wide text-bodydark2">Library Size</span>
+      <h4 class="text-xl font-bold text-white sm:text-2xl">
         <.readable_filesize byte_size={@media_item_size} />
       </h4>
     </span>
   </div>
 </div>
 
-<div class="rounded-sm border shadow-default border-strokedark bg-boxdark mt-4 p-5">
-  <span class="text-2xl font-medium mb-4">Media History</span>
+<div class="card card-body mt-3">
+  <h2 class="section-title">Media History</h2>
   <.tabbed_layout>
     <:tab title="Downloaded" id="downloaded">
       {live_render(

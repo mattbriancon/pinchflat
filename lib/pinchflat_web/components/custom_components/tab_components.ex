@@ -19,30 +19,30 @@ defmodule PinchflatWeb.CustomComponents.TabComponents do
     <div
       x-data={"{
         openTab: getTabFromHash('#{@first_tab_id}', '#{@first_tab_id}'),
-        activeClasses: 'text-meta-5 border-meta-5',
+        activeClasses: 'text-white border-meta-5',
         inactiveClasses: 'border-transparent'
       }"}
       @hashchange.window={"openTab = getTabFromHash(openTab, '#{@first_tab_id}')"}
       class="w-full"
     >
-      <header class="flex flex-col md:flex-row md:justify-between border-b border-strokedark">
-        <div class="flex flex-wrap gap-5 sm:gap-10">
+      <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-b border-strokedark">
+        <div class="no-scrollbar -mb-px flex gap-5 overflow-x-auto sm:gap-8">
           <a
             :for={tab <- @tab}
             href="#"
             @click.prevent={"openTab = setTabByName('#{tab.id}')"}
             x-bind:class={"openTab === '#{tab.id}' ? activeClasses : inactiveClasses"}
-            class="border-b-2 py-4 w-full sm:w-fit text-sm font-medium hover:text-meta-5 md:text-base"
+            class="border-b-2 py-2.5 whitespace-nowrap font-medium hover:text-meta-5"
           >
-            <span class="text-xl">{tab.title}</span>
+            {tab.title}
           </a>
         </div>
-        <div class="mx-4 my-4 lg:my-0 flex gap-5 sm:gap-10 items-center">
+        <div class="mb-2 md:mb-0 flex gap-3 items-center empty:hidden">
           {render_slot(@tab_append)}
         </div>
       </header>
-      <div class="mt-4 min-h-60 overflow-x-auto">
-        <div :for={tab <- @tab} x-show={"openTab === '#{tab.id}'"} class="font-medium leading-relaxed">
+      <div class="mt-3 min-h-40 overflow-x-auto">
+        <div :for={tab <- @tab} x-show={"openTab === '#{tab.id}'"} class="leading-normal">
           {render_slot(tab)}
         </div>
       </div>

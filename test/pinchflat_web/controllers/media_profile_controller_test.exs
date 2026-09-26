@@ -46,7 +46,7 @@ defmodule PinchflatWeb.MediaProfileControllerTest do
       Settings.set(onboarding: true)
       conn = get(conn, ~p"/media_profiles/new")
 
-      refute html_response(conn, 200) =~ "<span>MENU</span>"
+      refute html_response(conn, 200) =~ "Main navigation"
     end
   end
 
@@ -77,7 +77,7 @@ defmodule PinchflatWeb.MediaProfileControllerTest do
       Settings.set(onboarding: true)
       conn = post(conn, ~p"/media_profiles", media_profile: @invalid_attrs)
 
-      refute html_response(conn, 200) =~ "MENU"
+      refute html_response(conn, 200) =~ "Main navigation"
     end
 
     test "preloads some attributes when using a template", %{conn: conn} do

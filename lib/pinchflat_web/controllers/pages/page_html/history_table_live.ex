@@ -11,7 +11,7 @@ defmodule Pinchflat.Pages.HistoryTableLive do
   def render(%{records: []} = assigns) do
     ~H"""
     <div class="mb-4 flex items-center">
-      <.icon_button icon_name="hero-arrow-path" class="h-10 w-10" phx-click="reload_page" />
+      <.icon_button icon_name="hero-arrow-path" class="h-8 w-8" phx-click="reload_page" />
       <p class="ml-2">Nothing Here!</p>
     </div>
     """
@@ -21,15 +21,15 @@ defmodule Pinchflat.Pages.HistoryTableLive do
     ~H"""
     <div>
       <span class="mb-4 flex items-center">
-        <.icon_button icon_name="hero-arrow-path" class="h-10 w-10" phx-click="reload_page" tooltip="Refresh" />
+        <.icon_button icon_name="hero-arrow-path" class="h-8 w-8" phx-click="reload_page" tooltip="Refresh" />
         <span class="ml-2">
           Showing <.localized_number number={length(@records)} /> of <.localized_number number={@total_record_count} />
         </span>
       </span>
       <div class="max-w-full overflow-x-auto">
         <.table rows={@records} table_class="text-white">
-          <:col :let={media_item} label="Title" class="max-w-xs">
-            <section class="flex items-center space-x-1">
+          <:col :let={media_item} label="Title" class="cell-wrap">
+            <section class="flex items-start gap-1">
               <.tooltip
                 :if={media_item.last_error}
                 tooltip={media_item.last_error}
@@ -38,7 +38,7 @@ defmodule Pinchflat.Pages.HistoryTableLive do
               >
                 <.icon name="hero-exclamation-circle-solid" class="text-red-500" />
               </.tooltip>
-              <span class="truncate">
+              <span>
                 <.subtle_link href={~p"/sources/#{media_item.source_id}/media/#{media_item.id}"}>
                   {media_item.title}
                 </.subtle_link>
@@ -54,7 +54,7 @@ defmodule Pinchflat.Pages.HistoryTableLive do
           <:col :let={media_item} label="Downloaded At">
             {format_datetime(media_item.media_downloaded_at)}
           </:col>
-          <:col :let={media_item} label="Source" class="truncate max-w-xs">
+          <:col :let={media_item} label="Source">
             <.subtle_link href={~p"/sources/#{media_item.source_id}"}>
               {media_item.source.custom_name}
             </.subtle_link>

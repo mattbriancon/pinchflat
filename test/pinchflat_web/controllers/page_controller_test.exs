@@ -28,7 +28,7 @@ defmodule PinchflatWeb.PageControllerTest do
       Settings.set(onboarding: false)
 
       conn = get(conn, ~p"/")
-      assert html_response(conn, 200) =~ "MENU"
+      assert html_response(conn, 200) =~ "Main navigation"
     end
   end
 end

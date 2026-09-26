@@ -12,7 +12,7 @@ defmodule PinchflatWeb.CustomComponents.TextComponents do
 
   def inline_code(assigns) do
     ~H"""
-    <code class="inline-block text-sm font-mono text-gray bg-boxdark rounded-md p-0.5 mx-0.5 text-nowrap">
+    <code class="inline-block text-sm font-mono text-bodydark1 bg-meta-4 rounded px-1 mx-0.5 text-nowrap">
       {render_slot(@inner_block)}
     </code>
     """
@@ -41,7 +41,11 @@ defmodule PinchflatWeb.CustomComponents.TextComponents do
 
   def subtle_link(assigns) do
     ~H"""
-    <.link href={@href} target={@target} class="underline decoration-bodydark decoration-1 hover:decoration-white">
+    <.link
+      href={@href}
+      target={@target}
+      class="text-bodydark1 underline decoration-form-strokedark decoration-1 underline-offset-2 hover:text-white hover:decoration-white"
+    >
       {render_slot(@inner_block)}
     </.link>
     """
@@ -207,13 +211,13 @@ defmodule PinchflatWeb.CustomComponents.TextComponents do
         :if={@tooltip}
         class={[
           "hidden absolute top-full z-20 mt-3 whitespace-nowrap rounded-md",
-          "p-1.5 text-sm font-medium opacity-0 drop-shadow-4 group-hover:opacity-100 group-hover:block bg-meta-4",
+          "p-1.5 text-sm font-medium opacity-0 shadow-lg group-hover:opacity-100 group-hover:block bg-graydark",
           "border border-form-strokedark text-wrap",
           @tooltip_class
         ]}
       >
         <span class={[
-          "border-t border-l border-form-strokedark absolute -z-10 h-2 w-2 rotate-45 rounded-sm bg-meta-4",
+          "border-t border-l border-form-strokedark absolute -z-10 h-2 w-2 rotate-45 rounded-sm bg-graydark",
           @tooltip_arrow_class
         ]}>
         </span>
