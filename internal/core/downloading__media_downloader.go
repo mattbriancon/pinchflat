@@ -25,4 +25,3 @@ func (e *MediaDownloaderError) Error() string { return e.Reason + ": " + e.Messa
 func (a *App) MediaDownloaderDownloadForMediaItem(ctx context.Context, mediaItem *MediaItem, overrideOpts KW) (*MediaDownloaderResult, error) {
 	panic("unported: Pinchflat.Downloading.MediaDownloader.download_for_media_item/2")
 }
-

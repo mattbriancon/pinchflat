@@ -124,7 +124,7 @@ func (j *JSON[T]) Scan(src any) error {
 	return json.Unmarshal(b, &j.V)
 }
 
-func (j JSON[T]) MarshalJSON() ([]byte, error) { return json.Marshal(j.V) }
+func (j JSON[T]) MarshalJSON() ([]byte, error)  { return json.Marshal(j.V) }
 func (j *JSON[T]) UnmarshalJSON(b []byte) error { return json.Unmarshal(b, &j.V) }
 
 // EncodeJSON encodes like Jason.encode!/1: compact, no HTML escaping.

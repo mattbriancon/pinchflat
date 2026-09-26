@@ -294,7 +294,9 @@ func TestStartRunsElixirQueuedJobs(t *testing.T) {
 	o := obanlite.New(d)
 	var ran atomic.Int32
 	register(o, obanlite.WorkerFunc(func(_ context.Context, j *obanlite.Job) error {
-		var args struct{ ID int `json:"id"` }
+		var args struct {
+			ID int `json:"id"`
+		}
 		if err := j.DecodeArgs(&args); err != nil || args.ID == 0 {
 			t.Errorf("bad args %s", j.Args)
 		}
