@@ -9,7 +9,7 @@ Status: proposal. Companion file: [`MANIFEST.md`](./MANIFEST.md) (one row per `l
 - **Data layer:** `modernc.org/sqlite` (pure Go, so no CGO or `.so` files), `sqlx` for scanning, and `squirrel` for building the dynamic queries that Ecto builds today. **No ORM.** A small set of hand-written types reproduce exactly how Ecto encodes values on disk.
 - **Migrations:** a small in-house migrator that writes to **Ecto's own `schema_migrations` table**. It uses the same 79 version numbers, with each `.exs` file transcribed to a `.sql` file. It is verified by a golden test against a database migrated by the real Elixir app.
 - **Jobs:** a small in-house job runner (`internal/obanlite`) that reads and writes the **existing `oban_jobs` table**, with the same column semantics and the same worker name strings. We don't use River or any other queue that brings its own schema, because `tasks.job_id` has a foreign key into `oban_jobs` and existing DBs contain pending jobs.
-- **Web:** `chi` for routing, `templ` for templates (converted from the `.heex` files), htmx for form interactions (Alpine.js stays), and SSE for the two LiveViews that need server push.
+- **Web:** `chi` for routing, `templ` for templates (converted from the `.heex` files), htmx for form interactions (Alpine.js stays). No server push: live-updating tables become a refresh button or a page reload.
 - **Process:** Phase 0 builds the compatibility harness and infrastructure, done by a stronger model. Phase 1 ports the code file by file in dependency waves, with **Haiku agents doing one file and its test each**, compiling against a pre-generated skeleton. Phase 2 comes after cutover and makes the code idiomatic Go.
 - **Can be dropped:** `tooling/` entirely, most of `rel/`, and much of `priv/`. **Not all of `priv/`:** `priv/repo/migrations` defines the schema we must match, and `priv/static` holds the app's images and fonts. See §8.
 
@@ -112,7 +112,7 @@ Features to replicate (read the Oban 2.19.4 Lite engine source; don't guess):
 - **Cron:** yt-dlp update at a per-instance staggered time, retention at 01:00 UTC, quality upgrade at 02:00 UTC. Match how Oban's Cron plugin writes `meta` and handles uniqueness.
 - **Pruner:** delete finished jobs after 30 days. The FK cascade deletes their `tasks` rows, so `foreign_keys=ON` is required.
 - **Boot rescue:** `PreJobStartupTasks` resets `executing` jobs to `retryable`.
-- **Events:** job start/stop/exception go to an in-process pub/sub, which replaces `Phoenix.PubSub` topics `job:state` and `media_table` and feeds SSE.
+- **Events:** none needed for the UI. The `job:state` and `media_table` `Phoenix.PubSub` topics only drive LiveView refreshes, which are dropped (§4.5). Job start/stop hooks exist only to feed metrics.
 - **Test mode:** `obanlite.Manual` plus `AssertEnqueued(t, worker, args)` / `RefuteEnqueued`, mirroring `Oban.Testing` so worker tests port 1:1.
 
 ---
@@ -161,7 +161,7 @@ Counts come from `MANIFEST.md`.
 | **W1** (29 files) | Pure logic: utils, output path parser (nimble_parsec → a hand-written recursive-descent parser for `{{ var }}` templates), download and quality option builders, NFO/RSS/OPML builders, metadata parsers, yt-dlp runners, HTTP client, file follower (GenServer → goroutine tailing a file) | **Haiku**, 8–10 in parallel | Ported tests pass; argv/XML byte-equality tests pass |
 | **W2** (17 files) | Schemas, `*_query.ex`, contexts (media, sources, profiles, settings, tasks, metadata records) | **Haiku**; `media_query.ex` and `media.ex` get a Sonnet review | Context tests pass against a temp copy of the golden DB |
 | **W3** (19 files) | Workers, helpers, boot tasks, lifecycle notifications, `main.go` | **Haiku**; `main.go` and boot by Sonnet | Worker tests pass using `obanlite` manual mode; the app boots against `elixir_populated.db` and drains a queued job |
-| **W4** (69 files) | Router, plugs, endpoint middleware, controllers, 36 `.heex` → `.templ`, components, LiveViews → handlers + htmx (SSE for `job_table_live` and `history_table_live`), metrics, static embed | **Haiku** for templates and controllers; Sonnet for router, plugs and SSE | Controller tests pass; route-table parity; RSS/OPML diff vs Elixir |
+| **W4** (69 files) | Router, plugs, endpoint middleware, controllers, 36 `.heex` → `.templ`, components, LiveViews → handlers + htmx, metrics, static embed | **Haiku** for templates and controllers; Sonnet for router and plugs | Controller tests pass; route-table parity; RSS/OPML diff vs Elixir |
 | **W5** | New `docker/selfhosted.Dockerfile` (Go build stage + same runtime tools), CI workflows, release notes, cutover PR that deletes the Elixir tree | Sonnet | §6 compatibility suite green; manual QA checklist |
 
 Merge one PR per wave (or two for W4) into the branch. The Elixir app keeps shipping from `master` until W5. W5 ships as a single release: back up the DB, stop Elixir, start Go on the same volumes.
@@ -171,7 +171,9 @@ Merge one PR per wave (or two for W4) into the branch. The Elixir app keeps ship
 ### 4.5 Web specifics
 
 - **Templates:** `.heex` function components map closely onto `templ` components (typed params, slots → `templ.Component` children). Keep Tailwind classes verbatim and point `tailwind.config.js` content globs at `*.templ`. Use the standalone Tailwind CLI and drop esbuild: the JS is Alpine plus two small helper files, which can be vendored and served as-is.
-- **LiveViews:** `upgrade_button_live`, `apprise_server_live`, `source_enable_toggle`, `index_table_live` and `media_item_table_live` are forms, debounced search and toggles, so htmx covers them (`hx-trigger="keyup changed delay:200ms"`, etc.). `job_table_live` and `history_table_live` need push, so the job event bus feeds an SSE endpoint and htmx's SSE extension swaps in fragments.
+- **LiveViews:** none need server push. `upgrade_button_live`, `apprise_server_live`, `source_enable_toggle` and `index_table_live` are forms, debounced search and toggles, so htmx covers them (`hx-trigger="keyup changed delay:200ms"`, etc.).
+  - `history_table_live` and `media_item_table_live` already refresh only when the user clicks their refresh button (`reload_page`). That becomes a plain link or an `hx-get` for the table fragment. The `media_table` broadcast, which refreshes every table on a source page at once, becomes a full page reload.
+  - `job_table_live` (home page, running jobs) is the only view that updates itself today, via the `job:state` topic. It becomes a static table with the same refresh button; reloading the page shows current state.
 - **Forms:** keep Phoenix's param names (`source[custom_name]`) so templates and tests port directly; a small decoder strips the prefix.
 - **CSRF:** `net/http.CrossOriginProtection` (Go 1.25+). **Flash:** a signed cookie keyed from `SECRET_KEY_BASE`.
 - **Streaming:** `http.ServeContent` handles Range/206 natively, which replaces the hand-rolled range parsing in `media_item_controller.ex`.
@@ -269,7 +271,7 @@ Your instinct is mostly right. The exceptions are **`priv/repo/migrations` and `
 
 **Model routing.**
 - **Haiku:** per-file ports and test ports, migration SQL transcription, `.heex` → `.templ` conversion, skeleton generation, surveys, parity scripts.
-- **Sonnet/Opus:** `internal/db`, `internal/obanlite`, `CONVENTIONS.md`, skeleton review, `media_query`/`router`/SSE/`main.go`, per-wave review, and any file where Haiku fails twice.
+- **Sonnet/Opus:** `internal/db`, `internal/obanlite`, `CONVENTIONS.md`, skeleton review, `media_query`/`router`/`main.go`, per-wave review, and any file where Haiku fails twice.
 
 **Task packet** (identical for every file):
 1. Source file path.
@@ -300,7 +302,7 @@ Your instinct is mostly right. The exceptions are **`priv/repo/migrations` and `
 | SQLite write contention (Go concurrency > BEAM pool of 5) | Single writer connection, `BEGIN IMMEDIATE`, busy_timeout |
 | User-script JSON shape drift | Golden JSON from the Jason encoders |
 | Podcast clients breaking | Extension-stripping middleware, URL parity test, RSS byte-diff |
-| LiveView UX regressions (live job table) | SSE for the two push views; manual QA checklist in W5 |
+| LiveView UX regressions (job table no longer updates itself) | Accepted; refresh button + page reload; manual QA checklist in W5 |
 | `/metrics` consumers | Names change (accepted); endpoint and switch unchanged; Datadog config in §4.6 |
 | Cutover goes wrong | DB backup step in the runbook; rehearsal on a copy of the production DB |
 
@@ -309,4 +311,4 @@ Your instinct is mostly right. The exceptions are **`priv/repo/migrations` and `
 1. **Cutover:** decided. Hard cutover with downtime; Elixir and Go never coexist; no rollback to Elixir except by restoring the DB backup.
 2. **`/metrics`:** decided. Names may change; the endpoint must keep working, and it's scraped by the Datadog agent (§4.6).
 3. **Repo:** decided. Same repo, `go.mod` at the root, Elixir deleted in W5.
-4. **Frontend:** open. Today the UI is server-rendered Phoenix LiveView (HTML over a websocket) with Alpine.js and Tailwind. The proposal is htmx + SSE, which keeps it server-rendered so the templates port 1:1.
+4. **Frontend:** decided. Server-rendered `templ` + htmx + Alpine.js + Tailwind, with no server push; tables refresh by button or page reload.

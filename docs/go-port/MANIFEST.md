@@ -107,9 +107,9 @@ Generated from `git ls-files lib`. One row is one Haiku task: port the source fi
 | W4 | `lib/pinchflat_web/controllers/media_profiles/media_profile_html/show.html.heex` | `internal/web/media_profiles__media_profile_html__show.templ` | — |  |
 | W4 | `lib/pinchflat_web/controllers/pages/page_controller.ex` | `internal/web/pages__page_controller.go` | `test/pinchflat_web/controllers/page_controller_test.exs` |  |
 | W4 | `lib/pinchflat_web/controllers/pages/page_html.ex` | `internal/web/pages__page_html.go` | — |  |
-| W4 | `lib/pinchflat_web/controllers/pages/page_html/history_table_live.ex` | `internal/web/pages__page_html__history_table_live.go` | — | LiveView -> handler + htmx + SSE (needs push) |
+| W4 | `lib/pinchflat_web/controllers/pages/page_html/history_table_live.ex` | `internal/web/pages__page_html__history_table_live.go` | — | LiveView -> handler + htmx; refresh button, no push |
 | W4 | `lib/pinchflat_web/controllers/pages/page_html/home.html.heex` | `internal/web/pages__page_html__home.templ` | — |  |
-| W4 | `lib/pinchflat_web/controllers/pages/page_html/job_table_live.ex` | `internal/web/pages__page_html__job_table_live.go` | `test/pinchflat_web/controllers/pages/job_table_live_test.exs` | LiveView -> handler + htmx + SSE (needs push) |
+| W4 | `lib/pinchflat_web/controllers/pages/page_html/job_table_live.ex` | `internal/web/pages__page_html__job_table_live.go` | `test/pinchflat_web/controllers/pages/job_table_live_test.exs` | LiveView -> handler + htmx; refresh button, no push |
 | W4 | `lib/pinchflat_web/controllers/pages/page_html/onboarding_checklist.html.heex` | `internal/web/pages__page_html__onboarding_checklist.templ` | — |  |
 | W4 | `lib/pinchflat_web/controllers/podcasts/podcast_controller.ex` | `internal/web/podcasts__podcast_controller.go` | `test/pinchflat_web/controllers/podcast_controller_test.exs` |  |
 | W4 | `lib/pinchflat_web/controllers/searches/search_controller.ex` | `internal/web/searches__search_controller.go` | `test/pinchflat_web/controllers/search_controller_test.exs` |  |
