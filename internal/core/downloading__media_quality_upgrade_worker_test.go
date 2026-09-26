@@ -10,7 +10,6 @@ import (
 
 func TestMediaQualityUpgradeWorker_Perform(t *testing.T) {
 	t.Run("kicks off a task for redownloadable media items", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: unported: Pinchflat.Downloading.MediaDownloadWorker.kickoff_with_task/3")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -41,7 +40,6 @@ func TestMediaQualityUpgradeWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("does not kickoff a task for non-redownloadable media items", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: unported: Pinchflat.Downloading.MediaDownloadWorker.kickoff_with_task/3")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
