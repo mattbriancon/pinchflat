@@ -10,7 +10,7 @@ ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 MANIFEST = os.path.join(ROOT, "docs", "go-port", "MANIFEST.md")
 ELIXIR_TEST = re.compile(r'^\s*test\s+"((?:[^"\\]|\\.)*)"', re.M)
 GO_RUN = re.compile(r't\.Run\(\s*"((?:[^"\\]|\\.)*)"')
-ASSERTION = re.compile(r't\.(Error|Errorf|Fatal|Fatalf|Fail|FailNow|Skip|Skipf)\b|Assert|Refute|coretest\.Assert')
+ASSERTION = re.compile(r't\.(Error|Errorf|Fatal|Fatalf|Fail|FailNow)\b|Assert|Refute|coretest\.Assert')
 
 def go_runs(src):
     """Names of t.Run blocks that contain at least one assertion (or an

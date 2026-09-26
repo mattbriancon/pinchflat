@@ -37,5 +37,6 @@ var taskRequiredFields = []string{
 
 // TaskChangeset/2
 func TaskChangeset(task *Task, attrs Attrs) *Changeset {
-	panic("unported: Pinchflat.Tasks.Task.changeset/2")
+	return Cast(task, attrs, taskAllowedFields).
+		ValidateRequired(taskRequiredFields...)
 }
