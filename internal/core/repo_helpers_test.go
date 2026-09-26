@@ -3,6 +3,7 @@ package core_test
 import (
 	"testing"
 
+	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 )
@@ -61,19 +62,45 @@ func TestRepoHelpers_InsertUniqueJob(t *testing.T) {
 	})
 
 	t.Run("returns the error if there is an error", func(t *testing.T) {
-		// In Go, we can't easily pass an invalid Changeset like in Elixir.
-		// This test would require passing an invalid JobSpec, but we can't do that
-		// without changing the function signature. We skip this test since it's not
-		// directly testable without changing the API.
+		// In Go, we pass an empty/invalid spec to Oban and expect an error
+		spec := obanlite.JobSpec{Worker: ""} // Missing worker name should cause an error
+		_, _, err := ta.InsertUniqueJob(ta.Ctx, spec)
+		if err == nil {
+			t.Errorf("expected error, got nil")
+		}
 	})
 }
 
 func TestRepoHelpers_MaybeLimit(t *testing.T) {
 	t.Run("applies a limit if provided", func(t *testing.T) {
-		// unblocked: ProfilesCreateMediaProfile ported
+		ta := coretest.NewApp(t)
+		coretest.MediaProfileFixture(t, ta, core.Attrs{})
+		coretest.MediaProfileFixture(t, ta, core.Attrs{})
+
+		q := core.From[core.MediaProfile]()
+		q = core.MaybeLimit(q, core.Ptr(1))
+		count, err := core.Scalar[int](ta.Ctx, ta.Q(ta.Ctx), core.SQ.Select("COUNT(*)").FromSelect(q, "mp"))
+		if err != nil {
+			t.Fatalf("Scalar failed: %v", err)
+		}
+		if count != 1 {
+			t.Errorf("expected count 1, got %d", count)
+		}
 	})
 
 	t.Run("does not apply a limit if not provided", func(t *testing.T) {
-		// unblocked: ProfilesCreateMediaProfile ported
+		ta := coretest.NewApp(t)
+		coretest.MediaProfileFixture(t, ta, core.Attrs{})
+		coretest.MediaProfileFixture(t, ta, core.Attrs{})
+
+		q := core.From[core.MediaProfile]()
+		q = core.MaybeLimit(q, nil)
+		count, err := core.Scalar[int](ta.Ctx, ta.Q(ta.Ctx), core.SQ.Select("COUNT(*)").FromSelect(q, "mp"))
+		if err != nil {
+			t.Fatalf("Scalar failed: %v", err)
+		}
+		if count != 2 {
+			t.Errorf("expected count 2, got %d", count)
+		}
 	})
 }
