@@ -51,7 +51,7 @@ defmodule PinchflatWeb.SourceControllerTest do
       Settings.set(onboarding: true)
       conn = get(conn, ~p"/sources/new")
 
-      refute html_response(conn, 200) =~ "MENU"
+      refute html_response(conn, 200) =~ "Main navigation"
     end
 
     test "preloads some attributes when using a template", %{conn: conn} do
@@ -94,7 +94,7 @@ defmodule PinchflatWeb.SourceControllerTest do
       Settings.set(onboarding: true)
       conn = post(conn, ~p"/sources", source: invalid_attrs)
 
-      refute html_response(conn, 200) =~ "MENU"
+      refute html_response(conn, 200) =~ "Main navigation"
     end
   end
 

@@ -651,10 +651,7 @@ defmodule PinchflatWeb.CoreComponents do
 
     ~H"""
     <ul>
-      <li
-        :for={{k, v} <- @iterable_attributes}
-        class="py-1 border-b border-strokedark last:border-b-0 break-words md:w-2/3"
-      >
+      <li :for={{k, v} <- @iterable_attributes} class="py-1 border-b border-strokedark last:border-b-0 break-words md:w-2/3">
         <strong>{k}:</strong>
         <code class="inline text-sm font-mono text-bodydark break-all p-0.5 mx-0.5">
           <%= if is_binary(v) && URI.parse(v).scheme && URI.parse(v).scheme =~ "http" do %>
