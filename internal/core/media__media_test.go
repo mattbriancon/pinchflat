@@ -1,6 +1,8 @@
 package core_test
 
 import (
+	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/db/dbtest"
 )
 
 func TestMedia_Schema(t *testing.T) {
@@ -40,17 +43,20 @@ func TestMedia_Schema(t *testing.T) {
 		ta := coretest.NewApp(t)
 
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		if _, err := ta.PreloadMediaItemSourceAndProfile(ta.Ctx, mediaItem); err != nil {
+			t.Fatal(err)
+		}
 
-		// Phoenix.json_library().encode(media_item) — the Elixir Jason.Encoder
-		// defimpl for MediaItem is not yet ported (no MarshalJSON contract in
-		// this file), so this only asserts the fixture itself is usable.
-		_ = mediaItem
+		// Phoenix.json_library().encode(media_item)
+		if _, err := json.Marshal(mediaItem); err != nil {
+			t.Errorf("expected {:ok, _}, got error: %v", err)
+		}
 	})
 }
 
 func TestMedia_ListMediaItems(t *testing.T) {
 	t.Run("it returns all media_items", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
+		// removed skip
 		ta := coretest.NewApp(t)
 
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
@@ -265,7 +271,6 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 
 func TestMedia_ListPendingMediaItemsFor(t *testing.T) {
 	t.Run("it returns pending without a filepath for a given source", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		otherSource := coretest.SourceFixture(t, ta, core.Attrs{})
@@ -302,7 +307,6 @@ func TestMedia_ListPendingMediaItemsFor(t *testing.T) {
 
 func TestMedia_ListPendingMediaItemsFor_Shorts(t *testing.T) {
 	t.Run("returns shorts and normal media when shorts_behaviour is :include", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "include"})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
@@ -319,7 +323,6 @@ func TestMedia_ListPendingMediaItemsFor_Shorts(t *testing.T) {
 	})
 
 	t.Run("returns only shorts when shorts_behaviour is :only", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "only"})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
@@ -336,7 +339,6 @@ func TestMedia_ListPendingMediaItemsFor_Shorts(t *testing.T) {
 	})
 
 	t.Run("returns only normal media when shorts_behaviour is :exclude", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "exclude"})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
@@ -355,7 +357,6 @@ func TestMedia_ListPendingMediaItemsFor_Shorts(t *testing.T) {
 
 func TestMedia_ListPendingMediaItemsFor_Livestreams(t *testing.T) {
 	t.Run("returns livestreams and normal media when livestream_behaviour is :include", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"livestream_behaviour": "include"})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
@@ -372,7 +373,6 @@ func TestMedia_ListPendingMediaItemsFor_Livestreams(t *testing.T) {
 	})
 
 	t.Run("returns only livestreams when livestream_behaviour is :only", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"livestream_behaviour": "only"})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
@@ -389,7 +389,6 @@ func TestMedia_ListPendingMediaItemsFor_Livestreams(t *testing.T) {
 	})
 
 	t.Run("returns only normal media when livestream_behaviour is :exclude", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"livestream_behaviour": "exclude"})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
@@ -408,7 +407,6 @@ func TestMedia_ListPendingMediaItemsFor_Livestreams(t *testing.T) {
 
 func TestMedia_ListPendingMediaItemsFor_AllFormatOptions(t *testing.T) {
 	t.Run("returns livestreams, shorts, and normal media when behaviour is :include", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "include", "livestream_behaviour": "include"})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
@@ -427,7 +425,6 @@ func TestMedia_ListPendingMediaItemsFor_AllFormatOptions(t *testing.T) {
 	})
 
 	t.Run("returns only livestreams and shorts when behaviour is :only", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "only", "livestream_behaviour": "only"})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
@@ -446,7 +443,6 @@ func TestMedia_ListPendingMediaItemsFor_AllFormatOptions(t *testing.T) {
 	})
 
 	t.Run("returns only normal media when behaviour is :exclude", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "exclude", "livestream_behaviour": "exclude"})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
@@ -465,7 +461,6 @@ func TestMedia_ListPendingMediaItemsFor_AllFormatOptions(t *testing.T) {
 	})
 
 	t.Run(":only and :exclude return the expected results", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "only", "livestream_behaviour": "exclude"})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
@@ -520,7 +515,6 @@ func TestMedia_ListPendingMediaItemsFor_CutoffDates(t *testing.T) {
 
 func TestMedia_ListPendingMediaItemsFor_TitleRegex(t *testing.T) {
 	t.Run("returns only media items that match the title regex", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"title_filter_regex": "(?i)^FOO$"})
 
@@ -537,7 +531,6 @@ func TestMedia_ListPendingMediaItemsFor_TitleRegex(t *testing.T) {
 	})
 
 	t.Run("does not apply a regex if none is specified", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"title_filter_regex": nil})
 
@@ -556,7 +549,6 @@ func TestMedia_ListPendingMediaItemsFor_TitleRegex(t *testing.T) {
 
 func TestMedia_ListPendingMediaItemsFor_MinAndMaxDurations(t *testing.T) {
 	t.Run("returns media items that meet the min and max duration", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"min_duration_seconds": 10, "max_duration_seconds": 20})
 
@@ -574,7 +566,6 @@ func TestMedia_ListPendingMediaItemsFor_MinAndMaxDurations(t *testing.T) {
 	})
 
 	t.Run("does not apply a min duration if none is specified", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"min_duration_seconds": nil, "max_duration_seconds": 20})
 
@@ -592,7 +583,6 @@ func TestMedia_ListPendingMediaItemsFor_MinAndMaxDurations(t *testing.T) {
 	})
 
 	t.Run("does not apply a max duration if none is specified", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"min_duration_seconds": 10, "max_duration_seconds": nil})
 
@@ -610,7 +600,6 @@ func TestMedia_ListPendingMediaItemsFor_MinAndMaxDurations(t *testing.T) {
 	})
 
 	t.Run("does not apply a min or max duration if none are specified", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"min_duration_seconds": nil, "max_duration_seconds": nil})
 
@@ -630,7 +619,6 @@ func TestMedia_ListPendingMediaItemsFor_MinAndMaxDurations(t *testing.T) {
 
 func TestMedia_ListPendingMediaItemsFor_DownloadPrevention(t *testing.T) {
 	t.Run("returns only media items that are not prevented from downloading", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "prevent_download": true})
@@ -1017,7 +1005,6 @@ func TestMedia_Search(t *testing.T) {
 
 func TestMedia_GetMediaItem(t *testing.T) {
 	t.Run("it returns the media_item with given id", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -1264,7 +1251,6 @@ func TestMedia_UpdateMediaItem(t *testing.T) {
 	})
 
 	t.Run("updating with invalid data returns error changeset", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 		invalidAttrs := core.Attrs{"title": nil, "media_id": nil, "media_filepath": nil}
@@ -1298,7 +1284,6 @@ func TestMedia_DeleteMediaItem(t *testing.T) {
 	})
 
 	t.Run("it also deletes attached tasks", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 		task := coretest.TaskFixture(t, ta, core.Attrs{"media_item_id": mediaItem.ID})
@@ -1324,7 +1309,6 @@ func TestMedia_DeleteMediaItem(t *testing.T) {
 	})
 
 	t.Run("does delete the media item's metadata files", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
 		ta := coretest.NewApp(t)
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
 			return "", nil
@@ -1356,8 +1340,8 @@ func TestMedia_DeleteMediaItem(t *testing.T) {
 		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, updated, nil); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
-		if _, err := ta.PreloadMediaItemMetadata(ta.Ctx, updated); err != nil {
-			t.Fatal(err)
+		if updated.Metadata == nil {
+			t.Fatal("expected updated media_item to have metadata preloaded")
 		}
 		if _, err := os.Stat(updated.Metadata.MetadataFilepath); err == nil {
 			t.Errorf("expected metadata_filepath to be deleted")
@@ -1422,7 +1406,6 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 	})
 
 	t.Run("deletion deletes the media_item", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		stubUserScript(ta)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
@@ -1500,7 +1483,6 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 	}
 
 	t.Run("does not delete the media_item", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		stubUserScript(ta)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
@@ -1514,7 +1496,6 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 	})
 
 	t.Run("deletes attached tasks", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		stubUserScript(ta)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
@@ -1876,4 +1857,47 @@ func TestMedia_ChangeMediaItem_UploadDateIndexPlaylist(t *testing.T) {
 			t.Errorf("updated.upload_date_index = %v, want 0", updated.UploadDateIndex)
 		}
 	})
+}
+
+// TestMediaItemJSONMatchesElixirGolden checks core.MediaItem.MarshalJSON
+// (the Jason.Encoder defimpl for MediaItem, ported from media_item.ex)
+// against testdata/elixir/golden/user_script_media_item.json, which is
+// `Jason.encode!(media_item, pretty: true)` for media item 1 of
+// testdata/elixir/populated.db with source/metadata preloaded. Comparison is
+// semantic (decode both sides to map[string]any) since key order and
+// whitespace aren't meaningful.
+func TestMediaItemJSONMatchesElixirGolden(t *testing.T) {
+	d := dbtest.CopyOf(t, dbtest.ElixirFixture("populated.db"))
+	a := &core.App{DB: d}
+	ctx := context.Background()
+
+	mediaItem, err := core.Get[core.MediaItem](ctx, a.Q(ctx), 1)
+	if err != nil {
+		t.Fatalf("loading media_item 1: %v", err)
+	}
+	if _, err := a.PreloadMediaItemSourceAndProfile(ctx, mediaItem); err != nil {
+		t.Fatalf("preloading source/media_profile: %v", err)
+	}
+
+	gotBytes, err := json.Marshal(mediaItem)
+	if err != nil {
+		t.Fatalf("MarshalJSON: %v", err)
+	}
+
+	wantBytes, err := os.ReadFile("../../testdata/elixir/golden/user_script_media_item.json")
+	if err != nil {
+		t.Fatalf("reading golden file: %v", err)
+	}
+
+	var got, want map[string]any
+	if err := json.Unmarshal(gotBytes, &got); err != nil {
+		t.Fatalf("decoding got JSON: %v", err)
+	}
+	if err := json.Unmarshal(wantBytes, &want); err != nil {
+		t.Fatalf("decoding golden JSON: %v", err)
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("MediaItem JSON does not match golden.\ngot:  %#v\nwant: %#v", got, want)
+	}
 }

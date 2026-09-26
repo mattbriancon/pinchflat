@@ -462,9 +462,10 @@ func castValue(fi fieldInfo, raw any) (any, error) {
 
 	var out any
 	switch {
-	case rv.Type() == base:
-		out = raw
-	case base == utcType || base == dateType || base == timeType:
+	case base == utcType || base == dateType:
+		// Truncate even when raw is already the target type: Ecto's
+		// :utc_datetime/:date casts always truncate, regardless of the
+		// input's existing precision.
 		t, err := toTime(raw)
 		if err != nil {
 			return nil, err
@@ -472,11 +473,17 @@ func castValue(fi fieldInfo, raw any) (any, error) {
 		switch base {
 		case utcType:
 			out = db.UTCDateTime{Time: t.UTC().Truncate(time.Second)}
-		case dateType:
-			out = db.Date{Time: time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)}
 		default:
-			out = t
+			out = db.Date{Time: time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)}
 		}
+	case rv.Type() == base:
+		out = raw
+	case base == timeType:
+		t, err := toTime(raw)
+		if err != nil {
+			return nil, err
+		}
+		out = t
 	case base.Kind() == reflect.String:
 		s, ok := raw.(string)
 		if !ok {
