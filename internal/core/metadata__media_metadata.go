@@ -26,3 +26,18 @@ var mediaMetadataAllowedFields = []string{
 	"metadata_filepath",
 	"thumbnail_filepath",
 }
+
+var mediaMetadataRequiredFields = []string{
+	"metadata_filepath",
+	"thumbnail_filepath",
+}
+
+// MediaMetadataChangeset/2
+func MediaMetadataChangeset(mediaMetadata *MediaMetadata, attrs Attrs) *Changeset {
+	panic("unported: Pinchflat.Metadata.MediaMetadata.changeset/2")
+}
+
+// MediaMetadataFilepathAttributes/0
+func MediaMetadataFilepathAttributes() []string {
+	return []string{"metadata_filepath", "thumbnail_filepath"}
+}

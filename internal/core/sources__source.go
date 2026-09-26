@@ -1,6 +1,8 @@
 package core
 
 import (
+	"regexp"
+
 	"github.com/mattbriancon/pinchflat/internal/db"
 )
 
@@ -97,4 +99,51 @@ var sourceAllowedFields = []string{
 	"marked_for_deletion_at",
 	"min_duration_seconds",
 	"max_duration_seconds",
+}
+
+var sourceInitiallyRequiredFields = []string{
+	"index_frequency_minutes",
+	"fast_index",
+	"download_media",
+	"original_url",
+	"media_profile_id",
+}
+
+var sourcePreInsertRequiredFields = append(
+	sourceInitiallyRequiredFields,
+	"uuid",
+	"custom_name",
+	"collection_name",
+	"collection_id",
+	"collection_type",
+)
+
+// Source.changeset/3
+func SourceChangeset(source *Source, attrs Attrs, validationStage string) *Changeset {
+	panic("unported: Pinchflat.Sources.Source.changeset/3")
+}
+
+// index_frequency_when_fast_indexing/0
+func SourceIndexFrequencyWhenFastIndexing() int {
+	panic("unported: Pinchflat.Sources.Source.index_frequency_when_fast_indexing/0")
+}
+
+// fast_index_frequency/0
+func SourceFastIndexFrequency() int {
+	panic("unported: Pinchflat.Sources.Source.fast_index_frequency/0")
+}
+
+// filepath_attributes/0
+func SourceFilepathAttributes() []string {
+	panic("unported: Pinchflat.Sources.Source.filepath_attributes/0")
+}
+
+// json_exluded_fields/0
+func SourceJsonExcludedFields() []string {
+	panic("unported: Pinchflat.Sources.Source.json_exluded_fields/0")
+}
+
+// youtube_channel_or_playlist_regex/0
+func SourceYoutubeChannelOrPlaylistRegex() *regexp.Regexp {
+	panic("unported: Pinchflat.Sources.Source.youtube_channel_or_playlist_regex/0")
 }

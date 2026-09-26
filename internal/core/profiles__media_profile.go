@@ -122,3 +122,8 @@ var mediaProfileAllowedFields = []string{
 	"redownload_delay_days",
 	"marked_for_deletion_at",
 }
+
+// MediaProfile.changeset/2
+func MediaProfileChangeset(profile *MediaProfile, attrs Attrs) *Changeset {
+	panic("unported: Pinchflat.Profiles.MediaProfile.changeset/2")
+}

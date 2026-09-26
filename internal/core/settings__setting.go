@@ -43,3 +43,16 @@ var settingAllowedFields = []string{
 	"download_throughput_limit",
 	"restrict_filenames",
 }
+
+var settingRequiredFields = []string{
+	"onboarding",
+	"pro_enabled",
+	"video_codec_preference",
+	"audio_codec_preference",
+	"extractor_sleep_interval_seconds",
+}
+
+// SettingChangeset/3
+func SettingChangeset(setting *Setting, attrs Attrs) *Changeset {
+	panic("unported: Pinchflat.Settings.Setting.changeset/2")
+}

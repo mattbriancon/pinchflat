@@ -30,3 +30,17 @@ var sourceMetadataAllowedFields = []string{
 	"poster_filepath",
 	"banner_filepath",
 }
+
+var sourceMetadataRequiredFields = []string{
+	"metadata_filepath",
+}
+
+// SourceMetadataChangeset/2
+func SourceMetadataChangeset(sourceMetadata *SourceMetadata, attrs Attrs) *Changeset {
+	panic("unported: Pinchflat.Metadata.SourceMetadata.changeset/2")
+}
+
+// SourceMetadataFilepathAttributes/0
+func SourceMetadataFilepathAttributes() []string {
+	return []string{"metadata_filepath", "fanart_filepath", "poster_filepath", "banner_filepath"}
+}

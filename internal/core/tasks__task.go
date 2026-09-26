@@ -30,3 +30,12 @@ var taskAllowedFields = []string{
 	"source_id",
 	"media_item_id",
 }
+
+var taskRequiredFields = []string{
+	"job_id",
+}
+
+// TaskChangeset/2
+func TaskChangeset(task *Task, attrs Attrs) *Changeset {
+	panic("unported: Pinchflat.Tasks.Task.changeset/2")
+}

@@ -88,3 +88,23 @@ var mediaItemAllowedFields = []string{
 	"culled_at",
 	"media_redownloaded_at",
 }
+
+// MediaItem.changeset/2
+func MediaItemChangeset(mediaItem *MediaItem, attrs Attrs) *Changeset {
+	panic("unported: Pinchflat.Media.MediaItem.changeset/2")
+}
+
+// MediaItem.filepath_attributes/0
+func MediaItemFilepathAttributes() []string {
+	panic("unported: Pinchflat.Media.MediaItem.filepath_attributes/0")
+}
+
+// MediaItem.filepath_attribute_defaults/0
+func MediaItemFilepathAttributeDefaults() Attrs {
+	panic("unported: Pinchflat.Media.MediaItem.filepath_attribute_defaults/0")
+}
+
+// MediaItem.json_exluded_fields/0
+func MediaItemJSONExcludedFields() []string {
+	panic("unported: Pinchflat.Media.MediaItem.json_exluded_fields/0")
+}
