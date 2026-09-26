@@ -23,10 +23,9 @@ func (a *App) DownloadingHelpersEnqueuePendingDownloadTasks(ctx context.Context,
 	}
 
 	for _, mi := range mediaItems {
-		_, err := a.MediaDownloadWorkerKickoffWithTask(ctx, mi, Attrs{}, jobOpts)
-		if err != nil {
-			return err
-		}
+		// Elixir uses Enum.each, which discards the return value of
+		// kickoff_with_task (including any {:error, ...}); mirror that here.
+		_, _ = a.MediaDownloadWorkerKickoffWithTask(ctx, mi, Attrs{}, jobOpts)
 	}
 
 	return nil

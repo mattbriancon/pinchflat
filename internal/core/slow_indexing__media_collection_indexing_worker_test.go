@@ -2,6 +2,7 @@ package core_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
@@ -90,7 +91,6 @@ func TestMediaCollectionIndexingWorker_KickoffWithTask(t *testing.T) {
 
 func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 	t.Run("indexes the source if it should be indexed", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
 
@@ -175,21 +175,52 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("doesn't use a download archive if the index has been forced", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: archive options testing requires detailed mock inspection")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{
+			"collection_type":         "channel",
+			"index_frequency_minutes": 0,
+			"last_indexed_at":         coretest.Now(),
+		})
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			for _, opt := range opts {
+				if opt.Key == "break_on_existing" {
+					t.Error("expected no break_on_existing in opts")
+				}
+				if opt.Key == "download_archive" {
+					t.Error("expected no download_archive in opts")
+				}
+			}
+			return "", nil
+		})
+
+		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
+			return nil
+		})
+
+		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
+			Worker: core.MediaCollectionIndexingWorkerName,
+			Args:   map[string]any{"id": source.ID, "force": true},
+		})
+		if err != nil {
+			t.Fatalf("failed to insert job: %v", err)
+		}
+
+		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 	})
 
 	t.Run("does not do any indexing if the source has been indexed and shouldn't be rescheduled", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{
 			"index_frequency_minutes": -1,
 			"last_indexed_at":         coretest.Now(),
 		})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			t.Error("unexpected yt-dlp call")
-			return "", nil
-		})
+		// Intentionally not stubbing YtDlpMock.Run: any call is unexpected and
+		// will fail the test.
 
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
 			Worker: core.MediaCollectionIndexingWorkerName,
@@ -206,43 +237,339 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("does not reschedule if the source shouldn't be indexed", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: reschedule logic testing needs proper setup")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": -1})
+
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return "", nil
+		})
+		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
+			return nil
+		})
+
+		err := ta.Oban.PerformJob(ta.Ctx, core.MediaCollectionIndexingWorkerName, map[string]any{"id": source.ID})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID}})
+		if len(jobs) != 0 {
+			t.Errorf("expected no rescheduled jobs, got %d", len(jobs))
+		}
 	})
 
 	t.Run("kicks off a download job for each pending media item", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: download enqueuing requires mock state management")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return coretest.SourceAttributesReturnFixture(), nil
+		})
+		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
+			return nil
+		})
+
+		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
+			Worker: core.MediaCollectionIndexingWorkerName,
+			Args:   map[string]any{"id": source.ID},
+		})
+		if err != nil {
+			t.Fatalf("failed to insert job: %v", err)
+		}
+
+		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaDownloadWorkerName})
+		if len(jobs) != 3 {
+			t.Errorf("expected 3 download jobs, got %d", len(jobs))
+		}
 	})
 
 	t.Run("starts a job for any pending media item even if it's from another run", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: download enqueuing requires mock state management")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
+		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return coretest.SourceAttributesReturnFixture(), nil
+		})
+		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
+			return nil
+		})
+
+		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
+			Worker: core.MediaCollectionIndexingWorkerName,
+			Args:   map[string]any{"id": source.ID},
+		})
+		if err != nil {
+			t.Fatalf("failed to insert job: %v", err)
+		}
+
+		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaDownloadWorkerName})
+		if len(jobs) != 4 {
+			t.Errorf("expected 4 download jobs, got %d", len(jobs))
+		}
 	})
 
 	t.Run("does not kick off a job for media items that could not be saved", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: invalid media item creation requires proper test setup")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
+		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "media_id": "video1"})
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return coretest.SourceAttributesReturnFixture(), nil
+		})
+		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
+			return nil
+		})
+
+		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
+			Worker: core.MediaCollectionIndexingWorkerName,
+			Args:   map[string]any{"id": source.ID},
+		})
+		if err != nil {
+			t.Fatalf("failed to insert job: %v", err)
+		}
+
+		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// Only 3 jobs should be enqueued, since the first video is a duplicate
+		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaDownloadWorkerName})
+		if len(jobs) != 3 {
+			t.Errorf("expected 3 download jobs, got %d", len(jobs))
+		}
 	})
 
 	t.Run("reschedules the job based on the index frequency", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: reschedule logic testing needs proper setup")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
+
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return "", nil
+		})
+		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
+			return nil
+		})
+
+		beforeTime := coretest.Now()
+		err := ta.Oban.PerformJob(ta.Ctx, core.MediaCollectionIndexingWorkerName, map[string]any{"id": source.ID})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID}})
+		if len(jobs) != 1 {
+			t.Fatalf("expected 1 rescheduled job, got %d", len(jobs))
+		}
+
+		expected := beforeTime.Add(time.Duration(source.IndexFrequencyMinutes) * time.Minute)
+		diff := jobs[0].ScheduledAt.Sub(expected)
+		if diff < -5*time.Second || diff > 5*time.Second {
+			t.Errorf("expected scheduled at ~%v, got %v", expected, jobs[0].ScheduledAt)
+		}
 	})
 
 	t.Run("creates a task for the rescheduled job", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: task creation verification needs proper setup")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
+
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return "", nil
+		})
+		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
+			return nil
+		})
+
+		before, err := ta.App.TasksListTasksFor(ta.Ctx, source, core.Ptr("MediaCollectionIndexingWorker"), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(before) != 0 {
+			t.Fatalf("expected 0 tasks before, got %d", len(before))
+		}
+
+		err = ta.Oban.PerformJob(ta.Ctx, core.MediaCollectionIndexingWorkerName, map[string]any{"id": source.ID})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		after, err := ta.App.TasksListTasksFor(ta.Ctx, source, core.Ptr("MediaCollectionIndexingWorker"), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(after) != 1 {
+			t.Errorf("expected 1 task after, got %d", len(after))
+		}
 	})
 
 	t.Run("creates a future task for fast indexing if appropriate", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fast indexing task creation testing")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10, "fast_index": true})
+
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return "", nil
+		})
+		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
+			return nil
+		})
+
+		beforeTime := coretest.Now()
+
+		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
+			Worker: core.MediaCollectionIndexingWorkerName,
+			Args:   map[string]any{"id": source.ID},
+		})
+		if err != nil {
+			t.Fatalf("failed to insert job: %v", err)
+		}
+
+		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.FastIndexingWorkerName, Args: map[string]any{"id": source.ID}})
+		if len(jobs) != 1 {
+			t.Fatalf("expected 1 fast indexing job, got %d", len(jobs))
+		}
+
+		expected := beforeTime.Add(time.Duration(core.SourceFastIndexFrequency()) * time.Minute)
+		diff := jobs[0].ScheduledAt.Sub(expected)
+		if diff < -5*time.Second || diff > 5*time.Second {
+			t.Errorf("expected scheduled at ~%v, got %v", expected, jobs[0].ScheduledAt)
+		}
 	})
 
 	t.Run("deletes existing fast indexing tasks if a new one is created", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fast indexing task deletion testing")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10, "fast_index": true})
+
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return "", nil
+		})
+		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
+			return nil
+		})
+
+		existingJob, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
+			Worker: core.FastIndexingWorkerName,
+			Args:   map[string]any{"id": source.ID},
+		})
+		if err != nil {
+			t.Fatalf("failed to insert job: %v", err)
+		}
+		task := coretest.TaskFixture(t, ta, core.Attrs{"source_id": source.ID, "job_id": existingJob.ID})
+
+		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
+			Worker: core.MediaCollectionIndexingWorkerName,
+			Args:   map[string]any{"id": source.ID},
+		})
+		if err != nil {
+			t.Fatalf("failed to insert job: %v", err)
+		}
+
+		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		_, err = ta.App.TasksGetTaskBang(ta.Ctx, task.ID)
+		if err == nil {
+			t.Fatal("expected error reloading task, but got nil")
+		}
 	})
 
 	t.Run("does not create a task for fast indexing otherwise", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fast indexing skipping verification")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10, "fast_index": false})
+
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return "", nil
+		})
+		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
+			return nil
+		})
+
+		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
+			Worker: core.MediaCollectionIndexingWorkerName,
+			Args:   map[string]any{"id": source.ID},
+		})
+		if err != nil {
+			t.Fatalf("failed to insert job: %v", err)
+		}
+
+		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.FastIndexingWorkerName})
+		if len(jobs) != 0 {
+			t.Errorf("expected no fast indexing jobs, got %d", len(jobs))
+		}
 	})
 
 	t.Run("creates the basic media_item records", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: media item creation verification")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return coretest.SourceAttributesReturnFixture(), nil
+		})
+		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
+			return nil
+		})
+
+		mediaItemMediaIDs := func() []string {
+			mediaItems, err := core.All[core.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), core.From[core.MediaItem]("mi").Where(map[string]interface{}{"mi.source_id": source.ID}))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			ids := make([]string, len(mediaItems))
+			for i, mi := range mediaItems {
+				ids[i] = mi.MediaID
+			}
+			return ids
+		}
+
+		if before := mediaItemMediaIDs(); len(before) != 0 {
+			t.Fatalf("expected no media items before, got %v", before)
+		}
+
+		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
+			Worker: core.MediaCollectionIndexingWorkerName,
+			Args:   map[string]any{"id": source.ID},
+		})
+		if err != nil {
+			t.Fatalf("failed to insert job: %v", err)
+		}
+
+		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		after := mediaItemMediaIDs()
+		expected := []string{"video1", "video2", "video3"}
+		if len(after) != len(expected) {
+			t.Fatalf("expected %v, got %v", expected, after)
+		}
+		for i, id := range expected {
+			if after[i] != id {
+				t.Errorf("expected media_id %q at index %d, got %q", id, i, after[i])
+			}
+		}
 	})
 
 	t.Run("does not blow up if the record doesn't exist", func(t *testing.T) {
@@ -265,6 +592,45 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 func TestMediaCollectionIndexingWorker_Perform_Notifications(t *testing.T) {
 	t.Run("sends a notification if new media was found", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: notification sending verification")
+		ta := coretest.NewApp(t)
+		if _, err := ta.App.SettingsSet(ta.Ctx, core.KW{core.Opt("apprise_server", "server_1")}); err != nil {
+			t.Fatalf("unexpected error setting apprise_server: %v", err)
+		}
+
+		source := coretest.SourceFixture(t, ta, core.Attrs{})
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return coretest.SourceAttributesReturnFixture(), nil
+		})
+
+		ta.AppriseMock.Run.Expect(func(servers []string, opts core.KW) error {
+			if len(servers) != 1 || servers[0] != "server_1" {
+				t.Errorf("expected servers to be [\"server_1\"], got %v", servers)
+			}
+			if title, _ := opts.Get("title"); title == nil {
+				t.Error("expected title to be set")
+			} else if _, ok := title.(string); !ok {
+				t.Error("expected title to be a string")
+			}
+			if body, _ := opts.Get("body"); body == nil {
+				t.Error("expected body to be set")
+			} else if _, ok := body.(string); !ok {
+				t.Error("expected body to be a string")
+			}
+			return nil
+		})
+
+		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
+			Worker: core.MediaCollectionIndexingWorkerName,
+			Args:   map[string]any{"id": source.ID},
+		})
+		if err != nil {
+			t.Fatalf("failed to insert job: %v", err)
+		}
+
+		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 	})
 }

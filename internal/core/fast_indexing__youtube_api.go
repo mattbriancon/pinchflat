@@ -15,9 +15,16 @@ type YoutubeBehaviour interface {
 	GetRecentMediaIDs(ctx context.Context, source *Source) ([]string, error)
 }
 
+// The Elixir implementation keeps this round-robin index in a single named
+// (:global) Agent process, so it's shared by every call within one running
+// application instance. Each *App here stands in for one such running
+// instance (tests create a fresh *App per test, production creates one for
+// the life of the process), so the index is keyed by *App rather than kept
+// in a single package-level variable, which would leak state between
+// otherwise-isolated App instances (e.g. across tests).
 var (
 	youtubeApiKeyIndexMu sync.Mutex
-	youtubeApiKeyIndex   int
+	youtubeApiKeyIndex   = map[*App]int{}
 )
 
 // YoutubeApiEnabled/0
@@ -149,8 +156,8 @@ func youtubeApiNextKey(ctx context.Context, a *App) string {
 	youtubeApiKeyIndexMu.Lock()
 	defer youtubeApiKeyIndexMu.Unlock()
 
-	currentIndex := youtubeApiKeyIndex % len(keys)
-	youtubeApiKeyIndex = (youtubeApiKeyIndex + 1) % len(keys)
+	currentIndex := youtubeApiKeyIndex[a] % len(keys)
+	youtubeApiKeyIndex[a] = (currentIndex + 1) % len(keys)
 
 	key := keys[currentIndex]
 	slog.Debug(fmt.Sprintf("Using YouTube API key: %s", key))

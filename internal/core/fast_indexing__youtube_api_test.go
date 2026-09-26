@@ -80,7 +80,6 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 	})
 
 	t.Run("calls the expected URL", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "key1, key2")})
