@@ -193,7 +193,7 @@ func (a *App) MediaDownloadWorkerPerform(ctx context.Context, job *obanlite.Job)
   - `expect(M, :f, 2, fn)` → `ExpectN(2, fn)`; `stub` → `Stub`.
 - `assert_enqueued(worker: W, args: %{"id" => 1})` → `ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: core.WName, Args: map[string]any{"id": 1}})`; `refute_enqueued` → `RefuteEnqueued`; `perform_job(W, args)` → `ta.Oban.PerformJob(ctx, core.WName, args)`; `all_enqueued` → `ta.Oban.Enqueued(t, obanlite.Match{...})`.
 - `errors_on(changeset)` → `cs.ErrorMap()`.
-- Fixtures → `coretest.SourceFixture(t, ta, core.Attrs{...})` and the others. Helpers from `testing_helper_methods.ex` → `coretest.Now()`, `coretest.NowMinus(n, "day")`, `coretest.RenderMetadata(name)`, and so on.
+- Fixtures → `coretest.SourceFixture(t, ta, core.Attrs{...})`, `MediaItemFixture`, `MediaProfileFixture`, `TaskFixture`, `JobFixture`, `SourceWithMetadataFixture`, `MediaItemWithAttachmentsFixture`, ... (see `internal/core/coretest/*_fixtures.go`). Helpers from `testing_helper_methods.ex` → `coretest.Now()`, `coretest.NowMinus(n, "day")`, `coretest.RenderMetadata(name)`, and so on.
 - Assertions: plain `if got != want { t.Errorf(...) }`, or `reflect.DeepEqual` for structs and slices. No third-party assertion libraries.
 - Files under `test/support/files` stay where they are; reference them with `coretest.RepoPath("test/support/files/...")`.
 - `@tag :skip` tests → `t.Skip("skipped in Elixir too")`.
