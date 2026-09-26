@@ -3,6 +3,7 @@ package core_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mattbriancon/pinchflat/internal/core"
@@ -11,15 +12,18 @@ import (
 
 func TestFilesystemUtils_ExistsAndNonempty(t *testing.T) {
 	t.Run("returns true if a file exists and has contents", func(t *testing.T) {
-		// ta := coretest.NewApp(t)
-		// filepath := core.FilesystemUtilsGenerateMetadataTmpfile(ta.Ctx, "json")
-		// os.WriteFile(filepath, []byte("{}"), 0644)
+		ta := coretest.NewApp(t)
+		filepath, err := ta.App.FilesystemUtilsGenerateMetadataTmpfile(ta.Ctx, "json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		os.WriteFile(filepath, []byte("{}"), 0644)
 
-		// if !core.FilesystemUtilsExistsAndNonempty(ta.Ctx, filepath) {
-		// 	t.Error("expected true")
-		// }
+		if !core.FilesystemUtilsExistsAndNonempty(ta.Ctx, filepath) {
+			t.Error("expected true")
+		}
 
-		// os.Remove(filepath)
+		os.Remove(filepath)
 	})
 
 	t.Run("returns false if a file doesn't exist", func(t *testing.T) {
@@ -29,22 +33,28 @@ func TestFilesystemUtils_ExistsAndNonempty(t *testing.T) {
 	})
 
 	t.Run("returns false if a file exists but is empty", func(t *testing.T) {
-		// ta := coretest.NewApp(t)
-		// filepath := core.FilesystemUtilsGenerateMetadataTmpfile(ta.Ctx, "json")
-		// if core.FilesystemUtilsExistsAndNonempty(ta.Ctx, filepath) {
-		// 	t.Error("expected false")
-		// }
-		// os.Remove(filepath)
+		ta := coretest.NewApp(t)
+		filepath, err := ta.App.FilesystemUtilsGenerateMetadataTmpfile(ta.Ctx, "json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if core.FilesystemUtilsExistsAndNonempty(ta.Ctx, filepath) {
+			t.Error("expected false")
+		}
+		os.Remove(filepath)
 	})
 
 	t.Run("trims the contents before checking", func(t *testing.T) {
-		// ta := coretest.NewApp(t)
-		// filepath := core.FilesystemUtilsGenerateMetadataTmpfile(ta.Ctx, "json")
-		// os.WriteFile(filepath, []byte("  \n\n  \r\n  "), 0644)
-		// if core.FilesystemUtilsExistsAndNonempty(ta.Ctx, filepath) {
-		// 	t.Error("expected false")
-		// }
-		// os.Remove(filepath)
+		ta := coretest.NewApp(t)
+		filepath, err := ta.App.FilesystemUtilsGenerateMetadataTmpfile(ta.Ctx, "json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		os.WriteFile(filepath, []byte("  \n\n  \r\n  "), 0644)
+		if core.FilesystemUtilsExistsAndNonempty(ta.Ctx, filepath) {
+			t.Error("expected false")
+		}
+		os.Remove(filepath)
 	})
 }
 
@@ -87,7 +97,24 @@ func TestFilesystemUtils_FilepathsReferenceSameFile(t *testing.T) {
 	})
 
 	t.Run("returns true if the files are symlinked", func(t *testing.T) {
-		t.Skip("BLOCKED: symlink creation requires elevated privileges in some environments")
+		ta := coretest.NewApp(t)
+		// Create source file
+		sourceFile, err := ta.App.FilesystemUtilsGenerateMetadataTmpfile(ta.Ctx, "json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(sourceFile)
+
+		// Create symlink
+		symlinkPath := filepath.Join(filepath.Dir(sourceFile), "symlink.json")
+		if err := os.Symlink(sourceFile, symlinkPath); err != nil {
+			t.Skip("symlink creation failed, skipping test")
+		}
+		defer os.Remove(symlinkPath)
+
+		if !core.FilesystemUtilsFilepathsReferenceSameFile(ta.Ctx, sourceFile, symlinkPath) {
+			t.Error("expected true for symlinked files")
+		}
 	})
 
 	t.Run("returns false if the files are different", func(t *testing.T) {
@@ -113,18 +140,50 @@ func TestFilesystemUtils_FilepathsReferenceSameFile(t *testing.T) {
 
 func TestFilesystemUtils_GenerateMetadataTmpfile(t *testing.T) {
 	t.Run("creates a tmpfile and returns its path", func(t *testing.T) {
-		// ta := coretest.NewApp(t)
-		// res, err := ta.FilesystemUtilsGenerateMetadataTmpfile(ta.Ctx, "json")
-		// if err != nil {
-		// 	t.Fatal(err)
-		// }
-		// if !strings.HasSuffix(res, ".json") {
-		// 	t.Errorf("expected path to end with .json, got %q", res)
-		// }
-		// if !core.FilesystemUtilsExistsAndNonempty(ta.Ctx, res) == false {
-		// 	// Should exist but be empty
-		// }
-		// os.Remove(res)
+		ta := coretest.NewApp(t)
+		res, err := ta.App.FilesystemUtilsGenerateMetadataTmpfile(ta.Ctx, "json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.HasSuffix(res, ".json") {
+			t.Errorf("expected path to end with .json, got %q", res)
+		}
+		if _, err := os.Stat(res); err != nil {
+			t.Error("file should exist")
+		}
+		os.Remove(res)
+	})
+}
+
+func TestFilesystemUtils_ComputeAndSaveMediaFilesize(t *testing.T) {
+	t.Run("updates the media item with the file size", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+
+		if mediaItem.MediaSizeBytes != nil && *mediaItem.MediaSizeBytes != 0 {
+			t.Error("media_size_bytes should initially be nil or 0")
+		}
+
+		result, err := ta.App.FilesystemUtilsComputeAndSaveMediaFilesize(ta.Ctx, mediaItem)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if result.MediaSizeBytes == nil || *result.MediaSizeBytes == 0 {
+			t.Error("media_size_bytes should be set and non-zero")
+		}
+	})
+
+	t.Run("returns the error if operation fails", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{
+			"media_filepath": "/nonexistent/file.mkv",
+		})
+
+		_, err := ta.App.FilesystemUtilsComputeAndSaveMediaFilesize(ta.Ctx, mediaItem)
+		if err == nil {
+			t.Error("expected error for nonexistent file")
+		}
 	})
 }
 
