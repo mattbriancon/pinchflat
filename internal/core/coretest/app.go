@@ -5,6 +5,7 @@ package coretest
 import (
 	"context"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
@@ -25,6 +26,14 @@ type TestApp struct {
 	UserScriptMock *UserScriptMock
 	HTTPMock       *HTTPMock
 	Ctx            context.Context
+}
+
+// Tests log at :critical in Elixir (config/test.exs); keep test output quiet.
+// Set PINCHFLAT_TEST_LOGS=1 to see logs.
+func init() {
+	if os.Getenv("PINCHFLAT_TEST_LOGS") == "" {
+		slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	}
 }
 
 var (
