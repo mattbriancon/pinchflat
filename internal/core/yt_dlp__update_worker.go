@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 )
@@ -16,10 +17,24 @@ var updateWorkerOpts = obanlite.WorkerOpts{
 
 // UpdateWorkerKickoff/0
 func (a *App) UpdateWorkerKickoff(ctx context.Context) (*obanlite.Job, error) {
-	panic("unported: Pinchflat.YtDlp.UpdateWorker.kickoff/0")
+	job, _, err := a.InsertUniqueJob(ctx, obanlite.JobSpec{
+		Worker: UpdateWorkerName,
+		Args:   map[string]any{},
+	})
+	return job, err
 }
 
 // UpdateWorkerPerform/1
 func (a *App) UpdateWorkerPerform(ctx context.Context, job *obanlite.Job) error {
-	panic("unported: Pinchflat.YtDlp.UpdateWorker.perform/1")
+	slog.Info("Updating yt-dlp")
+
+	a.YtDlp.Update(ctx)
+
+	version, err := a.YtDlp.Version(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.SettingsSet(ctx, KW{Opt("yt_dlp_version", version)})
+	return err
 }

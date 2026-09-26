@@ -2,7 +2,6 @@ package core_test
 
 import (
 	"testing"
-	
 
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
@@ -181,10 +180,10 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		}
 
 		before, err := ta.App.TasksListTasksFor(ta.Ctx, source, nil, nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	beforeCount := len(before)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		beforeCount := len(before)
 
 		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
 		if err != nil {
@@ -192,10 +191,10 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		}
 
 		after, err := ta.App.TasksListTasksFor(ta.Ctx, source, nil, nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	afterCount := len(after)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		afterCount := len(after)
 
 		if afterCount <= beforeCount {
 			t.Errorf("expected task count to increase, before %d, after %d", beforeCount, afterCount)

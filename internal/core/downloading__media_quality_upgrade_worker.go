@@ -2,6 +2,8 @@ package core
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 )
@@ -21,5 +23,19 @@ var mediaQualityUpgradeWorkerOpts = obanlite.WorkerOpts{
 
 // MediaQualityUpgradeWorkerPerform/1
 func (a *App) MediaQualityUpgradeWorkerPerform(ctx context.Context, job *obanlite.Job) error {
-	panic("unported: Pinchflat.Downloading.MediaQualityUpgradeWorker.perform/1")
+	upgradableMedia, err := a.MediaListUpgradeableMediaItems(ctx)
+	if err != nil {
+		return err
+	}
+
+	slog.Info(fmt.Sprintf("Redownloading %d media items", len(upgradableMedia)))
+
+	for _, mediaItem := range upgradableMedia {
+		_, err := a.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, Attrs{"quality_upgrade?": true}, KW{})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -7,5 +7,11 @@ import "context"
 
 // init/1
 func (a *App) PostBootStartupTasksInit(ctx context.Context) error {
-	panic("unported: Pinchflat.Boot.PostBootStartupTasks.init/1")
+	return updateYtDlp(ctx, a)
+}
+
+// updateYtDlp/0
+func updateYtDlp(ctx context.Context, a *App) error {
+	_, err := a.UpdateWorkerKickoff(ctx)
+	return err
 }
