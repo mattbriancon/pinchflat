@@ -187,6 +187,16 @@ func mediaItemDoUpdateUploadDateIndex(ctx context.Context, a *App, cs *Changeset
 		return cs
 	}
 
+	uploadedAtVal := cs.GetChange("uploaded_at")
+	if uploadedAtVal == nil {
+		return cs
+	}
+
+	uploadedAt, ok := uploadedAtVal.(db.UTCDateTime)
+	if !ok {
+		return cs
+	}
+
 	sourceID, _ := cs.GetField("source_id").(int64)
 	// Repo.get!/2: raises Ecto.NoResultsError if the source doesn't exist.
 	source, err := MustOne[Source](ctx, a.Q(ctx), From[Source]().Where(sq.Eq{"sources.id": sourceID}))
@@ -205,8 +215,6 @@ func mediaItemDoUpdateUploadDateIndex(ctx context.Context, a *App, cs *Changeset
 		aggregator = "MIN"
 		changeDirection = -1
 	}
-
-	uploadedAt := cs.GetChange("uploaded_at").(db.UTCDateTime)
 	q := MediaQueryNew().
 		Where(sq.And{MediaQueryUploadDateMatches(uploadedAt.Time), MediaQueryForSource(source.ID)}).
 		Map(func(b sq.SelectBuilder) sq.SelectBuilder {
