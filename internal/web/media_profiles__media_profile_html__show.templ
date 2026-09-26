@@ -1,0 +1,57 @@
+package web
+
+import "github.com/mattbriancon/pinchflat/internal/core"
+
+templ MediaProfilesHTMLShow(profile *core.MediaProfile, sources []*core.Source) {
+	<div class="page-header">
+		<a href={ templ.SafeURL(P(ctx, "/media_profiles")) }>Back</a>
+		<h2 class="page-title">{ profile.Name }</h2>
+		<nav>
+			<a href={ templ.SafeURL(P(ctx, "/media_profiles/%v/edit", profile.ID)) } class="inline-flex">
+				<button class="bg-primary text-white px-4 py-2 rounded-lg">Edit</button>
+			</a>
+		</nav>
+	</div>
+	<div class="card">
+		<h3>Media Profile Details</h3>
+		<p>ID: { formatInt64(profile.ID) }</p>
+		<p>Output Path: { profile.OutputPathTemplate }</p>
+
+		<h3 class="mt-6">Sources ({ formatInt64(int64(len(sources))) })</h3>
+		<table class="w-full">
+			<thead>
+				<tr>
+					<th class="text-left px-4 py-2">Name</th>
+					<th class="text-left px-4 py-2">Type</th>
+					<th class="text-right px-4 py-2">Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, source := range sources {
+					<tr>
+						<td class="px-4 py-2">
+							<a href={ templ.SafeURL(P(ctx, "/sources/%v", source.ID)) }>
+								if source.CustomName != "" {
+									{ source.CustomName }
+								} else {
+									{ source.CollectionName }
+								}
+							</a>
+						</td>
+						<td class="px-4 py-2">{ source.CollectionType }</td>
+						<td class="px-4 py-2 text-right">
+							<a href={ templ.SafeURL(P(ctx, "/sources/%v/edit", source.ID)) }>Edit</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+
+		<div class="mt-6">
+			<form action={ templ.SafeURL(P(ctx, "/media_profiles/%v", profile.ID)) } method="post" onsubmit="return confirm('Delete this profile?')">
+				<input type="hidden" name="_method" value="delete" />
+				<button type="submit" class="bg-red-500 text-white px-4 py-2 rounded-lg">Delete</button>
+			</form>
+		</div>
+	</div>
+}

@@ -1,0 +1,29 @@
+package web
+
+import "github.com/mattbriancon/pinchflat/internal/core"
+
+templ MediaProfilesHTMLNew(changeset *core.Changeset) {
+	<div class="page-header">
+		<h2 class="page-title">New Media Profile</h2>
+	</div>
+	<div class="card">
+		<form action={ templ.SafeURL(P(ctx, "/media_profiles")) } method="post">
+			@mediaProfilesFormContent(changeset)
+			<button type="submit" class="bg-primary text-white px-4 py-2 rounded-lg mt-4">Save</button>
+		</form>
+	</div>
+}
+
+templ mediaProfilesFormContent(changeset *core.Changeset) {
+	if changeset.Action != "" && !changeset.Valid() {
+		<div class="mb-4 p-4 bg-red-500 text-white rounded">Error: Please check the form</div>
+	}
+	<div class="mb-4">
+		<label class="block mb-2">Name</label>
+		<input type="text" name="media_profile[name]" value={ InputValue(changeset.GetField("name")) } class="w-full px-4 py-2 border rounded" />
+	</div>
+	<div class="mb-4">
+		<label class="block mb-2">Output Path Template</label>
+		<input type="text" name="media_profile[output_path_template]" value={ InputValue(changeset.GetField("output_path_template")) } class="w-full px-4 py-2 border rounded" />
+	</div>
+}

@@ -1,0 +1,17 @@
+package web
+
+import "github.com/mattbriancon/pinchflat/internal/core"
+
+templ MediaProfilesHTMLEdit(profile *core.MediaProfile, changeset *core.Changeset) {
+	<div class="page-header">
+		<a href={ templ.SafeURL(P(ctx, "/media_profiles")) }>Back</a>
+		<h2 class="page-title">Editing "{ profile.Name }"</h2>
+	</div>
+	<div class="card">
+		<form action={ templ.SafeURL(P(ctx, "/media_profiles/%v", profile.ID)) } method="post">
+			<input type="hidden" name="_method" value="patch" />
+			@mediaProfilesFormContent(changeset)
+			<button type="submit" class="bg-primary text-white px-4 py-2 rounded-lg mt-4">Save</button>
+		</form>
+	</div>
+}

@@ -1,0 +1,38 @@
+package web
+
+templ MediaProfilesHTMLIndex(profiles []MediaProfileWithCount) {
+	<div class="page-header">
+		<h2 class="page-title">Media Profiles</h2>
+		<nav>
+			<a href={ templ.SafeURL(P(ctx, "/media_profiles/new")) } class="inline-flex">
+				<button class="bg-primary text-white px-4 py-2 rounded-lg">+ New</button>
+			</a>
+		</nav>
+	</div>
+	<div class="card">
+		<table class="w-full">
+			<thead>
+				<tr>
+					<th class="text-left px-4 py-2">Name</th>
+					<th class="text-left px-4 py-2">Resolution</th>
+					<th class="text-left px-4 py-2">Sources</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, pw := range profiles {
+					<tr>
+						<td class="px-4 py-2">
+							<a href={ templ.SafeURL(P(ctx, "/media_profiles/%v", pw.Profile.ID)) }>{ pw.Profile.Name }</a>
+						</td>
+						<td class="px-4 py-2">{ pw.Profile.PreferredResolution }</td>
+						<td class="px-4 py-2">{ formatInt64(pw.SourceCount) }</td>
+						<td class="px-4 py-2 text-right">
+							<a href={ templ.SafeURL(P(ctx, "/media_profiles/%v/edit", pw.Profile.ID)) }>Edit</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
