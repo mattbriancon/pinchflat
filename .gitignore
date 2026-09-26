@@ -45,3 +45,6 @@ scratchpad.md
 # Database files
 *.db
 *.db-*
+
+# Go port: Elixir ground-truth databases are test fixtures
+!testdata/elixir/*.db
