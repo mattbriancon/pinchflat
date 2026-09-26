@@ -86,18 +86,18 @@ func MediaQueryUploadDateAfterSourceCutoff() sq.Sqlizer {
 // format_matching_profile_preference/0 (needs the media_profile binding)
 func MediaQueryFormatMatchingProfilePreference() sq.Sqlizer {
 	return sq.Expr(`CASE
-          WHEN shorts_behaviour = 'only' AND livestream_behaviour = 'only' THEN
-            livestream = true OR short_form_content = true
-          WHEN shorts_behaviour = 'only' THEN
-            short_form_content = true
-          WHEN livestream_behaviour = 'only' THEN
-            livestream = true
-          WHEN shorts_behaviour = 'exclude' AND livestream_behaviour = 'exclude' THEN
-            short_form_content = false AND livestream = false
-          WHEN shorts_behaviour = 'exclude' THEN
-            short_form_content = false
-          WHEN livestream_behaviour = 'exclude' THEN
-            livestream = false
+          WHEN media_profile.shorts_behaviour = 'only' AND media_profile.livestream_behaviour = 'only' THEN
+            mi.livestream = true OR mi.short_form_content = true
+          WHEN media_profile.shorts_behaviour = 'only' THEN
+            mi.short_form_content = true
+          WHEN media_profile.livestream_behaviour = 'only' THEN
+            mi.livestream = true
+          WHEN media_profile.shorts_behaviour = 'exclude' AND media_profile.livestream_behaviour = 'exclude' THEN
+            mi.short_form_content = false AND mi.livestream = false
+          WHEN media_profile.shorts_behaviour = 'exclude' THEN
+            mi.short_form_content = false
+          WHEN media_profile.livestream_behaviour = 'exclude' THEN
+            mi.livestream = false
           ELSE
             true
         END`)
@@ -110,21 +110,22 @@ func MediaQueryMatchesSourceTitleRegex() sq.Sqlizer {
 
 // meets_min_and_max_duration/0 (needs the source binding)
 func MediaQueryMeetsMinAndMaxDuration() sq.Sqlizer {
-	return sq.Expr("((source.min_duration_seconds IS NULL OR duration_seconds >= source.min_duration_seconds) AND " +
-		"(source.max_duration_seconds IS NULL OR duration_seconds <= source.max_duration_seconds))")
+	return sq.Expr("((source.min_duration_seconds IS NULL OR mi.duration_seconds >= source.min_duration_seconds) AND " +
+		"(source.max_duration_seconds IS NULL OR mi.duration_seconds <= source.max_duration_seconds))")
 }
 
 // past_retention_period/0 (needs the source binding)
 func MediaQueryPastRetentionPeriod() sq.Sqlizer {
-	return sq.Expr(`IFNULL(retention_period_days, 0) > 0 AND
-        DATETIME(media_downloaded_at, '+' || retention_period_days || ' day') < DATETIME('now')`)
+	return sq.Expr(`IFNULL(source.retention_period_days, 0) > 0 AND
+        mi.media_downloaded_at IS NOT NULL AND
+        DATETIME(mi.media_downloaded_at, '+' || CAST(source.retention_period_days AS TEXT) || ' day') < DATETIME('now')`)
 }
 
 // past_redownload_delay/0 (needs the media_profile binding)
 func MediaQueryPastRedownloadDelay() sq.Sqlizer {
-	return sq.Expr(`IFNULL(redownload_delay_days, 0) > 0 AND
-        DATE('now', '-' || redownload_delay_days || ' day') > DATE(uploaded_at) AND
-        DATE(media_downloaded_at, '-' || redownload_delay_days || ' day') < DATE(uploaded_at)`)
+	return sq.Expr(`IFNULL(media_profile.redownload_delay_days, 0) > 0 AND
+        DATE('now', '-' || media_profile.redownload_delay_days || ' day') > DATE(mi.uploaded_at) AND
+        DATE(mi.media_downloaded_at, '-' || media_profile.redownload_delay_days || ' day') < DATE(mi.uploaded_at)`)
 }
 
 // cullable/0
