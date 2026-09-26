@@ -106,7 +106,7 @@ func (d *DB) MigrateTo(ctx context.Context, target int64) ([]int64, error) {
 		if err != nil {
 			return ran, fmt.Errorf("migration %d_%s: %w", m.Version, m.Name, err)
 		}
-		slog.Info("applied migration", "version", m.Version, "name", m.Name)
+		slog.Debug("applied migration", "version", m.Version, "name", m.Name)
 		ran = append(ran, m.Version)
 	}
 	return ran, nil

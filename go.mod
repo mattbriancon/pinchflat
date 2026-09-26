@@ -6,6 +6,7 @@ require (
 	github.com/dlclark/regexp2 v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/jmoiron/sqlx v1.4.0
+	github.com/robfig/cron/v3 v3.0.1
 	modernc.org/sqlite v1.59.0
 )
 
