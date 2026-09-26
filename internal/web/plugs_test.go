@@ -178,3 +178,19 @@ func newRequestWithAuth(method, path, auth string) *http.Request {
 	req.Header.Set("Authorization", "Basic "+auth)
 	return req
 }
+
+// allow_iframe_embed/2 deleted the x-frame-options header that
+// put_secure_browser_headers added; the Go secureBrowserHeaders never sets it,
+// so check a browser-pipeline response through the full stack.
+func TestPlugsAllowIframeEmbed(t *testing.T) {
+	t.Run("deletes the x-frame-options header", func(t *testing.T) {
+		c := webtest.New(t)
+		res := c.Get("/")
+		if res.Header.Get("X-Content-Type-Options") == "" {
+			t.Fatal("expected the browser pipeline's secure headers to be set")
+		}
+		if v := res.Header.Values("X-Frame-Options"); len(v) != 0 {
+			t.Errorf("x-frame-options = %v, want none", v)
+		}
+	})
+}

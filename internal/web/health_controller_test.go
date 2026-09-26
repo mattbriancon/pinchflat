@@ -7,7 +7,7 @@ import (
 )
 
 func TestHealthController_Check(t *testing.T) {
-	t.Run("GET /healthcheck returns ok", func(t *testing.T) {
+	t.Run("returns ok", func(t *testing.T) {
 		c := webtest.New(t)
 
 		res := c.Get("/healthcheck")
