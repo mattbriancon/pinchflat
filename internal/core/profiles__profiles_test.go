@@ -1,6 +1,7 @@
 package core_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/mattbriancon/pinchflat/internal/core"
@@ -149,23 +150,145 @@ func TestProfiles_UpdateMediaProfile(t *testing.T) {
 
 func TestProfiles_DeleteMediaProfile(t *testing.T) {
 	t.Run("deletion deletes the media_profile", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
+
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, core.KW{})
+		if err != nil {
+			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
+		}
+
+		_, err = ta.ProfilesGetMediaProfile(ta.Ctx, mediaProfile.ID)
+		if err != core.ErrNotFound {
+			t.Errorf("expected ErrNotFound for deleted profile, got: %v", err)
+		}
 	})
 
 	t.Run("deletion deletes all sources", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, core.Attrs{
+			"media_profile_id": mediaProfile.ID,
+		})
+
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, core.KW{})
+		if err != nil {
+			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
+		}
+
+		_, err = ta.SourcesGetSource(ta.Ctx, source.ID)
+		if err != core.ErrNotFound {
+			t.Errorf("expected ErrNotFound for deleted source, got: %v", err)
+		}
 	})
 
 	t.Run("deletion deletes all media items", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, core.Attrs{
+			"media_profile_id": mediaProfile.ID,
+		})
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{
+			"source_id": source.ID,
+		})
+
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, core.KW{})
+		if err != nil {
+			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
+		}
+
+		_, err = ta.MediaGetMediaItem(ta.Ctx, mediaItem.ID)
+		if err != core.ErrNotFound {
+			t.Errorf("expected ErrNotFound for deleted media_item, got: %v", err)
+		}
 	})
 
 	t.Run("deletion does not delete files by default", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, core.Attrs{
+			"media_profile_id": mediaProfile.ID,
+		})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{
+			"source_id": source.ID,
+		})
+
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, core.KW{})
+		if err != nil {
+			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
+		}
+
+		// Verify media file still exists
+		if _, err := os.Stat(*mediaItem.MediaFilepath); os.IsNotExist(err) {
+			t.Error("expected media file to exist")
+		}
 	})
 }
 
 func TestProfiles_DeleteMediaProfile_WhenDeletingFiles(t *testing.T) {
 	t.Run("still deletes all the needful records", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
+			return nil
+		})
+
+		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, core.Attrs{
+			"media_profile_id": mediaProfile.ID,
+		})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{
+			"source_id": source.ID,
+		})
+
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, core.KW{core.Opt("delete_files", true)})
+		if err != nil {
+			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
+		}
+
+		// Verify media profile is deleted
+		_, err = ta.ProfilesGetMediaProfile(ta.Ctx, mediaProfile.ID)
+		if err != core.ErrNotFound {
+			t.Errorf("expected ErrNotFound for deleted profile, got: %v", err)
+		}
+
+		// Verify source is deleted
+		_, err = ta.SourcesGetSource(ta.Ctx, source.ID)
+		if err != core.ErrNotFound {
+			t.Errorf("expected ErrNotFound for deleted source, got: %v", err)
+		}
+
+		// Verify media_item is deleted
+		_, err = ta.MediaGetMediaItem(ta.Ctx, mediaItem.ID)
+		if err != core.ErrNotFound {
+			t.Errorf("expected ErrNotFound for deleted media_item, got: %v", err)
+		}
 	})
 
 	t.Run("deletes files", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
+			return nil
+		})
+
+		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, core.Attrs{
+			"media_profile_id": mediaProfile.ID,
+		})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{
+			"source_id": source.ID,
+		})
+
+		mediaFilepath := *mediaItem.MediaFilepath
+
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, core.KW{core.Opt("delete_files", true)})
+		if err != nil {
+			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
+		}
+
+		// Verify media file is deleted
+		if _, err := os.Stat(mediaFilepath); !os.IsNotExist(err) {
+			t.Error("expected media file to not exist")
+		}
 	})
 }
 

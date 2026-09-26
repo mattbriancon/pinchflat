@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/mattbriancon/pinchflat/internal/obanlite"
 )
 
 // output_path_template/1
@@ -87,7 +88,7 @@ func (a *App) SourcesDeleteSource(ctx context.Context, source *Source, opts KW) 
 	deleteFiles := opts.Bool("delete_files")
 
 	// Delete tasks
-	_ = a.TasksDeleteTasksFor(ctx, source, nil, nil)
+	_ = a.TasksDeleteTasksFor(ctx, source, nil, obanlite.AllStates)
 
 	// Delete media items
 	mediaItems, _ := All[MediaItem](ctx, a.Q(ctx), MediaQueryNew().Where(MediaQueryForSource(source.ID)))
