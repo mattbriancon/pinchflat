@@ -1,0 +1,29 @@
+{
+  "id": 2,
+  "name": "Audio only",
+  "updated_at": "2026-09-26T22:00:38Z",
+  "output_path_template": "{{title}}.{{ext}}",
+  "download_subs": false,
+  "embed_subs": false,
+  "download_auto_subs": false,
+  "sub_langs": "en",
+  "audio_track": "en",
+  "download_thumbnail": false,
+  "embed_thumbnail": false,
+  "download_metadata": false,
+  "embed_metadata": false,
+  "shorts_behaviour": "exclude",
+  "livestream_behaviour": "only",
+  "preferred_resolution": "audio",
+  "media_container": "mp4",
+  "redownload_delay_days": 4,
+  "download_nfo": false,
+  "download_source_images": false,
+  "sponsorblock_behaviour": "remove",
+  "sponsorblock_categories": [
+    "sponsor",
+    "intro"
+  ],
+  "inserted_at": "2026-09-26T22:00:38Z",
+  "marked_for_deletion_at": null
+}

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>All Sources</title>
+  </head>
+  <body>
+    <outline type="rss" text="Channel Source" xmlUrl="http://pinchflat.test:8945/sources/a256fe0d-cda0-4ee5-98f7-b958d422e1b6/feed.xml" />
+
+<outline type="rss" text="Cool and good internal name!" xmlUrl="http://pinchflat.test:8945/sources/1a6f4aec-5df7-4c6b-8334-e623e79d465c/feed.xml" />
+
+<outline type="rss" text="Cool and good internal name!" xmlUrl="http://pinchflat.test:8945/sources/58888ac0-1915-4cf2-8e1d-5e2465821722/feed.xml" />
+
+<outline type="rss" text="Cool and good internal name!" xmlUrl="http://pinchflat.test:8945/sources/39ad7e4e-fb74-4a3b-8d9a-25b06d5cf750/feed.xml" />
+
+<outline type="rss" text="Cool and good internal name!" xmlUrl="http://pinchflat.test:8945/sources/409bc47b-1263-47c2-9f0d-939c80d087e4/feed.xml" />
+
+<outline type="rss" text="Cool and good internal name!" xmlUrl="http://pinchflat.test:8945/sources/380ec025-65ec-4e61-bc18-442698a3661d/feed.xml" />
+
+<outline type="rss" text="Cool and good internal name!" xmlUrl="http://pinchflat.test:8945/sources/114fe742-2756-4273-8117-e5187e672035/feed.xml" />
+
+<outline type="rss" text="Playlist Source" xmlUrl="http://pinchflat.test:8945/sources/6637c87d-825d-455b-ab02-7ed58894c0ad/feed.xml" />
+
+<outline type="rss" text="With Metadata" xmlUrl="http://pinchflat.test:8945/sources/f14f7ea2-a48e-4370-b807-a0edb27adf84/feed.xml" />
+
+  </body>
+</opml>
