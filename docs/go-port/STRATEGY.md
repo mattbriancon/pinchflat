@@ -4,7 +4,8 @@ Status: proposal. Companion file: [`MANIFEST.md`](./MANIFEST.md) (one row per `l
 
 ## 0. TL;DR
 
-- **Hard constraint: an existing `/config/db/pinchflat.db` must work unchanged.** The Go binary opens it, runs no destructive changes, picks up pending jobs, and keeps every URL that podcast apps have saved. Rolling back to the Elixir image must still work after the Go app has written to the DB.
+- **Hard constraint: an existing `/config/db/pinchflat.db` must work unchanged.** The Go binary opens it, picks up pending jobs, and keeps every URL that podcast apps have saved.
+- **Cutover is one-way, with downtime.** Stop the Elixir container, start the Go one on the same volumes. Elixir and Go never run at the same time, and there is no rollback to the Elixir image after Go has written to the DB (restore the pre-cutover DB backup instead). So Go only needs to *read* what Elixir wrote; it doesn't need to stay readable by Elixir.
 - **Data layer:** `modernc.org/sqlite` (pure Go, so no CGO or `.so` files), `sqlx` for scanning, and `squirrel` for building the dynamic queries that Ecto builds today. **No ORM.** A small set of hand-written types reproduce exactly how Ecto encodes values on disk.
 - **Migrations:** a small in-house migrator that writes to **Ecto's own `schema_migrations` table**. It uses the same 79 version numbers, with each `.exs` file transcribed to a `.sql` file. It is verified by a golden test against a database migrated by the real Elixir app.
 - **Jobs:** a small in-house job runner (`internal/obanlite`) that reads and writes the **existing `oban_jobs` table**, with the same column semantics and the same worker name strings. We don't use River or any other queue that brings its own schema, because `tasks.job_id` has a foreign key into `oban_jobs` and existing DBs contain pending jobs.
@@ -21,9 +22,9 @@ Every item below becomes an automated test in Phase 0 or a checklist item for cu
 | Surface | Contract |
 |---|---|
 | SQLite schema | Identical tables, columns, declared types, defaults, indexes, FKs, FTS5 table and triggers. **No schema changes during Phase 1 or Phase 2.** |
-| Stored value encoding | Go writes byte-identical values to what Ecto writes (see §2.3). Rows written by Go must be readable by the Elixir app, so rollback works. |
-| `schema_migrations` | Same table and same version numbers. An Elixir release started later sees nothing pending. |
-| `oban_jobs` / `tasks` | Jobs queued by Elixir run under Go, and the reverse. Worker names stay `Pinchflat.Downloading.MediaDownloadWorker` and so on. |
+| Stored value encoding | Go reads every value Ecto wrote. During Phase 1 Go also *writes* the same encodings (see §2.3), because the SQL compares timestamps as text and mixing formats would break those queries. Phase 2 may normalise encodings via a migration. |
+| `schema_migrations` | Same table and same version numbers, so Go knows exactly which Elixir migrations an existing DB has applied. |
+| `oban_jobs` / `tasks` | Jobs queued by Elixir before cutover (including every source's next scheduled index) run under Go. Worker names stay `Pinchflat.Downloading.MediaDownloadWorker` and so on. |
 | URLs | Every route in `router.ex` stays byte-identical, including `/sources/:uuid/feed`, `/sources/opml?route_token=…`, `/media/:uuid/stream`, `…/feed_image`, `…/episode_image`, and `/healthcheck` (`{"status":"ok"}`). This includes the endpoint behaviour that **strips a trailing extension** (`endpoint.ex:85-115`) and the base URL built from `x-forwarded-proto`. |
 | Env vars | Everything in `config/runtime.exs`: `MEDIA_PATH`, `CONFIG_PATH`, `DATABASE_PATH`, `LOG_PATH`, `METADATA_PATH`, `EXTRAS_PATH`, `TMPFILE_PATH`, `PORT`, `BASIC_AUTH_USERNAME/PASSWORD`, `EXPOSE_FEED_ENDPOINTS`, `BASE_ROUTE_PATH`, `ENABLE_IPV6`, `ENABLE_PROMETHEUS`, `YT_DLP_WORKER_CONCURRENCY`, `LOG_LEVEL`, `JOURNAL_MODE`, `SECRET_KEY_BASE`, `TZ`, and `UMASK` (from `docker_start`). `TZ_DATA_PATH`, `DNS_CLUSTER_QUERY` and `PHX_SERVER` can be ignored. |
 | Filesystem layout | Same default paths. `extras/cookies.txt`, `extras/user-scripts/lifecycle`, the yt-dlp config under `/etc/yt-dlp`, and the metadata directory layout all stay the same. |
@@ -32,7 +33,7 @@ Every item below becomes an automated test in Phase 0 or a checklist item for cu
 | yt-dlp invocations | Same argv for the same inputs. The option builder tests guarantee this. |
 | RSS/OPML XML | Byte-for-byte identical output for the same DB. Verified by a diff test against the Elixir output. |
 | Docker image | Same volumes (`/config`, `/downloads`, `/etc/yt-dlp`), same port env, same healthcheck, same PUID/UMASK behaviour, same bundled tools (yt-dlp, ffmpeg, deno, apprise). |
-| `/metrics` | **Known break.** PromEx metric names (BEAM, Phoenix, Ecto, Oban) cannot be reproduced meaningfully. Keep the path, keep `ENABLE_PROMETHEUS`, publish new metric names, and put this in the release notes. |
+| `/metrics` | **Names change, endpoint stays.** Same path, same `ENABLE_PROMETHEUS` switch, Prometheus text format, new metric names designed for Go (see §4.6). Scrapeable by the Datadog agent's OpenMetrics check. |
 
 ---
 
@@ -87,7 +88,7 @@ Off-the-shelf tools collide with it. `golang-migrate` uses a table **also named 
 3. Fresh installs run all 79 migrations. Old installs run only the missing ones. That means one code path, and users on old Elixir releases can jump straight to Go.
 4. Oban's `Oban.Migration.up(version: 11)` (`20240125043813`) becomes literal SQL taken from Oban 2.19.4's SQLite migration.
 5. Data migrations need care: `backfill_content_uuids` (uses sqlean's `gen_random_uuid()`, which Go must also register or replace), `create_new_settings` (seeds the single settings row), `rename_upload_date_to_uploaded_at`, `add_route_token_to_settings` (backfills a random token), and `add_cookie_behaviour_to_sources`.
-6. After cutover, new migrations use new 14-digit versions and must stay additive, so Elixir rollback still works for at least one release.
+6. After cutover, new migrations use new 14-digit versions in the same table. They don't need to stay compatible with Elixir, because there is no rollback.
 
 **Golden test (the gate for all of this).** In CI, use the existing `docker/dev.Dockerfile` to run `mix ecto.migrate` on an empty DB and commit the result as `testdata/elixir_schema.db`. The Go test runs its migrator on an empty DB and compares both databases through `sqlite_master` SQL text plus `PRAGMA table_info / index_list / index_xinfo / foreign_key_list` for every table. Declared type strings must match exactly, because they drive SQLite type affinity. Use ecto_sqlite3's type names, not our own.
 
@@ -97,12 +98,12 @@ Off-the-shelf tools collide with it. `golang-migrate` uses a table **also named 
 
 Written in Phase 0 by the stronger model; roughly 600–900 LOC plus tests.
 
-**Why not River or asynq:** existing DBs contain `available`/`scheduled`/`retryable` rows in `oban_jobs`, `tasks.job_id` has a foreign key to `oban_jobs(id)` with `ON DELETE CASCADE`, and the dashboard (`job_table_live.ex`) reads `oban_jobs` columns directly. Replacing the table would break both rollback and existing queues.
+**Why not River or asynq:** existing DBs contain `available`/`scheduled`/`retryable` rows in `oban_jobs`, `tasks.job_id` has a foreign key to `oban_jobs(id)` with `ON DELETE CASCADE`, and the dashboard (`job_table_live.ex`) reads `oban_jobs` columns directly. Every source has its next index run sitting in that table as a `scheduled` job, so dropping it at cutover would silently stop indexing. Keeping the table is less work than converting it. If a different queue is ever wanted, Phase 2 can move to it with a one-off data migration.
 
 Features to replicate (read the Oban 2.19.4 Lite engine source; don't guess):
 
 - **Queues and limits:** `default` 10, `local_data` 8, and `fast_indexing` / `media_collection_indexing` / `media_fetching` / `remote_metadata` each at `YT_DLP_WORKER_CONCURRENCY` (default 2).
-- **Worker registry keyed by Oban's string names.** Registering all 10 workers under their exact names means jobs round-trip between the Elixir and Go apps.
+- **Worker registry keyed by Oban's string names.** Registering all 10 workers under their exact names means jobs Elixir queued before cutover run under Go.
 - **Fetch:** `BEGIN IMMEDIATE`, select available jobs by `priority, scheduled_at, id`, then mark them `executing`, increment `attempt`, and set `attempted_at` and `attempted_by`.
 - **Staging:** move `scheduled`/`retryable` jobs to `available` once they are due.
 - **Uniqueness:** each worker's `unique:` options (`period: :infinity`, states list, default keys worker+queue+args) are checked with a query at insert time, as the Lite engine does, and report `conflict?`. `Repo.insert_unique_job` depends on that result.
@@ -163,7 +164,9 @@ Counts come from `MANIFEST.md`.
 | **W4** (69 files) | Router, plugs, endpoint middleware, controllers, 36 `.heex` → `.templ`, components, LiveViews → handlers + htmx (SSE for `job_table_live` and `history_table_live`), metrics, static embed | **Haiku** for templates and controllers; Sonnet for router, plugs and SSE | Controller tests pass; route-table parity; RSS/OPML diff vs Elixir |
 | **W5** | New `docker/selfhosted.Dockerfile` (Go build stage + same runtime tools), CI workflows, release notes, cutover PR that deletes the Elixir tree | Sonnet | §6 compatibility suite green; manual QA checklist |
 
-Merge one PR per wave (or two for W4) into the branch. The Elixir app keeps shipping from `master` until W5.
+Merge one PR per wave (or two for W4) into the branch. The Elixir app keeps shipping from `master` until W5. W5 ships as a single release: back up the DB, stop Elixir, start Go on the same volumes.
+
+**Cutover runbook (W5).** 1) Stop the Elixir container. 2) Copy `/config/db/pinchflat.db*` (including `-wal`/`-shm`) aside. 3) Start the Go image on the same volumes; it checks `schema_migrations`, applies nothing (or any missing Elixir-era migrations), and resumes queued jobs. 4) Smoke-check `/healthcheck`, the sources page, a feed and the job table. 5) If anything is wrong, stop Go, restore the DB copy, and start the old Elixir image.
 
 ### 4.5 Web specifics
 
@@ -173,6 +176,25 @@ Merge one PR per wave (or two for W4) into the branch. The Elixir app keeps ship
 - **CSRF:** `net/http.CrossOriginProtection` (Go 1.25+). **Flash:** a signed cookie keyed from `SECRET_KEY_BASE`.
 - **Streaming:** `http.ServeContent` handles Range/206 natively, which replaces the hand-rolled range parsing in `media_item_controller.ex`.
 - **Auth:** basic auth when both env vars are set; `maybe_basic_auth` skipped when `EXPOSE_FEED_ENDPOINTS` is set; `token_protected_route` compares `route_token` to `settings.route_token`. `BASE_ROUTE_PATH` becomes a `chi` mount prefix.
+
+### 4.6 Metrics (`/metrics`)
+
+`prometheus/client_golang`, served on `/metrics` only when `ENABLE_PROMETHEUS` is set, outside basic auth (the current PromEx plug also sits in front of the router). Metrics:
+
+- **Runtime:** the standard Go and process collectors (memory, goroutines, GC, CPU, open FDs).
+- **HTTP:** `pinchflat_http_requests_total{route,method,status}`, `pinchflat_http_request_duration_seconds{route,method}`. Label by route pattern, not raw path, to keep cardinality low.
+- **Jobs:** `pinchflat_jobs_total{queue,worker,outcome}` (completed/retryable/discarded/cancelled), `pinchflat_job_duration_seconds{queue,worker}`, and gauges `pinchflat_jobs{queue,state}` sampled from `oban_jobs`.
+- **Domain:** gauges for sources (enabled/disabled), media items (downloaded/pending/culled), bytes on disk, plus `pinchflat_ytdlp_exit_total{code}`.
+- **DB:** `sql.DBStats` via the client_golang DB collector.
+
+Datadog agent config (`conf.d/openmetrics.d/conf.yaml`):
+
+```yaml
+instances:
+  - openmetrics_endpoint: http://pinchflat:8945/metrics
+    namespace: pinchflat
+    metrics: [".*"]
+```
 
 ---
 
@@ -195,8 +217,8 @@ Built in W0 and required on every PR.
    - Golden outputs: RSS for two sources, OPML, `/healthcheck`, the user-script JSON for a media item, source and profile, and the yt-dlp argv for a set of profiles.
 2. **Schema golden** (§2.4).
 3. **Round-trip identity:** load every row of the populated DB into Go structs, save them back unchanged, and require every column to be byte-identical (`quote(c)` matches).
-4. **Job interop:** Go picks up and runs an Elixir-enqueued job, and Go-enqueued jobs have the same `args`/`meta`/`tags` JSON shape as Elixir's.
-5. **Rollback smoke test (W5):** let the Go app run against the populated DB (index a source with the mock yt-dlp, download, prune), then boot the Elixir release on that DB and hit `/healthcheck`, `/sources`, a feed and `/`.
+4. **Queued-job pickup:** Go runs every Elixir-enqueued job in the populated DB (all 10 workers, all states), including the uniqueness checks against existing rows.
+5. **Cutover rehearsal (W5):** start the Go binary on a copy of the populated DB with the mock yt-dlp, let it index, download and prune, and check `/healthcheck`, `/sources`, a feed, the job table and `/metrics`. Then repeat on a copy of your real production DB.
 6. **HTTP parity:** walk the `router.ex` route list and assert each route exists in Go with the same method and path; diff feed output.
 7. **Test-count parity:** a script counts Elixir `test "` names per file against Go `t.Run` names from the manifest.
 
@@ -204,7 +226,7 @@ Built in W0 and required on every PR.
 
 ## 7. Phase 2: idiomatic Go (after the Phase 1 cutover is merged)
 
-Guardrails: the §6 suite doesn't change and must stay green, and there are still no schema changes. Haiku does the per-package refactors; Sonnet designs the package boundaries and reviews.
+Guardrails: the §6 suite doesn't change and must stay green. Schema changes are now allowed, but only through new migrations with a test on the populated fixture DB (for example normalising the mixed `uploaded_at` format). Haiku does the per-package refactors; Sonnet designs the package boundaries and reviews.
 
 - Split `internal/core` into packages along real dependency lines, such as `store` (repositories), `jobs`, `ytdlp`, `indexing`, `downloading`, `notify`, `feeds`, `metadata`. Break cycles with small interfaces and by enqueuing jobs by name (already cycle-free thanks to the string worker registry).
 - Rename to Go conventions (`SourcesGetSource` → `store.Sources.Get`), pass `context.Context` everywhere, use `slog` for logging, wrap errors with `%w`, and collapse the tuple-shaped returns.
@@ -273,17 +295,18 @@ Your instinct is mostly right. The exceptions are **`priv/repo/migrations` and `
 | Timestamp format drift → broken retention, redownload and cutoff queries | `ectotypes`; round-trip test; mixed `uploaded_at` fixture |
 | PCRE vs RE2 regex semantics | `regexp2` plus pattern corpus |
 | FK cascades silently off | Assert `PRAGMA foreign_keys` = 1 in a test; cascade test via the pruner |
-| Oban uniqueness/backoff subtly different → duplicate downloads or hot retries | Port against the Oban 2.19.4 source; job-interop test; unique-insert tests ported from worker tests |
+| Oban uniqueness/backoff subtly different → duplicate downloads or hot retries | Port against the Oban 2.19.4 source; queued-job pickup test; unique-insert tests ported from worker tests |
 | Orphaned yt-dlp/ffmpeg on cancel | Process-group kill test with a mock script that forks |
 | SQLite write contention (Go concurrency > BEAM pool of 5) | Single writer connection, `BEGIN IMMEDIATE`, busy_timeout |
 | User-script JSON shape drift | Golden JSON from the Jason encoders |
 | Podcast clients breaking | Extension-stripping middleware, URL parity test, RSS byte-diff |
 | LiveView UX regressions (live job table) | SSE for the two push views; manual QA checklist in W5 |
-| `/metrics` consumers | Documented break in release notes |
+| `/metrics` consumers | Names change (accepted); endpoint and switch unchanged; Datadog config in §4.6 |
+| Cutover goes wrong | DB backup step in the runbook; rehearsal on a copy of the production DB |
 
-## 11. Open decisions for you
+## 11. Decisions
 
-1. **Rollback window:** how many releases must the Elixir image stay able to open a Go-written DB? This proposal assumes at least the first Go release, which is why there are no schema changes before Phase 2 ends.
-2. **Same repo vs new repo:** proposed same repo, `go.mod` at the root, Elixir deleted in W5.
-3. **`/metrics`:** accept the metric-name break, or drop Prometheus entirely.
-4. **Frontend:** htmx + SSE (proposed) vs a heavier SPA; htmx keeps the templates a 1:1 port.
+1. **Cutover:** decided. Hard cutover with downtime; Elixir and Go never coexist; no rollback to Elixir except by restoring the DB backup.
+2. **`/metrics`:** decided. Names may change; the endpoint must keep working, and it's scraped by the Datadog agent (§4.6).
+3. **Repo:** decided. Same repo, `go.mod` at the root, Elixir deleted in W5.
+4. **Frontend:** open. Today the UI is server-rendered Phoenix LiveView (HTML over a websocket) with Alpine.js and Tailwind. The proposal is htmx + SSE, which keeps it server-rendered so the templates port 1:1.
