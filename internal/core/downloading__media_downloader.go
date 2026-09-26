@@ -172,7 +172,7 @@ func mediaDownloaderDownloadWithOptions(ctx context.Context, a *App, url string,
 	runnerOpts := KW{Opt("output_filepath", outputFilepath), Opt("use_cookies", shouldUseCookies)}
 
 	// Check downloadable status
-	statusJSON, statusErr := a.YtDlpMediaGetDownloadableStatus(ctx, url, runnerOpts)
+	statusStr, statusErr := a.YtDlpMediaGetDownloadableStatus(ctx, url, runnerOpts)
 	if statusErr != nil {
 		if !shouldUseCookies {
 			// Try with cookies if it might help
@@ -181,13 +181,8 @@ func mediaDownloaderDownloadWithOptions(ctx context.Context, a *App, url string,
 		return nil, statusErr
 	}
 
-	// Parse status
-	var statusData map[string]any
-	DecodeJSON([]byte(statusJSON), &statusData)
-
 	// Check if downloadable
-	liveStatus, ok := statusData["live_status"].(string)
-	if ok && liveStatus == "is_live" {
+	if statusStr == "ignorable" {
 		return nil, &MediaDownloaderError{Reason: "unsuitable_for_download", Message: "unsuitable for download"}
 	}
 
