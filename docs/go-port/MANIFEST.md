@@ -5,7 +5,10 @@ Generated from `git ls-files lib`. One row is one Haiku task: port the source fi
 
 | Wave | Elixir source | Go target | Elixir test to port | Notes |
 |---|---|---|---|---|
-| W0 | `lib/pinchflat/repo.ex` | `internal/core/repo.go` | `test/pinchflat/repo_test.exs` | helpers fold into internal/db + internal/obanlite |
+| W0 | `lib/pinchflat/repo.ex` | `internal/core/repo_helpers.go` | `test/pinchflat/repo_test.exs` | hand-written infra; port its tests in W2 |
+| W0 | `test/support/conn_case.ex` | `internal/web/webtest/app.go` | — | hand-written in W4 |
+| W0 | `test/support/data_case.ex` | `internal/core/coretest/app.go` | — | hand-written: NewApp replaces DataCase + Ecto sandbox |
+| W0 | `test/test_helper.exs` | `internal/core/coretest/mocks.go` | — | hand-written: Mox mocks |
 | W1 | `lib/pinchflat/downloading/download_option_builder.ex` | `internal/core/downloading__download_option_builder.go` | `test/pinchflat/downloading/download_option_builder_test.exs` |  |
 | W1 | `lib/pinchflat/downloading/output_path/base.ex` | `internal/core/downloading__output_path__base.go` | — |  |
 | W1 | `lib/pinchflat/downloading/output_path/parser.ex` | `internal/core/downloading__output_path__parser.go` | `test/pinchflat/downloading/output_path/parser_test.exs` | nimble_parsec grammar -> hand-written parser |
@@ -35,6 +38,7 @@ Generated from `git ls-files lib`. One row is one Haiku task: port the source fi
 | W1 | `lib/pinchflat/yt_dlp/command_runner.ex` | `internal/core/yt_dlp__command_runner.go` | `test/pinchflat/yt_dlp/command_runner_test.exs` |  |
 | W1 | `lib/pinchflat/yt_dlp/media.ex` | `internal/core/yt_dlp__media.go` | `test/pinchflat/yt_dlp/media_test.exs` |  |
 | W1 | `lib/pinchflat/yt_dlp/media_collection.ex` | `internal/core/yt_dlp__media_collection.go` | `test/pinchflat/yt_dlp/media_collection_test.exs` |  |
+| W1 | `test/support/testing_helper_methods.ex` | `internal/core/coretest/helpers.go` | — |  |
 | W2 | `lib/pinchflat/media/media.ex` | `internal/core/media__media.go` | `test/pinchflat/media_test.exs` |  |
 | W2 | `lib/pinchflat/media/media_item.ex` | `internal/core/media__media_item.go` | — | custom Jason.Encoder = user-script JSON contract |
 | W2 | `lib/pinchflat/media/media_items_search_index.ex` | `internal/core/media__media_items_search_index.go` | — |  |
@@ -52,6 +56,11 @@ Generated from `git ls-files lib`. One row is one Haiku task: port the source fi
 | W2 | `lib/pinchflat/tasks/task.ex` | `internal/core/tasks__task.go` | — |  |
 | W2 | `lib/pinchflat/tasks/tasks.ex` | `internal/core/tasks__tasks.go` | `test/pinchflat/tasks_test.exs` |  |
 | W2 | `lib/pinchflat/tasks/tasks_query.ex` | `internal/core/tasks__tasks_query.go` | — |  |
+| W2 | `test/support/fixtures/job_fixtures.ex` | `internal/core/coretest/job_fixtures.go` | — |  |
+| W2 | `test/support/fixtures/media_fixtures.ex` | `internal/core/coretest/media_fixtures.go` | — |  |
+| W2 | `test/support/fixtures/profiles_fixtures.ex` | `internal/core/coretest/profiles_fixtures.go` | — |  |
+| W2 | `test/support/fixtures/sources_fixtures.ex` | `internal/core/coretest/sources_fixtures.go` | — |  |
+| W2 | `test/support/fixtures/tasks_fixtures.ex` | `internal/core/coretest/tasks_fixtures.go` | — |  |
 | W3 | `lib/pinchflat/application.ex` | `cmd/pinchflat/main.go` | — |  |
 | W3 | `lib/pinchflat/boot/post_boot_startup_tasks.ex` | `internal/core/boot__post_boot_startup_tasks.go` | `test/pinchflat/boot/post_boot_startup_tasks_test.exs` |  |
 | W3 | `lib/pinchflat/boot/pre_job_startup_tasks.ex` | `internal/core/boot__pre_job_startup_tasks.go` | `test/pinchflat/boot/pre_job_startup_tasks_test.exs` |  |
@@ -107,9 +116,9 @@ Generated from `git ls-files lib`. One row is one Haiku task: port the source fi
 | W4 | `lib/pinchflat_web/controllers/media_profiles/media_profile_html/show.html.heex` | `internal/web/media_profiles__media_profile_html__show.templ` | — |  |
 | W4 | `lib/pinchflat_web/controllers/pages/page_controller.ex` | `internal/web/pages__page_controller.go` | `test/pinchflat_web/controllers/page_controller_test.exs` |  |
 | W4 | `lib/pinchflat_web/controllers/pages/page_html.ex` | `internal/web/pages__page_html.go` | — |  |
-| W4 | `lib/pinchflat_web/controllers/pages/page_html/history_table_live.ex` | `internal/web/pages__page_html__history_table_live.go` | — | LiveView -> handler + htmx; refresh button, no push |
+| W4 | `lib/pinchflat_web/controllers/pages/page_html/history_table_live.ex` | `internal/web/pages__page_html__history_table_live.go` | — | LiveView -> handler + htmx + SSE (needs push) |
 | W4 | `lib/pinchflat_web/controllers/pages/page_html/home.html.heex` | `internal/web/pages__page_html__home.templ` | — |  |
-| W4 | `lib/pinchflat_web/controllers/pages/page_html/job_table_live.ex` | `internal/web/pages__page_html__job_table_live.go` | `test/pinchflat_web/controllers/pages/job_table_live_test.exs` | LiveView -> handler + htmx; refresh button, no push |
+| W4 | `lib/pinchflat_web/controllers/pages/page_html/job_table_live.ex` | `internal/web/pages__page_html__job_table_live.go` | `test/pinchflat_web/controllers/pages/job_table_live_test.exs` | LiveView -> handler + htmx + SSE (needs push) |
 | W4 | `lib/pinchflat_web/controllers/pages/page_html/onboarding_checklist.html.heex` | `internal/web/pages__page_html__onboarding_checklist.templ` | — |  |
 | W4 | `lib/pinchflat_web/controllers/podcasts/podcast_controller.ex` | `internal/web/podcasts__podcast_controller.go` | `test/pinchflat_web/controllers/podcast_controller_test.exs` |  |
 | W4 | `lib/pinchflat_web/controllers/searches/search_controller.ex` | `internal/web/searches__search_controller.go` | `test/pinchflat_web/controllers/search_controller_test.exs` |  |
@@ -151,9 +160,9 @@ Generated from `git ls-files lib`. One row is one Haiku task: port the source fi
 | drop | `lib/pinchflat/release.ex` | `-` | — | replaced by the embedded migrator (W0) |
 | drop | `lib/pinchflat/yt_dlp/yt_dlp_command_runner.ex` | `-` | — | behaviour -> interface in command_runner.go |
 | drop | `lib/pinchflat_web.ex` | `-` | — | Phoenix `use` macros |
-| drop | `lib/pinchflat_web/controllers/error_json.ex` | `-` | `test/pinchflat_web/controllers/error_json_test.exs` | Phoenix JSON error view; net/http default |
-| drop | `lib/pinchflat_web/controllers/sources/source_html/index_table_live.ex` | `-` | `test/pinchflat_web/controllers/sources/index_table_live_test.exs` | dead code: PinchflatWeb.Sources.IndexTableLive is never referenced (the live one is SourceLive.IndexTableLive) |
+| drop | `lib/pinchflat_web/controllers/error_json.ex` | `-` | — | Phoenix JSON error view; net/http default |
+| drop | `lib/pinchflat_web/controllers/sources/source_html/index_table_live.ex` | `-` | — | dead code: PinchflatWeb.Sources.IndexTableLive is never referenced (the live one is SourceLive.IndexTableLive) |
 | drop | `lib/pinchflat_web/gettext.ex` | `-` | — | 3 English strings; inline them |
 | drop | `lib/pinchflat_web/telemetry.ex` | `-` | — | Phoenix/VM telemetry; replaced by W4 metrics |
 
-Counts: W0: 1, W1: 29, W2: 17, W3: 19, W4: 69, drop: 15
+Counts: W0: 4, W1: 30, W2: 22, W3: 19, W4: 69, drop: 15
