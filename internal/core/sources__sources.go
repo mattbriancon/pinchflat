@@ -60,7 +60,7 @@ func (a *App) SourcesCreateSource(ctx context.Context, attrs Attrs, opts KW) (*S
 	}
 
 	// Build full changeset with API call
-	cs = sourcesChangeSourceFromURL(ctx, a, NewSource(), attrs, cs)
+	cs = sourcesChangeSourceFromURL(ctx, a, NewSource(), attrs)
 	cs = sourcesChangeIndexingFrequency(cs)
 
 	return sourcesCommitAndHandleTasks(ctx, a, cs, runPostCommitTasks)
@@ -77,7 +77,7 @@ func (a *App) SourcesUpdateSource(ctx context.Context, source *Source, attrs Att
 	}
 
 	// Build full changeset with API call
-	cs = sourcesChangeSourceFromURL(ctx, a, source, attrs, cs)
+	cs = sourcesChangeSourceFromURL(ctx, a, source, attrs)
 	cs = sourcesChangeIndexingFrequency(cs)
 
 	return sourcesCommitAndHandleTasks(ctx, a, cs, runPostCommitTasks)
@@ -87,7 +87,8 @@ func (a *App) SourcesUpdateSource(ctx context.Context, source *Source, attrs Att
 func (a *App) SourcesDeleteSource(ctx context.Context, source *Source, opts KW) (*Source, error) {
 	deleteFiles := opts.Bool("delete_files")
 
-	// Delete tasks
+	// Delete tasks (of any state, matching Elixir's Tasks.delete_tasks_for
+	// default of Oban.Job.states()).
 	_ = a.TasksDeleteTasksFor(ctx, source, nil, obanlite.AllStates)
 
 	// Delete media items
@@ -123,8 +124,12 @@ func (a *App) SourcesChangeSource(ctx context.Context, source *Source, attrs Att
 
 // --- Private helpers ---
 
-// sourcesChangeSourceFromURL fetches source details from the URL if it changed
-func sourcesChangeSourceFromURL(ctx context.Context, a *App, source *Source, attrs Attrs, changeset *Changeset) *Changeset {
+// sourcesChangeSourceFromURL builds a fresh, fully (pre_insert) validated
+// changeset from attrs and, if original_url changed, fetches source details
+// from the URL to fill in collection_type/collection_id/collection_name.
+func sourcesChangeSourceFromURL(ctx context.Context, a *App, source *Source, attrs Attrs) *Changeset {
+	changeset := a.SourcesChangeSource(ctx, source, attrs, "pre_insert")
+
 	if !changeset.HasChange("original_url") {
 		return changeset
 	}
@@ -153,24 +158,32 @@ func sourcesChangeSourceFromURL(ctx context.Context, a *App, source *Source, att
 		return changeset
 	}
 
-	// Merge collection changes with existing changes
+	// Elixir rebuilds a brand new (pre_insert validated) changeset from attrs
+	// merged with the fetched collection_type/collection_id/collection_name,
+	// rather than patching the changeset that was built (and validated)
+	// before those fields were known. Merging like this also lets the fetched
+	// details win over any conflicting user-supplied values, same as
+	// Map.merge(changes, collection_changes).
+	mergedAttrs := Attrs{}
+	for k, v := range attrs {
+		mergedAttrs[k] = v
+	}
 	for k, v := range collectionChanges {
-		if !changeset.HasChange(k) {
-			changeset.PutChange(k, v)
-		}
+		mergedAttrs[k] = v
 	}
 
-	return changeset
+	return a.SourcesChangeSource(ctx, source, mergedAttrs, "pre_insert")
 }
 
-// sourcesExtractCollectionDetails determines if the source is a channel or playlist
+// sourcesExtractCollectionDetails determines if the source is a channel or
+// playlist. channel_id/playlist_id may be nil (e.g. a playlist has no
+// channel_id), so this compares the raw (possibly-nil) interface values the
+// same way Elixir's `==` does, rather than requiring both to be strings.
 func sourcesExtractCollectionDetails(details map[string]any) map[string]any {
-	playlistID, playlistOK := details["playlist_id"].(string)
-	channelID, channelOK := details["channel_id"].(string)
-	playlistTitle, _ := details["playlist_title"].(string)
-	channelName, _ := details["channel"].(string)
+	playlistID := details["playlist_id"]
+	channelID := details["channel_id"]
 
-	if !playlistOK || !channelOK {
+	if playlistID == nil && channelID == nil {
 		return nil
 	}
 
@@ -178,14 +191,14 @@ func sourcesExtractCollectionDetails(details map[string]any) map[string]any {
 		return map[string]any{
 			"collection_type": SourceCollectionTypeChannel,
 			"collection_id":   channelID,
-			"collection_name": channelName,
+			"collection_name": details["channel_name"],
 		}
 	}
 
 	return map[string]any{
 		"collection_type": SourceCollectionTypePlaylist,
 		"collection_id":   playlistID,
-		"collection_name": playlistTitle,
+		"collection_name": details["playlist_name"],
 	}
 }
 
@@ -276,7 +289,9 @@ func sourcesUpdateSlowIndexingTask(ctx context.Context, a *App, changeset *Chang
 	if case1 || case2 {
 		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, Attrs{}, KW{})
 	} else if case3 || case4 {
-		_ = a.TasksDeletePendingTasksFor(ctx, source, Ptr("MediaCollectionIndexingWorker"), KW{Opt("include_executing", true)})
+		// Elixir's SlowIndexingHelpers.delete_indexing_tasks/2 deletes both
+		// the fast- and slow-indexing pending tasks, not just the slow one.
+		_ = a.SlowIndexingHelpersDeleteIndexingTasks(ctx, source, KW{Opt("include_executing", true)})
 	}
 }
 

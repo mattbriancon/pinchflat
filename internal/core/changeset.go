@@ -444,7 +444,10 @@ func castValue(fi fieldInfo, raw any) (any, error) {
 	if raw == nil {
 		return nil, nil
 	}
-	if s, ok := raw.(string); ok && emptyStringNils && s == "" {
+	// Matches Ecto.Type.empty_trimmed_string?/1: a string is "empty" (and
+	// cast to nil) when trimming its leading whitespace leaves nothing, not
+	// only when it's the exact empty string.
+	if s, ok := raw.(string); ok && emptyStringNils && strings.TrimLeft(s, " \t\n\v\f\r\u0085 ") == "" {
 		return nil, nil
 	}
 	base := fi.typ

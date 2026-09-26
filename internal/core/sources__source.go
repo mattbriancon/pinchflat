@@ -1,6 +1,8 @@
 package core
 
 import (
+	"reflect"
+
 	"github.com/mattbriancon/pinchflat/internal/db"
 )
 
@@ -144,20 +146,24 @@ func SourceChangeset(source *Source, attrs Attrs, validationStage string) *Chang
 
 // validateTitleRegex checks if a title_filter_regex is valid by running
 // regexp_like query against SQLite. This is called during changeset validation.
+//
+// Note: castValue stores pointer-typed fields' changes as their base
+// (dereferenced) type (e.g. plain string, not *string), so this reads the
+// change with derefString rather than asserting a pointer type.
 func (cs *Changeset) ValidateTitleRegex() *Changeset {
 	if cs.HasChange("title_filter_regex") {
 		v := cs.GetChange("title_filter_regex")
 		if v == nil {
 			return cs
 		}
-		regex, ok := v.(*string)
-		if !ok || regex == nil {
+		regex, ok := derefString(v)
+		if !ok {
 			return cs
 		}
 		// We need a DB connection to validate. This is a simplified check.
 		// In production, we'd run the regexp_like query. For now, we'll
 		// use the Go regex compiler to do a basic check.
-		_, err := db.CompileRegex(*regex)
+		_, err := db.CompileRegex(regex)
 		if err != nil {
 			cs.AddError("title_filter_regex", "is invalid")
 		}
@@ -165,39 +171,44 @@ func (cs *Changeset) ValidateTitleRegex() *Changeset {
 	return cs
 }
 
-// validateMinAndMaxDurations checks that min_duration <= max_duration
+// validateMinAndMaxDurations checks that min_duration <= max_duration.
+// Ports Elixir's `validate_min_and_max_durations/1`, which only looks at
+// get_change (this changeset's own changes), not the field's persisted
+// value, for both min and max.
 func (cs *Changeset) ValidateMinAndMaxDurations() *Changeset {
-	minVal := cs.GetChange("min_duration_seconds")
-	maxVal := cs.GetChange("max_duration_seconds")
+	minChange := cs.GetChange("min_duration_seconds")
+	maxChange := cs.GetChange("max_duration_seconds")
 
-	// If either is nil/missing, no validation needed
-	if minVal == nil && maxVal == nil {
+	if minChange == nil || maxChange == nil {
 		return cs
 	}
 
-	// Get values, accounting for current state
-	min, minOK := cs.GetField("min_duration_seconds"), true
-	max, maxOK := cs.GetField("max_duration_seconds"), true
-
-	if min == nil || max == nil {
+	minInt, minOK := derefInt(minChange)
+	maxInt, maxOK := derefInt(maxChange)
+	if !minOK || !maxOK {
 		return cs
 	}
 
-	minInt, ok := min.(*int)
-	if !ok || minInt == nil {
-		return cs
-	}
-
-	maxInt, ok := max.(*int)
-	if !ok || maxInt == nil {
-		return cs
-	}
-
-	if minOK && maxOK && *minInt >= *maxInt {
+	if minInt >= maxInt {
 		cs.AddError("max_duration_seconds", "must be greater than minumum duration")
 	}
 
 	return cs
+}
+
+// derefInt reads an int (or *int) value, dereferencing pointers.
+func derefInt(v any) (int, bool) {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Pointer {
+		if rv.IsNil() {
+			return 0, false
+		}
+		rv = rv.Elem()
+	}
+	if rv.Kind() < reflect.Int || rv.Kind() > reflect.Int64 {
+		return 0, false
+	}
+	return int(rv.Int()), true
 }
 
 // index_frequency_when_fast_indexing/0
