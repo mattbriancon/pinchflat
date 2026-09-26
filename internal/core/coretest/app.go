@@ -85,7 +85,7 @@ func NewApp(t testing.TB) *TestApp {
 	t.Cleanup(func() { d.Close() })
 
 	root := dbtest.RepoRoot()
-	testDataDir := filepath.Join(os.TempDir(), "test")
+	testDataDir := dir // per-test, replacing the shared /tmp/test/* of config/test.exs
 	cfg := core.Config{
 		Env:                     "test",
 		YtDlpExecutable:         filepath.Join(root, "test/support/scripts/yt-dlp-mocks/repeater.sh"),
