@@ -156,12 +156,11 @@ func TestRssFeedBuilder_Build_SourceXml(t *testing.T) {
 }
 
 func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
-	ta := coretest.NewApp(t)
-	defer ta.App.DB.Close()
-
-	source := coretest.SourceFixture(t, ta, core.Attrs{})
-
 	t.Run("only includes media persisted to disk", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+		defer ta.App.DB.Close()
+
+		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		goodMedia := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
 		badMedia := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": "/tmp/existing_file.mp3"})
 		pendingMedia := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
@@ -183,8 +182,11 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 	})
 
 	t.Run("returns XML for static media attributes", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
+		ta := coretest.NewApp(t)
+		defer ta.App.DB.Close()
+
+		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "title": "Test Media Item", "description": "Test Description"})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
 		if err != nil {
@@ -221,7 +223,10 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 	})
 
 	t.Run("returns pubDate based off the media's uploaded_at", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
+		ta := coretest.NewApp(t)
+		defer ta.App.DB.Close()
+
+		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		uploadedAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 		coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": db.UTCDateTime{Time: uploadedAt}})
 
@@ -242,7 +247,10 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 	})
 
 	t.Run("returns an enclosure tag with the media's stream URL", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
+		ta := coretest.NewApp(t)
+		defer ta.App.DB.Close()
+
+		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "media_size_bytes": int64(1234)})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
@@ -271,8 +279,11 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 	})
 
 	t.Run("returns image tags if the media has a thumbnail", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "media_size_bytes": int64(1234)})
+		ta := coretest.NewApp(t)
+		defer ta.App.DB.Close()
+
+		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "media_size_bytes": int64(1234), "title": "Test Media"})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
 		if err != nil {
@@ -295,7 +306,10 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 	})
 
 	t.Run("does not return image tags if the media does not have a thumbnail", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
+		ta := coretest.NewApp(t)
+		defer ta.App.DB.Close()
+
+		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
 		os.Remove(*mediaItem.ThumbnailFilepath)
 
