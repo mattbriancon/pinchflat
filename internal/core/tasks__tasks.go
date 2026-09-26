@@ -15,6 +15,9 @@ func (a *App) TasksListTasks(ctx context.Context) ([]*Task, error) {
 
 // TasksListTasksFor/3
 func (a *App) TasksListTasksFor(ctx context.Context, record any, workerName *string, jobStates []string) ([]*Task, error) {
+	if jobStates == nil { // job_states \\ Oban.Job.states()
+		jobStates = obanlite.AllStates
+	}
 	var recordType string
 	var recordID int64
 
