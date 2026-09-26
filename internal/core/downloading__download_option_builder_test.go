@@ -379,7 +379,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 
 	t.Run("appends -thumb to the thumbnail name when download_thumbnail is true", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_thumbnail": true})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_thumbnail": true, "output_path_template": "{{ title }}.%(ext)s"})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": mediaProfile.ID})
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
@@ -587,7 +587,10 @@ func TestDownloadOptionBuilder_Build_WhenTestingMetadataOptions(t *testing.T) {
 func TestDownloadOptionBuilder_Build_WhenTestingMediaQualityAndFormatOptions(t *testing.T) {
 	t.Run("includes video options for video profiles", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"output_path_template": "{{ title }}.%(ext)s"})
+		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": mediaProfile.ID})
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
+		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, core.KW{})
 
@@ -733,7 +736,10 @@ func TestDownloadOptionBuilder_Build_WhenTestingSponsorblockOptions(t *testing.T
 func TestDownloadOptionBuilder_BuildOutputPathFor(t *testing.T) {
 	t.Run("builds an output path for a media item", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"output_path_template": "{{ title }}.%(ext)s"})
+		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": mediaProfile.ID})
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
+		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		path := ta.App.DownloadOptionBuilderBuildOutputPathForMediaItem(ta.Ctx, mediaItem)
 
@@ -744,8 +750,10 @@ func TestDownloadOptionBuilder_BuildOutputPathFor(t *testing.T) {
 
 	t.Run("builds an output path for a source", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
-		source := mediaItem.Source
+		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"output_path_template": "{{ title }}.%(ext)s"})
+		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": mediaProfile.ID})
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
+		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		path := ta.App.DownloadOptionBuilderBuildOutputPathForSource(ta.Ctx, source)
 
@@ -756,7 +764,10 @@ func TestDownloadOptionBuilder_BuildOutputPathFor(t *testing.T) {
 
 	t.Run("uses source's output override if present", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"output_path_template": "{{ title }}.%(ext)s"})
+		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": mediaProfile.ID})
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
+		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 		ta.App.SourcesUpdateSource(ta.Ctx, mediaItem.Source, core.Attrs{"output_path_template_override": "override.%(ext)s"}, core.KW{})
 
 		path := ta.App.DownloadOptionBuilderBuildOutputPathForSource(ta.Ctx, mediaItem.Source)
@@ -770,7 +781,10 @@ func TestDownloadOptionBuilder_BuildOutputPathFor(t *testing.T) {
 func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) {
 	t.Run("includes base config file if it's present", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"output_path_template": "{{ title }}.%(ext)s"})
+		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": mediaProfile.ID})
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
+		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, core.KW{})
 
