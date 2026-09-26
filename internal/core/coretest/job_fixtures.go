@@ -19,18 +19,13 @@ func (w TestJobWorker) Perform(ctx context.Context, job *obanlite.Job) error {
 // TestJobWorkerName is the registered name for the test worker.
 const TestJobWorkerName = "Pinchflat.JobFixtures.TestJobWorker"
 
-// jobWorkerRegistered tracks whether TestJobWorker has been registered.
-var jobWorkerRegistered = false
-
 // JobFixture creates a Job using the TestJobWorker.
 func JobFixture(t testing.TB, ta *TestApp) *obanlite.Job {
 	t.Helper()
 
-	// Register TestJobWorker if not already registered
-	if !jobWorkerRegistered {
-		ta.Oban.Register(TestJobWorkerName, obanlite.WorkerOpts{Queue: "default"}, TestJobWorker{})
-		jobWorkerRegistered = true
-	}
+	// Each TestApp gets its own *obanlite.Oban, so register on every call
+	// (Register is an idempotent map write) rather than once per process.
+	ta.Oban.Register(TestJobWorkerName, obanlite.WorkerOpts{Queue: "default"}, TestJobWorker{})
 
 	spec := obanlite.NewJob(TestJobWorkerName, map[string]any{})
 	job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), spec)
