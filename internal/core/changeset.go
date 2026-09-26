@@ -225,7 +225,7 @@ func (cs *Changeset) ValidateFormat(field, pattern string, message ...string) *C
 // NumberOpts are validate_number/3 options. Nil fields are ignored.
 type NumberOpts struct {
 	GreaterThan, GreaterThanOrEqualTo, LessThan, LessThanOrEqualTo, EqualTo *float64
-	Message                                                                string
+	Message                                                                 string
 }
 
 // Num is a helper for NumberOpts literals: NumberOpts{GreaterThanOrEqualTo: Num(0)}.
