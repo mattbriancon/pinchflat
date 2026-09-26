@@ -34,7 +34,9 @@ var mediaMetadataRequiredFields = []string{
 
 // MediaMetadataChangeset/2
 func MediaMetadataChangeset(mediaMetadata *MediaMetadata, attrs Attrs) *Changeset {
-	panic("unported: Pinchflat.Metadata.MediaMetadata.changeset/2")
+	return Cast(mediaMetadata, attrs, mediaMetadataAllowedFields).
+		ValidateRequired(mediaMetadataRequiredFields...).
+		UniqueConstraint([]string{"media_item_id"}, "media_item_id")
 }
 
 // MediaMetadataFilepathAttributes/0

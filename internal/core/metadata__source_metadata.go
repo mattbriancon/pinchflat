@@ -37,7 +37,9 @@ var sourceMetadataRequiredFields = []string{
 
 // SourceMetadataChangeset/2
 func SourceMetadataChangeset(sourceMetadata *SourceMetadata, attrs Attrs) *Changeset {
-	panic("unported: Pinchflat.Metadata.SourceMetadata.changeset/2")
+	return Cast(sourceMetadata, attrs, sourceMetadataAllowedFields).
+		ValidateRequired(sourceMetadataRequiredFields...).
+		UniqueConstraint([]string{"source_id"}, "source_id")
 }
 
 // SourceMetadataFilepathAttributes/0

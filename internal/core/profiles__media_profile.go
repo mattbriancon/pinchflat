@@ -125,5 +125,16 @@ var mediaProfileAllowedFields = []string{
 
 // MediaProfile.changeset/2
 func MediaProfileChangeset(profile *MediaProfile, attrs Attrs) *Changeset {
-	panic("unported: Pinchflat.Profiles.MediaProfile.changeset/2")
+	return Cast(profile, attrs, mediaProfileAllowedFields).
+		ValidateRequired("name", "output_path_template").
+		ValidateFormat("output_path_template", mediaProfileExtRegex(), "must end with .{{ ext }}").
+		ValidateNumber("redownload_delay_days", NumberOpts{
+			GreaterThanOrEqualTo: Num(0),
+		}).
+		UniqueConstraint([]string{"name"}, "name")
+}
+
+// mediaProfileExtRegex returns the regex pattern for output_path_template validation
+func mediaProfileExtRegex() string {
+	return `\.({{ ?ext ?}}|%\( ?ext ?\)[sS])$`
 }
