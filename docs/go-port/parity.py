@@ -10,6 +10,23 @@ ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 MANIFEST = os.path.join(ROOT, "docs", "go-port", "MANIFEST.md")
 ELIXIR_TEST = re.compile(r'^\s*test\s+"((?:[^"\\]|\\.)*)"', re.M)
 GO_RUN = re.compile(r't\.Run\(\s*"((?:[^"\\]|\\.)*)"')
+ASSERTION = re.compile(r't\.(Error|Errorf|Fatal|Fatalf|Fail|FailNow|Skip|Skipf)\b|Assert|Refute|coretest\.Assert')
+
+def go_runs(src):
+    """Names of t.Run blocks that contain at least one assertion (or an
+    explicit skip). Empty or assertion-free bodies don't count as ported."""
+    names = set()
+    for m in GO_RUN.finditer(src):
+        # body = text from this t.Run to the next t.Run / func at col 0
+        start = m.end()
+        nxt = GO_RUN.search(src, start)
+        end = nxt.start() if nxt else len(src)
+        top = src.find("\nfunc ", start)
+        if top != -1 and top < end:
+            end = top
+        if ASSERTION.search(src[start:end]):
+            names.add(m.group(1))
+    return names
 
 def rows():
     for line in open(MANIFEST):
@@ -29,7 +46,7 @@ def main():
         ex_names = ELIXIR_TEST.findall(open(os.path.join(ROOT, test)).read())
         total += len(ex_names)
         gp = go_test_path(target)
-        go_names = set(GO_RUN.findall(open(gp).read())) if os.path.exists(gp) else set()
+        go_names = go_runs(open(gp).read()) if os.path.exists(gp) else set()
         missing = [n for n in ex_names if n not in go_names]
         ported += len(ex_names) - len(missing)
         status = "ok " if not missing else ("-- " if not go_names else "!! ")
