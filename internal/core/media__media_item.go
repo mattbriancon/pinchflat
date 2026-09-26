@@ -59,6 +59,7 @@ func NewMediaItem() *MediaItem {
 		Livestream:        false,
 		ShortFormContent:  false,
 		PreventDownload:   false,
+		PreventCulling:    Ptr(false),
 		UploadDateIndex:   0,
 		PlaylistIndex:     0,
 		UploadedAt:        db.UTCDateTime{Time: uploadedAt},

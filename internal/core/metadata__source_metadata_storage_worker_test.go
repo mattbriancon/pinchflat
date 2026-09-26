@@ -172,7 +172,6 @@ func TestSourceMetadataStorageWorker_PerformMetadataStorage(t *testing.T) {
 	})
 
 	t.Run("sets metadata image location for source", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: banner filepath not being set in test environment")
 
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
@@ -230,20 +229,20 @@ func TestSourceMetadataStorageWorker_PerformMetadataStorage(t *testing.T) {
 		reloadedSource, _ := ta.SourcesGetSource(ta.Ctx, source.ID)
 		reloadedSource, _ = ta.PreloadSourceMetadata(ta.Ctx, reloadedSource)
 
-		if reloadedSource.Metadata.FanartFilepath != nil {
-			if _, err := os.Stat(*reloadedSource.Metadata.FanartFilepath); err != nil {
-				t.Errorf("Expected fanart file to exist at %s", *reloadedSource.Metadata.FanartFilepath)
-			}
+		if reloadedSource.Metadata.FanartFilepath == nil {
+			t.Error("Expected fanart_filepath to be set")
+		} else if _, err := os.Stat(*reloadedSource.Metadata.FanartFilepath); err != nil {
+			t.Errorf("Expected fanart file to exist at %s", *reloadedSource.Metadata.FanartFilepath)
 		}
-		if reloadedSource.Metadata.PosterFilepath != nil {
-			if _, err := os.Stat(*reloadedSource.Metadata.PosterFilepath); err != nil {
-				t.Errorf("Expected poster file to exist at %s", *reloadedSource.Metadata.PosterFilepath)
-			}
+		if reloadedSource.Metadata.PosterFilepath == nil {
+			t.Error("Expected poster_filepath to be set")
+		} else if _, err := os.Stat(*reloadedSource.Metadata.PosterFilepath); err != nil {
+			t.Errorf("Expected poster file to exist at %s", *reloadedSource.Metadata.PosterFilepath)
 		}
-		if reloadedSource.Metadata.BannerFilepath != nil {
-			if _, err := os.Stat(*reloadedSource.Metadata.BannerFilepath); err != nil {
-				t.Errorf("Expected banner file to exist at %s", *reloadedSource.Metadata.BannerFilepath)
-			}
+		if reloadedSource.Metadata.BannerFilepath == nil {
+			t.Error("Expected banner_filepath to be set")
+		} else if _, err := os.Stat(*reloadedSource.Metadata.BannerFilepath); err != nil {
+			t.Errorf("Expected banner file to exist at %s", *reloadedSource.Metadata.BannerFilepath)
 		}
 
 		ta.SourcesDeleteSource(ta.Ctx, reloadedSource, core.KW{core.Flag("delete_files")})
@@ -252,7 +251,6 @@ func TestSourceMetadataStorageWorker_PerformMetadataStorage(t *testing.T) {
 
 func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T) {
 	t.Run("downloads and stores source images", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: banner filepath not being set in test environment")
 
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_source_images": true})

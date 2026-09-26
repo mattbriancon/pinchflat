@@ -12,7 +12,6 @@ import (
 
 func TestMediaRetentionWorker_Perform(t *testing.T) {
 	t.Run("sets deleted media to not re-download", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: media_downloaded_at not being set from fixture attrs")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -42,7 +41,6 @@ func TestMediaRetentionWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("sets culled_at timestamp on deleted media", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: media_downloaded_at not being set from fixture attrs")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -77,7 +75,6 @@ func TestMediaRetentionWorker_Perform(t *testing.T) {
 
 func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *testing.T) {
 	t.Run("deletes media files that are past their retention date", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: media_downloaded_at not being set from fixture attrs")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -101,7 +98,7 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 		if newMediaItem.MediaFilepath != nil && !fileExists(*newMediaItem.MediaFilepath) {
 			t.Error("new media item file should still exist")
 		}
-		if oldMediaItem.MediaFilepath == nil || !fileExists(*oldMediaItem.MediaFilepath) {
+		if oldMediaItem.MediaFilepath == nil || fileExists(*oldMediaItem.MediaFilepath) {
 			t.Error("old media item file should be deleted")
 		}
 		if reloadedNew.MediaFilepath == nil {
@@ -113,7 +110,6 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 	})
 
 	t.Run("deletes media files that are on their retention date per the 24-h clock", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: media_downloaded_at not being set from fixture attrs")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -161,7 +157,6 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 	})
 
 	t.Run("sets culled_at and prevent_download", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: media_downloaded_at not being set from fixture attrs")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -299,7 +294,6 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 
 func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *testing.T) {
 	t.Run("culls media from before the cutoff date", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: media_downloaded_at/uploaded_at handling in cutoff query")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -334,7 +328,6 @@ func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *tes
 	})
 
 	t.Run("doesn't cull media from on or after the cutoff date", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: media_downloaded_at/uploaded_at handling in cutoff query")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -386,7 +379,6 @@ func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *tes
 	})
 
 	t.Run("sets culled_at but not prevent_download", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: media_downloaded_at/uploaded_at handling in cutoff query")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
