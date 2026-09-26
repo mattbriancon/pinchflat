@@ -1,6 +1,20 @@
 package web
 
-// Skeleton; port the .heex template here.
+// Port of lib/pinchflat_web/components/layouts/onboarding.html.heex.
+
 templ LayoutsOnboarding(content templ.Component) {
-	@content
+	<div class="flex min-h-screen flex-col">
+		<header class="sticky top-0 z-999 w-full border-b border-strokedark bg-boxdark">
+			<div class="mx-auto flex max-w-screen-2xl items-center gap-2 px-3 py-2 sm:px-4 lg:px-6">
+				<img src={ P(ctx, "/images/icon-2024-03-20.png") } alt="Pinchflat" class="h-8 w-8"/>
+				<span class="text-lg font-bold text-white">Pinchflat</span>
+			</div>
+		</header>
+		<main class="flex-1">
+			<div class="mx-auto max-w-screen-2xl p-3 sm:p-4 lg:p-6">
+				@CoreFlashGroup()
+				@content
+			</div>
+		</main>
+	</div>
 }
