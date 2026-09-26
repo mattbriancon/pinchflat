@@ -1,0 +1,30 @@
+name: Go
+
+on:
+  push:
+    branches: [master, 'claude/**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Generated files are up to date
+        run: |
+          go run github.com/a-h/templ/cmd/templ@v0.3.1020 generate -path internal/web
+          git diff --exit-code -- internal/web
+      - name: Format
+        run: test -z "$(gofmt -l cmd internal)"
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test ./... -count=1
+      - name: Test parity with the Elixir suite
+        run: python3 docs/go-port/parity.py || true
+      - name: Build
+        run: CGO_ENABLED=0 go build ./cmd/pinchflat
