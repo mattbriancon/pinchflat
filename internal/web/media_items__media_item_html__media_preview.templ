@@ -1,0 +1,41 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/media_items/media_item_html/media_preview.heex
+
+import (
+	"path/filepath"
+	"strings"
+
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
+
+templ MediaItemsMediaItemHTMLMediaPreview(mediaItem *core.MediaItem) {
+	if mediaItemMediaType(mediaItem) == "video" {
+		<video controls class="max-h-128 w-full">
+			<source src={ templ.URL(P(ctx, "/media/%v/stream?v=%v", derefUUID(mediaItem.UUID), mediaItem.UpdatedAt.Time.Unix())) } type="video/mp4" />
+			Your browser does not support the video element.
+		</video>
+	}
+
+	if mediaItemMediaType(mediaItem) == "audio" {
+		<audio controls class="w-full">
+			<source src={ templ.URL(P(ctx, "/media/%v/stream?v=%v", derefUUID(mediaItem.UUID), mediaItem.UpdatedAt.Time.Unix())) } type="audio/mpeg" />
+			Your browser does not support the audio element.
+		</audio>
+	}
+}
+
+func mediaItemMediaType(mediaItem *core.MediaItem) string {
+	if mediaItem == nil || mediaItem.MediaFilepath == nil || *mediaItem.MediaFilepath == "" {
+		return "unknown"
+	}
+	ext := strings.ToLower(filepath.Ext(*mediaItem.MediaFilepath))
+	switch ext {
+	case ".mp4", ".webm", ".mkv":
+		return "video"
+	case ".mp3", ".m4a", ".opus":
+		return "audio"
+	default:
+		return "unknown"
+	}
+}

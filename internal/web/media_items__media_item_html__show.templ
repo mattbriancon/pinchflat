@@ -1,0 +1,136 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/media_items/media_item_html/show.html.heex
+
+import (
+	"os"
+	"strings"
+
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
+
+templ MediaItemsMediaItemHTMLShow(mediaItem *core.MediaItem) {
+	<div class="page-header">
+		<div class="flex gap-3 items-center min-w-0">
+			<a href={ templ.URL(P(ctx, "/sources/%v", mediaItem.SourceID)) }>
+				@CoreIcon("hero-arrow-left", "back-link", templ.Attributes{})
+			</a>
+			<h2 class="page-title">
+				if mediaItem.Title != nil {
+					{ *mediaItem.Title }
+				}
+			</h2>
+		</div>
+
+		<nav>
+			<a href={ templ.URL(P(ctx, "/sources/%v/media/%v/edit", mediaItem.SourceID, mediaItem.ID)) }>
+				<button type="button" class="bg-primary rounded-lg px-4 py-2">
+					@CoreIcon("hero-pencil-square", "h-4 w-4", templ.Attributes{})
+					Edit
+				</button>
+			</a>
+		</nav>
+	</div>
+	<div class="card card-body">
+		<div class="max-w-full">
+			<div class="flex flex-col gap-6 text-white">
+				if mediaItem.LastError != nil && *mediaItem.LastError != "" {
+					<section class="mt-2">
+						<div class="flex items-center gap-1 mb-2">
+							@CoreIcon("hero-exclamation-circle-solid", "text-red-500", templ.Attributes{})
+							<h3 class="font-bold text-xl">Last Error</h3>
+						</div>
+						<span>{ *mediaItem.LastError }</span>
+					</section>
+				}
+
+				if mediaItemFileExists(mediaItem) {
+					<section class="grid grid-cols-1 xl:gap-6 mt-2">
+						<div>
+							@MediaItemsMediaItemHTMLMediaPreview(mediaItem)
+						</div>
+						<aside class="mt-4">
+							<h2 class="text-xl mb-2">
+								if mediaItem.Title != nil {
+									{ *mediaItem.Title }
+								}
+							</h2>
+							<div>Uploaded: { mediaItem.UploadedAt.Time.Format("2006-01-02") }</div>
+							<div>
+								if mediaItemIsHTTPURL(mediaItem.OriginalURL) {
+									<a href={ templ.URL(mediaItem.OriginalURL) } target="_blank">Open Original</a>
+									<span class="mx-2">or</span>
+								}
+								<span>
+									<a href={ templ.URL(P(ctx, "/media/%v/stream?v=%v", derefUUID(mediaItem.UUID), mediaItem.UpdatedAt.Time.Unix())) } target="_blank">Open Local Stream</a>
+								</span>
+							</div>
+							if mediaItem.Description != nil && *mediaItem.Description != "" {
+								<div class="mt-4 text-bodydark">
+									{ *mediaItem.Description }
+								</div>
+							}
+						</aside>
+					</section>
+				}
+
+				<section>
+					<h3 class="section-title mb-2">Raw Attributes</h3>
+					<section>
+						<strong>Source:</strong>
+						<a href={ templ.URL(P(ctx, "/sources/%v", mediaItem.SourceID)) }>
+							{ mediaItem.Source.CustomName }
+						</a>
+					</section>
+				</section>
+			</div>
+
+			<div class="mt-6">
+				<h3 class="text-xl font-bold">Tasks</h3>
+				if len(mediaItem.Tasks) > 0 {
+					<table class="text-white w-full">
+						<thead>
+							<tr>
+								<th class="text-left">Worker</th>
+								<th class="text-left">State</th>
+								<th class="text-left">Scheduled At</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, task := range mediaItem.Tasks {
+								if task.Job != nil {
+									<tr>
+										<td>{ task.Job.Worker }</td>
+										<td>{ task.Job.State }</td>
+										<td>{ task.Job.ScheduledAt.Time.Format("2006-01-02 15:04:05") }</td>
+									</tr>
+								}
+							}
+						</tbody>
+					</table>
+				} else {
+					<p class="text-black dark:text-white">Nothing Here!</p>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+func mediaItemFileExists(mediaItem *core.MediaItem) bool {
+	if mediaItem == nil || mediaItem.MediaFilepath == nil || *mediaItem.MediaFilepath == "" {
+		return false
+	}
+	_, err := os.Stat(*mediaItem.MediaFilepath)
+	return err == nil
+}
+
+func mediaItemIsHTTPURL(url string) bool {
+	return strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://")
+}
+
+func derefUUID(uuid *string) string {
+	if uuid != nil {
+		return *uuid
+	}
+	return ""
+}
