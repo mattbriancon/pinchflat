@@ -46,8 +46,8 @@ defmodule PinchflatWeb.Sources.MediaItemTableLive do
         </div>
       </header>
       <.table rows={@records} table_class="text-white">
-        <:col :let={media_item} label="Title" class="max-w-56 sm:max-w-xs">
-          <section class="flex items-center space-x-1">
+        <:col :let={media_item} label="Title" class="cell-wrap">
+          <section class="flex items-start gap-1">
             <.tooltip
               :if={media_item.last_error}
               tooltip={media_item.last_error}
@@ -56,7 +56,7 @@ defmodule PinchflatWeb.Sources.MediaItemTableLive do
             >
               <.icon name="hero-exclamation-circle-solid" class="text-red-500" />
             </.tooltip>
-            <span class="truncate">
+            <span>
               <.subtle_link href={~p"/sources/#{@source.id}/media/#{media_item.id}"}>
                 {media_item.title}
               </.subtle_link>

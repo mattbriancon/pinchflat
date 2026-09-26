@@ -22,7 +22,7 @@
   }
 
   .page-title {
-    @apply truncate text-xl font-bold text-white sm:text-2xl;
+    @apply min-w-0 break-words text-xl font-bold text-white sm:text-2xl;
   }
 
   .back-link {
@@ -35,6 +35,11 @@
 
   .card-body {
     @apply p-3 sm:p-5;
+  }
+
+  /* Table cells don't wrap by default; long titles and names opt back in */
+  .cell-wrap {
+    @apply min-w-48 !whitespace-normal break-words sm:min-w-64;
   }
 
   .section-title {

@@ -1,13 +1,10 @@
-<div class="flex h-screen overflow-hidden">
-  <.sidebar conn={@conn} />
-
-  <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
-    <.header params={@conn.params} />
-    <main>
-      <div class="mx-auto max-w-screen-2xl p-3 sm:p-4 lg:p-6">
-        <.flash_group flash={@flash} />
-        {@inner_content}
-      </div>
-    </main>
-  </div>
+<div class="flex min-h-screen flex-col">
+  <.header conn={@conn} />
+  <main class="flex-1">
+    <div class="mx-auto max-w-screen-2xl p-3 sm:p-4 lg:p-6">
+      <.flash_group flash={@flash} />
+      {@inner_content}
+    </div>
+  </main>
+  <.footer />
 </div>
