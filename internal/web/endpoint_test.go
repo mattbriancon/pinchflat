@@ -127,7 +127,6 @@ func TestBasicAuth(t *testing.T) {
 	})
 }
 
-
 func TestTokenProtectedRoute(t *testing.T) {
 	t.Run("allows access when the route token is correct", func(t *testing.T) {
 		c := webtest.New(t)
