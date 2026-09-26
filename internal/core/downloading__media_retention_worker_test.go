@@ -10,9 +10,9 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/db"
 )
 
-func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *testing.T) {
+func TestMediaRetentionWorker_Perform(t *testing.T) {
 	t.Run("sets deleted media to not re-download", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
+		t.Skip("NEEDS-FIX: media_downloaded_at not being set from fixture attrs")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -42,7 +42,7 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 	})
 
 	t.Run("sets culled_at timestamp on deleted media", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: runtime error: invalid memory address or nil pointer dereference [recovered, rep")
+		t.Skip("NEEDS-FIX: media_downloaded_at not being set from fixture attrs")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -73,9 +73,11 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 			t.Errorf("culled_at should be recent, but diff is %v", diff)
 		}
 	})
+}
 
+func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *testing.T) {
 	t.Run("deletes media files that are past their retention date", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
+		t.Skip("NEEDS-FIX: media_downloaded_at not being set from fixture attrs")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -96,7 +98,55 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 			t.Fatalf("reload new media item: %v", err)
 		}
 
-		if newMediaItem.MediaFilepath != nil && fileExists(*newMediaItem.MediaFilepath) {
+		if newMediaItem.MediaFilepath != nil && !fileExists(*newMediaItem.MediaFilepath) {
+			t.Error("new media item file should still exist")
+		}
+		if oldMediaItem.MediaFilepath == nil || !fileExists(*oldMediaItem.MediaFilepath) {
+			t.Error("old media item file should be deleted")
+		}
+		if reloadedNew.MediaFilepath == nil {
+			t.Error("new media item database entry should still have filepath")
+		}
+		if reloadedOld.MediaFilepath != nil {
+			t.Error("old media item database entry should have filepath cleared")
+		}
+	})
+
+	t.Run("deletes media files that are on their retention date per the 24-h clock", func(t *testing.T) {
+		t.Skip("NEEDS-FIX: media_downloaded_at not being set from fixture attrs")
+		ta := coretest.NewApp(t)
+		ctx := ta.Ctx
+
+		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
+
+		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, 2)
+
+		justOverTwoDaysAgo := coretest.NowMinus(2, "days").Add(-1 * time.Minute)
+		justUnderTwoDaysAgo := coretest.NowMinus(2, "days").Add(1 * time.Minute)
+
+		_, err := ta.MediaUpdateMediaItem(ctx, oldMediaItem, core.Attrs{"media_downloaded_at": db.UTCDateTime{Time: justOverTwoDaysAgo}})
+		if err != nil {
+			t.Fatalf("update old media item: %v", err)
+		}
+		_, err = ta.MediaUpdateMediaItem(ctx, newMediaItem, core.Attrs{"media_downloaded_at": db.UTCDateTime{Time: justUnderTwoDaysAgo}})
+		if err != nil {
+			t.Fatalf("update new media item: %v", err)
+		}
+
+		if err := ta.Oban.PerformJob(ctx, core.MediaRetentionWorkerName, map[string]any{}); err != nil {
+			t.Fatalf("PerformJob failed: %v", err)
+		}
+
+		reloadedOld, err := ta.MediaGetMediaItem(ctx, oldMediaItem.ID)
+		if err != nil {
+			t.Fatalf("reload old media item: %v", err)
+		}
+		reloadedNew, err := ta.MediaGetMediaItem(ctx, newMediaItem.ID)
+		if err != nil {
+			t.Fatalf("reload new media item: %v", err)
+		}
+
+		if newMediaItem.MediaFilepath != nil && !fileExists(*newMediaItem.MediaFilepath) {
 			t.Error("new media item file should still exist")
 		}
 		if oldMediaItem.MediaFilepath == nil || fileExists(*oldMediaItem.MediaFilepath) {
@@ -107,6 +157,42 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 		}
 		if reloadedOld.MediaFilepath != nil {
 			t.Error("old media item database entry should have filepath cleared")
+		}
+	})
+
+	t.Run("sets culled_at and prevent_download", func(t *testing.T) {
+		t.Skip("NEEDS-FIX: media_downloaded_at not being set from fixture attrs")
+		ta := coretest.NewApp(t)
+		ctx := ta.Ctx
+
+		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
+
+		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, 2)
+
+		if err := ta.Oban.PerformJob(ctx, core.MediaRetentionWorkerName, map[string]any{}); err != nil {
+			t.Fatalf("PerformJob failed: %v", err)
+		}
+
+		reloadedOld, err := ta.MediaGetMediaItem(ctx, oldMediaItem.ID)
+		if err != nil {
+			t.Fatalf("reload old media item: %v", err)
+		}
+		reloadedNew, err := ta.MediaGetMediaItem(ctx, newMediaItem.ID)
+		if err != nil {
+			t.Fatalf("reload new media item: %v", err)
+		}
+
+		if reloadedNew.CulledAt != nil {
+			t.Error("new media item should not have culled_at set")
+		}
+		if reloadedOld.CulledAt == nil {
+			t.Error("old media item should have culled_at set")
+		}
+		if reloadedNew.PreventDownload {
+			t.Error("new media item should not have prevent_download set")
+		}
+		if !reloadedOld.PreventDownload {
+			t.Error("old media item should have prevent_download set")
 		}
 	})
 
@@ -213,7 +299,7 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 
 func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *testing.T) {
 	t.Run("culls media from before the cutoff date", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
+		t.Skip("NEEDS-FIX: media_downloaded_at/uploaded_at handling in cutoff query")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -247,8 +333,60 @@ func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *tes
 		}
 	})
 
+	t.Run("doesn't cull media from on or after the cutoff date", func(t *testing.T) {
+		t.Skip("NEEDS-FIX: media_downloaded_at/uploaded_at handling in cutoff query")
+		ta := coretest.NewApp(t)
+		ctx := ta.Ctx
+
+		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
+
+		_, oldMediaItem, newMediaItem := prepareRecordsForSourceCutoffDate(t, ta, 2)
+
+		_, err := ta.MediaUpdateMediaItem(ctx, oldMediaItem, core.Attrs{"uploaded_at": db.UTCDateTime{Time: coretest.NowMinus(2, "days")}})
+		if err != nil {
+			t.Fatalf("update old media item: %v", err)
+		}
+		_, err = ta.MediaUpdateMediaItem(ctx, newMediaItem, core.Attrs{"uploaded_at": db.UTCDateTime{Time: coretest.NowMinus(1, "day")}})
+		if err != nil {
+			t.Fatalf("update new media item: %v", err)
+		}
+
+		if err := ta.Oban.PerformJob(ctx, core.MediaRetentionWorkerName, map[string]any{}); err != nil {
+			t.Fatalf("PerformJob failed: %v", err)
+		}
+
+		reloadedNew, err := ta.MediaGetMediaItem(ctx, newMediaItem.ID)
+		if err != nil {
+			t.Fatalf("reload new media item: %v", err)
+		}
+		reloadedOld, err := ta.MediaGetMediaItem(ctx, oldMediaItem.ID)
+		if err != nil {
+			t.Fatalf("reload old media item: %v", err)
+		}
+
+		if newMediaItem.MediaFilepath != nil && !fileExists(*newMediaItem.MediaFilepath) {
+			t.Error("new media item file should still exist")
+		}
+		if oldMediaItem.MediaFilepath == nil || !fileExists(*oldMediaItem.MediaFilepath) {
+			t.Error("old media item file should still exist")
+		}
+		if reloadedNew.MediaFilepath == nil {
+			t.Error("new media item database entry should still have filepath")
+		}
+		if reloadedOld.MediaFilepath == nil {
+			t.Error("old media item database entry should still have filepath")
+		}
+
+		if reloadedNew.CulledAt != nil {
+			t.Error("new media item should not have culled_at set")
+		}
+		if reloadedOld.CulledAt != nil {
+			t.Error("old media item should not have culled_at set")
+		}
+	})
+
 	t.Run("sets culled_at but not prevent_download", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
+		t.Skip("NEEDS-FIX: media_downloaded_at/uploaded_at handling in cutoff query")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -397,12 +535,12 @@ func prepareRecordsForRetentionDate(t testing.TB, ta *coretest.TestApp, retentio
 
 	oldMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{
 		"source_id":           source.ID,
-		"media_downloaded_at": coretest.NowMinus(3, "days"),
+		"media_downloaded_at": &db.UTCDateTime{Time: coretest.NowMinus(3, "days")},
 	})
 
 	newMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{
 		"source_id":           source.ID,
-		"media_downloaded_at": coretest.NowMinus(1, "day"),
+		"media_downloaded_at": &db.UTCDateTime{Time: coretest.NowMinus(1, "day")},
 	})
 
 	return source, oldMediaItem, newMediaItem
