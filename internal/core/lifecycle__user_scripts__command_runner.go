@@ -93,8 +93,17 @@ func (r *UserScriptsCommandRunner) backendExecutable(ctx context.Context) (strin
 	return lifecycleFilepath, nil
 }
 
-// Run satisfies UserScriptRunner by discarding the result.
+// Run satisfies UserScriptRunner by discarding the result, except that a
+// non-zero exit code (the only case Pinchflat.Lifecycle.UserScripts.CommandRunner
+// callers care about via the plain error-returning interface) becomes a
+// *CommandError, since the interface can't otherwise carry the exit code.
 func (r *UserScriptsCommandRunner) Run(ctx context.Context, eventType string, data any) error {
-	_, err := r.RunWithResult(ctx, eventType, data)
-	return err
+	result, err := r.RunWithResult(ctx, eventType, data)
+	if err != nil {
+		return err
+	}
+	if !result.NoExecutable && result.ExitCode != 0 {
+		return &CommandError{Output: result.Output, Status: result.ExitCode}
+	}
+	return nil
 }

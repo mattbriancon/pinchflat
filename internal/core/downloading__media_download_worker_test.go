@@ -160,7 +160,6 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("saves the metadata to the media_item", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := setup(t)
 		ctx := ta.Ctx
 
@@ -172,6 +171,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 		updatedMediaItem, _ := ta.MediaGetMediaItem(ctx, mediaItem.ID)
+		updatedMediaItem, _ = ta.App.PreloadMediaItemMetadata(ctx, updatedMediaItem)
 
 		if updatedMediaItem.Metadata == nil {
 			t.Error("expected metadata to not be nil after download")
@@ -196,11 +196,10 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("sets the job to retryable if the download fails", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -226,11 +225,10 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("sets the job to retryable if the download failed and was retried", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -257,11 +255,10 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("does not set the job to retryable if retrying wouldn't fix the issue", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -285,11 +282,10 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("does not set the job to retryable if youtube thinks you're a bot", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -313,11 +309,10 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("does not set the job to retryable you aren't a member", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -341,11 +336,10 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("ensures error are returned in a 2-item tuple", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -373,7 +367,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ctx := ta.Ctx
 
 		callCount := 0
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
 			defer func() { callCount++ }()
 
 			if action == "get_downloadable_status" {
@@ -435,14 +429,13 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("sets the no_force_overwrites runner option", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
 		noForceOverwritesCalled := false
 		forceOverwritesCalled := false
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -549,7 +542,6 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 
 func TestMediaDownloadWorker_Perform_WhenTestingNonDownloadableMedia(t *testing.T) {
 	t.Run("does not retry the job if the media is currently not downloadable", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -635,14 +627,13 @@ func TestMediaDownloadWorker_Perform_WhenTestingForcedDownloads(t *testing.T) {
 	})
 
 	t.Run("sets force_overwrites runner option", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
 		forceOverwritesCalled := false
 		noForceOverwritesCalled := false
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -782,14 +773,13 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 	})
 
 	t.Run("sets force_overwrites runner option", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
 		forceOverwritesCalled := false
 		noForceOverwritesCalled := false
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -828,11 +818,10 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 	})
 
 	t.Run("deletes old files if the media item has been updated", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -870,7 +859,6 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 
 func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T) {
 	t.Run("calls the media_pre_download user script runner", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -891,7 +879,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 			return "{}", nil
 		})
 
-		ta.UserScriptMock.Run.Expect(func(event string, data any) error {
+		ta.UserScriptMock.Run.ExpectN(2, func(event string, data any) error {
 			if event == "media_pre_download" {
 				preDownloadCalled = true
 				if item, ok := data.(*core.MediaItem); ok {
@@ -951,13 +939,12 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 	})
 
 	t.Run("downloads media if the pre-download script is not present", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
 		downloadCalled := false
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -973,7 +960,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 		})
 
 		callCount := 0
-		ta.UserScriptMock.Run.Expect(func(event string, data any) error {
+		ta.UserScriptMock.Run.ExpectN(2, func(event string, data any) error {
 			defer func() { callCount++ }()
 			if event == "media_pre_download" || event == "media_downloaded" {
 				// Return nil (no error) to simulate script not being present
@@ -1000,7 +987,6 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 	})
 
 	t.Run("calls the media_downloaded user script runner", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -1021,7 +1007,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 			return "{}", nil
 		})
 
-		ta.UserScriptMock.Run.Expect(func(event string, data any) error {
+		ta.UserScriptMock.Run.ExpectN(2, func(event string, data any) error {
 			if event == "media_pre_download" {
 				return nil
 			}

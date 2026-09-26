@@ -99,17 +99,15 @@ func (a *App) fetchAndRunPreventDownloadUserScript(ctx context.Context, mediaIte
 		return nil, nil
 	}
 
-	// Run user script
-	userScriptErr := a.UserScripts.Run(ctx, "media_pre_download", mediaItem)
-	if userScriptErr != nil {
-		// If non-zero exit, set prevent_download
-		// We check if this looks like an exit code error
-		if strings.Contains(userScriptErr.Error(), "1") || strings.Contains(userScriptErr.Error(), "exit") {
-			_, updateErr := a.MediaUpdateMediaItem(ctx, mediaItem, Attrs{"prevent_download": true})
-			if updateErr != nil {
-				return nil, updateErr
-			}
+	// Run user script. A non-nil error here means the script exited non-zero
+	// (Elixir: {:ok, _, exit_code} when exit_code != 0), which prevents this
+	// and all future downloads of the media item.
+	if userScriptErr := a.UserScripts.Run(ctx, "media_pre_download", mediaItem); userScriptErr != nil {
+		updatedMediaItem, updateErr := a.MediaUpdateMediaItem(ctx, mediaItem, Attrs{"prevent_download": true})
+		if updateErr != nil {
+			return nil, updateErr
 		}
+		mediaItem = updatedMediaItem
 	}
 
 	// Preload source
