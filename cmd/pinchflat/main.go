@@ -26,6 +26,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/web"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -205,6 +206,17 @@ func setupLogging(s Settings) {
 // logJobEvent replaces Oban.Telemetry.attach_default_logger/0.
 func logJobEvent(event string, job *obanlite.Job, err error, dur time.Duration) {
 	attrs := []any{"event", "job:" + event, "worker", job.Worker, "queue", job.Queue, "id", job.ID, "attempt", job.Attempt}
+	switch event {
+	case "stop", "exception":
+		outcome := "completed"
+		if event == "exception" {
+			outcome = "failed"
+		} else if err != nil {
+			outcome = "cancelled"
+		}
+		web.JobsTotal.WithLabelValues(job.Queue, job.Worker, outcome).Inc()
+		web.JobDuration.WithLabelValues(job.Queue, job.Worker).Observe(dur.Seconds())
+	}
 	switch event {
 	case "start":
 		slog.Info("job started", attrs...)

@@ -54,3 +54,12 @@ func (s *Server) verify(v string) ([]byte, bool) {
 	}
 	return b, hmac.Equal([]byte(s.sign(b)), []byte(v)) && sig != ""
 }
+
+// DecodeFlash decodes a flash cookie value (for tests).
+func (s *Server) DecodeFlash(v string) map[string]string {
+	out := map[string]string{}
+	if b, ok := s.verify(v); ok {
+		_ = json.Unmarshal(b, &out)
+	}
+	return out
+}
