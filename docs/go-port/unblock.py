@@ -39,6 +39,11 @@ print(f"unskipped in {len(changed)} files")
 for path, original in changed.items():
     funcs = test_funcs(path)
     out = run("^(" + "|".join(funcs) + ")$")
+    if "[build failed]" in out or "[setup failed]" in out or "vet:" in out:
+        open(path, "w").write(original)
+        print(f"BUILD {os.path.basename(path)}: tree doesn't compile; restored skips")
+        print("\n".join(l for l in out.splitlines() if ".go:" in l)[:2000])
+        continue
     failing = set(re.findall(r'--- FAIL: \w+/(\S+)', out))
     panicked = re.search(r'panic: (.*)', out)
     if panicked:

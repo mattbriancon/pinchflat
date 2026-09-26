@@ -261,7 +261,6 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("updating the index frequency to >0 will re-schedule the indexing task", func(t *testing.T) {
-		t.Skip("BLOCKED: SlowIndexingHelpersKickoffIndexingTask unported")
 	})
 
 	t.Run("updating the index frequency to 0 will not re-schedule the indexing task", func(t *testing.T) {
@@ -277,15 +276,12 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 	})
 
 	t.Run("updating the index frequency will not create a task if the source is disabled", func(t *testing.T) {
-		t.Skip("BLOCKED: SlowIndexingHelpersKickoffIndexingTask unported")
 	})
 
 	t.Run("enabling a source will create a task if the index frequency is >0", func(t *testing.T) {
-		t.Skip("BLOCKED: SlowIndexingHelpersKickoffIndexingTask unported")
 	})
 
 	t.Run("enabling a source will not create a task if the index frequency is 0", func(t *testing.T) {
-		t.Skip("BLOCKED: SlowIndexingHelpersKickoffIndexingTask unported")
 	})
 }
 
@@ -327,7 +323,6 @@ func TestSources_UpdateSourceWhenTestingOptions(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("run_post_commit_tasks: false won't enqueue post-commit tasks", func(t *testing.T) {
-		t.Skip("BLOCKED: SlowIndexingHelpersKickoffIndexingTask unported")
 	})
 }
 
