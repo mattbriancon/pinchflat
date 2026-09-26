@@ -52,6 +52,50 @@ func RenderMetadata(metadataName string) (string, error) {
 	return string(content), nil
 }
 
+// RenderMetadataWithFixedPaths reads a JSON metadata file and fixes hardcoded paths to work in the test environment.
+func RenderMetadataWithFixedPaths(metadataName string) (string, error) {
+	jsonFilepath := filepath.Join(
+		dbtest.RepoRoot(),
+		"test",
+		"support",
+		"files",
+		metadataName+".json",
+	)
+
+	content, err := os.ReadFile(jsonFilepath)
+	if err != nil {
+		return "", err
+	}
+
+	// Parse the JSON and fix the thumbnail filepaths
+	var data map[string]any
+	if err := json.Unmarshal(content, &data); err != nil {
+		return "", err
+	}
+
+	// Fix thumbnail paths
+	if thumbnails, ok := data["thumbnails"].([]any); ok {
+		testPhotosDir := filepath.Join(dbtest.RepoRoot(), "test", "support", "files", "channel_photos")
+		for _, thumb := range thumbnails {
+			if thumbMap, ok := thumb.(map[string]any); ok {
+				if fp, ok := thumbMap["filepath"].(string); ok {
+					// Extract just the filename and replace with test path
+					filename := filepath.Base(fp)
+					thumbMap["filepath"] = filepath.Join(testPhotosDir, filename)
+				}
+			}
+		}
+	}
+
+	// Encode back to JSON string
+	result, err := json.Marshal(data)
+	if err != nil {
+		return "", err
+	}
+
+	return string(result), nil
+}
+
 // RenderParsedMetadata reads and decodes a JSON metadata file.
 func RenderParsedMetadata(metadataName string) (map[string]interface{}, error) {
 	content, err := RenderMetadata(metadataName)
