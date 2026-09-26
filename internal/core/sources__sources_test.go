@@ -98,51 +98,39 @@ func TestSources_CreateSource(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("automatically sets the UUID", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("UUID is not writable by the user", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("creates a source and adds name + ID from runner response for channels", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("creates a source and adds name + ID for playlists", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("adds an error if the runner fails", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("adds an error if the runner succeeds but the result was invalid JSON", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("you can specify a custom custom_name", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("friendly name is pulled from collection_name if not specified", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("creation enforces uniqueness of collection_id scoped to the media_profile and title regex", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("creation lets you duplicate collection_ids and profiles as long as the regex is different", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("creation lets you duplicate collection_ids as long as the media profile is different", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("collection_type is inferred from source details", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("creation with invalid data returns error changeset", func(t *testing.T) {
@@ -161,35 +149,27 @@ func TestSources_CreateSource(t *testing.T) {
 	})
 
 	t.Run("creation with invalid data fails fast and does not call the runner", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("creation will schedule the indexing task", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("creation will schedule a fast indexing job if the fast_index option is set", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("creation will not schedule a fast indexing job if the fast_index option is not set", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("creation schedules an index test even if the index frequency is 0", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("fast_index forces the index frequency to be a default value", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("disabling fast index will not change the index frequency", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("creating will kickoff a metadata storage worker", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 }
 
@@ -198,19 +178,15 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("sets use_cookies to true if the source has been set to use cookies", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("does not set use_cookies if the source uses cookies when needed", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("does not set use_cookies if the source has not been set to use cookies", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("skips sleep interval", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 }
 
@@ -219,7 +195,6 @@ func TestSources_CreateSourceWhenTestingOptions(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("run_post_commit_tasks: false won't enqueue post-commit tasks", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 }
 
@@ -231,26 +206,21 @@ func TestSources_UpdateSource(t *testing.T) {
 	})
 
 	t.Run("updates with invalid data fails fast and does not call the runner", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("updating the original_url will re-fetch the source details for channels", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("updating the original_url will re-fetch the source details for playlists", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("not updating the original_url will not re-fetch the source details", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("updates with invalid data returns error changeset", func(t *testing.T) {
 	})
 
 	t.Run("updating will kickoff a metadata storage worker if the original_url changes", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCollectionGetSourceDetails unported")
 	})
 
 	t.Run("updating will not kickoff a metadata storage worker other attrs change", func(t *testing.T) {

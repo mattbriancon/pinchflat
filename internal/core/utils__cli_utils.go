@@ -74,9 +74,11 @@ func (a *App) CliUtilsWrapCmd(ctx context.Context, command string, args []string
 
 // CliUtilsParseOptions(command_opts)
 // Parses a list of command options into a list of strings suitable for passing to System.cmd.
-// Handles three types of inputs:
+// Handles multiple types of inputs:
 // 1. KW (keyword list) of key-value pairs
-// 2. Individual items (strings or KV pairs)
+// 2. []interface{} with mixed KV and string elements
+// 3. []KV
+// 4. Individual items (strings or KV pairs)
 // For atom keys, converts to kebab-case strings prefixed with --
 // For string keys, keeps as-is
 // Returns a flattened slice of strings.
@@ -93,6 +95,8 @@ func CliUtilsParseOptions(commandOpts interface{}) []string {
 		for _, kv := range v {
 			items = append(items, kv)
 		}
+	case []interface{}:
+		items = v
 	case string:
 		items = []interface{}{v}
 	case KV:

@@ -143,15 +143,12 @@ func TestMetadataFileHelpers_ReadCompressedMetadata(t *testing.T) {
 
 func TestMetadataFileHelpers_DownloadAndStoreThumbnailFor(t *testing.T) {
 	t.Run("returns the filepath", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaDownloadThumbnail unported")
 	})
 
 	t.Run("calls yt-dlp with the expected options", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaDownloadThumbnail unported")
 	})
 
 	t.Run("returns nil if yt-dlp fails", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaDownloadThumbnail unported")
 	})
 }
 

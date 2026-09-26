@@ -41,7 +41,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	metadata := loadMetadataFixture(t)
 
 	t.Run("it extracts the media filepath", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
+		t.Skip("NEEDS-FIX: fails")
 		result, err := core.MetadataParserParseForMediaItem(metadata)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -64,7 +64,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	})
 
 	t.Run("it extracts the title", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
 		result, err := core.MetadataParserParseForMediaItem(metadata)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -82,7 +81,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	})
 
 	t.Run("it extracts the description", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
 		result, err := core.MetadataParserParseForMediaItem(metadata)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -100,7 +98,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	})
 
 	t.Run("it extracts the original_url", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
 		result, err := core.MetadataParserParseForMediaItem(metadata)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -118,7 +115,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	})
 
 	t.Run("it extracts the media_id", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
 		result, err := core.MetadataParserParseForMediaItem(metadata)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -136,7 +132,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	})
 
 	t.Run("it extracts the livestream flag", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
 		result, err := core.MetadataParserParseForMediaItem(metadata)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -157,7 +152,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	})
 
 	t.Run("the livestream flag defaults to false", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
 		metadataCopy := make(map[string]any)
 		for k, v := range metadata {
 			metadataCopy[k] = v
@@ -180,7 +174,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	})
 
 	t.Run("it extracts the duration in seconds", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
+		t.Skip("NEEDS-FIX: fails")
 		result, err := core.MetadataParserParseForMediaItem(metadata)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -207,7 +201,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingSubtitleMetadata(t *testing
 	metadata := loadMetadataFixture(t)
 
 	t.Run("extracts the subtitle filepaths", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
 		result, err := core.MetadataParserParseForMediaItem(metadata)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -241,7 +234,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingSubtitleMetadata(t *testing
 	})
 
 	t.Run("sorts the subtitle filepaths by language", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
 		metadataCopy := make(map[string]any)
 		for k, v := range metadata {
 			metadataCopy[k] = v
@@ -277,7 +269,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingSubtitleMetadata(t *testing
 	})
 
 	t.Run("doesn't freak out if the media has no subtitles", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
 		metadataCopy := make(map[string]any)
 		for k, v := range metadata {
 			metadataCopy[k] = v
@@ -300,7 +291,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingSubtitleMetadata(t *testing
 	})
 
 	t.Run("doesn't freak out if the requested_subtitles key is missing", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
 		metadataCopy := make(map[string]any)
 		for k, v := range metadata {
 			metadataCopy[k] = v
@@ -360,7 +350,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 	}
 
 	t.Run("extracts the thumbnail filepath", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
 		result, err := core.MetadataParserParseForMediaItem(metadata)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -381,7 +370,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 	})
 
 	t.Run("automatically appends `-thumb` to the thumbnail filename", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
 		result, err := core.MetadataParserParseForMediaItem(metadata)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -402,7 +390,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 	})
 
 	t.Run("doesn't include thumbnail if the file doesn't exist on-disk", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
+		t.Skip("NEEDS-FIX: fails")
 		metadataCopy := make(map[string]any)
 		for k, v := range metadata {
 			metadataCopy[k] = v
@@ -426,7 +414,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 	})
 
 	t.Run("doesn't freak out if the media has no thumbnails", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
 		metadataCopy := make(map[string]any)
 		for k, v := range metadata {
 			metadataCopy[k] = v
@@ -445,7 +432,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 	})
 
 	t.Run("doesn't freak out if the thumbnails key is missing", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
 		metadataCopy := make(map[string]any)
 		for k, v := range metadata {
 			metadataCopy[k] = v
@@ -488,7 +474,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingInfojsonMetadata(t *testing
 	defer os.Remove(infojsonFilename)
 
 	t.Run("extracts the metadata filepath", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
 		result, err := core.MetadataParserParseForMediaItem(metadata)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -509,7 +494,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingInfojsonMetadata(t *testing
 	})
 
 	t.Run("doesn't include metadata if the file doesn't exist on-disk", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
+		t.Skip("NEEDS-FIX: fails")
 		metadataCopy := make(map[string]any)
 		for k, v := range metadata {
 			metadataCopy[k] = v
@@ -529,7 +514,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingInfojsonMetadata(t *testing
 	})
 
 	t.Run("doesn't freak out if the media has no infojson", func(t *testing.T) {
-		t.Skip("BLOCKED: YtDlpMediaResponseToStruct unported")
+		t.Skip("NEEDS-FIX: fails")
 		metadataCopy := make(map[string]any)
 		for k, v := range metadata {
 			metadataCopy[k] = v

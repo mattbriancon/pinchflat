@@ -82,8 +82,12 @@ func settingsGetField(s *Setting, fieldName string) any {
 	if !fv.IsValid() {
 		return nil
 	}
-	if fv.Kind() == reflect.Pointer && fv.IsNil() {
-		return nil
+	// Like Elixir's Map.fetch: the plain value, or nil for NULL columns.
+	if fv.Kind() == reflect.Pointer {
+		if fv.IsNil() {
+			return nil
+		}
+		return fv.Elem().Interface()
 	}
 	return fv.Interface()
 }
