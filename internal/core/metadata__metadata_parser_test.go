@@ -41,7 +41,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	metadata := loadMetadataFixture(t)
 
 	t.Run("it extracts the media filepath", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		result, err := core.MetadataParserParseForMediaItem(metadata)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -174,15 +173,14 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	})
 
 	t.Run("it extracts the duration in seconds", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		result, err := core.MetadataParserParseForMediaItem(metadata)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		durationSeconds, ok := result["duration_seconds"].(int)
-		if !ok {
-			t.Fatalf("expected duration_seconds to be int, got %T", result["duration_seconds"])
+		durationSecondsPtr, ok := result["duration_seconds"].(*int)
+		if !ok || durationSecondsPtr == nil {
+			t.Fatalf("expected duration_seconds to be a non-nil *int, got %T", result["duration_seconds"])
 		}
 
 		duration, ok := metadata["duration"].(float64)
@@ -191,8 +189,8 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 		}
 
 		expectedDuration := int(duration)
-		if durationSeconds != expectedDuration {
-			t.Errorf("got duration_seconds %d, want %d", durationSeconds, expectedDuration)
+		if *durationSecondsPtr != expectedDuration {
+			t.Errorf("got duration_seconds %d, want %d", *durationSecondsPtr, expectedDuration)
 		}
 	})
 }
@@ -390,7 +388,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 	})
 
 	t.Run("doesn't include thumbnail if the file doesn't exist on-disk", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		metadataCopy := make(map[string]any)
 		for k, v := range metadata {
 			metadataCopy[k] = v
@@ -494,7 +491,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingInfojsonMetadata(t *testing
 	})
 
 	t.Run("doesn't include metadata if the file doesn't exist on-disk", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		metadataCopy := make(map[string]any)
 		for k, v := range metadata {
 			metadataCopy[k] = v
@@ -514,7 +510,6 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingInfojsonMetadata(t *testing
 	})
 
 	t.Run("doesn't freak out if the media has no infojson", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		metadataCopy := make(map[string]any)
 		for k, v := range metadata {
 			metadataCopy[k] = v

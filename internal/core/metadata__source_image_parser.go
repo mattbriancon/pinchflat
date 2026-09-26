@@ -130,12 +130,13 @@ func getPosterFromEntry(entry map[string]any) string {
 func determineBestBanner(images []map[string]any) string {
 	var candidates []map[string]any
 
-	// Filter images with width and height
+	// Filter images with width and height (numbers come back as json.Number,
+	// not float64, when decoded via DecodeJSON).
 	for _, img := range images {
 		if width, okW := img["width"]; okW {
 			if height, okH := img["height"]; okH {
-				if _, ok := width.(float64); ok {
-					if _, ok := height.(float64); ok {
+				if _, ok := toFloat(width); ok {
+					if _, ok := toFloat(height); ok {
 						candidates = append(candidates, img)
 					}
 				}
@@ -148,8 +149,8 @@ func determineBestBanner(images []map[string]any) string {
 	maxWidth := 0.0
 
 	for _, candidate := range candidates {
-		width, _ := candidate["width"].(float64)
-		height, _ := candidate["height"].(float64)
+		width, _ := toFloat(candidate["width"])
+		height, _ := toFloat(candidate["height"])
 
 		if height > 0 && width/height > 3 && width > maxWidth {
 			maxWidth = width

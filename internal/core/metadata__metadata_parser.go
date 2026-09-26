@@ -42,7 +42,11 @@ func parseMediaMetadata(metadata map[string]any) map[string]any {
 	result["duration_seconds"] = ytMedia.DurationSeconds
 	result["predicted_media_filepath"] = ytMedia.PredictedMediaFilepath
 	result["playlist_index"] = ytMedia.PlaylistIndex
-	result["media_filepath"] = metadata["filepath"]
+	if fp, ok := metadata["filepath"].(string); ok {
+		result["media_filepath"] = &fp
+	} else {
+		result["media_filepath"] = nil
+	}
 
 	return result
 }
@@ -155,7 +159,11 @@ func applyThumbnailWorkaround(filepath string) string {
 // filepathIfExists checks if a filepath exists on disk.
 // Returns the filepath if it exists, nil otherwise.
 // This is a workaround for a yt-dlp bug.
-func filepathIfExists(filepath string) *string {
+//
+// Returns `any` (rather than *string) so that the "doesn't exist" case
+// stores an untyped nil into the result map, not a typed-nil *string
+// (which would compare != nil when read back out of a map[string]any).
+func filepathIfExists(filepath string) any {
 	if filepath == "" {
 		return nil
 	}

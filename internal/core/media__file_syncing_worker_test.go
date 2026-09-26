@@ -50,7 +50,6 @@ func TestFileSyncingWorker_KickoffWithTask(t *testing.T) {
 
 func TestFileSyncingWorker_Perform(t *testing.T) {
 	t.Run("syncs file presence on disk", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: unported: Pinchflat.Media.create_media_item/1 [recovered, repanicked]")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
