@@ -11,7 +11,6 @@ import (
 
 func TestFilesystemUtils_ExistsAndNonempty(t *testing.T) {
 	t.Run("returns true if a file exists and has contents", func(t *testing.T) {
-		t.Skip("BLOCKED: StringUtilsRandomString unported")
 		// ta := coretest.NewApp(t)
 		// filepath := core.FilesystemUtilsGenerateMetadataTmpfile(ta.Ctx, "json")
 		// os.WriteFile(filepath, []byte("{}"), 0644)
@@ -30,7 +29,6 @@ func TestFilesystemUtils_ExistsAndNonempty(t *testing.T) {
 	})
 
 	t.Run("returns false if a file exists but is empty", func(t *testing.T) {
-		t.Skip("BLOCKED: StringUtilsRandomString unported")
 		// ta := coretest.NewApp(t)
 		// filepath := core.FilesystemUtilsGenerateMetadataTmpfile(ta.Ctx, "json")
 		// if core.FilesystemUtilsExistsAndNonempty(ta.Ctx, filepath) {
@@ -40,7 +38,6 @@ func TestFilesystemUtils_ExistsAndNonempty(t *testing.T) {
 	})
 
 	t.Run("trims the contents before checking", func(t *testing.T) {
-		t.Skip("BLOCKED: StringUtilsRandomString unported")
 		// ta := coretest.NewApp(t)
 		// filepath := core.FilesystemUtilsGenerateMetadataTmpfile(ta.Ctx, "json")
 		// os.WriteFile(filepath, []byte("  \n\n  \r\n  "), 0644)
@@ -116,7 +113,6 @@ func TestFilesystemUtils_FilepathsReferenceSameFile(t *testing.T) {
 
 func TestFilesystemUtils_GenerateMetadataTmpfile(t *testing.T) {
 	t.Run("creates a tmpfile and returns its path", func(t *testing.T) {
-		t.Skip("BLOCKED: StringUtilsRandomString unported")
 		// ta := coretest.NewApp(t)
 		// res, err := ta.FilesystemUtilsGenerateMetadataTmpfile(ta.Ctx, "json")
 		// if err != nil {

@@ -48,7 +48,6 @@ func TestYoutubeApi_Enabled(t *testing.T) {
 
 func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 	t.Run("rotates through API keys", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "key1, key2")})
@@ -81,7 +80,7 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 	})
 
 	t.Run("calls the expected URL", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "key1, key2")})
@@ -110,7 +109,6 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 	})
 
 	t.Run("replaces channel IDs with playlist IDs if needed", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_id": "UC_ABC123"})
 		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "key1, key2")})
@@ -129,7 +127,6 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 	})
 
 	t.Run("returns an empty list if no media is returned", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "key1, key2")})
@@ -148,7 +145,6 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 	})
 
 	t.Run("returns media IDs if present", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "key1, key2")})
@@ -172,7 +168,6 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 	})
 
 	t.Run("returns an error if the HTTP request fails", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "key1, key2")})

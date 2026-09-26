@@ -20,7 +20,6 @@ func TestYoutubeRss_Enabled(t *testing.T) {
 
 func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 	t.Run("calls the expected URL for channel sources", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "channel", "collection_id": "channel_id"})
 
@@ -38,7 +37,6 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 	})
 
 	t.Run("calls the expected URL for playlist sources", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "playlist", "collection_id": "playlist_id"})
 
@@ -56,7 +54,6 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 	})
 
 	t.Run("returns an error if the HTTP request fails", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -71,7 +68,6 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 	})
 
 	t.Run("returns the media IDs from the RSS feed", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -89,7 +85,6 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 	})
 
 	t.Run("strips whitespace from media IDs", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -107,7 +102,6 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 	})
 
 	t.Run("removes empty media IDs", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -125,7 +119,6 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 	})
 
 	t.Run("removes duplicate media IDs", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 

@@ -18,7 +18,6 @@ func TestCliUtils_WrapCmd(t *testing.T) {
 
 func TestCliUtils_ParseOptions(t *testing.T) {
 	t.Run("it converts symbol k-v arg keys to kebab case", func(t *testing.T) {
-		t.Skip("BLOCKED: StringUtilsToKebabCase unported")
 		// result := core.CliUtilsParseOptions(core.KW{core.Opt("buffer_size", 1024)})
 		// expected := []string{"--buffer-size", "1024"}
 		// if !reflect.DeepEqual(result, expected) {
@@ -43,7 +42,6 @@ func TestCliUtils_ParseOptions(t *testing.T) {
 	})
 
 	t.Run("it converts symbol arg keys to kebab case", func(t *testing.T) {
-		t.Skip("BLOCKED: StringUtilsToKebabCase unported")
 		// result := core.CliUtilsParseOptions("ignore_errors")
 		// expected := []string{"--ignore-errors"}
 		// if !reflect.DeepEqual(result, expected) {

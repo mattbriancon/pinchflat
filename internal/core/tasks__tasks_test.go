@@ -82,13 +82,11 @@ func TestTasks_CreateTask(t *testing.T) {
 	})
 
 	t.Run("accepts a job and media item", func(t *testing.T) {
-		t.Skip("BLOCKED: SourcesCreateSource unported")
 	})
 }
 
 func TestTasks_CreateJobWithTask(t *testing.T) {
 	t.Run("enqueues the given job", func(t *testing.T) {
-		t.Skip("BLOCKED: SourcesCreateSource unported")
 	})
 
 	t.Run("creates a task record if successful", func(t *testing.T) {
@@ -120,11 +118,9 @@ func TestTasks_DeleteTasksFor(t *testing.T) {
 	})
 
 	t.Run("deletes the tasks attached to a media_item", func(t *testing.T) {
-		t.Skip("BLOCKED: SourcesCreateSource unported")
 	})
 
 	t.Run("deletion can specify which worker to include", func(t *testing.T) {
-		t.Skip("BLOCKED: SourcesCreateSource unported")
 	})
 
 	t.Run("deletion can specify which states to include", func(t *testing.T) {
@@ -146,11 +142,9 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 	})
 
 	t.Run("works on media_items", func(t *testing.T) {
-		t.Skip("BLOCKED: SourcesCreateSource unported")
 	})
 
 	t.Run("deletion can specify which worker to include", func(t *testing.T) {
-		t.Skip("BLOCKED: SourcesCreateSource unported")
 	})
 
 	t.Run("deletion can optionally include executing tasks", func(t *testing.T) {

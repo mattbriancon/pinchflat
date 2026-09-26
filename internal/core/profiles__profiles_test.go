@@ -149,29 +149,23 @@ func TestProfiles_UpdateMediaProfile(t *testing.T) {
 
 func TestProfiles_DeleteMediaProfile(t *testing.T) {
 	t.Run("deletion deletes the media_profile", func(t *testing.T) {
-		t.Skip("BLOCKED: SourcesDeleteSource unported")
 	})
 
 	t.Run("deletion deletes all sources", func(t *testing.T) {
-		t.Skip("BLOCKED: SourcesDeleteSource unported")
 	})
 
 	t.Run("deletion deletes all media items", func(t *testing.T) {
-		t.Skip("BLOCKED: SourcesDeleteSource unported")
 	})
 
 	t.Run("deletion does not delete files by default", func(t *testing.T) {
-		t.Skip("BLOCKED: SourcesDeleteSource unported")
 	})
 }
 
 func TestProfiles_DeleteMediaProfile_WhenDeletingFiles(t *testing.T) {
 	t.Run("still deletes all the needful records", func(t *testing.T) {
-		t.Skip("BLOCKED: SourcesDeleteSource unported")
 	})
 
 	t.Run("deletes files", func(t *testing.T) {
-		t.Skip("BLOCKED: SourcesDeleteSource unported")
 	})
 }
 

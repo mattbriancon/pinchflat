@@ -12,11 +12,9 @@ func TestSources_Schema(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("source_metadata is deleted when the source is deleted", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 
 	t.Run("can be JSON encoded without error", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 }
 
@@ -25,15 +23,12 @@ func TestSources_OutputPathTemplate(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("returns the source's override if present", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 
 	t.Run("returns the media profile's template if no override is present", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 
 	t.Run("Treats empty strings as being blank", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 }
 
@@ -79,7 +74,6 @@ func TestSources_ListSources(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("it returns all sources", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 }
 
@@ -88,7 +82,6 @@ func TestSources_ListSourcesFor(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("returns all sources for a given media profile", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 }
 
@@ -97,7 +90,6 @@ func TestSources_GetSource(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("it returns the source with given id", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 }
 
@@ -236,7 +228,6 @@ func TestSources_UpdateSource(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("updates with valid data updates the source", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 
 	t.Run("updates with invalid data fails fast and does not call the runner", func(t *testing.T) {
@@ -256,7 +247,6 @@ func TestSources_UpdateSource(t *testing.T) {
 	})
 
 	t.Run("updates with invalid data returns error changeset", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 
 	t.Run("updating will kickoff a metadata storage worker if the original_url changes", func(t *testing.T) {
@@ -264,7 +254,6 @@ func TestSources_UpdateSource(t *testing.T) {
 	})
 
 	t.Run("updating will not kickoff a metadata storage worker other attrs change", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 }
 
@@ -306,19 +295,15 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 	})
 
 	t.Run("updating the index frequency to 0 will not re-schedule the indexing task", func(t *testing.T) {
-		t.Skip("BLOCKED: TasksDeletePendingTasksFor unported")
 	})
 
 	t.Run("updating the index frequency to 0 will delete any pending tasks", func(t *testing.T) {
-		t.Skip("BLOCKED: TasksDeletePendingTasksFor unported")
 	})
 
 	t.Run("not updating the index frequency will not re-schedule the indexing task or delete tasks", func(t *testing.T) {
-		t.Skip("BLOCKED: TasksDeletePendingTasksFor unported")
 	})
 
 	t.Run("disabling a source will delete any pending tasks", func(t *testing.T) {
-		t.Skip("BLOCKED: TasksDeletePendingTasksFor unported")
 	})
 
 	t.Run("updating the index frequency will not create a task if the source is disabled", func(t *testing.T) {
@@ -343,19 +328,15 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 	})
 
 	t.Run("disabling fast_index will cancel the fast indexing task", func(t *testing.T) {
-		t.Skip("BLOCKED: TasksDeletePendingTasksFor unported")
 	})
 
 	t.Run("fast_index forces the index frequency to be a default value", func(t *testing.T) {
-		t.Skip("BLOCKED: TasksDeletePendingTasksFor unported")
 	})
 
 	t.Run("disabling fast index will not change the index frequency", func(t *testing.T) {
-		t.Skip("BLOCKED: TasksDeletePendingTasksFor unported")
 	})
 
 	t.Run("disabling a source will delete any pending tasks", func(t *testing.T) {
-		t.Skip("BLOCKED: TasksDeletePendingTasksFor unported")
 	})
 
 	t.Run("updating fast indexing will not create a task if the source is disabled", func(t *testing.T) {
@@ -385,15 +366,12 @@ func TestSources_DeleteSource(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("it deletes the source", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 
 	t.Run("it returns a source changeset", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 
 	t.Run("deletion also deletes all associated tasks", func(t *testing.T) {
-		t.Skip("BLOCKED: TasksDeleteTasksFor unported")
 	})
 
 	t.Run("deletion also deletes all associated media items", func(t *testing.T) {
@@ -405,11 +383,9 @@ func TestSources_DeleteSource(t *testing.T) {
 	})
 
 	t.Run("deletes the source's metadata files", func(t *testing.T) {
-		t.Skip("BLOCKED: FilesystemUtilsDeleteFileAndRemoveEmptyDirectories unported")
 	})
 
 	t.Run("does not delete the source's non-metadata files", func(t *testing.T) {
-		t.Skip("BLOCKED: FilesystemUtilsDeleteFileAndRemoveEmptyDirectories unported")
 	})
 }
 
@@ -426,7 +402,6 @@ func TestSources_DeleteSourceWhenDeletingFiles(t *testing.T) {
 	})
 
 	t.Run("deletes the source's non-metadata files", func(t *testing.T) {
-		t.Skip("BLOCKED: FilesystemUtilsDeleteFileAndRemoveEmptyDirectories unported")
 	})
 }
 
@@ -435,7 +410,6 @@ func TestSources_ChangeSource(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("it returns a changeset", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 }
 
@@ -444,15 +418,12 @@ func TestSources_ChangeSourceWhenTestingRegexValidation(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("succeeds when a valid regex is provided", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 
 	t.Run("succeeds when a regex is set back to nil", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 
 	t.Run("fails when an invalid regex is provided", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 }
 
@@ -461,19 +432,15 @@ func TestSources_ChangeSourceWhenTestingMinMaxDurationValidations(t *testing.T) 
 	defer ta.App.DB.Close()
 
 	t.Run("succeeds if min and max are nil", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 
 	t.Run("succeeds if either min or max is nil", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 
 	t.Run("succeeds if min is less than max", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 
 	t.Run("fails if min is greater than or equal to max", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 }
 
@@ -482,14 +449,11 @@ func TestSources_ChangeSourceWhenTestingOriginalURLValidation(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("succeeds when an original URL is valid", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 
 	t.Run("fails when an original URL points to a video", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 
 	t.Run("passes when a non-youtube link is provided", func(t *testing.T) {
-		t.Skip("BLOCKED: ProfilesCreateMediaProfile unported")
 	})
 }
