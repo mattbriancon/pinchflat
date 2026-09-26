@@ -1,0 +1,18 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/sources/source_html/fast_indexing_help.html.heex.
+
+templ SourceHTMLFastIndexingHelp() {
+	<div class="card card-body">
+		<h3 class="section-title mb-4">Fast Indexing Help</h3>
+		<p class="text-gray-400 mb-4">
+			Fast indexing uses YouTube's RSS feed instead of yt-dlp to find new media. This is significantly faster
+			but has some limitations.
+		</p>
+		<ul class="list-disc list-inside text-gray-400 space-y-2">
+			<li>RSS feeds may lag behind the YouTube UI by several minutes</li>
+			<li>Playlist handling varies by how the creator configured it</li>
+			<li>Updates to existing media metadata may not be reflected immediately</li>
+		</ul>
+	</div>
+}

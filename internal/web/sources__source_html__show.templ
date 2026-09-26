@@ -1,0 +1,40 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/sources/source_html/show.html.heex.
+
+import "github.com/mattbriancon/pinchflat/internal/core"
+
+templ SourceHTMLShow(source *core.Source, pendingTasks []*core.Task) {
+	<div class="page-header">
+		<div class="flex gap-3 items-center min-w-0">
+			<a href={ templ.URL(P(ctx, "/sources")) }>
+				@CoreIcon("hero-arrow-left", "back-link", nil)
+			</a>
+			<h2 class="page-title">
+				{ source.CustomName }
+			</h2>
+		</div>
+
+		<nav>
+			<a href={ templ.URL(P(ctx, "/sources/%v/edit", source.ID)) } class="btn bg-primary rounded-lg px-4 py-2">
+				Edit Source
+			</a>
+		</nav>
+	</div>
+
+	<div class="card card-body">
+		<div class="max-w-full">
+			<div class="text-white">
+				<h3 class="section-title mb-4">Source Information</h3>
+				<div class="flex flex-col gap-2">
+					<div><strong>URL:</strong> { source.OriginalURL }</div>
+					<div><strong>Collection:</strong> { source.CollectionName }</div>
+					<div><strong>Type:</strong> { source.CollectionType }</div>
+					if source.CustomName != "" {
+						<div><strong>Custom Name:</strong> { source.CustomName }</div>
+					}
+				</div>
+			</div>
+		</div>
+	</div>
+}
