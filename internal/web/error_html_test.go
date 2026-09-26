@@ -6,7 +6,7 @@ package web_test
 // web layer has no JSON error renderer (Fail/NotFound in render.go always
 // render the HTML error pages, never JSON): there is no equivalent surface
 // to port test/pinchflat_web/controllers/error_json_test.exs against, so
-// its two tests are marked NEEDS-FIX below instead of silently dropped.
+// its two tests are skipped as DROPPED below instead of silently dropped.
 
 import (
 	"context"
@@ -44,10 +44,10 @@ func TestErrorHTML(t *testing.T) {
 // pages), so there is nothing to assert against.
 func TestErrorJSON(t *testing.T) {
 	t.Run("renders 404", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: error_json.ex has no Go target (manifest drops it); the Go web layer never renders a JSON error body")
+		t.Skip("DROPPED: error_json.ex has no Go target (manifest drops it); the Go web layer never renders a JSON error body")
 	})
 
 	t.Run("renders 500", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: error_json.ex has no Go target (manifest drops it); the Go web layer never renders a JSON error body")
+		t.Skip("DROPPED: error_json.ex has no Go target (manifest drops it); the Go web layer never renders a JSON error body")
 	})
 }
