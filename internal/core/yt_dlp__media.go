@@ -47,18 +47,3 @@ func YtDlpMediaIndexingOutputTemplate() string {
 func YtDlpMediaResponseToStruct(response map[string]any) *YtDlpMedia {
 	panic("unported: Pinchflat.YtDlp.Media.response_to_struct/1")
 }
-
-// YtDlpMediaShortFormContent/1
-func YtDlpMediaShortFormContent(response map[string]any) bool {
-	panic("unported: Pinchflat.YtDlp.Media.short_form_content?/1")
-}
-
-// YtDlpMediaParseUploadedAt/1
-func YtDlpMediaParseUploadedAt(response map[string]any) *time.Time {
-	panic("unported: Pinchflat.YtDlp.Media.parse_uploaded_at/1")
-}
-
-// YtDlpMediaParseDownloadableStatus/1
-func YtDlpMediaParseDownloadableStatus(response map[string]any) (string, error) {
-	panic("unported: Pinchflat.YtDlp.Media.parse_downloadable_status/1")
-}

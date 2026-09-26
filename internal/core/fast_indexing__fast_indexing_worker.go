@@ -27,13 +27,3 @@ func (a *App) FastIndexingWorkerKickoffWithTask(ctx context.Context, source *Sou
 func (a *App) FastIndexingWorkerPerform(ctx context.Context, job *obanlite.Job) error {
 	panic("unported: Pinchflat.FastIndexing.FastIndexingWorker.perform/1")
 }
-
-// FastIndexingWorkerPerformIndexingAndSendNotification/1
-func (a *App) FastIndexingWorkerPerformIndexingAndSendNotification(ctx context.Context, source *Source) error {
-	panic("unported: Pinchflat.FastIndexing.FastIndexingWorker.perform_indexing_and_send_notification/1")
-}
-
-// FastIndexingWorkerRescheduleIndexing/1
-func (a *App) FastIndexingWorkerRescheduleIndexing(ctx context.Context, source *Source) error {
-	panic("unported: Pinchflat.FastIndexing.FastIndexingWorker.reschedule_indexing/1")
-}
