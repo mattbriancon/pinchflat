@@ -246,6 +246,9 @@ func TestStageAndPrune(t *testing.T) {
 	o := obanlite.New(d)
 	ctx := context.Background()
 
+	// Job 4 was captured as "scheduled an hour from now"; pin it far in the
+	// future so the test doesn't depend on when it runs.
+	d.Exec(`UPDATE oban_jobs SET scheduled_at = '2999-01-01T00:00:00.000000Z' WHERE id = 4`)
 	// Make the scheduled SourceDeletionWorker job (id 10) due.
 	d.Exec(`UPDATE oban_jobs SET scheduled_at = '2020-01-01T00:00:00.000000Z' WHERE id = 10`)
 	if err := o.Stage(ctx); err != nil {
