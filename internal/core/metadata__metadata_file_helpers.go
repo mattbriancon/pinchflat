@@ -2,6 +2,8 @@ package core
 
 import (
 	"context"
+	"fmt"
+	"regexp"
 	"time"
 )
 
@@ -27,7 +29,20 @@ func (a *App) MetadataFileHelpersDownloadAndStoreThumbnailFor(ctx context.Contex
 
 // MetadataFileHelpersParseUploadDate/1
 func MetadataFileHelpersParseUploadDate(uploadDate string) (time.Time, error) {
-	panic("unported: Pinchflat.Metadata.MetadataFileHelpers.parse_upload_date/1")
+	if len(uploadDate) < 8 {
+		return time.Time{}, fmt.Errorf("Invalid upload date: %s", uploadDate)
+	}
+
+	year := uploadDate[0:4]
+	month := uploadDate[4:6]
+	day := uploadDate[6:8]
+
+	dt, err := time.Parse("2006-01-02T15:04:05Z", fmt.Sprintf("%s-%s-%sT00:00:00Z", year, month, day))
+	if err != nil {
+		return time.Time{}, fmt.Errorf("Invalid upload date: %s", uploadDate)
+	}
+
+	return dt, nil
 }
 
 // MetadataFileHelpersSeriesDirectoryFromMediaFilepath/1
@@ -37,5 +52,13 @@ func MetadataFileHelpersSeriesDirectoryFromMediaFilepath(mediaFilepath string) (
 
 // MetadataFileHelpersSeasonAndEpisodeFromMediaFilepath/1
 func MetadataFileHelpersSeasonAndEpisodeFromMediaFilepath(mediaFilepath string) (string, string, error) {
-	panic("unported: Pinchflat.Metadata.MetadataFileHelpers.season_and_episode_from_media_filepath/1")
+	// matches s + 1 or more digits + e + 1 or more digits (case-insensitive)
+	seasonEpisodeRegex := regexp.MustCompile(`(?i)s(\d+)e(\d+)`)
+
+	matches := seasonEpisodeRegex.FindStringSubmatch(mediaFilepath)
+	if len(matches) < 3 {
+		return "", "", fmt.Errorf("indeterminable")
+	}
+
+	return matches[1], matches[2], nil
 }
