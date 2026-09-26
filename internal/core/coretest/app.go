@@ -76,12 +76,13 @@ func NewApp(t testing.TB) *TestApp {
 	t.Cleanup(func() { d.Close() })
 
 	root := dbtest.RepoRoot()
+	testDataDir := filepath.Join(os.TempDir(), "test")
 	cfg := core.Config{
 		Env:                     "test",
 		YtDlpExecutable:         filepath.Join(root, "test/support/scripts/yt-dlp-mocks/repeater.sh"),
 		AppriseExecutable:       filepath.Join(root, "test/support/scripts/yt-dlp-mocks/repeater.sh"),
-		MediaDirectory:          filepath.Join(dir, "media"),
-		MetadataDirectory:       filepath.Join(dir, "metadata"),
+		MediaDirectory:          filepath.Join(testDataDir, "media"),
+		MetadataDirectory:       filepath.Join(testDataDir, "metadata"),
 		ExtrasDirectory:         filepath.Join(dir, "extras"),
 		TmpfileDirectory:        filepath.Join(dir, "tmpfiles"),
 		LogPath:                 filepath.Join(dir, "logs", "pinchflat.log"),
