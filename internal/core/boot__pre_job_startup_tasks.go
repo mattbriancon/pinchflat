@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -148,6 +149,13 @@ func applyDefaultSettings(ctx context.Context, a *App) error {
 }
 
 // runAppInitScript/0
+// Elixir ignores the script's exit code, so a non-zero exit must not stop boot.
 func runAppInitScript(ctx context.Context, a *App) error {
-	return a.UserScripts.Run(ctx, "app_init", Attrs{})
+	err := a.UserScripts.Run(ctx, "app_init", Attrs{})
+	var cmdErr *CommandError
+	if errors.As(err, &cmdErr) {
+		slog.Warn("app_init user script exited non-zero", "status", cmdErr.Status)
+		return nil
+	}
+	return err
 }

@@ -307,4 +307,17 @@ func TestPreJobStartupTasks_RunAppInitScript(t *testing.T) {
 			t.Errorf("Expected UserScriptMock.Run to be called, but it wasn't")
 		}
 	})
+
+	t.Run("boots even if the app_init script exits non-zero", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+		ta.YtDlpMock.Version.Stub(func() (string, error) { return "1", nil })
+		ta.AppriseMock.Version.Stub(func() (string, error) { return "2", nil })
+		ta.UserScriptMock.Run.Expect(func(event string, data any) error {
+			return &core.CommandError{Output: "boom", Status: 1}
+		})
+
+		if err := ta.PreJobStartupTasksInit(ta.Ctx); err != nil {
+			t.Errorf("PreJobStartupTasksInit failed: %v", err)
+		}
+	})
 }
