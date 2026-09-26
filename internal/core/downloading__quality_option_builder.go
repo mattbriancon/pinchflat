@@ -1,8 +1,10 @@
 package core
 
+import "context"
+
 // QualityOptionBuilder builds quality-related options for yt-dlp.
 
 // QualityOptionBuilderBuild/1
-func QualityOptionBuilderBuild(mediaProfile *MediaProfile) KW {
+func (a *App) QualityOptionBuilderBuild(ctx context.Context, mediaProfile *MediaProfile) KW {
 	panic("unported: Pinchflat.Downloading.QualityOptionBuilder.build/1")
 }
