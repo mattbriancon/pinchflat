@@ -52,7 +52,11 @@ var settingRequiredFields = []string{
 	"extractor_sleep_interval_seconds",
 }
 
-// SettingChangeset/3
+// SettingChangeset/2
 func SettingChangeset(setting *Setting, attrs Attrs) *Changeset {
-	panic("unported: Pinchflat.Settings.Setting.changeset/2")
+	return Cast(setting, attrs, settingAllowedFields).
+		ValidateRequired(settingRequiredFields...).
+		ValidateNumber("extractor_sleep_interval_seconds", NumberOpts{
+			GreaterThanOrEqualTo: Num(0),
+		})
 }
