@@ -1,56 +1,75 @@
 package core
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 )
 
 // (a *App) CliUtilsWrapCmd(ctx, command, args, passthrough_opts, opts)
 // Wraps a command in a shell script that will terminate the command if stdin is closed.
 // Useful for stopping commands if the job runner is cancelled.
 func (a *App) CliUtilsWrapCmd(ctx context.Context, command string, args []string, passthroughOpts KW, opts KW) (string, int, error) {
-	// PrivDirectory is not in Config yet; compute from app structure or use a fixed path
-	// For now, assume cmd_wrapper.sh is in priv/ relative to the binary or repo root
-	wrapperCommand := filepath.Join(filepath.Dir(filepath.Dir(a.Config.DatabasePath)), "priv", "cmd_wrapper.sh")
-	actualCommand := append([]string{command}, args...)
-	commandOpts := setCommandOpts(a)
-	// Combine commandOpts with passthroughOpts
-	allOpts := append(commandOpts, passthroughOpts...)
+	// Elixir ran commands through priv/cmd_wrapper.sh so they died when the
+	// job did. Here the command gets its own process group and cancelling
+	// ctx (job cancelled, app shutting down) kills the whole group, which
+	// also takes out children such as ffmpeg.
+	commandOpts := append(setCommandOpts(a), passthroughOpts...)
 
-	loggingArgOverride := ""
+	loggingArgOverride := strings.Join(args, " ")
 	if v, ok := opts.Get("logging_arg_override"); ok {
 		loggingArgOverride = v.(string)
-	} else {
-		loggingArgOverride = strings.Join(args, " ")
 	}
 
 	slog.Info("[command_wrapper]: " + command + " called with: " + loggingArgOverride)
 
-	cmd := exec.CommandContext(ctx, wrapperCommand, actualCommand...)
-
-	// Apply command options (cd is the main one)
-	if cdVal, ok := allOpts.Get("cd"); ok {
-		cmd.Dir = cdVal.(string)
+	cmd := exec.CommandContext(ctx, command, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) }
+	cmd.WaitDelay = 5 * time.Second
+	if cd, ok := commandOpts.Get("cd"); ok {
+		cmd.Dir = cd.(string)
 	}
-
-	output, err := cmd.CombinedOutput()
-	status := 0
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			status = exitErr.ExitCode()
-		} else {
-			// Actual system error (file not found, etc.)
-			return "", 0, err
+	if env, ok := commandOpts.Get("env"); ok {
+		cmd.Env = os.Environ()
+		for _, kv := range env.(KW) {
+			cmd.Env = append(cmd.Env, kv.Key+"="+fmt.Sprint(kv.Value))
 		}
 	}
 
-	logCmdResult(command, loggingArgOverride, status, string(output))
+	// System.cmd captures stdout only, unless stderr_to_stdout: true.
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	if commandOpts.Bool("stderr_to_stdout") {
+		cmd.Stderr = &out
+	} else {
+		cmd.Stderr = os.Stderr
+	}
 
-	return string(output), status, nil
+	status := 0
+	if err := cmd.Run(); err != nil {
+		var exitErr *exec.ExitError
+		if !errors.As(err, &exitErr) {
+			// System.cmd raises when the executable can't be started.
+			return "", 0, err
+		}
+		status = exitErr.ExitCode()
+		if status < 0 { // killed by a signal (e.g. job cancelled)
+			status = 137
+		}
+	}
+
+	output := out.String()
+	logCmdResult(command, loggingArgOverride, status, output)
+	return output, status, nil
 }
 
 // CliUtilsParseOptions(command_opts)
