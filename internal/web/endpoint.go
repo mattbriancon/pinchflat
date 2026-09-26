@@ -126,10 +126,13 @@ func (s *Server) basicAuth(next http.Handler) http.Handler {
 
 // maybeBasicAuth is Plugs.maybe_basic_auth/2: skipped when EXPOSE_FEED_ENDPOINTS is set.
 func (s *Server) maybeBasicAuth(next http.Handler) http.Handler {
-	if s.App.Config.ExposeFeedEndpoints {
-		return next
-	}
-	return s.basicAuth(next)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.App.Config.ExposeFeedEndpoints {
+			next.ServeHTTP(w, r)
+		} else {
+			s.basicAuth(next).ServeHTTP(w, r)
+		}
+	})
 }
 
 // tokenProtectedRoute is Plugs.token_protected_route/2.
@@ -148,7 +151,7 @@ func (s *Server) tokenProtectedRoute(next http.Handler) http.Handler {
 }
 
 // secureBrowserHeaders is put_secure_browser_headers minus x-frame-options
-// (allow_iframe_embed/2 deletes it).
+// (allowIframeEmbed/2 deletes it).
 func secureBrowserHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
@@ -156,6 +159,14 @@ func secureBrowserHeaders(next http.Handler) http.Handler {
 		h.Set("x-content-type-options", "nosniff")
 		h.Set("x-download-options", "noopen")
 		h.Set("x-permitted-cross-domain-policies", "none")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// allowIframeEmbed is Plugs.allow_iframe_embed/2: deletes x-frame-options header.
+func allowIframeEmbed(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Del("x-frame-options")
 		next.ServeHTTP(w, r)
 	})
 }
