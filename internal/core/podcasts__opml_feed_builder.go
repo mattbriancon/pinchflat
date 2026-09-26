@@ -12,7 +12,8 @@ func OpmlFeedBuilderBuild(urlBase string, sources []*Source) string {
 	var sourcesXML []string
 	for _, source := range sources {
 		sourceRoute := opmlFeedBuilderSourceRoute(urlBase, source)
-		outline := fmt.Sprintf(`<outline type="rss" text="%s" xmlUrl="%s" />`, XmlUtilsSafe(source.CustomName), XmlUtilsSafe(sourceRoute))
+		// Each item is an Elixir heredoc, so it ends with a newline.
+		outline := fmt.Sprintf("<outline type=\"rss\" text=\"%s\" xmlUrl=\"%s\" />\n", XmlUtilsSafe(source.CustomName), XmlUtilsSafe(sourceRoute))
 		sourcesXML = append(sourcesXML, outline)
 	}
 
@@ -25,7 +26,7 @@ func OpmlFeedBuilderBuild(urlBase string, sources []*Source) string {
     %s
   </body>
 </opml>
-`, strings.Join(sourcesXML, "\n\n"))
+`, strings.Join(sourcesXML, "\n"))
 }
 
 // opmlFeedBuilderSourceRoute builds the URL route for a source's RSS feed
