@@ -8,10 +8,10 @@
     <:col :let={source} label="RSS">
       <div class="flex items-center gap-1">
         <a
-          href={podcast_app_url(rss_feed_url(@feed_base_url, source))}
+          href={rss_feed_url(@feed_base_url, source)}
           class="flex h-8 w-8 items-center justify-center rounded-lg text-orange-400 hover:bg-meta-4 hover:text-orange-300"
-          title="Open in podcast app"
-          aria-label={"Open #{source.custom_name} in podcast app"}
+          title="Open RSS feed"
+          aria-label={"Open RSS feed for #{source.custom_name}"}
         >
           <.icon name="hero-rss" class="h-5 w-5" />
         </a>
