@@ -285,3 +285,78 @@ Generated. Where a prefix differs from the module's last segment, that's to avoi
 
 Dropped (no Go file): `Pinchflat`, `Pinchflat.Mailer`, `Pinchflat.Release`, `Pinchflat.PromEx`, `Pinchflat.Boot.PostJobStartupTasks`. `Pinchflat.Repo` → `repo_helpers.go` (infrastructure).
 
+
+## Web layer (W4)
+
+Infrastructure already written, which you use but must not change:
+- `internal/web/router.go`: every route, mapped to `(s *Server) <Controller><Action>` handlers.
+- `internal/web/endpoint.go`: static files, plugs (basic auth, route token, feed auth), method override, page context, stripping of trailing extensions.
+- `internal/web/render.go`: `Render`, `RenderFragment`, `Redirect`, `JSON`, `NotFound`, `Fail`.
+- `internal/web/page.go`: `PageOf(ctx)`, `P(ctx, fmt, args...)` (the `~p` sigil), `URL`, `CurrentPath`, `Param`.
+- `internal/web/form.go`: `FormFor`, `Form.Field`, `ParseForm`, `InputValue`, `Checked`.
+- `internal/web/flash.go`: `PutFlash`.
+- `internal/web/webtest`: the test client.
+
+### Handlers (controllers)
+
+- Each action becomes `func (s *Server) SourceControllerIndex(w http.ResponseWriter, r *http.Request)` in the controller's target file (the skeleton stubs already exist; replace them).
+- Params:
+  - `URLParam(r, "id")` for path params.
+  - `r.URL.Query().Get("x")` for query params.
+  - `ParseForm(r, "source")` for `%{"source" => params}`; it returns `core.Attrs` with nested maps.
+- Context calls go through `s.App` (e.g. `s.App.SourcesGetSource(ctx, id)`). When a missing record should 404 (`get!`), call `s.Fail(w, r, err)`: it turns `core.ErrNotFound` into a 404 and anything else into a 500.
+- `render(conn, :index, assigns)` → `s.Render(w, r, http.StatusOK, LayoutApp, SourceHTMLIndex(...))`. Use `OnboardingLayout(r.Context())` where Elixir used `layout: get_onboarding_layout()`.
+- `put_flash(conn, :info, msg)` → `s.PutFlash(w, r, "info", msg)`, called before `s.Redirect(w, r, P(r.Context(), "/sources/%v", id))`.
+- `send_file`/`send_download` → `http.ServeContent` (it handles Range/206 natively) with the same content-type and content-disposition headers.
+- A failed changeset re-renders the form with status 200, as Phoenix does (not 422), passing the changeset whose `Action` is set.
+
+### Templates (templ)
+
+- Each `.heex` becomes the `.templ` target from the manifest. Function names are `<ViewModule><Template>`: `source_html/index.html.heex` → `templ SourceHTMLIndex(...)`, and a component in `core_components.ex` like `def input` → `templ CoreInput(...)`.
+- Assigns become typed parameters. Pass the whole record rather than individual fields.
+- Keep the markup and Tailwind classes byte-for-byte where possible. Tests assert on text, and the CSS build scans `.templ` files for class names.
+- `~p"/x/#{id}"` → `{ P(ctx, "/x/%v", id) }`. `@conn` data → `PageOf(ctx)`, `CurrentPath(ctx)`, `Param(ctx, "q")`.
+- `<.link href=...>` → `<a href=...>`. `<.link method="delete" href=... data-confirm=...>` → a small form with `_method=delete` (use the `CoreLinkButton` component from core_components once it exists).
+- Heroicons: `<.icon name="hero-x">` → `@CoreIcon("hero-x", "classes")`, which renders `<span class="hero-x ...">`. The Tailwind plugin provides those classes, as before.
+- Forms: `f := FormFor(changeset, "source")`, then `@CoreInput(CoreInputProps{Field: f.Field("custom_name"), Label: "...", Type: "text"})`. Show the error banner when `f.HasErrors()`.
+- Alpine attributes (`x-data`, `@click`, `x-show`, ...) are kept exactly.
+- After editing `.templ` files, run `templ generate -path internal/web` (the binary is at `~/go/bin/templ`) and commit the generated `_templ.go` files.
+
+### LiveViews → htmx
+
+LiveView events become internal endpoints, already routed in `router.go`:
+
+| LiveView | Endpoint | Handler |
+|---|---|---|
+| JobTableLive | `GET /_live/jobs` | `JobTableLiveRender` |
+| HistoryTableLive | `GET /_live/history?media_state=&page=` | `HistoryTableLiveRender` |
+| SourceLive.IndexTableLive | `GET /_live/sources?sort_key=&sort_direction=&page=` | `SourceLiveIndexTableLiveRender` |
+| SourceEnableToggle | `POST /_live/sources/{id}/enabled` | `SourceEnableToggleUpdate` |
+| MediaItemTableLive | `GET /_live/sources/{id}/media?media_state=&page=&q=` | `MediaItemTableLiveRender` |
+| AppriseServerLive | `POST /_live/settings/apprise_test` | `AppriseServerLiveSendTest` |
+| UpgradeButtonLive | (client-side Alpine only; no route) | — |
+
+- Each LiveView becomes:
+  - a templ component that renders the whole LiveView's output, embedded where the page used `live_render`, wrapped in a `<div id="..." hx-get="..." hx-trigger="..." hx-swap="outerHTML">`;
+  - a handler that renders that component as a fragment (`s.RenderFragment`).
+- `phx-click="page_change"` → `hx-get` with the new page in the query string, targeting the wrapper.
+- `phx-change` on a search box → `hx-get` with `hx-trigger="input changed delay:200ms"`.
+- `reload_page` / `media_table` broadcasts → a refresh button that re-fetches the fragment (no server push; see STRATEGY.md).
+- Tests using `live_isolated`/`render_click` become:
+  - `webtest` GETs/POSTs to the fragment endpoints, asserting on the returned HTML;
+  - render-only tests may call the component directly with `templ.ToGoHTML`.
+
+### Web tests
+
+- `use PinchflatWeb.ConnCase` → `c := webtest.New(t)` (per `t.Run`). It embeds the `TestApp`, so `c.App`, `c.Ctx`, `c.YtDlpMock` and fixtures via `coretest.SourceFixture(t, c.TestApp, ...)` all work.
+- Requests:
+  - `get(conn, ~p"/sources")` → `res := c.Get("/sources")`
+  - `post(conn, path, source: attrs)` → `c.Post(path, "source", attrs)`
+  - `patch` → `c.Patch(...)`
+  - `delete` → `c.Delete(path)`
+- Assertions:
+  - `html_response(conn, 200) =~ "x"` → `strings.Contains(res.HTML(t, 200), "x")`
+  - `redirected_to(conn)` → `res.RedirectedTo(t)`
+  - `json_response` → `res.JSON(t, 200)`
+  - `Phoenix.Flash.get(conn.assigns.flash, :info)` → `res.Flash("info")`
+- Test files are `package web_test`, named after the target file with `_test.go`, as in core.
