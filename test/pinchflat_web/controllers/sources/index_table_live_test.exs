@@ -34,24 +34,14 @@ defmodule PinchflatWeb.Sources.SourceLive.IndexTableLiveTest do
       refute html =~ source.custom_name
     end
 
-    test "links each source's RSS feed to the podcast app", %{conn: conn} do
-      source = source_fixture()
-      session = Map.put(create_session(), "feed_base_url", "http://pinchflat.local/sources")
-
-      {:ok, _view, html} = live_isolated(conn, IndexTableLive, session: session)
-
-      assert html =~ ~s(href="podcast://pinchflat.local/sources/#{source.uuid}/feed.xml")
-      assert html =~ "http://pinchflat.local/sources/#{source.uuid}/feed.xml"
-    end
-
-    test "keeps the https protocol in podcast app links for https feeds", %{conn: conn} do
+    test "links each source's RSS feed", %{conn: conn} do
       source = source_fixture()
       session = Map.put(create_session(), "feed_base_url", "https://pinchflat.example.com/sources")
 
       {:ok, _view, html} = live_isolated(conn, IndexTableLive, session: session)
 
-      assert html =~ ~s(href="podcast://https://pinchflat.example.com/sources/#{source.uuid}/feed.xml")
-      refute html =~ ~s(href="podcast://pinchflat.example.com)
+      assert html =~ ~s(href="https://pinchflat.example.com/sources/#{source.uuid}/feed.xml")
+      refute html =~ "podcast://"
     end
 
     test "falls back to the endpoint URL for RSS feeds", %{conn: conn} do
@@ -59,7 +49,6 @@ defmodule PinchflatWeb.Sources.SourceLive.IndexTableLiveTest do
 
       {:ok, _view, html} = live_isolated(conn, IndexTableLive, session: create_session())
 
-      assert html =~ "podcast://"
       assert html =~ "/sources/#{source.uuid}/feed.xml"
     end
   end

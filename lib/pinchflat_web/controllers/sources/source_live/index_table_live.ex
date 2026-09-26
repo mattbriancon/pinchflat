@@ -62,12 +62,6 @@ defmodule PinchflatWeb.Sources.SourceLive.IndexTableLive do
 
   defp rss_feed_url(feed_base_url, source), do: "#{feed_base_url}/#{source.uuid}/feed.xml"
 
-  # The podcast:// scheme hands the feed to the device's podcast app (Apple Podcasts on iOS/macOS).
-  # With the protocol stripped, Podcasts fetches the feed over plain HTTP, so HTTPS feeds keep
-  # their full URL to stop it downgrading
-  defp podcast_app_url("https://" <> _ = feed_url), do: "podcast://" <> feed_url
-  defp podcast_app_url("http://" <> feed_path), do: "podcast://" <> feed_path
-
   defp set_sources(%{assigns: assigns} = socket) do
     sources =
       sources_query()
