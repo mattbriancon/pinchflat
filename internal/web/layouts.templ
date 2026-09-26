@@ -1,0 +1,28 @@
+package web
+
+// Port of lib/pinchflat_web/components/layouts.ex (the renderable half; see
+// layouts.go for active_path?/2 and the App/Options accessors).
+
+// LayoutsNavLink is nav_link/1. currentPath is Phoenix.Controller.current_path
+// (Elixir's @conn); pass web.CurrentPath(ctx).
+templ LayoutsNavLink(text string, href string, currentPath string) {
+	<a
+		href={ templ.URL(href) }
+		class={
+			"shrink-0 whitespace-nowrap rounded-lg px-2 py-1.5 text-sm font-medium sm:px-2.5",
+			"hover:bg-meta-4 hover:text-white",
+			templ.KV("bg-meta-4 text-white", layoutsActivePath(href, currentPath)),
+			templ.KV("text-bodydark1", !layoutsActivePath(href, currentPath)),
+		}
+	>
+		{ text }
+	</a>
+}
+
+// LayoutsFooterLink is footer_link/1.
+templ LayoutsFooterLink(icon string, text string, href string) {
+	<a href={ templ.URL(href) } target="_blank" class="flex items-center gap-1.5 hover:text-white">
+		@CoreIcon(icon, "h-4 w-4", nil)
+		{ text }
+	</a>
+}

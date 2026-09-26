@@ -1,0 +1,87 @@
+package web
+
+// Port of lib/pinchflat_web/components/custom_components/table_components.ex
+// (the renderable half; see custom_components__table_components.go for
+// TableProps/TableColumn).
+
+// TableTable is table/1.
+templ TableTable(p TableProps) {
+	<div class="max-w-full overflow-x-auto">
+		<table class={ "w-full table-auto bg-boxdark text-sm", p.TableClass }>
+			<thead>
+				<tr class="text-left bg-meta-4 border-b border-strokedark">
+					for _, col := range p.Columns {
+						<th
+							class={
+								"px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-bodydark2 whitespace-nowrap",
+								templ.KV("cursor-pointer hover:text-white", col.SortKey != ""),
+							}
+							{ tableHeaderAttrs(p, col)... }
+						>
+							<div class="relative">
+								{ col.Label }
+								if p.SortKey == col.SortKey && col.SortKey != "" {
+									@CoreIcon(tableSortIcon(p.SortDirection), "w-3 h-3 mt-0.5 ml-1 absolute", nil)
+								}
+							</div>
+						</th>
+					}
+				</tr>
+			</thead>
+			<tbody>
+				for _, row := range p.Rows {
+					<tr class="border-b border-strokedark last:border-b-0 hover:bg-meta-4">
+						for _, col := range p.Columns {
+							<td class={ "px-3 py-2 whitespace-nowrap", col.Class }>
+								@col.Render(row)
+							</td>
+						}
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+// TableLivePaginationControls is live_pagination_controls/1. prevAttrs/
+// nextAttrs are the htmx attributes for "page_change" (nil for none); they
+// only apply while that direction is available, like the Elixir
+// `phx-click={@page_number != 1 && "page_change"}`.
+templ TableLivePaginationControls(pageNumber int, totalPages int, prevAttrs templ.Attributes, nextAttrs templ.Attributes) {
+	<nav>
+		<ul class="flex flex-wrap items-center">
+			<li>
+				<span
+					class={
+						"pagination-prev flex h-8 w-8 items-center justify-center rounded",
+						templ.KV("cursor-pointer hover:bg-primary hover:text-white", pageNumber != 1),
+						templ.KV("cursor-not-allowed opacity-40", pageNumber <= 1),
+					}
+					{ tableConditionalAttrs(pageNumber != 1, prevAttrs)... }
+				>
+					@CoreIcon("hero-chevron-left", "", nil)
+				</span>
+			</li>
+			<li>
+				<span class="mx-2 text-sm">
+					Page
+					@TextLocalizedNumber(pageNumber)
+					of
+					@TextLocalizedNumber(totalPages)
+				</span>
+			</li>
+			<li>
+				<span
+					class={
+						"pagination-next flex h-8 w-8 items-center justify-center rounded",
+						templ.KV("cursor-pointer hover:bg-primary hover:text-white", pageNumber != totalPages),
+						templ.KV("cursor-not-allowed opacity-40", pageNumber >= totalPages),
+					}
+					{ tableConditionalAttrs(pageNumber != totalPages, nextAttrs)... }
+				>
+					@CoreIcon("hero-chevron-right", "", nil)
+				</span>
+			</li>
+		</ul>
+	</nav>
+}

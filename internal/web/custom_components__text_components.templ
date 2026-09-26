@@ -1,0 +1,140 @@
+package web
+
+// Port of lib/pinchflat_web/components/custom_components/text_components.ex
+// (the renderable half; custom_components__text_components.go has the
+// plain-Go logic).
+
+import (
+	"fmt"
+	"time"
+)
+
+// TextInlineCode is inline_code/1.
+templ TextInlineCode(content templ.Component) {
+	<code class="inline-block text-sm font-mono text-bodydark1 bg-meta-4 rounded px-1 mx-0.5 text-nowrap">
+		@content
+	</code>
+}
+
+// TextInlineCodeString is a convenience for the common case of plain-text
+// content (used throughout the port instead of building a templ.Component
+// for a single string).
+templ TextInlineCodeString(s string) {
+	<code class="inline-block text-sm font-mono text-bodydark1 bg-meta-4 rounded px-1 mx-0.5 text-nowrap">
+		{ s }
+	</code>
+}
+
+// TextInlineLink is inline_link/1.
+templ TextInlineLink(href string, content templ.Component) {
+	<a href={ templ.URL(href) } target="_blank" class="text-blue-500 hover:text-blue-300">
+		@content
+	</a>
+}
+
+// TextInlineLinkString renders a plain-text inline_link (the common case).
+templ TextInlineLinkString(href string, text string) {
+	<a href={ templ.URL(href) } target="_blank" class="text-blue-500 hover:text-blue-300">
+		{ text }
+	</a>
+}
+
+// TextSubtleLink is subtle_link/1.
+templ TextSubtleLink(href string, target string, content templ.Component) {
+	<a
+		href={ templ.URL(href) }
+		target={ target }
+		class="text-bodydark1 underline decoration-form-strokedark decoration-1 underline-offset-2 hover:text-white hover:decoration-white"
+	>
+		@content
+	</a>
+}
+
+// TextIconLink is icon_link/1.
+templ TextIconLink(href string, icon string, class string) {
+	<a href={ templ.URL(href) } class={ "hover:text-secondary duration-200 ease-in-out", class }>
+		@CoreIcon(icon, "", nil)
+	</a>
+}
+
+// TextRenderDescription is render_description/1: a block of text with each
+// line broken into its own span and bare URLs turned into links.
+templ TextRenderDescription(text string) {
+	<span>
+		for _, line := range textRenderDescriptionLines(text) {
+			if line.IsURL {
+				<a href={ templ.URL(line.URL) } target="_blank" class="text-blue-500 hover:text-blue-300">
+					{ line.URL }
+				</a>
+			} else {
+				for _, part := range line.Parts {
+					<span class={ templ.KV("block", part == "\n"), templ.KV("mt-2 inline-block", part != "\n") }>
+						{ part }
+					</span>
+				}
+			}
+		}
+	</span>
+}
+
+// TextDatetimeInZone is datetime_in_zone/1. format defaults to
+// "%Y-%m-%d %H:%M:%S" and timezone to the app's configured timezone when
+// blank, matching the Elixir defaults.
+templ TextDatetimeInZone(datetime time.Time, format string, timezone string) {
+	<time>{ textDatetimeInZone(datetime, textDefaultFormat(format), timezone) }</time>
+}
+
+// TextLocalizedNumber is localized_number/1: rendered with the raw number as
+// a fallback and reformatted client-side via Intl.NumberFormat.
+templ TextLocalizedNumber(number int) {
+	<span x-data x-text={ fmt.Sprintf("Intl.NumberFormat().format(%d)", number) }>{ fmt.Sprint(number) }</span>
+}
+
+// TextPluralize is pluralize/1.
+templ TextPluralize(word string, count int, suffix string) {
+	{ textPluralize(word, count, suffix) }
+}
+
+// TextReadableFilesize is readable_filesize/1.
+templ TextReadableFilesize(byteSize int64) {
+	@TextLocalizedNumberFloat(textReadableFilesizeValue(byteSize))
+	{ " " + textReadableFilesizeSuffix(byteSize) }
+}
+
+// TextLocalizedNumberFloat backs TextReadableFilesize (the num there is a
+// rounded float, e.g. "12.34").
+templ TextLocalizedNumberFloat(number float64) {
+	<span x-data x-text={ fmt.Sprintf("Intl.NumberFormat().format(%v)", number) }>{ fmt.Sprint(number) }</span>
+}
+
+// TextTooltip is tooltip/1 (all three clauses: position "bottom-right",
+// "bottom", and the default). tooltipClass/tooltipArrowClass are the extra
+// classes each clause merges in ("" for none).
+templ TextTooltip(tooltip string, position string, tooltipClass string, tooltipArrowClass string, content templ.Component) {
+	<div class="group relative inline-block cursor-pointer">
+		<div>
+			@content
+		</div>
+		if tooltip != "" {
+			<div
+				class={
+					"hidden absolute top-full z-20 mt-3 whitespace-nowrap rounded-md",
+					"p-1.5 text-sm font-medium opacity-0 shadow-lg group-hover:opacity-100 group-hover:block bg-graydark",
+					"border border-form-strokedark text-wrap",
+					templ.KV("left-1/2 -translate-x-1/2", position == "bottom"),
+					tooltipClass,
+				}
+			>
+				<span
+					class={
+						"border-t border-l border-form-strokedark absolute -z-10 h-2 w-2 rotate-45 rounded-sm bg-graydark",
+						templ.KV("-top-1", position == "bottom-right" || position == "bottom"),
+						templ.KV("left-1/2 -translate-x-1/2", position == "bottom"),
+						tooltipArrowClass,
+					}
+				></span>
+				<div class="px-3">{ tooltip }</div>
+			</div>
+		}
+	</div>
+}

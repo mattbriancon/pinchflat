@@ -1,0 +1,33 @@
+package web
+
+// Port of lib/pinchflat_web/components/layouts/partials/donate_modal.heex.
+
+templ donateModalContent() {
+	<section x-data="{ inputValue: '' }">
+		<h3 class="section-title">Donate</h3>
+		<p class="text-sm">Thank you for your support :)</p>
+		<p class="mt-4">
+			If you find the project valuable and want to say thanks, a
+			@TextInlineLinkString("https://supporters.eff.org/donate", "donation to the Electronic Frontier Foundation")
+			would be greatly appreciated! You can optionally post proof of donation on
+			@TextInlineLinkString("https://github.com/kieraneglin/pinchflat/issues/234", "this issue")
+			to hopefully inspire others to donate as well.
+		</p>
+		<p class="mt-4">
+			The Electronic Frontier Foundation is a nonprofit organization who defend your online liberties and backed
+			@TextInlineCodeString("youtube-dl")
+			when Google took them down
+			<a href={ templ.URL("https://github.com/github/dmca/blob/9a85e0f021f7967af80e186b890776a50443f06c/2020/11/2020-11-16-RIAA-reversal-effletter.pdf") } target="_blank" class="text-blue-500 hover:text-blue-300">
+				@CoreIcon("hero-arrow-top-right-on-square", "h-3 w-3", nil)
+			</a>
+		</p>
+		<a href={ templ.URL("https://supporters.eff.org/donate") } target="_blank">
+			@ButtonButton("bg-primary", "rounded-sm", "w-full mt-8", "submit", false, nil, templ.Raw("Donate"))
+		</a>
+	</section>
+}
+
+// LayoutsPartialsDonateModal is donate_modal.heex.
+templ LayoutsPartialsDonateModal() {
+	@CoreModal("donate-modal", true, donateModalContent())
+}

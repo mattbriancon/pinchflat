@@ -1,6 +1,16 @@
 package web
 
-// Skeleton; port the .heex template here.
+// Port of lib/pinchflat_web/components/layouts/app.html.heex.
+
 templ LayoutsApp(content templ.Component) {
-	@content
+	<div class="flex min-h-screen flex-col">
+		@LayoutsPartialsHeader()
+		<main class="flex-1">
+			<div class="mx-auto max-w-screen-2xl p-3 sm:p-4 lg:p-6">
+				@CoreFlashGroup()
+				@content
+			</div>
+		</main>
+		@LayoutsPartialsFooter()
+	</div>
 }

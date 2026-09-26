@@ -1,6 +1,39 @@
 package web
 
-// Skeleton; port the .heex template here.
+// Port of lib/pinchflat_web/components/layouts/root.html.heex.
+//
+// Deviations (no LiveView/CSRF-cookie session in the Go port):
+//   - get_csrf_token()'s meta tag is dropped: CSRF is now
+//     net/http.CrossOriginProtection (endpoint.go's protectFromForgery), not
+//     a token the client needs to read.
+//   - data-socket-path (the LiveView websocket mount point) is dropped: there
+//     is no socket to connect (see STRATEGY.md's "No server push").
+//   - <.live_title> becomes a plain "Pinchflat" title: @page_title isn't
+//     threaded through render.go's fixed LayoutsRoot(content) signature (see
+//     server.go's currentApp/currentOpts comment).
+
 templ LayoutsRoot(content templ.Component) {
-	@content
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="theme-color" content="#16191E"/>
+			<title>Pinchflat</title>
+			<link phx-track-static rel="stylesheet" href={ P(ctx, "/assets/app.css") }/>
+			<link rel="icon" type="image/x-icon" href={ P(ctx, "/favicon.ico?cachebust=2024-03-20") }/>
+			<script defer phx-track-static type="text/javascript" src={ P(ctx, "/assets/app.js") }></script>
+			<script defer type="text/javascript" src={ P(ctx, "/assets/alpine.min.js") }></script>
+		</head>
+		<body
+			x-data={ "{ proEnabled: " + InputValue(layoutsProEnabled(ctx)) + ", onboarding: " + InputValue(PageOf(ctx).Onboarding) + " }" }
+			class="dark text-bodydark bg-boxdark-2"
+		>
+			@content
+			@LayoutsPartialsDonateModal()
+			<template x-if="!proEnabled && !onboarding">
+				@LayoutsPartialsUpgradeModal()
+			</template>
+		</body>
+	</html>
 }
