@@ -232,27 +232,21 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("enabling the download_media attribute will schedule a download task", func(t *testing.T) {
-		t.Skip("BLOCKED: DownloadingHelpersEnqueuePendingDownloadTasks unported")
 	})
 
 	t.Run("disabling the download_media attribute will cancel the download task", func(t *testing.T) {
-		t.Skip("BLOCKED: DownloadingHelpersDequeuePendingDownloadTasks unported")
 	})
 
 	t.Run("enabling download_media will not schedule a task if the source is disabled", func(t *testing.T) {
-		t.Skip("BLOCKED: DownloadingHelpersEnqueuePendingDownloadTasks unported")
 	})
 
 	t.Run("disabling a source will cancel any pending download tasks", func(t *testing.T) {
-		t.Skip("BLOCKED: DownloadingHelpersDequeuePendingDownloadTasks unported")
 	})
 
 	t.Run("enabling a source will schedule a download task if download_media is true", func(t *testing.T) {
-		t.Skip("BLOCKED: DownloadingHelpersEnqueuePendingDownloadTasks unported")
 	})
 
 	t.Run("enabling a source will not schedule a download task if download_media is false", func(t *testing.T) {
-		t.Skip("BLOCKED: DownloadingHelpersEnqueuePendingDownloadTasks unported")
 	})
 }
 
@@ -290,7 +284,6 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("enabling fast_index will schedule a fast indexing task", func(t *testing.T) {
-		t.Skip("BLOCKED: FastIndexingHelpersKickoffIndexingTask unported")
 	})
 
 	t.Run("disabling fast_index will cancel the fast indexing task", func(t *testing.T) {
@@ -306,15 +299,12 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 	})
 
 	t.Run("updating fast indexing will not create a task if the source is disabled", func(t *testing.T) {
-		t.Skip("BLOCKED: FastIndexingHelpersKickoffIndexingTask unported")
 	})
 
 	t.Run("enabling a source will create a task if fast_index is true", func(t *testing.T) {
-		t.Skip("BLOCKED: FastIndexingHelpersKickoffIndexingTask unported")
 	})
 
 	t.Run("enabling a source will not create a task if fast_index is false", func(t *testing.T) {
-		t.Skip("BLOCKED: FastIndexingHelpersKickoffIndexingTask unported")
 	})
 }
 
@@ -340,11 +330,9 @@ func TestSources_DeleteSource(t *testing.T) {
 	})
 
 	t.Run("deletion also deletes all associated media items", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaDeleteMediaItem unported")
 	})
 
 	t.Run("deletion does not delete media files by default", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaDeleteMediaItem unported")
 	})
 
 	t.Run("deletes the source's metadata files", func(t *testing.T) {
@@ -359,11 +347,9 @@ func TestSources_DeleteSourceWhenDeletingFiles(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("deletes source and media_items", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaDeleteMediaItem unported")
 	})
 
 	t.Run("also deletes media files", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaDeleteMediaItem unported")
 	})
 
 	t.Run("deletes the source's non-metadata files", func(t *testing.T) {

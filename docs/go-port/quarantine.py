@@ -34,7 +34,9 @@ for i in range(int(sys.argv[1]) if len(sys.argv) > 1 else 50):
         f = subprocess.run(["grep", "-l", "func " + top + "(", *glob.glob(ROOT + "/internal/core/*_test.go")], capture_output=True, text=True).stdout.split()[0]
         s = open(f).read()
         pat = re.compile(r'(t\.Run\("' + re.escape(sub).replace("_", "[ _]") + r'", func\(t \*testing\.T\) \{\n)')
-        s2 = pat.sub(lambda m: m.group(1) + '\t\tt.Skip("' + reason + '")\n', s, count=1)
+        base = s.find("func " + top + "(")
+        head, tail = s[:base], s[base:]
+        s2 = head + pat.sub(lambda m: m.group(1) + '\t\tt.Skip("' + reason + '")\n', tail, count=1)
         if s2 == s:
             print("could not find", top, sub); sys.exit(1)
         open(f, "w").write(s2)

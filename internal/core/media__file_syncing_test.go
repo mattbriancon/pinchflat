@@ -10,7 +10,6 @@ import (
 
 func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 	t.Run("deletes outdated non-subtitle files", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaUpdateMediaItem, MediaGetMediaItem unported")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -30,7 +29,6 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 	})
 
 	t.Run("doesn't delete non-subtitle files if the new file is the same", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaUpdateMediaItem, MediaGetMediaItem unported")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -50,7 +48,6 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 	})
 
 	t.Run("doesn't delete the old file if the new file is missing that key", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaUpdateMediaItem, MediaGetMediaItem unported")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -67,7 +64,6 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 	})
 
 	t.Run("deletes outdated subtitle files", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaUpdateMediaItem, MediaGetMediaItem unported")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -90,7 +86,6 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 	})
 
 	t.Run("keeps old subtitle files if the new file is the same", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaUpdateMediaItem, MediaGetMediaItem unported")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -113,7 +108,6 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 	})
 
 	t.Run("doesn't delete old subtitle files if the new file is missing that key", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaUpdateMediaItem, MediaGetMediaItem unported")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -133,7 +127,6 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 
 func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 	t.Run("removes attributes whose files are missing", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaUpdateMediaItem, MediaGetMediaItem unported")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -158,7 +151,6 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 	})
 
 	t.Run("doesn't remove attributes where the files still exist", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaUpdateMediaItem, MediaGetMediaItem unported")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -183,7 +175,6 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 	})
 
 	t.Run("doesn't touch other attributes if some are missing and some aren't", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaUpdateMediaItem, MediaGetMediaItem unported")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -219,7 +210,6 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 	})
 
 	t.Run("removes subtitle files that are missing", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaUpdateMediaItem, MediaGetMediaItem unported")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -247,7 +237,6 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 	})
 
 	t.Run("doesn't remove subtitle files that still exist", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaUpdateMediaItem, MediaGetMediaItem unported")
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 

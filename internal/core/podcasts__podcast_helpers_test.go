@@ -38,7 +38,6 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("returns media items with files that exist on-disk", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		goodMedia := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
 		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": "/tmp/existing_file.mp3"})
@@ -57,7 +56,6 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 	})
 
 	t.Run("lets you specify a limit", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
 
@@ -72,7 +70,6 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 	})
 
 	t.Run("orders by upload date where newest is first", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
 		oldest := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.NowMinus(2, "day")})
@@ -127,7 +124,6 @@ func TestPodcastHelpers_SelectCoverImage(t *testing.T) {
 	})
 
 	t.Run("falls back to a media item's thumbnail, if present", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
 		source := coretest.SourceWithMetadataAttachmentsFixture(t, ta, core.Attrs{})
 		mediaItem := coretest.MediaItemWithMetadataAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
 

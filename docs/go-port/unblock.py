@@ -44,11 +44,11 @@ for path, original in changed.items():
         print(f"BUILD {os.path.basename(path)}: tree doesn't compile; restored skips")
         print("\n".join(l for l in out.splitlines() if ".go:" in l)[:2000])
         continue
-    failing = set(re.findall(r'--- FAIL: \w+/(\S+)', out))
+    failing = set(re.findall(r'--- FAIL: (\w+)/(\S+)', out))
     panicked = re.search(r'panic: (.*)', out)
     if panicked:
         # a panic aborts the binary; find the running subtest
-        running = re.findall(r'=== RUN\s+\w+/(\S+)', out)
+        running = re.findall(r'=== RUN\s+(\w+)/(\S+)', out)
         if running:
             failing.add(running[-1])
     if not failing and "FAIL" not in out.split("\n")[-2:][0]:
@@ -56,10 +56,10 @@ for path, original in changed.items():
         continue
     reason = (panicked.group(1)[:80] if panicked else "fails").replace('"', "'")
     s = open(path).read()
-    for name in failing:
-        go_name = name.replace("_", " ")
-        # re-skip the t.Run whose name matches (spaces become _ in -v output)
-        pat = re.compile(r'(t\.Run\("' + re.escape(go_name).replace("\\ ", "[ _]") + r'", func\(t \*testing\.T\) \{\n)')
-        s = pat.sub(lambda m: m.group(1) + '\t\tt.Skip("NEEDS-FIX: ' + reason + '")\n', s, count=1)
+    for top, name in failing:
+        # re-skip the t.Run (within its top-level test) whose name matches
+        pat = re.compile(r'(t\.Run\("' + re.escape(name).replace("_", "[ _]") + r'", func\(t \*testing\.T\) \{\n)')
+        base = max(s.find("func " + top + "("), 0)
+        s = s[:base] + pat.sub(lambda m: m.group(1) + '\t\tt.Skip("NEEDS-FIX: ' + reason + '")\n', s[base:], count=1)
     open(path, "w").write(s)
     print(f"fix  {os.path.basename(path)}: re-skipped {len(failing)} as NEEDS-FIX")

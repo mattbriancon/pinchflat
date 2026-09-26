@@ -71,7 +71,6 @@ func TestMediaProfileDeletionWorker_Kickoff(t *testing.T) {
 
 func TestMediaProfileDeletionWorker_Perform(t *testing.T) {
 	t.Run("deletes the profile, sources, and media but leaves the files", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
 
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
@@ -118,7 +117,6 @@ func TestMediaProfileDeletionWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("deletes the profile, sources, and media and files if specified", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
 
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()

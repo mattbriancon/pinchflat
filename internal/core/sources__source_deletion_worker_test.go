@@ -71,7 +71,6 @@ func TestSourceDeletionWorker_Kickoff(t *testing.T) {
 
 func TestSourceDeletionWorker_Perform(t *testing.T) {
 	t.Run("deletes the source but leaves the files", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
 
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
@@ -109,7 +108,6 @@ func TestSourceDeletionWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("deletes the source and files if specified", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
 
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()

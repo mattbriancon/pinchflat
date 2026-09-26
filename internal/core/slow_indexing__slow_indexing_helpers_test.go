@@ -408,7 +408,6 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 	})
 
 	t.Run("does not attach tasks if the source is set to not download", func(t *testing.T) {
-		t.Skip("BLOCKED: DownloadingHelpersEnqueuePendingDownloadTasks unported")
 	})
 
 	t.Run("doesn't blow up if a media item cannot be coerced into a struct", func(t *testing.T) {

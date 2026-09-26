@@ -41,7 +41,6 @@ func TestRssFeedBuilder_Build(t *testing.T) {
 	})
 
 	t.Run("can optionally apply a limit to media items", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
 		goodMedia := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{core.Opt("limit", 0)})
@@ -163,7 +162,6 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 	source := coretest.SourceFixture(t, ta, core.Attrs{})
 
 	t.Run("only includes media persisted to disk", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
 		goodMedia := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
 		badMedia := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": "/tmp/existing_file.mp3"})
 		pendingMedia := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
@@ -185,7 +183,7 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 	})
 
 	t.Run("returns XML for static media attributes", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
@@ -223,7 +221,7 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 	})
 
 	t.Run("returns pubDate based off the media's uploaded_at", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		uploadedAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 		coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": db.UTCDateTime{Time: uploadedAt}})
 
@@ -244,7 +242,7 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 	})
 
 	t.Run("returns an enclosure tag with the media's stream URL", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "media_size_bytes": int64(1234)})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
@@ -273,7 +271,7 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 	})
 
 	t.Run("returns image tags if the media has a thumbnail", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "media_size_bytes": int64(1234)})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
@@ -297,7 +295,7 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 	})
 
 	t.Run("does not return image tags if the media does not have a thumbnail", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
 		os.Remove(*mediaItem.ThumbnailFilepath)
 

@@ -9,7 +9,7 @@ import (
 
 func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 	t.Run("calls the backend runner", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: YtDlpRunnerMock.run: unexpected call (no expectations or stubs defined) [recover")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -24,7 +24,7 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 	})
 
 	t.Run("saves the metadata filepath to the database", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -36,7 +36,7 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 	})
 
 	t.Run("errors for non-downloadable media are passed through", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -48,7 +48,7 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 	})
 
 	t.Run("non-recoverable errors are passed through", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -60,7 +60,7 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 	})
 
 	t.Run("unknown errors are passed through", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -74,7 +74,7 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 
 func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonDownloadableMedia(t *testing.T) {
 	t.Run("calls the download runner if the media is currently downloadable", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -86,7 +86,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonDownloadableMedia(t 
 	})
 
 	t.Run("does not call the download runner if the media is not downloadable", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -98,7 +98,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonDownloadableMedia(t 
 	})
 
 	t.Run("returns unexpected errors from the download status determination method", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -112,7 +112,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonDownloadableMedia(t 
 
 func TestMediaDownloader_DownloadForMediaItem_WhenTestingOverrideOptions(t *testing.T) {
 	t.Run("includes override opts if specified", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -126,7 +126,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingOverrideOptions(t *test
 
 func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.T) {
 	t.Run("sets use_cookies if the source uses cookies", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "all_operations"})
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
@@ -139,7 +139,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 	})
 
 	t.Run("does not set use_cookies if the source uses cookies when needed", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "when_needed"})
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
@@ -152,7 +152,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 	})
 
 	t.Run("does not set use_cookies if the source does not use cookies", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "disabled"})
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
@@ -167,7 +167,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 
 func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *testing.T) {
 	t.Run("returns a recovered tuple on recoverable errors", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -179,7 +179,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 	})
 
 	t.Run("attempts to update the media item on recoverable errors", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -191,7 +191,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 	})
 
 	t.Run("returns an unrecoverable tuple if recovery fails", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -203,7 +203,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 	})
 
 	t.Run("sets the last_error appropriately when recovered", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -215,7 +215,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 	})
 
 	t.Run("sets the last_error appropriately when unrecoverable", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -229,7 +229,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 
 func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testing.T) {
 	t.Run("retries with cookies if we think it would help and the source allows", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "when_needed"})
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
@@ -242,7 +242,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 	})
 
 	t.Run("does not retry with cookies if we don't think it would help even the source allows", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "when_needed"})
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
@@ -255,7 +255,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 	})
 
 	t.Run("does not retry with cookies even if we think it would help but source doesn't allow", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "disabled"})
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
@@ -268,7 +268,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 	})
 
 	t.Run("does not retry with cookies if cookies were already used", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "all_operations"})
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
@@ -283,7 +283,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 
 func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *testing.T) {
 	t.Run("sets the media_downloaded_at", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -295,7 +295,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 	})
 
 	t.Run("sets the culled_at to nil", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -307,7 +307,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 	})
 
 	t.Run("extracts the title", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -319,7 +319,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 	})
 
 	t.Run("extracts the description", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -331,7 +331,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 	})
 
 	t.Run("extracts the media_filepath", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -343,7 +343,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 	})
 
 	t.Run("extracts the subtitle_filepaths", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -355,7 +355,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 	})
 
 	t.Run("extracts the duration_seconds", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -367,7 +367,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 	})
 
 	t.Run("extracts the thumbnail_filepath", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -379,7 +379,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 	})
 
 	t.Run("extracts the metadata_filepath", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -391,7 +391,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 	})
 
 	t.Run("sets the last_error to nil on success", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"last_error": "Some error"})
 
@@ -403,7 +403,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 	})
 
 	t.Run("sets the last_error to the error message on failure", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
 
@@ -417,7 +417,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 func TestMediaDownloader_DownloadForMediaItem_WhenTestingNFOGeneration(t *testing.T) {
 	t.Run("generates an NFO file if the source is set to download NFOs", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_nfo": true})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": mediaProfile.ID})
@@ -431,7 +431,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNFOGeneration(t *testin
 	})
 
 	t.Run("does not generate an NFO file if the source is set to not download NFOs", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaCreateMediaItem unported")
+		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_nfo": false})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": mediaProfile.ID})
