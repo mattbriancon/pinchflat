@@ -3,6 +3,7 @@ package core_test
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -15,7 +16,6 @@ import (
 
 func TestMetadataFileHelpers_MetadataDirectoryFor(t *testing.T) {
 	t.Run("returns the metadata directory for the given record", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaItemFixture requires unported functions")
 		ta := coretest.NewApp(t)
 
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
@@ -40,7 +40,6 @@ func TestMetadataFileHelpers_MetadataDirectoryFor(t *testing.T) {
 
 func TestMetadataFileHelpers_CompressAndStoreMetadataFor(t *testing.T) {
 	t.Run("returns the filepath", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaItemFixture requires unported functions")
 		ta := coretest.NewApp(t)
 
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
@@ -58,7 +57,6 @@ func TestMetadataFileHelpers_CompressAndStoreMetadataFor(t *testing.T) {
 	})
 
 	t.Run("creates folder structure based on passed record", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaItemFixture requires unported functions")
 		ta := coretest.NewApp(t)
 
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
@@ -77,7 +75,6 @@ func TestMetadataFileHelpers_CompressAndStoreMetadataFor(t *testing.T) {
 	})
 
 	t.Run("stores it as compressed JSON", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaItemFixture requires unported functions")
 		ta := coretest.NewApp(t)
 
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
@@ -119,7 +116,6 @@ func TestMetadataFileHelpers_CompressAndStoreMetadataFor(t *testing.T) {
 
 func TestMetadataFileHelpers_ReadCompressedMetadata(t *testing.T) {
 	t.Run("returns the compressed and decoded metadata", func(t *testing.T) {
-		t.Skip("BLOCKED: MediaItemFixture requires unported functions")
 		ta := coretest.NewApp(t)
 
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
@@ -143,23 +139,218 @@ func TestMetadataFileHelpers_ReadCompressedMetadata(t *testing.T) {
 
 func TestMetadataFileHelpers_DownloadAndStoreThumbnailFor(t *testing.T) {
 	t.Run("returns the filepath", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
+		if err != nil {
+			t.Fatalf("failed to preload source: %v", err)
+		}
+
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return "", nil
+		})
+
+		result, err := ta.App.MetadataFileHelpersDownloadAndStoreThumbnailFor(ta.Ctx, mediaItem)
+		if err != nil {
+			t.Fatalf("failed to download and store thumbnail: %v", err)
+		}
+
+		if result == nil {
+			t.Errorf("expected filepath, got nil")
+		} else if !bytes.Contains([]byte(*result), []byte("/media_items/")) || !bytes.Contains([]byte(*result), []byte("/thumbnail.jpg")) {
+			t.Errorf("expected filepath to contain /media_items/ and /thumbnail.jpg, got %q", *result)
+		}
 	})
 
 	t.Run("calls yt-dlp with the expected options", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
+		if err != nil {
+			t.Fatalf("failed to preload source: %v", err)
+		}
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			if url != mediaItem.OriginalURL {
+				t.Errorf("expected url %q, got %q", mediaItem.OriginalURL, url)
+			}
+			if action != "download_thumbnail" {
+				t.Errorf("expected action \"download_thumbnail\", got %q", action)
+			}
+			if ot != "after_move:%()j" {
+				t.Errorf("expected output template \"after_move:%%()j\", got %q", ot)
+			}
+
+			// Check that opts includes expected flags and settings
+			// Expected: no_simulate, skip_download, write_thumbnail, convert_thumbnail: jpg, output: path
+			hasNoSimulate := false
+			hasSkipDownload := false
+			hasWriteThumbnail := false
+			hasConvertThumbnail := false
+			var outputPath string
+
+			for _, kv := range opts {
+				if kv.Key == "no_simulate" && kv.Flag {
+					hasNoSimulate = true
+				} else if kv.Key == "skip_download" && kv.Flag {
+					hasSkipDownload = true
+				} else if kv.Key == "write_thumbnail" && kv.Flag {
+					hasWriteThumbnail = true
+				} else if kv.Key == "convert_thumbnail" && kv.Value == "jpg" {
+					hasConvertThumbnail = true
+				} else if kv.Key == "output" {
+					outputPath = kv.Value.(string)
+				}
+			}
+
+			if !hasNoSimulate {
+				t.Errorf("expected no_simulate flag in opts")
+			}
+			if !hasSkipDownload {
+				t.Errorf("expected skip_download flag in opts")
+			}
+			if !hasWriteThumbnail {
+				t.Errorf("expected write_thumbnail flag in opts")
+			}
+			if !hasConvertThumbnail {
+				t.Errorf("expected convert_thumbnail: jpg in opts")
+			}
+			if !bytes.Contains([]byte(outputPath), []byte("/media_items/")) || !bytes.Contains([]byte(outputPath), []byte("/thumbnail.")) {
+				t.Errorf("expected output path to contain /media_items/ and /thumbnail., got %q", outputPath)
+			}
+
+			return "", nil
+		})
+
+		_, err = ta.App.MetadataFileHelpersDownloadAndStoreThumbnailFor(ta.Ctx, mediaItem)
+		if err != nil {
+			t.Fatalf("failed to download and store thumbnail: %v", err)
+		}
 	})
 
 	t.Run("returns nil if yt-dlp fails", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
+		if err != nil {
+			t.Fatalf("failed to preload source: %v", err)
+		}
+
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return "", fmt.Errorf("yt-dlp failed")
+		})
+
+		result, err := ta.App.MetadataFileHelpersDownloadAndStoreThumbnailFor(ta.Ctx, mediaItem)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if result != nil {
+			t.Errorf("expected nil result, got %v", result)
+		}
 	})
 }
 
 func TestMetadataFileHelpers_DownloadAndStoreThumbnailForCookieUsage(t *testing.T) {
 	t.Run("sets use_cookies if the source uses cookies", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			// Check that use_cookies is true in addl opts
+			found := false
+			for _, kv := range addl {
+				if kv.Key == "use_cookies" && kv.Value == true {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("expected use_cookies: true in addl opts, got %v", addl)
+			}
+			return "", nil
+		})
+
+		source := coretest.SourceFixture(t, ta, core.Attrs{
+			"cookie_behaviour": core.SourceCookieBehaviourAllOperations,
+		})
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
+		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
+		if err != nil {
+			t.Fatalf("failed to preload source: %v", err)
+		}
+
+		_, err = ta.App.MetadataFileHelpersDownloadAndStoreThumbnailFor(ta.Ctx, mediaItem)
+		if err != nil {
+			t.Fatalf("failed to download and store thumbnail: %v", err)
+		}
 	})
 
 	t.Run("does not set use_cookies if the source uses cookies when needed", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			// Check that use_cookies is false in addl opts
+			found := false
+			for _, kv := range addl {
+				if kv.Key == "use_cookies" && kv.Value == false {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("expected use_cookies: false in addl opts, got %v", addl)
+			}
+			return "", nil
+		})
+
+		source := coretest.SourceFixture(t, ta, core.Attrs{
+			"cookie_behaviour": core.SourceCookieBehaviourWhenNeeded,
+		})
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
+		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
+		if err != nil {
+			t.Fatalf("failed to preload source: %v", err)
+		}
+
+		_, err = ta.App.MetadataFileHelpersDownloadAndStoreThumbnailFor(ta.Ctx, mediaItem)
+		if err != nil {
+			t.Fatalf("failed to download and store thumbnail: %v", err)
+		}
 	})
 
 	t.Run("does not set use_cookies if the source does not use cookies", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			// Check that use_cookies is false in addl opts
+			found := false
+			for _, kv := range addl {
+				if kv.Key == "use_cookies" && kv.Value == false {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("expected use_cookies: false in addl opts, got %v", addl)
+			}
+			return "", nil
+		})
+
+		source := coretest.SourceFixture(t, ta, core.Attrs{
+			"cookie_behaviour": core.SourceCookieBehaviourDisabled,
+		})
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
+		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
+		if err != nil {
+			t.Fatalf("failed to preload source: %v", err)
+		}
+
+		_, err = ta.App.MetadataFileHelpersDownloadAndStoreThumbnailFor(ta.Ctx, mediaItem)
+		if err != nil {
+			t.Fatalf("failed to download and store thumbnail: %v", err)
+		}
 	})
 }
 
