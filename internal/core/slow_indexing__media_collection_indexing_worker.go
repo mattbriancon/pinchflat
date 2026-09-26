@@ -111,12 +111,11 @@ func mediaCollectionIndexingWorkerPerformIndexingAndNotification(ctx context.Con
 		return err
 	}
 
-	appriseServers, ok := apprise.([]string)
-	if !ok {
-		appriseServers = []string{}
-		if s, ok := apprise.(string); ok && s != "" {
-			appriseServers = []string{s}
-		}
+	// apprise_server is stored as a single string (List.wrap in Elixir); wrap
+	// it into a one-element slice for the notification runner.
+	appriseServers := []string{}
+	if s, ok := apprise.(string); ok && s != "" {
+		appriseServers = []string{s}
 	}
 
 	_, err = a.SourceNotificationsWrapNewMediaNotification(ctx, appriseServers, source, func() (any, error) {
@@ -139,7 +138,7 @@ func mediaCollectionIndexingWorkerRescheduleIndexing(ctx context.Context, a *App
 
 	_, err := a.TasksCreateJobWithTask(ctx, spec, source)
 	if err != nil {
-		if err.Error() == "duplicate job" {
+		if err.Error() == "duplicate_job" {
 			return nil
 		}
 		return err
@@ -158,10 +157,7 @@ func mediaCollectionIndexingWorkerMaybeEnqueueFastIndexingTask(ctx context.Conte
 		return err
 	}
 
-	// Get fast index frequency
-	fastIndexFrequency := 15 // Default, will be overridden if Source has it
-
-	nextRunIn := fastIndexFrequency * 60
+	nextRunIn := SourceFastIndexFrequency() * 60
 
 	spec := obanlite.JobSpec{
 		Worker:     FastIndexingWorkerName,
@@ -172,7 +168,7 @@ func mediaCollectionIndexingWorkerMaybeEnqueueFastIndexingTask(ctx context.Conte
 	_, err := a.TasksCreateJobWithTask(ctx, spec, source)
 	if err != nil {
 		// Ignore duplicate job errors
-		if err.Error() == "duplicate job" {
+		if err.Error() == "duplicate_job" {
 			return nil
 		}
 		return err

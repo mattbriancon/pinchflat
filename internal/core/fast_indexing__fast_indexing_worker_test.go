@@ -139,7 +139,18 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("does not reschedule itself if fast indexing is disabled", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: Implementation reschedules even when disabled")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{"fast_index": false})
+
+		err := ta.Oban.PerformJob(ta.Ctx, core.FastIndexingWorkerName, map[string]any{"id": source.ID})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.FastIndexingWorkerName, Args: map[string]any{"id": source.ID}})
+		if len(jobs) != 0 {
+			t.Errorf("expected no rescheduled jobs, got %d", len(jobs))
+		}
 	})
 
 	t.Run("does not blow up if the record doesn't exist", func(t *testing.T) {
@@ -162,7 +173,48 @@ func TestFastIndexingWorker_Perform_WhenTestingNotifications(t *testing.T) {
 	}
 
 	t.Run("sends a notification if new media was found", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: Apprise runner not called - implementation issue")
+		ta := coretest.NewApp(t)
+		setupNotifications(ta)
+		source := coretest.SourceFixture(t, ta, core.Attrs{"fast_index": true})
+
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+			return "<yt:videoId>test_1</yt:videoId>", nil
+		})
+
+		metadata, err := coretest.RenderMetadata("media_metadata")
+		if err != nil {
+			t.Fatalf("Failed to render metadata: %v", err)
+		}
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+			return metadata, nil
+		})
+
+		ta.AppriseMock.Run.Expect(func(servers []string, opts core.KW) error {
+			if len(servers) != 1 || servers[0] != "server_1" {
+				t.Errorf("expected servers to be [\"server_1\"], got %v", servers)
+			}
+			if title, _ := opts.Get("title"); title == nil {
+				t.Error("expected title to be set")
+			} else if _, ok := title.(string); !ok {
+				t.Error("expected title to be a string")
+			}
+			if body, _ := opts.Get("body"); body == nil {
+				t.Error("expected body to be set")
+			} else if _, ok := body.(string); !ok {
+				t.Error("expected body to be a string")
+			}
+			return nil
+		})
+
+		spec := obanlite.NewJob(core.FastIndexingWorkerName, map[string]any{"id": source.ID})
+		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), spec)
+		if err != nil {
+			t.Fatalf("Failed to insert job: %v", err)
+		}
+		if err := ta.App.FastIndexingWorkerPerform(ta.Ctx, job); err != nil {
+			t.Errorf("Failed to perform: %v", err)
+		}
 	})
 
 	t.Run("doesn't send a notification if new media is not found", func(t *testing.T) {

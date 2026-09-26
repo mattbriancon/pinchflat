@@ -80,10 +80,14 @@ func fastIndexingWorkerPerformIndexingAndSendNotification(ctx context.Context, a
 
 	if source.DownloadMedia {
 		appriseServer, err := a.SettingsGet(ctx, "apprise_server")
-		if err == nil && appriseServer != nil {
-			if servers, ok := appriseServer.([]string); ok {
-				_ = a.SourceNotificationsSendNewMediaNotification(ctx, servers, source, len(filteredItems))
+		if err == nil {
+			// apprise_server is stored as a single string (List.wrap in Elixir);
+			// wrap it into a one-element slice for the notification runner.
+			servers := []string{}
+			if s, ok := appriseServer.(string); ok && s != "" {
+				servers = []string{s}
 			}
+			_ = a.SourceNotificationsSendNewMediaNotification(ctx, servers, source, len(filteredItems))
 		}
 	}
 }

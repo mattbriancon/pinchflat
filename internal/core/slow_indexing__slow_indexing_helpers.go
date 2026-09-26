@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -30,7 +31,7 @@ func (a *App) SlowIndexingHelpersKickoffIndexingTask(ctx context.Context, source
 	}
 
 	// Delete pending tasks for the source
-	if err := a.TasksDeletePendingTasksFor(ctx, source, stringPtr("MediaCollectionIndexingWorker"), KW{Flag("include_executing")}); err != nil {
+	if err := a.TasksDeletePendingTasksFor(ctx, source, stringPtr("MediaCollectionIndexingWorker"), KW{Opt("include_executing", true)}); err != nil {
 		return nil, err
 	}
 
@@ -63,7 +64,7 @@ func (a *App) SlowIndexingHelpersDeleteIndexingTasks(ctx context.Context, source
 
 	kw := KW{}
 	if includeExecuting {
-		kw = append(kw, Flag("include_executing"))
+		kw = append(kw, Opt("include_executing", true))
 	}
 
 	if err := a.TasksDeletePendingTasksFor(ctx, source, stringPtr("FastIndexingWorker"), kw); err != nil {
@@ -203,13 +204,8 @@ func slowIndexingHelpersSetupFileFollowerWatcher(ctx context.Context, a *App, fi
 
 		slog.Debug("FileFollowerServer Handler: Got media attributes", "attrs", mediaAttrs)
 
-		// Convert to YtDlpMedia struct
-		mediaStruct := &YtDlpMedia{}
-		data, _ := json.Marshal(mediaAttrs)
-		if err := json.Unmarshal(data, mediaStruct); err != nil {
-			slog.Debug("FileFollowerServer Handler: Error parsing media struct", "error", err)
-			return
-		}
+		// Convert to YtDlpMedia struct (media_struct = YtDlpMedia.response_to_struct(media_attrs))
+		mediaStruct := YtDlpMediaResponseToStruct(mediaAttrs)
 
 		slowIndexingHelpersCreateMediaItemAndEnqueueDownload(ctx, a, source, mediaStruct)
 	}
@@ -277,11 +273,12 @@ func slowIndexingHelpersCreateDownloadArchiveFile(ctx context.Context, a *App, s
 		return "", err
 	}
 
-	// Format archive contents
-	archiveContents := ""
-	for _, item := range mediaItems {
-		archiveContents += fmt.Sprintf("youtube %s\n", item.MediaID)
+	// Format archive contents (Enum.map_join("\n", ...): joined, no trailing newline)
+	lines := make([]string, len(mediaItems))
+	for i, item := range mediaItems {
+		lines[i] = fmt.Sprintf("youtube %s", item.MediaID)
 	}
+	archiveContents := strings.Join(lines, "\n")
 
 	// Write to file
 	if err := os.WriteFile(tmpfile, []byte(archiveContents), 0644); err != nil {

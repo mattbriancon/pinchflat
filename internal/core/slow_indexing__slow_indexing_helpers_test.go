@@ -1,6 +1,7 @@
 package core_test
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -184,7 +185,6 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 	})
 
 	t.Run("deletes any executing media collection tasks for the source", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
@@ -351,7 +351,6 @@ func TestSlowIndexingHelpers_DeleteIndexingTasks(t *testing.T) {
 	})
 
 	t.Run("can optionally delete currently executing tasks", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
@@ -375,7 +374,7 @@ func TestSlowIndexingHelpers_DeleteIndexingTasks(t *testing.T) {
 			t.Fatalf("unexpected error reloading task: %v", err)
 		}
 
-		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, core.KW{core.Flag("include_executing")})
+		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, core.KW{core.Opt("include_executing", true)})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -437,7 +436,6 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 	})
 
 	t.Run("won't duplicate media_items based on media_id and source", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -505,7 +503,6 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 	})
 
 	t.Run("returns a list of media_items", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -582,23 +579,119 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 	})
 
 	t.Run("enqueues a job for each pending media item", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: mock state issues with download jobs")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return coretest.SourceAttributesReturnFixture(), nil
+		})
+
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, core.KW{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
+		if len(jobs) == 0 {
+			t.Fatal("expected job to be enqueued for pending media item")
+		}
 	})
 
 	t.Run("does not attach tasks if the source is set to not download", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: mock state issues with download jobs")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{"download_media": false})
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return coretest.SourceAttributesReturnFixture(), nil
+		})
+
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, core.KW{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		tasks, err := ta.App.TasksListTasksFor(ta.Ctx, mediaItem, nil, nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(tasks) != 0 {
+			t.Errorf("expected no tasks for media item, got %d", len(tasks))
+		}
 	})
 
 	t.Run("doesn't blow up if a media item cannot be coerced into a struct", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: needs proper JSON parsing without required fields")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{})
+
+		response := `{"id":"video3","title":"Video 3","live_status":"not_live","description":"desc3","original_url":null,"aspect_ratio":null,"duration":null,"upload_date":null}`
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return response, nil
+		})
+
+		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, core.KW{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if len(result) != 1 {
+			t.Fatalf("expected 1 result, got %d", len(result))
+		}
+		if _, ok := result[0].(*core.Changeset); !ok {
+			t.Errorf("expected a *core.Changeset result, got %T", result[0])
+		}
 	})
 
 	t.Run("doesn't blow up if the media item cannot be saved", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: needs invalid title to trigger validation error")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{})
+
+		// This is a disallowed title - see MediaItem changeset or issue #549
+		response := `{"id":"video1","title":"youtube video #123","original_url":"https://example.com/video1","live_status":"not_live","description":"desc1","aspect_ratio":1.67,"duration":12.34,"upload_date":"20210101"}`
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			return response, nil
+		})
+
+		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, core.KW{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if len(result) != 1 {
+			t.Fatalf("expected 1 result, got %d", len(result))
+		}
+		if _, ok := result[0].(*core.Changeset); !ok {
+			t.Errorf("expected a *core.Changeset result, got %T", result[0])
+		}
 	})
 
 	t.Run("passes the source's download options to the yt-dlp runner", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: output options verification")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{})
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			output, hasOutput := opts.Get("output")
+			if !hasOutput {
+				t.Error("expected output option to be set")
+			} else if s, _ := output.(string); s == "" {
+				t.Error("expected output option to be a non-empty path")
+			}
+
+			remux, hasRemux := opts.Get("remux_video")
+			if !hasRemux || remux != "mp4" {
+				t.Errorf("expected remux_video to be mp4, got %v (present=%v)", remux, hasRemux)
+			}
+
+			return coretest.SourceAttributesReturnFixture(), nil
+		})
+
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, core.KW{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 	})
 }
 
@@ -657,27 +750,182 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_Cookies(t *tes
 
 func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t *testing.T) {
 	t.Run("creates a new media item for everything already in the file", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: file watcher integration requires polling and timing")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		pollInterval := ta.App.Config.FileWatcherPollInterval
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			filepath, _ := addl.Get("output_filepath")
+			if err := os.WriteFile(filepath.(string), []byte(coretest.SourceAttributesReturnFixture()), 0644); err != nil {
+				t.Fatalf("failed to write file: %v", err)
+			}
+			time.Sleep(pollInterval * 2)
+			// We know we're testing the file watcher since the synchronous call
+			// only returns an empty string (creating no records)
+			return "", nil
+		})
+
+		countBefore, err := core.All[core.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), core.From[core.MediaItem]("mi"))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(countBefore) != 0 {
+			t.Fatalf("expected 0 media items before indexing, got %d", len(countBefore))
+		}
+
+		_, err = ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, core.KW{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		countAfter, err := core.All[core.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), core.From[core.MediaItem]("mi"))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(countAfter) != 3 {
+			t.Errorf("expected 3 media items after indexing, got %d", len(countAfter))
+		}
 	})
 
 	t.Run("enqueues a download for everything already in the file", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: file watcher integration requires polling and timing")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		pollInterval := ta.App.Config.FileWatcherPollInterval
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			filepath, _ := addl.Get("output_filepath")
+			if err := os.WriteFile(filepath.(string), []byte(coretest.SourceAttributesReturnFixture()), 0644); err != nil {
+				t.Fatalf("failed to write file: %v", err)
+			}
+			time.Sleep(pollInterval * 2)
+			return "", nil
+		})
+
+		before := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaDownloadWorkerName})
+		if len(before) != 0 {
+			t.Fatalf("expected no download jobs enqueued before indexing, got %d", len(before))
+		}
+
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, core.KW{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		after := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaDownloadWorkerName})
+		if len(after) == 0 {
+			t.Fatal("expected download job to be enqueued")
+		}
 	})
 
 	t.Run("does not enqueue downloads if the source is set to not download", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: file watcher integration requires polling and timing")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{"download_media": false})
+		pollInterval := ta.App.Config.FileWatcherPollInterval
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			filepath, _ := addl.Get("output_filepath")
+			if err := os.WriteFile(filepath.(string), []byte(coretest.SourceAttributesReturnFixture()), 0644); err != nil {
+				t.Fatalf("failed to write file: %v", err)
+			}
+			time.Sleep(pollInterval * 2)
+			return "", nil
+		})
+
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, core.KW{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaDownloadWorkerName})
+		if len(jobs) != 0 {
+			t.Errorf("expected no download jobs enqueued, got %d", len(jobs))
+		}
 	})
 
 	t.Run("does not enqueue downloads for media that doesn't match the profile's format options", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: file watcher integration requires polling and timing")
+		ta := coretest.NewApp(t)
+		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "exclude"})
+		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
+		pollInterval := ta.App.Config.FileWatcherPollInterval
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			filepath, _ := addl.Get("output_filepath")
+			contents := `{"id":"video2","title":"Video 2","original_url":"https://example.com/shorts/video2","live_status":"is_live","description":"desc2","aspect_ratio":1.67,"duration":345.67,"upload_date":"20210101"}`
+			if err := os.WriteFile(filepath.(string), []byte(contents), 0644); err != nil {
+				t.Fatalf("failed to write file: %v", err)
+			}
+			time.Sleep(pollInterval * 2)
+			return "", nil
+		})
+
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, core.KW{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaDownloadWorkerName})
+		if len(jobs) != 0 {
+			t.Errorf("expected no download jobs enqueued, got %d", len(jobs))
+		}
 	})
 
 	t.Run("does not enqueue multiple download jobs for the same media items", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: file watcher integration requires polling and timing")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		pollInterval := ta.App.Config.FileWatcherPollInterval
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			filepath, _ := addl.Get("output_filepath")
+			if err := os.WriteFile(filepath.(string), []byte(coretest.SourceAttributesReturnFixture()), 0644); err != nil {
+				t.Fatalf("failed to write file: %v", err)
+			}
+			time.Sleep(pollInterval * 2)
+			// This also returns the final result to the yt-dlp call (like the real
+			// usage actually would do) so it'll attempt to create the media items and
+			// enqueue the download jobs based on this as well
+			return coretest.SourceAttributesReturnFixture(), nil
+		})
+
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, core.KW{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		items, err := core.All[core.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), core.From[core.MediaItem]("mi"))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(items) != 3 {
+			t.Errorf("expected 3 media items, got %d", len(items))
+		}
+
+		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaDownloadWorkerName})
+		if len(jobs) != 3 {
+			t.Errorf("expected 3 download jobs enqueued, got %d", len(jobs))
+		}
 	})
 
 	t.Run("does not blow up if the file returns invalid json", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: file watcher integration requires polling and timing")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		pollInterval := ta.App.Config.FileWatcherPollInterval
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			filepath, _ := addl.Get("output_filepath")
+			if err := os.WriteFile(filepath.(string), []byte("INVALID"), 0644); err != nil {
+				t.Fatalf("failed to write file: %v", err)
+			}
+			time.Sleep(pollInterval * 2)
+			return "", nil
+		})
+
+		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, core.KW{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(result) != 0 {
+			t.Errorf("expected no results, got %d", len(result))
+		}
 	})
 }
 
@@ -771,11 +1019,9 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 	})
 
 	t.Run("a download archive is not used if the index has been forced to run", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{
 			"collection_type": "channel",
-			"last_indexed_at": coretest.Now(),
 		})
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
@@ -791,13 +1037,45 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 			return coretest.SourceAttributesReturnFixture(), nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, core.KW{core.Flag("was_forced")})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, core.KW{core.Opt("was_forced", true)})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 
 	t.Run("the download archive is formatted correctly and contains the right video", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: file operations and archive generation need integration")
+		ta := coretest.NewApp(t)
+		source := coretest.SourceFixture(t, ta, core.Attrs{
+			"collection_type": "channel",
+			"last_indexed_at": coretest.Now(),
+		})
+
+		var mediaItems []*core.MediaItem
+		for n := 1; n <= 21; n++ {
+			mediaItems = append(mediaItems, coretest.MediaItemFixture(t, ta, core.Attrs{
+				"source_id":   source.ID,
+				"uploaded_at": coretest.NowMinus(n, "days"),
+			}))
+		}
+		lastMediaItem := mediaItems[len(mediaItems)-1]
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			archiveFile, _ := opts.Get("download_archive")
+			contents, err := os.ReadFile(archiveFile.(string))
+			if err != nil {
+				t.Fatalf("failed to read archive file: %v", err)
+			}
+			expected := "youtube " + lastMediaItem.MediaID
+			if string(contents) != expected {
+				t.Errorf("expected archive contents %q, got %q", expected, string(contents))
+			}
+
+			return coretest.SourceAttributesReturnFixture(), nil
+		})
+
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, core.KW{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 	})
 }
