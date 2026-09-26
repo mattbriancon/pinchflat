@@ -40,8 +40,18 @@ defmodule PinchflatWeb.Sources.SourceLive.IndexTableLiveTest do
 
       {:ok, _view, html} = live_isolated(conn, IndexTableLive, session: session)
 
-      assert html =~ "podcast://pinchflat.local/sources/#{source.uuid}/feed.xml"
+      assert html =~ ~s(href="podcast://pinchflat.local/sources/#{source.uuid}/feed.xml")
       assert html =~ "http://pinchflat.local/sources/#{source.uuid}/feed.xml"
+    end
+
+    test "keeps the https protocol in podcast app links for https feeds", %{conn: conn} do
+      source = source_fixture()
+      session = Map.put(create_session(), "feed_base_url", "https://pinchflat.example.com/sources")
+
+      {:ok, _view, html} = live_isolated(conn, IndexTableLive, session: session)
+
+      assert html =~ ~s(href="podcast://https://pinchflat.example.com/sources/#{source.uuid}/feed.xml")
+      refute html =~ ~s(href="podcast://pinchflat.example.com)
     end
 
     test "falls back to the endpoint URL for RSS feeds", %{conn: conn} do
