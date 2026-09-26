@@ -97,12 +97,17 @@ func cliUtilsParseOption(item interface{}, acc []string) []string {
 	switch v := item.(type) {
 	case KV:
 		if v.Flag {
-			// Bare atom flag: prepend to list (but Elixir code appends)
-			// Following the code, not the comment:
+			// Bare atom flag: needs kebab-case prefix
 			return append(acc, "--"+StringUtilsToKebabCase(v.Key))
 		}
-		// Key-value pair with atom key
-		return append(acc, "--"+StringUtilsToKebabCase(v.Key), toString(v.Value))
+		// Key-value pair. Check if key is already formatted (starts with -) or needs conversion
+		key := v.Key
+		if !strings.HasPrefix(key, "-") {
+			// It's an atom key that needs kebab-case conversion
+			key = "--" + StringUtilsToKebabCase(key)
+		}
+		// else: it's already a string key like "--under_score", use as-is
+		return append(acc, key, toString(v.Value))
 	case string:
 		// String argument: append as-is
 		return append(acc, v)

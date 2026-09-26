@@ -8,8 +8,8 @@ import (
 
 // MockSchema represents a simple schema for testing changesets.
 type MockSchema struct {
-	ID    int64
-	Title string
+	ID    int64  `db:"id"`
+	Title string `db:"title"`
 }
 
 func (MockSchema) TableName() string { return "mock_schemas" }
