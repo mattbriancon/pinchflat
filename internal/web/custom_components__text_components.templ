@@ -81,7 +81,7 @@ templ TextRenderDescription(text string) {
 // "%Y-%m-%d %H:%M:%S" and timezone to the app's configured timezone when
 // blank, matching the Elixir defaults.
 templ TextDatetimeInZone(datetime time.Time, format string, timezone string) {
-	<time>{ textDatetimeInZone(datetime, textDefaultFormat(format), timezone) }</time>
+	<time>{ textDatetimeInZone(ctx, datetime, textDefaultFormat(format), timezone) }</time>
 }
 
 // TextLocalizedNumber is localized_number/1: rendered with the raw number as

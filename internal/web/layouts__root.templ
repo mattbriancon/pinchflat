@@ -8,9 +8,8 @@ package web
 //     a token the client needs to read.
 //   - data-socket-path (the LiveView websocket mount point) is dropped: there
 //     is no socket to connect (see STRATEGY.md's "No server push").
-//   - <.live_title> becomes a plain "Pinchflat" title: @page_title isn't
-//     threaded through render.go's fixed LayoutsRoot(content) signature (see
-//     server.go's currentApp/currentOpts comment).
+//   - <.live_title> becomes a plain "Pinchflat" title: nothing in the
+//     Elixir app ever assigns @page_title.
 
 templ LayoutsRoot(content templ.Component) {
 	<!DOCTYPE html>

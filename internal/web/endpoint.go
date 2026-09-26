@@ -80,6 +80,8 @@ func (s *Server) withPageContext(w http.ResponseWriter, r *http.Request) *http.R
 		BasePath: trimBase(s.App.Config.BaseRoutePath),
 		BaseURL:  scheme + "://" + host,
 		Flash:    s.takeFlash(w, r),
+		App:      s.App,
+		Version:  s.Opts.Version,
 	}
 	if v, err := s.App.SettingsGet(r.Context(), "onboarding"); err == nil {
 		page.Onboarding, _ = v.(bool)

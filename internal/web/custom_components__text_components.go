@@ -6,6 +6,7 @@ package web
 // sizes) that templ's DSL can't express directly.
 
 import (
+	"context"
 	"regexp"
 	"strings"
 	"time"
@@ -121,10 +122,10 @@ func textStrftime(t time.Time, format string) string {
 
 // textDatetimeInZone is datetime_in_zone/1: Timex.Timezone.convert followed
 // by Calendar.strftime. timezone falls back to Application.get_env(:pinchflat,
-// :timezone) (Config.Timezone), read through the App set by web.New.
-func textDatetimeInZone(datetime time.Time, format string, timezone string) string {
+// :timezone) (Config.Timezone), read through the request's App.
+func textDatetimeInZone(ctx context.Context, datetime time.Time, format string, timezone string) string {
 	if timezone == "" {
-		if a := currentApp(); a != nil {
+		if a := layoutsApp(ctx); a != nil {
 			timezone = a.Config.Timezone
 		}
 	}

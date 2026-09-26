@@ -334,7 +334,7 @@ LiveView events become internal endpoints, already routed in `router.go`:
 | SourceEnableToggle | `POST /_live/sources/{id}/enabled` | `SourceEnableToggleUpdate` |
 | MediaItemTableLive | `GET /_live/sources/{id}/media?media_state=&page=&q=` | `MediaItemTableLiveRender` |
 | AppriseServerLive | `POST /_live/settings/apprise_test` | `AppriseServerLiveSendTest` |
-| UpgradeButtonLive | (client-side Alpine only; no route) | — |
+| UpgradeButtonLive | `POST /_live/upgrade` (typed text; sets pro_enabled) | `UpgradeButtonLiveCheckMatchingText` |
 
 - Each LiveView becomes:
   - a templ component that renders the whole LiveView's output, embedded where the page used `live_render`, wrapped in a `<div id="..." hx-get="..." hx-trigger="..." hx-swap="outerHTML">`;

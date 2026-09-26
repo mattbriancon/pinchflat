@@ -5,7 +5,7 @@ package web
 // component (see layouts__partials__upgrade_button_live.go).
 
 templ upgradeModalContent() {
-	<section>
+	<section x-data="{ text: '' }">
 		<h3 class="section-title">Pro Mode</h3>
 		<p class="text-sm">Don't worry - Pinchflat is completely free :)</p>
 		<p class="mt-4">
@@ -29,7 +29,7 @@ templ upgradeModalContent() {
 			@TextInlineCodeString("got it")
 			into the text box and press the button.
 		</p>
-		<form id="upgradeForm" data-suppress-enter="true" x-data="{ text: '' }">
+		<form id="upgradeForm" data-suppress-enter="true" hx-post={ P(ctx, "/_live/upgrade") } hx-trigger="input changed" hx-swap="none">
 			@CoreInput(CoreInputProps{ID: "unlock-pro-textbox", Name: "unlock-pro-textbox", Type: "text", Rest: templ.Attributes{"x-model": "text"}})
 		</form>
 		<button

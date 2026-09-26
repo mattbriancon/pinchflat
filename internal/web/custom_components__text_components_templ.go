@@ -476,9 +476,9 @@ func TextDatetimeInZone(datetime time.Time, format string, timezone string) temp
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var23 string
-		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(textDatetimeInZone(datetime, textDefaultFormat(format), timezone))
+		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(textDatetimeInZone(ctx, datetime, textDefaultFormat(format), timezone))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__text_components.templ`, Line: 84, Col: 74}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__text_components.templ`, Line: 84, Col: 79}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {

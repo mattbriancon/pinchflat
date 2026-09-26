@@ -2,8 +2,7 @@ package web
 
 // Port of lib/pinchflat_web/components/layouts.ex. The renderable pieces
 // (LayoutsNavLink, LayoutsFooterLink) are in layouts.templ; this file has
-// active_path?/2 and the process-wide App/Options accessors described in
-// server.go's New.
+// active_path?/2 and the Settings/version lookups used by the layouts.
 
 import (
 	"context"
@@ -12,22 +11,13 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
-var (
-	globalApp  *core.App
-	globalOpts Options
-)
-
-// currentApp is the App set by the last web.New call. Safe for the current
-// test suite (one *Server built at a time, per t.Run), but a real second
-// caller would race; see the report.
-func currentApp() *core.App { return globalApp }
-
-// currentOpts is the Options set by the last web.New call (currentOpts().Version).
-func currentOpts() Options { return globalOpts }
+// layoutsApp is the serving App (nil outside a request, e.g. in component
+// tests), carried on the Page.
+func layoutsApp(ctx context.Context) *core.App { return PageOf(ctx).App }
 
 // layoutsYtDlpVersion is Settings.get!(:yt_dlp_version), shown in the footer.
 func layoutsYtDlpVersion(ctx context.Context) string {
-	a := currentApp()
+	a := layoutsApp(ctx)
 	if a == nil {
 		return ""
 	}
@@ -42,7 +32,7 @@ func layoutsYtDlpVersion(ctx context.Context) string {
 // layoutsProEnabled is Settings.get!(:pro_enabled), used by the root layout's
 // x-data (whether the upgrade modal can show).
 func layoutsProEnabled(ctx context.Context) bool {
-	a := currentApp()
+	a := layoutsApp(ctx)
 	if a == nil {
 		return false
 	}
@@ -55,7 +45,7 @@ func layoutsProEnabled(ctx context.Context) bool {
 }
 
 // layoutsVersion is Application.spec(:pinchflat)[:vsn].
-func layoutsVersion() string { return currentOpts().Version }
+func layoutsVersion(ctx context.Context) string { return PageOf(ctx).Version }
 
 // layoutsActivePath is active_path?/2.
 func layoutsActivePath(href, currentPath string) bool {

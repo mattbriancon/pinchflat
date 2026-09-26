@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
 // Page is available to every template via PageOf(ctx).
@@ -23,6 +25,10 @@ type Page struct {
 	Flash map[string]string
 	// Onboarding mirrors Settings.onboarding for layout choices.
 	Onboarding bool
+	// App and Version are the serving Server's, for layouts and components
+	// that read Settings/Config (templ only hands them ctx).
+	App     *core.App
+	Version string
 }
 
 type pageKey struct{}

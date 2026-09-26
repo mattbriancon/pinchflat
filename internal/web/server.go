@@ -31,12 +31,6 @@ func New(app *core.App, opts Options) *Server {
 	if opts.SecretKeyBase == "" {
 		opts.SecretKeyBase = "development-only-secret-key-base"
 	}
-	// Layout components (LayoutsRoot/LayoutsApp/LayoutsOnboarding, called by
-	// render.go with a single templ.Component argument) and a few
-	// CustomComponents (datetime_in_zone's timezone) read Settings/Config
-	// the way the equivalent Elixir template did, but templ gives them no
-	// channel for that beyond ctx. See currentApp/currentOpts in layouts.go.
-	globalApp, globalOpts = app, opts
 	return &Server{App: app, Opts: opts}
 }
 

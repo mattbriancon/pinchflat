@@ -32,7 +32,7 @@ func upgradeModalContent() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<section><h3 class=\"section-title\">Pro Mode</h3><p class=\"text-sm\">Don't worry - Pinchflat is completely free :)</p><p class=\"mt-4\">If you find the project valuable and want to say thanks, a")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<section x-data=\"{ text: '' }\"><h3 class=\"section-title\">Pro Mode</h3><p class=\"text-sm\">Don't worry - Pinchflat is completely free :)</p><p class=\"mt-4\">If you find the project valuable and want to say thanks, a")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -85,7 +85,20 @@ func upgradeModalContent() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "into the text box and press the button.</p><form id=\"upgradeForm\" data-suppress-enter=\"true\" x-data=\"{ text: '' }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "into the text box and press the button.</p><form id=\"upgradeForm\" data-suppress-enter=\"true\" hx-post=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var3 string
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(P(ctx, "/_live/upgrade"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `layouts__partials__upgrade_modal.templ`, Line: 32, Col: 86}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" hx-trigger=\"input changed\" hx-swap=\"none\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -93,7 +106,7 @@ func upgradeModalContent() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</form><button class=\"text-center font-medium text-white whitespace-nowrap rounded-sm inline-flex items-center justify-center gap-1 px-4 py-2 text-sm bg-primary hover:bg-opacity-90 disabled:bg-opacity-50 disabled:cursor-not-allowed disabled:text-grey-5 w-full mt-4\" type=\"button\" x-bind:disabled=\"text.trim().toLowerCase() !== 'got it'\" x-on:click=\"hideModal('upgrade-modal'); setTimeout(() => { proEnabled = true }, 200)\">Unlock Pro</button></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</form><button class=\"text-center font-medium text-white whitespace-nowrap rounded-sm inline-flex items-center justify-center gap-1 px-4 py-2 text-sm bg-primary hover:bg-opacity-90 disabled:bg-opacity-50 disabled:cursor-not-allowed disabled:text-grey-5 w-full mt-4\" type=\"button\" x-bind:disabled=\"text.trim().toLowerCase() !== 'got it'\" x-on:click=\"hideModal('upgrade-modal'); setTimeout(() => { proEnabled = true }, 200)\">Unlock Pro</button></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -118,9 +131,9 @@ func LayoutsPartialsUpgradeModal() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var3 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var3 == nil {
-			templ_7745c5c3_Var3 = templ.NopComponent
+		templ_7745c5c3_Var4 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var4 == nil {
+			templ_7745c5c3_Var4 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
 		templ_7745c5c3_Err = CoreModal("upgrade-modal", false, upgradeModalContent()).Render(ctx, templ_7745c5c3_Buffer)

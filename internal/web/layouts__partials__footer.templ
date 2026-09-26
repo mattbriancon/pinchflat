@@ -18,14 +18,14 @@ templ LayoutsPartialsFooter() {
 				</button>
 			</nav>
 			<div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-				<span class="flex items-center gap-2" x-on:click={ "markVersionAsSeen('" + layoutsVersion() + "')" }>
-					<span>Pinchflat { layoutsVersion() }</span>
+				<span class="flex items-center gap-2" x-on:click={ "markVersionAsSeen('" + layoutsVersion(ctx) + "')" }>
+					<span>Pinchflat { layoutsVersion(ctx) }</span>
 					<a
 						href="https://github.com/kieraneglin/pinchflat/releases"
 						target="_blank"
 						class="bg-primary text-white px-1.5 rounded-full text-[10px] font-semibold"
 						x-cloak
-						x-show={ "!isVersionSeen('" + layoutsVersion() + "')" }
+						x-show={ "!isVersionSeen('" + layoutsVersion(ctx) + "')" }
 					>
 						NEW
 					</a>
