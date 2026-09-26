@@ -216,10 +216,10 @@ func mediaDoDeleteMediaFiles(ctx context.Context, mediaItem *MediaItem) error {
 		}
 	}
 
+	// Mirrors Elixir's Enum.each/2, which discards each call's return value
+	// (including "file not found" errors) rather than aborting the deletion.
 	for _, p := range paths {
-		if err := FilesystemUtilsDeleteFileAndRemoveEmptyDirectories(ctx, p); err != nil {
-			return err
-		}
+		_ = FilesystemUtilsDeleteFileAndRemoveEmptyDirectories(ctx, p)
 	}
 	return nil
 }
@@ -246,9 +246,9 @@ func (a *App) mediaDeleteInternalMetadataFiles(ctx context.Context, mediaItem *M
 		if path == "" {
 			continue
 		}
-		if err := FilesystemUtilsDeleteFileAndRemoveEmptyDirectories(ctx, path); err != nil {
-			return err
-		}
+		// Mirrors Elixir's Enum.each/2, which discards each call's return
+		// value rather than aborting on a "file not found" error.
+		_ = FilesystemUtilsDeleteFileAndRemoveEmptyDirectories(ctx, path)
 	}
 	return nil
 }
