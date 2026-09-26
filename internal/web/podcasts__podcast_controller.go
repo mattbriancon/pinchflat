@@ -4,6 +4,7 @@ import (
 	"mime"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/mattbriancon/pinchflat/internal/core"
@@ -26,7 +27,7 @@ func (s *Server) PodcastControllerOpmlFeed(w http.ResponseWriter, r *http.Reques
 	// Build OPML XML
 	xml := core.OpmlFeedBuilderBuild(urlBase, sources)
 
-	w.Header().Set("Content-Type", "application/opml+xml")
+	w.Header().Set("Content-Type", "application/opml+xml; charset=utf-8")
 	w.Header().Set("Content-Disposition", "inline")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(xml))
@@ -57,7 +58,7 @@ func (s *Server) PodcastControllerRssFeed(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/rss+xml")
+	w.Header().Set("Content-Type", "application/rss+xml; charset=utf-8")
 	w.Header().Set("Content-Disposition", "inline")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(xml))
@@ -92,34 +93,14 @@ func (s *Server) PodcastControllerFeedImage(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Select cover image
-	filepath, err := s.App.PodcastHelpersSelectCoverImage(ctx, source, mediaItems)
+	coverPath, err := s.App.PodcastHelpersSelectCoverImage(ctx, source, mediaItems)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		_, _ = w.Write([]byte("Image not found"))
 		return
 	}
 
-	// Serve the file: send_file(200, filepath)
-	file, err := os.Open(filepath)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte("Image not found"))
-		return
-	}
-	defer file.Close()
-
-	stat, err := file.Stat()
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte("Image not found"))
-		return
-	}
-
-	mimeType := mime.TypeByExtension(filepath)
-	if mimeType != "" {
-		w.Header().Set("Content-Type", mimeType)
-	}
-	http.ServeContent(w, r, filepath, stat.ModTime(), file)
+	sendFile(w, r, coverPath)
 }
 
 // PodcastControllerEpisodeImage: episode_image(conn, %{"uuid" => uuid})
@@ -142,26 +123,25 @@ func (s *Server) PodcastControllerEpisodeImage(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	filepath := *mediaItem.ThumbnailFilepath
+	sendFile(w, r, *mediaItem.ThumbnailFilepath)
+}
 
-	file, err := os.Open(filepath)
+// sendFile is `put_resp_content_type(MIME.from_path(path)) |> send_file(200, path)`,
+// answering 404 "Image not found" when the file is missing.
+func sendFile(w http.ResponseWriter, r *http.Request, path string) {
+	file, err := os.Open(path)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte("Image not found"))
+		http.Error(w, "Image not found", http.StatusNotFound)
 		return
 	}
 	defer file.Close()
-
 	stat, err := file.Stat()
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte("Image not found"))
+	if err != nil || stat.IsDir() {
+		http.Error(w, "Image not found", http.StatusNotFound)
 		return
 	}
-
-	mimeType := mime.TypeByExtension(filepath)
-	if mimeType != "" {
-		w.Header().Set("Content-Type", mimeType)
+	if t := mime.TypeByExtension(filepath.Ext(path)); t != "" {
+		w.Header().Set("Content-Type", t)
 	}
-	http.ServeContent(w, r, filepath, stat.ModTime(), file)
+	http.ServeContent(w, r, path, stat.ModTime(), file)
 }
