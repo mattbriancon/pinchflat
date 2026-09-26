@@ -18,7 +18,10 @@ func TestUpdateWorker_Perform(t *testing.T) {
 			return "", nil
 		})
 
-		ta.Oban.PerformJob(ta.Ctx, core.UpdateWorkerName, map[string]any{})
+		err := ta.Oban.PerformJob(ta.Ctx, core.UpdateWorkerName, map[string]any{})
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
 	})
 
 	t.Run("saves the new version to the database", func(t *testing.T) {

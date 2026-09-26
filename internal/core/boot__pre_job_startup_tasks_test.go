@@ -216,7 +216,6 @@ func TestPreJobStartupTasks_CreateBlankUserScriptFile(t *testing.T) {
 
 func TestPreJobStartupTasks_ApplyDefaultSettings(t *testing.T) {
 	t.Run("sets yt_dlp version", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 
 		os.RemoveAll(ta.Config.TmpfileDirectory)
@@ -227,8 +226,14 @@ func TestPreJobStartupTasks_ApplyDefaultSettings(t *testing.T) {
 			t.Errorf("Expected yt_dlp_version to be nil, got %v", val)
 		}
 
-		ta.YtDlpMock.Version.Expect(func() (string, error) {
+		ta.YtDlpMock.Version.Stub(func() (string, error) {
 			return "1", nil
+		})
+		ta.AppriseMock.Version.Stub(func() (string, error) {
+			return "2", nil
+		})
+		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
+			return nil
 		})
 
 		if err := ta.PreJobStartupTasksInit(ta.Ctx); err != nil {
@@ -242,7 +247,6 @@ func TestPreJobStartupTasks_ApplyDefaultSettings(t *testing.T) {
 	})
 
 	t.Run("sets apprise version", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 
 		os.RemoveAll(ta.Config.TmpfileDirectory)
@@ -253,8 +257,14 @@ func TestPreJobStartupTasks_ApplyDefaultSettings(t *testing.T) {
 			t.Errorf("Expected apprise_version to be nil, got %v", val)
 		}
 
-		ta.AppriseMock.Version.Expect(func() (string, error) {
+		ta.YtDlpMock.Version.Stub(func() (string, error) {
+			return "1", nil
+		})
+		ta.AppriseMock.Version.Stub(func() (string, error) {
 			return "2", nil
+		})
+		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
+			return nil
 		})
 
 		if err := ta.PreJobStartupTasksInit(ta.Ctx); err != nil {
@@ -270,19 +280,31 @@ func TestPreJobStartupTasks_ApplyDefaultSettings(t *testing.T) {
 
 func TestPreJobStartupTasks_RunAppInitScript(t *testing.T) {
 	t.Run("calls the app_init user script runner", func(t *testing.T) {
-		t.Skip("NEEDS-FIX: fails")
 		ta := coretest.NewApp(t)
 
+		ta.YtDlpMock.Version.Stub(func() (string, error) {
+			return "1", nil
+		})
+		ta.AppriseMock.Version.Stub(func() (string, error) {
+			return "2", nil
+		})
+
+		// Verify the app_init event is called with empty data
+		called := false
 		ta.UserScriptMock.Run.Expect(func(event string, data any) error {
+			called = true
 			if event != "app_init" {
 				t.Errorf("Expected event to be 'app_init', got %s", event)
 			}
-
 			return nil
 		})
 
 		if err := ta.PreJobStartupTasksInit(ta.Ctx); err != nil {
 			t.Errorf("PreJobStartupTasksInit failed: %v", err)
+		}
+
+		if !called {
+			t.Errorf("Expected UserScriptMock.Run to be called, but it wasn't")
 		}
 	})
 }
