@@ -2,42 +2,42 @@ package web
 
 // Port of lib/pinchflat_web/controllers/media_items/media_item_html/media_item_form.html.heex
 
-import (
-	"github.com/mattbriancon/pinchflat/internal/core"
-)
+templ MediaItemsMediaItemHTMLMediaItemForm(f *Form, action string) {
+	@CoreSimpleForm(
+		templ.Attributes{
+			"action": action,
+			"method": "post",
+			"x-data": "{ advancedMode: !!JSON.parse(localStorage.getItem('advancedMode')) }",
+			"x-init": "$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))",
+		},
+		mediaItemFormContent(f),
+		nil,
+	)
+}
 
-templ MediaItemsMediaItemHTMLMediaItemForm(changeset *core.Changeset, action string) {
-	<form method="POST" action={ templ.URL(action) } x-data="{ advancedMode: !!JSON.parse(localStorage.getItem('advancedMode')) }" x-init="$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))">
-		if changeset != nil && changeset.Action != "" && !changeset.Valid() {
-			<div class="error">
-				Oops, something went wrong! Please check the errors below.
-			</div>
-		}
+templ mediaItemFormContent(f *Form) {
+	<input type="hidden" name="_method" value="put"/>
+	if f.HasErrors() {
+		@CoreError("Oops, something went wrong! Please check the errors below.")
+	}
+	<h3 class="section-title">
+		General Options
+	</h3>
+	@CoreInput(CoreInputProps{
+		Field: fieldRef(f.Field("prevent_download")),
+		Type:  "toggle",
+		Label: "Prevent Download",
+		Help:  "Checking excludes this media item from automatic download. Download can still be manually forced",
+	})
+	@CoreInput(CoreInputProps{
+		Field: fieldRef(f.Field("prevent_culling")),
+		Type:  "toggle",
+		Label: "Prevent Automatic Deletion",
+		Help:  "Checking excludes media from being automatically deleted based on media retention rules",
+	})
+	@ButtonButton("bg-primary", "rounded-lg", "my-6 w-full sm:w-auto", "submit", false, nil, mediaItemFormSaveText())
+}
 
-		<h3 class="section-title">
-			General Options
-		</h3>
-
-		<div class="form-field">
-			<label for="media_item_prevent_download" class="form-label">Prevent Download</label>
-			if changeset != nil && changeset.GetField("prevent_download") != nil && changeset.GetField("prevent_download").(bool) {
-				<input type="checkbox" id="media_item_prevent_download" name="media_item[prevent_download]" value="true" checked="checked" />
-			} else {
-				<input type="checkbox" id="media_item_prevent_download" name="media_item[prevent_download]" value="true" />
-			}
-			<p class="form-help">Checking excludes this media item from automatic download. Download can still be manually forced</p>
-		</div>
-
-		<div class="form-field">
-			<label for="media_item_prevent_culling" class="form-label">Prevent Automatic Deletion</label>
-			if changeset != nil && changeset.GetField("prevent_culling") != nil && changeset.GetField("prevent_culling").(bool) {
-				<input type="checkbox" id="media_item_prevent_culling" name="media_item[prevent_culling]" value="true" checked="checked" />
-			} else {
-				<input type="checkbox" id="media_item_prevent_culling" name="media_item[prevent_culling]" value="true" />
-			}
-			<p class="form-help">Checking excludes media from being automatically deleted based on media retention rules</p>
-		</div>
-
-		<button type="submit" class="my-6 w-full sm:w-auto rounded-lg">Save Media Item</button>
-	</form>
+templ mediaItemFormSaveText() {
+	Save Media Item
 }

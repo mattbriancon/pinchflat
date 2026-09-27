@@ -58,7 +58,7 @@ func MediaItemsMediaItemHTMLEdit(mediaItem *core.MediaItem, changeset *core.Chan
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = MediaItemsMediaItemHTMLMediaItemForm(changeset, P(ctx, "/sources/%v/media/%v", mediaItem.SourceID, mediaItem.ID)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = MediaItemsMediaItemHTMLMediaItemForm(FormFor(changeset, "media_item"), P(ctx, "/sources/%v/media/%v", mediaItem.SourceID, mediaItem.ID)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -9,12 +9,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 // Port of lib/pinchflat_web/controllers/media_items/media_item_html/media_item_form.html.heex
-
-import (
-	"github.com/mattbriancon/pinchflat/internal/core"
-)
-
-func MediaItemsMediaItemHTMLMediaItemForm(changeset *core.Changeset, action string) templ.Component {
+func MediaItemsMediaItemHTMLMediaItemForm(f *Form, action string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -35,60 +30,106 @@ func MediaItemsMediaItemHTMLMediaItemForm(changeset *core.Changeset, action stri
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<form method=\"POST\" action=\"")
+		templ_7745c5c3_Err = CoreSimpleForm(
+			templ.Attributes{
+				"action": action,
+				"method": "post",
+				"x-data": "{ advancedMode: !!JSON.parse(localStorage.getItem('advancedMode')) }",
+				"x-init": "$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))",
+			},
+			mediaItemFormContent(f),
+			nil,
+		).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var2 templ.SafeURL
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(action))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__media_item_form.templ`, Line: 10, Col: 47}
+		return nil
+	})
+}
+
+func mediaItemFormContent(f *Form) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var2 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var2 == nil {
+			templ_7745c5c3_Var2 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<input type=\"hidden\" name=\"_method\" value=\"put\"> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" x-data=\"{ advancedMode: !!JSON.parse(localStorage.getItem('advancedMode')) }\" x-init=\"$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		if changeset != nil && changeset.Action != "" && !changeset.Valid() {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"error\">Oops, something went wrong! Please check the errors below.</div>")
+		if f.HasErrors() {
+			templ_7745c5c3_Err = CoreError("Oops, something went wrong! Please check the errors below.").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<h3 class=\"section-title\">General Options</h3><div class=\"form-field\"><label for=\"media_item_prevent_download\" class=\"form-label\">Prevent Download</label> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<h3 class=\"section-title\">General Options</h3>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if changeset != nil && changeset.GetField("prevent_download") != nil && changeset.GetField("prevent_download").(bool) {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<input type=\"checkbox\" id=\"media_item_prevent_download\" name=\"media_item[prevent_download]\" value=\"true\" checked=\"checked\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<input type=\"checkbox\" id=\"media_item_prevent_download\" name=\"media_item[prevent_download]\" value=\"true\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<p class=\"form-help\">Checking excludes this media item from automatic download. Download can still be manually forced</p></div><div class=\"form-field\"><label for=\"media_item_prevent_culling\" class=\"form-label\">Prevent Automatic Deletion</label> ")
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Field: fieldRef(f.Field("prevent_download")),
+			Type:  "toggle",
+			Label: "Prevent Download",
+			Help:  "Checking excludes this media item from automatic download. Download can still be manually forced",
+		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if changeset != nil && changeset.GetField("prevent_culling") != nil && changeset.GetField("prevent_culling").(bool) {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<input type=\"checkbox\" id=\"media_item_prevent_culling\" name=\"media_item[prevent_culling]\" value=\"true\" checked=\"checked\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<input type=\"checkbox\" id=\"media_item_prevent_culling\" name=\"media_item[prevent_culling]\" value=\"true\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Field: fieldRef(f.Field("prevent_culling")),
+			Type:  "toggle",
+			Label: "Prevent Automatic Deletion",
+			Help:  "Checking excludes media from being automatically deleted based on media retention rules",
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<p class=\"form-help\">Checking excludes media from being automatically deleted based on media retention rules</p></div><button type=\"submit\" class=\"my-6 w-full sm:w-auto rounded-lg\">Save Media Item</button></form>")
+		templ_7745c5c3_Err = ButtonButton("bg-primary", "rounded-lg", "my-6 w-full sm:w-auto", "submit", false, nil, mediaItemFormSaveText()).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func mediaItemFormSaveText() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var3 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var3 == nil {
+			templ_7745c5c3_Var3 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "Save Media Item")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

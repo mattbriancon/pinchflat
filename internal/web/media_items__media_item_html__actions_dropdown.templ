@@ -3,36 +3,135 @@ package web
 // Port of lib/pinchflat_web/controllers/media_items/media_item_html/actions_dropdown.html.heex
 
 import (
+	"encoding/json"
+
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
 templ MediaItemsMediaItemHTMLActionsDropdown(mediaItem *core.MediaItem) {
-	<div class="button-dropdown">
-		<button type="button" class="justify-center w-full sm:w-50">Actions</button>
-		<div class="dropdown-menu">
-			<div class="dropdown-option">
-				<a href="#" onclick="alert('Copy JSON not yet implemented'); return false;">Copy JSON</a>
-			</div>
-			<div class="my-1 h-px w-full bg-strokedark"></div>
-			<div class="dropdown-option">
-				<form method="POST" action={ templ.URL(P(ctx, "/sources/%v/media/%v/force_download", mediaItem.SourceID, mediaItem.ID)) } onsubmit="return confirm('Are you sure you force a download of this media?')">
-					<button type="submit" class="w-full text-left">Force Download</button>
-				</form>
-			</div>
-			<div class="my-1 h-px w-full bg-strokedark"></div>
-			<div class="dropdown-option">
-				<form method="POST" action={ templ.URL(P(ctx, "/sources/%v/media/%v", mediaItem.SourceID, mediaItem.ID)) } onsubmit="return confirm('Are you sure you want to delete all files for this media item? This cannot be undone.')">
-					<input type="hidden" name="_method" value="DELETE" />
-					<button type="submit" class="w-full text-left">Delete Files</button>
-				</form>
-			</div>
-			<div class="my-1 h-px w-full bg-strokedark"></div>
-			<div class="dropdown-option">
-				<form method="POST" action={ templ.URL(P(ctx, "/sources/%v/media/%v?prevent_download=true", mediaItem.SourceID, mediaItem.ID)) } onsubmit="return confirm('Are you sure you want to delete all files for this media item and prevent it from re-downloading in the future? This cannot be undone.')">
-					<input type="hidden" name="_method" value="DELETE" />
-					<button type="submit" class="w-full text-left">Delete and Ignore</button>
-				</form>
-			</div>
-		</div>
-	</div>
+	@ButtonButtonDropdown("Actions", "justify-center w-full sm:w-50", []ButtonButtonOption{
+		{Content: mediaItemsCopyJSONOption(mediaItem)},
+		{Content: mediaItemsDividerOption()},
+		{Content: mediaItemsForceDownloadOption(mediaItem)},
+		{Content: mediaItemsDividerOption()},
+		{Content: mediaItemsDeleteFilesOption(mediaItem)},
+		{Content: mediaItemsDeleteAndIgnoreOption(mediaItem)},
+	})
+}
+
+templ mediaItemsDividerOption() {
+	<div class="my-1 h-px w-full bg-strokedark"></div>
+}
+
+// mediaItemsCopyJSONOption is the <:option> that copies
+// Jason.Formatter.pretty_print(Jason.encode!(@media_item)) to the clipboard.
+templ mediaItemsCopyJSONOption(mediaItem *core.MediaItem) {
+	<span x-data="{ copied: false }" x-on:click={ mediaItemsCopyJSONScript(mediaItem) }>
+		Copy JSON
+		<span x-show="copied" x-transition.duration.150ms>
+			@CoreIcon("hero-check", "ml-2 h-4 w-4", nil)
+		</span>
+	</span>
+}
+
+templ mediaItemsForceDownloadOption(mediaItem *core.MediaItem) {
+	@CoreLinkButton(
+		P(ctx, "/sources/%v/media/%v/force_download", mediaItem.SourceID, mediaItem.ID),
+		"post",
+		"Are you sure you force a download of this media?",
+		"w-full text-left",
+		mediaItemsForceDownloadText(),
+	)
+}
+
+templ mediaItemsForceDownloadText() {
+	Force Download
+}
+
+templ mediaItemsDeleteFilesOption(mediaItem *core.MediaItem) {
+	@CoreLinkButton(
+		P(ctx, "/sources/%v/media/%v", mediaItem.SourceID, mediaItem.ID),
+		"delete",
+		"Are you sure you want to delete all files for this media item? This cannot be undone.",
+		"w-full text-left",
+		mediaItemsDeleteFilesText(),
+	)
+}
+
+templ mediaItemsDeleteFilesText() {
+	Delete Files
+}
+
+templ mediaItemsDeleteAndIgnoreOption(mediaItem *core.MediaItem) {
+	@CoreLinkButton(
+		P(ctx, "/sources/%v/media/%v?prevent_download=true", mediaItem.SourceID, mediaItem.ID),
+		"delete",
+		"Are you sure you want to delete all files for this media item and prevent it from re-downloading in the future? This cannot be undone.",
+		"w-full text-left",
+		mediaItemsDeleteAndIgnoreText(),
+	)
+}
+
+templ mediaItemsDeleteAndIgnoreText() {
+	Delete and Ignore
+}
+
+// mediaItemsCopyJSONScript builds the Alpine click handler that copies the
+// media item's JSON (Jason.Formatter.pretty_print equivalent: json.Indent)
+// to the clipboard, matching the button_dropdown option's inline JS.
+func mediaItemsCopyJSONScript(mediaItem *core.MediaItem) string {
+	payload := mediaItemsCopyJSONPayload(mediaItem)
+	b, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		b = []byte("{}")
+	}
+	return "copyWithCallbacks(" +
+		"String.raw`" + string(b) + "`, " +
+		"() => copied = true, " +
+		"() => copied = false" +
+		")"
+}
+
+// mediaItemsCopyJSONPayload mirrors MediaItem.json_exluded_fields/0's
+// Jason.Encoder: every field except __meta__/__struct__/metadata/tasks/
+// media_items_search_index, with source preloaded.
+func mediaItemsCopyJSONPayload(mediaItem *core.MediaItem) map[string]any {
+	m := map[string]any{
+		"id":                        mediaItem.ID,
+		"media_id":                  mediaItem.MediaID,
+		"title":                     mediaItem.Title,
+		"media_filepath":            mediaItem.MediaFilepath,
+		"source_id":                 mediaItem.SourceID,
+		"subtitle_filepaths":        mediaItem.SubtitleFilepaths,
+		"thumbnail_filepath":        mediaItem.ThumbnailFilepath,
+		"metadata_filepath":         mediaItem.MetadataFilepath,
+		"livestream":                mediaItem.Livestream,
+		"original_url":              mediaItem.OriginalURL,
+		"media_downloaded_at":       miUTCDateTimeStr(mediaItem.MediaDownloadedAt),
+		"details_updated_at":        miUTCDateTimeStr(mediaItem.DetailsUpdatedAt),
+		"description":               mediaItem.Description,
+		"media_size_bytes":          mediaItem.MediaSizeBytes,
+		"short_form_content":        mediaItem.ShortFormContent,
+		"uploaded_at":               mediaItem.UploadedAt.Time.Format("2006-01-02T15:04:05Z"),
+		"nfo_filepath":              mediaItem.NfoFilepath,
+		"uuid":                      mediaItem.UUID,
+		"duration_seconds":          mediaItem.DurationSeconds,
+		"prevent_download":          mediaItem.PreventDownload,
+		"culled_at":                 miUTCDateTimeStr(mediaItem.CulledAt),
+		"prevent_culling":           mediaItem.PreventCulling,
+		"media_redownloaded_at":     miUTCDateTimeStr(mediaItem.MediaRedownloadedAt),
+		"upload_date_index":         mediaItem.UploadDateIndex,
+		"playlist_index":            mediaItem.PlaylistIndex,
+		"predicted_media_filepath":  mediaItem.PredictedMediaFilepath,
+		"last_error":                mediaItem.LastError,
+		"inserted_at":               mediaItem.InsertedAt.Time.Format("2006-01-02T15:04:05Z"),
+		"updated_at":                mediaItem.UpdatedAt.Time.Format("2006-01-02T15:04:05Z"),
+	}
+	if mediaItem.Source != nil {
+		m["source"] = map[string]any{
+			"id":          mediaItem.Source.ID,
+			"custom_name": mediaItem.Source.CustomName,
+		}
+	}
+	return m
 }

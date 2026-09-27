@@ -11,9 +11,6 @@ import templruntime "github.com/a-h/templ/runtime"
 // Port of lib/pinchflat_web/controllers/media_items/media_item_html/media_preview.heex
 
 import (
-	"path/filepath"
-	"strings"
-
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
@@ -38,15 +35,15 @@ func MediaItemsMediaItemHTMLMediaPreview(mediaItem *core.MediaItem) templ.Compon
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		if mediaItemMediaType(mediaItem) == "video" {
+		if mediaType(mediaItem) == "video" {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<video controls class=\"max-h-128 w-full\"><source src=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var2 string
-			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.URL(P(ctx, "/media/%v/stream?v=%v", derefUUID(mediaItem.UUID), mediaItem.UpdatedAt.Time.Unix())))
+			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.URL(P(ctx, "/media/%v/stream?v=%v", miStr(mediaItem.UUID), mediaItem.UpdatedAt.Time.Unix())))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__media_preview.templ`, Line: 15, Col: 119}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__media_preview.templ`, Line: 12, Col: 115}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 			if templ_7745c5c3_Err != nil {
@@ -57,15 +54,15 @@ func MediaItemsMediaItemHTMLMediaPreview(mediaItem *core.MediaItem) templ.Compon
 				return templ_7745c5c3_Err
 			}
 		}
-		if mediaItemMediaType(mediaItem) == "audio" {
+		if mediaType(mediaItem) == "audio" {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<audio controls class=\"w-full\"><source src=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.URL(P(ctx, "/media/%v/stream?v=%v", derefUUID(mediaItem.UUID), mediaItem.UpdatedAt.Time.Unix())))
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.URL(P(ctx, "/media/%v/stream?v=%v", miStr(mediaItem.UUID), mediaItem.UpdatedAt.Time.Unix())))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__media_preview.templ`, Line: 22, Col: 119}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__media_preview.templ`, Line: 19, Col: 115}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
@@ -78,21 +75,6 @@ func MediaItemsMediaItemHTMLMediaPreview(mediaItem *core.MediaItem) templ.Compon
 		}
 		return nil
 	})
-}
-
-func mediaItemMediaType(mediaItem *core.MediaItem) string {
-	if mediaItem == nil || mediaItem.MediaFilepath == nil || *mediaItem.MediaFilepath == "" {
-		return "unknown"
-	}
-	ext := strings.ToLower(filepath.Ext(*mediaItem.MediaFilepath))
-	switch ext {
-	case ".mp4", ".webm", ".mkv":
-		return "video"
-	case ".mp3", ".m4a", ".opus":
-		return "audio"
-	default:
-		return "unknown"
-	}
 }
 
 var _ = templruntime.GeneratedTemplate

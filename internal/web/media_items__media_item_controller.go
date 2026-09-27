@@ -1,6 +1,7 @@
 package web
 
 import (
+	"io"
 	"log/slog"
 	"mime"
 	"net/http"
@@ -207,96 +208,79 @@ func (s *Server) MediaItemControllerStream(w http.ResponseWriter, r *http.Reques
 		mimeType = "application/octet-stream"
 	}
 
-	title := "media"
+	title := ""
 	if mediaItem.Title != nil {
 		title = *mediaItem.Title
 	}
+	uuidStr := ""
+	if mediaItem.UUID != nil {
+		uuidStr = *mediaItem.UUID
+	}
 
-	w.Header().Set("Content-Type", mimeType)
+	// Plug.Conn.put_resp_content_type/2 always appends "; charset=utf-8"
+	// unless a nil charset is passed explicitly.
+	w.Header().Set("Content-Type", mimeType+"; charset=utf-8")
 	w.Header().Set("Accept-Ranges", "bytes")
 	w.Header().Set("Content-Disposition", "inline; filename=\""+title+"\"")
 
 	rangeStart, rangeEnd, valid := parseRange(r, fileSize)
-	if !valid {
-		// Invalid range, serve full file
-		uuidStr := ""
-		if mediaItem.UUID != nil {
-			uuidStr = *mediaItem.UUID
-		}
-		slog.Debug("Invalid range request for media item", "uuid", uuidStr)
-		w.Header().Set("Content-Length", strconv.FormatInt(fileSize, 10))
-		w.Header().Set("Content-Range", "bytes 0-"+strconv.FormatInt(fileSize-1, 10)+"/"+strconv.FormatInt(fileSize, 10))
-		http.ServeContent(w, r, title, stat.ModTime(), file)
-	} else {
-		// Valid range, serve partial file
-		uuidStr := ""
-		if mediaItem.UUID != nil {
-			uuidStr = *mediaItem.UUID
-		}
+	if valid {
 		slog.Debug("Streaming media item", "uuid", uuidStr, "from", rangeStart, "to", rangeEnd)
 		length := rangeEnd - rangeStart + 1
-		w.Header().Set("Content-Length", strconv.FormatInt(length, 10))
 		w.Header().Set("Content-Range", "bytes "+strconv.FormatInt(rangeStart, 10)+"-"+strconv.FormatInt(rangeEnd, 10)+"/"+strconv.FormatInt(fileSize, 10))
+		w.Header().Set("Content-Length", strconv.FormatInt(length, 10))
 		w.WriteHeader(http.StatusPartialContent)
-		file.Seek(rangeStart, 0)
-		http.ServeContent(w, r, title, stat.ModTime(), file)
+		if _, err := file.Seek(rangeStart, io.SeekStart); err == nil {
+			io.CopyN(w, file, length)
+		}
+	} else {
+		slog.Debug("Invalid range request for media item", "uuid", uuidStr)
+		w.Header().Set("Content-Range", "bytes 0-"+strconv.FormatInt(fileSize-1, 10)+"/"+strconv.FormatInt(fileSize, 10))
+		w.Header().Set("Content-Length", strconv.FormatInt(fileSize, 10))
+		w.WriteHeader(http.StatusOK)
+		io.Copy(w, file)
 	}
 }
 
-// parseRange parses the Range header and returns the start and end positions.
-// Returns (start, end, valid).
+// parseRange is parse_range/2 + validate_range/3: it parses the Range
+// header and returns the start and end positions. Returns (start, end,
+// valid); valid is false for a missing or invalid header (RFC7233's
+// "ignore, serve the full file" case, not a 416).
 func parseRange(r *http.Request, fileSize int64) (int64, int64, bool) {
 	rangeHeader := r.Header.Get("Range")
 	if rangeHeader == "" {
-		return 0, fileSize - 1, false
+		return 0, 0, false
 	}
 
-	// Parse "bytes=0-100" format
+	// ["bytes", range] <- String.split(range_header, "=")
 	parts := strings.Split(rangeHeader, "=")
 	if len(parts) != 2 || parts[0] != "bytes" {
-		return 0, fileSize - 1, false
+		return 0, 0, false
 	}
 
+	// [start_pos, end_pos] <- String.split(range, "-")
 	rangeParts := strings.Split(parts[1], "-")
 	if len(rangeParts) != 2 {
-		return 0, fileSize - 1, false
+		return 0, 0, false
 	}
 
 	startStr, endStr := rangeParts[0], rangeParts[1]
+	start, errStart := strconv.ParseInt(startStr, 10, 64)
+	end, errEnd := strconv.ParseInt(endStr, 10, 64)
 
-	// Parse start position
-	var start int64
-	if startStr == "" {
-		return 0, fileSize - 1, false
+	switch {
+	case errStart != nil:
+		// {:error, :error} (or the unmatched {:error, {end_pos, _}} case)
+		return 0, 0, false
+	case errEnd != nil:
+		// {{start_pos, _}, :error} -> {:ok, {start_pos, file_size - 1}}
+		return start, fileSize - 1, true
+	case end >= fileSize:
+		// end_pos >= file_size -> {:ok, {start_pos, file_size - 1}}
+		return start, fileSize - 1, true
+	default:
+		return start, end, true
 	}
-	var err error
-	start, err = strconv.ParseInt(startStr, 10, 64)
-	if err != nil {
-		return 0, fileSize - 1, false
-	}
-
-	// Parse end position
-	var end int64
-	if endStr == "" {
-		// No end specified, serve to end of file
-		end = fileSize - 1
-	} else {
-		end, err = strconv.ParseInt(endStr, 10, 64)
-		if err != nil {
-			return 0, fileSize - 1, false
-		}
-
-		// RFC7233: if end >= fileSize, serve to end of file
-		if end >= fileSize {
-			end = fileSize - 1
-		}
-	}
-
-	if start < 0 || end < start {
-		return 0, fileSize - 1, false
-	}
-
-	return start, end, true
 }
 
 // fileExists checks if a file exists.
