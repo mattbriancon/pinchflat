@@ -9,6 +9,7 @@ import (
 )
 
 func TestSourceImageParserStoreSourceImages(t *testing.T) {
+	t.Parallel()
 	ta := coretest.NewApp(t)
 
 	t.Run("returns a map of image types and locations", func(t *testing.T) {
@@ -144,6 +145,7 @@ func TestSourceImageParserStoreSourceImages(t *testing.T) {
 }
 
 func TestSourceImageParserStoreSourceImagesFallbacks(t *testing.T) {
+	t.Parallel()
 	ta := coretest.NewApp(t)
 
 	t.Run("uses the entries list for a fallback poster if needed", func(t *testing.T) {

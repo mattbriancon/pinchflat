@@ -15,6 +15,7 @@ import (
 )
 
 func TestMetadataFileHelpers_MetadataDirectoryFor(t *testing.T) {
+	t.Parallel()
 	t.Run("returns the metadata directory for the given record", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 
@@ -39,6 +40,7 @@ func TestMetadataFileHelpers_MetadataDirectoryFor(t *testing.T) {
 }
 
 func TestMetadataFileHelpers_CompressAndStoreMetadataFor(t *testing.T) {
+	t.Parallel()
 	t.Run("returns the filepath", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 
@@ -115,6 +117,7 @@ func TestMetadataFileHelpers_CompressAndStoreMetadataFor(t *testing.T) {
 }
 
 func TestMetadataFileHelpers_ReadCompressedMetadata(t *testing.T) {
+	t.Parallel()
 	t.Run("returns the compressed and decoded metadata", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 
@@ -138,6 +141,7 @@ func TestMetadataFileHelpers_ReadCompressedMetadata(t *testing.T) {
 }
 
 func TestMetadataFileHelpers_DownloadAndStoreThumbnailFor(t *testing.T) {
+	t.Parallel()
 	t.Run("returns the filepath", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 
@@ -254,6 +258,7 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailFor(t *testing.T) {
 }
 
 func TestMetadataFileHelpers_DownloadAndStoreThumbnailForCookieUsage(t *testing.T) {
+	t.Parallel()
 	t.Run("sets use_cookies if the source uses cookies", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 
@@ -355,6 +360,7 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailForCookieUsage(t *testing.
 }
 
 func TestMetadataFileHelpers_ParseUploadDate(t *testing.T) {
+	t.Parallel()
 	t.Run("returns a datetime from the given metadata upload date", func(t *testing.T) {
 		uploadDate := "20210101"
 
@@ -374,6 +380,7 @@ func TestMetadataFileHelpers_ParseUploadDate(t *testing.T) {
 }
 
 func TestMetadataFileHelpers_SeriesDirectoryFromMediaFilepath(t *testing.T) {
+	t.Parallel()
 	t.Run("returns base series directory if filepaths are setup as expected", func(t *testing.T) {
 		goodFilepaths := []string{
 			"/media/season1/episode.mp4",
@@ -435,6 +442,7 @@ func TestMetadataFileHelpers_SeriesDirectoryFromMediaFilepath(t *testing.T) {
 }
 
 func TestMetadataFileHelpers_SeasonAndEpisodeFromMediaFilepath(t *testing.T) {
+	t.Parallel()
 	t.Run("returns a season and episode if one can be determined", func(t *testing.T) {
 		testCases := []struct {
 			filepath string

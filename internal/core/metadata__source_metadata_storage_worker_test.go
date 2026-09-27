@@ -11,7 +11,10 @@ import (
 )
 
 func TestSourceMetadataStorageWorker_KickoffWithTask(t *testing.T) {
+	t.Parallel()
+
 	t.Run("enqueues a new worker for the source", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -26,6 +29,7 @@ func TestSourceMetadataStorageWorker_KickoffWithTask(t *testing.T) {
 	})
 
 	t.Run("creates a new task for the source", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -41,7 +45,10 @@ func TestSourceMetadataStorageWorker_KickoffWithTask(t *testing.T) {
 }
 
 func TestSourceMetadataStorageWorker_Perform(t *testing.T) {
+	t.Parallel()
+
 	t.Run("won't call itself in an infinite loop", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -66,6 +73,7 @@ func TestSourceMetadataStorageWorker_Perform(t *testing.T) {
 	})
 
 	t.Run("does not blow up if the record doesn't exist", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 
 		err := ta.Oban.PerformJob(ta.Ctx, core.SourceMetadataStorageWorkerName, map[string]any{"id": int64(0)})
@@ -76,7 +84,10 @@ func TestSourceMetadataStorageWorker_Perform(t *testing.T) {
 }
 
 func TestSourceMetadataStorageWorker_PerformAttributeUpdates(t *testing.T) {
+	t.Parallel()
+
 	t.Run("the source description is saved", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"description": nil})
 
@@ -109,7 +120,10 @@ func TestSourceMetadataStorageWorker_PerformAttributeUpdates(t *testing.T) {
 }
 
 func TestSourceMetadataStorageWorker_PerformMetadataStorage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("sets metadata location for source", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -140,6 +154,7 @@ func TestSourceMetadataStorageWorker_PerformMetadataStorage(t *testing.T) {
 	})
 
 	t.Run("fetches and stores returned metadata for source", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		fileContents := `{"title": "test"}`
@@ -172,7 +187,7 @@ func TestSourceMetadataStorageWorker_PerformMetadataStorage(t *testing.T) {
 	})
 
 	t.Run("sets metadata image location for source", func(t *testing.T) {
-
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -208,6 +223,7 @@ func TestSourceMetadataStorageWorker_PerformMetadataStorage(t *testing.T) {
 	})
 
 	t.Run("stores metadata images for source", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -250,8 +266,10 @@ func TestSourceMetadataStorageWorker_PerformMetadataStorage(t *testing.T) {
 }
 
 func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T) {
-	t.Run("downloads and stores source images", func(t *testing.T) {
+	t.Parallel()
 
+	t.Run("downloads and stores source images", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_source_images": true})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
@@ -302,65 +320,52 @@ func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T)
 		ta.SourcesDeleteSource(ta.Ctx, reloadedSource, core.KW{core.Flag("delete_files")})
 	})
 
-	t.Run("calls one set of yt-dlp metadata opts for channels", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_source_images": true})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID, "collection_type": "channel"})
+	t.Run("calls appropriate yt-dlp opts by collection type", func(t *testing.T) {
+		t.Parallel()
+		tests := []struct {
+			name              string
+			collectionType    string
+			expectedPlaylist  any
+			expectedThumbnail string
+		}{
+			{"channel", "channel", 0, "write_all_thumbnails"},
+			{"playlist", "playlist", 1, "write_thumbnail"},
+		}
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			if action == "get_source_details" {
-				return coretest.SourceDetailsReturnFixture(core.Attrs{
-					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
-				}), nil
-			}
-			if action == "get_source_metadata" {
-				// Check that the expected options are present
-				if !opts.Contains(core.Opt("playlist_items", 0)) {
-					t.Errorf("Expected playlist_items=0 for channel")
-				}
-				if !opts.HasFlag("write_all_thumbnails") {
-					t.Errorf("Expected write_all_thumbnails for channel")
-				}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				ta := coretest.NewApp(t)
+				profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_source_images": true})
+				source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID, "collection_type": tt.collectionType})
 
-				metadata, _ := coretest.RenderMetadata("channel_source_metadata")
-				return metadata, nil
-			}
-			return "", nil
-		})
+				ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+					if action == "get_source_details" {
+						return coretest.SourceDetailsReturnFixture(core.Attrs{
+							"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
+						}), nil
+					}
+					if action == "get_source_metadata" {
+						if !opts.Contains(core.Opt("playlist_items", tt.expectedPlaylist)) {
+							t.Errorf("Expected playlist_items=%v for %s", tt.expectedPlaylist, tt.name)
+						}
+						if !opts.HasFlag(tt.expectedThumbnail) {
+							t.Errorf("Expected %s for %s", tt.expectedThumbnail, tt.name)
+						}
 
-		ta.Oban.PerformJob(ta.Ctx, core.SourceMetadataStorageWorkerName, map[string]any{"id": source.ID})
-	})
+						metadata, _ := coretest.RenderMetadata("channel_source_metadata")
+						return metadata, nil
+					}
+					return "", nil
+				})
 
-	t.Run("calls another set of yt-dlp metadata opts for playlists", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_source_images": true})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID, "collection_type": "playlist"})
-
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			if action == "get_source_details" {
-				return coretest.SourceDetailsReturnFixture(core.Attrs{
-					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
-				}), nil
-			}
-			if action == "get_source_metadata" {
-				// Check that the expected options are present for playlists
-				if !opts.Contains(core.Opt("playlist_items", 1)) {
-					t.Errorf("Expected playlist_items=1 for playlist")
-				}
-				if !opts.HasFlag("write_thumbnail") {
-					t.Errorf("Expected write_thumbnail for playlist")
-				}
-
-				metadata, _ := coretest.RenderMetadata("channel_source_metadata")
-				return metadata, nil
-			}
-			return "", nil
-		})
-
-		ta.Oban.PerformJob(ta.Ctx, core.SourceMetadataStorageWorkerName, map[string]any{"id": source.ID})
+				ta.Oban.PerformJob(ta.Ctx, core.SourceMetadataStorageWorkerName, map[string]any{"id": source.ID})
+			})
+		}
 	})
 
 	t.Run("does not store source images if the profile is not set to", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_source_images": false})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
@@ -394,6 +399,7 @@ func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T)
 	})
 
 	t.Run("does not store source images if the series directory cannot be determined", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_source_images": true})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
@@ -426,102 +432,59 @@ func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T)
 		}
 	})
 
-	t.Run("sets use_cookies if the source uses cookies", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_source_images": true})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID, "cookie_behaviour": "all_operations"})
-
-		callCount := 0
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			callCount++
-			useCookies, _ := addl.Get("use_cookies")
-			if useCookies != true {
-				t.Errorf("Expected use_cookies=true in addl, got %v", useCookies)
-			}
-			if action == "get_source_details" {
-				return coretest.SourceDetailsReturnFixture(core.Attrs{
-					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
-				}), nil
-			}
-			if action == "get_source_metadata" {
-				metadata, _ := coretest.RenderMetadata("channel_source_metadata")
-				return metadata, nil
-			}
-			return "", nil
-		})
-
-		ta.Oban.PerformJob(ta.Ctx, core.SourceMetadataStorageWorkerName, map[string]any{"id": source.ID})
-
-		if callCount < 2 {
-			t.Errorf("Expected at least 2 yt-dlp calls, got %d", callCount)
+	t.Run("sets use_cookies based on source behavior", func(t *testing.T) {
+		t.Parallel()
+		tests := []struct {
+			name            string
+			cookieBehaviour string
+			expectedCookies bool
+		}{
+			{"all_operations", "all_operations", true},
+			{"when_needed", "when_needed", false},
+			{"disabled", "disabled", false},
 		}
-	})
 
-	t.Run("does not set use_cookies if the source uses cookies when needed", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_source_images": true})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID, "cookie_behaviour": "when_needed"})
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				ta := coretest.NewApp(t)
+				profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_source_images": true})
+				source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID, "cookie_behaviour": tt.cookieBehaviour})
 
-		callCount := 0
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			callCount++
-			useCookies, _ := addl.Get("use_cookies")
-			if useCookies != false {
-				t.Errorf("Expected use_cookies=false in addl, got %v", useCookies)
-			}
-			if action == "get_source_details" {
-				return coretest.SourceDetailsReturnFixture(core.Attrs{
-					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
-				}), nil
-			}
-			if action == "get_source_metadata" {
-				metadata, _ := coretest.RenderMetadata("channel_source_metadata")
-				return metadata, nil
-			}
-			return "", nil
-		})
+				callCount := 0
+				ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+					callCount++
+					useCookies, _ := addl.Get("use_cookies")
+					if useCookies != tt.expectedCookies {
+						t.Errorf("Expected use_cookies=%v in addl, got %v", tt.expectedCookies, useCookies)
+					}
+					if action == "get_source_details" {
+						return coretest.SourceDetailsReturnFixture(core.Attrs{
+							"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
+						}), nil
+					}
+					if action == "get_source_metadata" {
+						metadata, _ := coretest.RenderMetadata("channel_source_metadata")
+						return metadata, nil
+					}
+					return "", nil
+				})
 
-		ta.Oban.PerformJob(ta.Ctx, core.SourceMetadataStorageWorkerName, map[string]any{"id": source.ID})
+				ta.Oban.PerformJob(ta.Ctx, core.SourceMetadataStorageWorkerName, map[string]any{"id": source.ID})
 
-		if callCount < 2 {
-			t.Errorf("Expected at least 2 yt-dlp calls, got %d", callCount)
-		}
-	})
-
-	t.Run("does not set use_cookies if the source does not use cookies", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_source_images": true})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID, "cookie_behaviour": "disabled"})
-
-		callCount := 0
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			callCount++
-			useCookies, _ := addl.Get("use_cookies")
-			if useCookies != false {
-				t.Errorf("Expected use_cookies=false in addl, got %v", useCookies)
-			}
-			if action == "get_source_details" {
-				return coretest.SourceDetailsReturnFixture(core.Attrs{
-					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
-				}), nil
-			}
-			if action == "get_source_metadata" {
-				metadata, _ := coretest.RenderMetadata("channel_source_metadata")
-				return metadata, nil
-			}
-			return "", nil
-		})
-
-		ta.Oban.PerformJob(ta.Ctx, core.SourceMetadataStorageWorkerName, map[string]any{"id": source.ID})
-
-		if callCount < 2 {
-			t.Errorf("Expected at least 2 yt-dlp calls, got %d", callCount)
+				if callCount < 2 {
+					t.Errorf("Expected at least 2 yt-dlp calls, got %d", callCount)
+				}
+			})
 		}
 	})
 }
 
 func TestSourceMetadataStorageWorker_PerformSeriesDirectory(t *testing.T) {
+	t.Parallel()
+
 	t.Run("sets the series directory based on the returned media filepath", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"series_directory": nil})
 
@@ -547,6 +510,7 @@ func TestSourceMetadataStorageWorker_PerformSeriesDirectory(t *testing.T) {
 	})
 
 	t.Run("does not set the series directory if it cannot be determined", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"series_directory": nil})
 
@@ -571,96 +535,57 @@ func TestSourceMetadataStorageWorker_PerformSeriesDirectory(t *testing.T) {
 		}
 	})
 
-	t.Run("sets use_cookies if the source is set to use cookies", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"series_directory": nil, "cookie_behaviour": "all_operations"})
-
-		callCount := 0
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			callCount++
-			useCookies, _ := addl.Get("use_cookies")
-			if useCookies != true {
-				t.Errorf("Expected use_cookies=true in addl, got %v", useCookies)
-			}
-			if action == "get_source_details" {
-				return coretest.SourceDetailsReturnFixture(core.Attrs{
-					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
-				}), nil
-			}
-			if action == "get_source_metadata" {
-				return "{}", nil
-			}
-			return "", nil
-		})
-
-		ta.Oban.PerformJob(ta.Ctx, core.SourceMetadataStorageWorkerName, map[string]any{"id": source.ID})
-
-		if callCount < 2 {
-			t.Errorf("Expected at least 2 yt-dlp calls, got %d", callCount)
+	t.Run("sets use_cookies based on source behavior during series directory determination", func(t *testing.T) {
+		t.Parallel()
+		tests := []struct {
+			name            string
+			cookieBehaviour string
+			expectedCookies bool
+		}{
+			{"all_operations", "all_operations", true},
+			{"when_needed", "when_needed", false},
+			{"disabled", "disabled", false},
 		}
-	})
 
-	t.Run("does not set use_cookies if the source uses cookies when needed", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"series_directory": nil, "cookie_behaviour": "when_needed"})
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				ta := coretest.NewApp(t)
+				source := coretest.SourceFixture(t, ta, core.Attrs{"series_directory": nil, "cookie_behaviour": tt.cookieBehaviour})
 
-		callCount := 0
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			callCount++
-			useCookies, _ := addl.Get("use_cookies")
-			if useCookies != false {
-				t.Errorf("Expected use_cookies=false in addl, got %v", useCookies)
-			}
-			if action == "get_source_details" {
-				return coretest.SourceDetailsReturnFixture(core.Attrs{
-					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
-				}), nil
-			}
-			if action == "get_source_metadata" {
-				return "{}", nil
-			}
-			return "", nil
-		})
+				callCount := 0
+				ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+					callCount++
+					useCookies, _ := addl.Get("use_cookies")
+					if useCookies != tt.expectedCookies {
+						t.Errorf("Expected use_cookies=%v in addl, got %v", tt.expectedCookies, useCookies)
+					}
+					if action == "get_source_details" {
+						return coretest.SourceDetailsReturnFixture(core.Attrs{
+							"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
+						}), nil
+					}
+					if action == "get_source_metadata" {
+						return "{}", nil
+					}
+					return "", nil
+				})
 
-		ta.Oban.PerformJob(ta.Ctx, core.SourceMetadataStorageWorkerName, map[string]any{"id": source.ID})
+				ta.Oban.PerformJob(ta.Ctx, core.SourceMetadataStorageWorkerName, map[string]any{"id": source.ID})
 
-		if callCount < 2 {
-			t.Errorf("Expected at least 2 yt-dlp calls, got %d", callCount)
-		}
-	})
-
-	t.Run("does not set use_cookies if the source is not set to use cookies", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"series_directory": nil, "cookie_behaviour": "disabled"})
-
-		callCount := 0
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			callCount++
-			useCookies, _ := addl.Get("use_cookies")
-			if useCookies != false {
-				t.Errorf("Expected use_cookies=false in addl, got %v", useCookies)
-			}
-			if action == "get_source_details" {
-				return coretest.SourceDetailsReturnFixture(core.Attrs{
-					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
-				}), nil
-			}
-			if action == "get_source_metadata" {
-				return "{}", nil
-			}
-			return "", nil
-		})
-
-		ta.Oban.PerformJob(ta.Ctx, core.SourceMetadataStorageWorkerName, map[string]any{"id": source.ID})
-
-		if callCount < 2 {
-			t.Errorf("Expected at least 2 yt-dlp calls, got %d", callCount)
+				if callCount < 2 {
+					t.Errorf("Expected at least 2 yt-dlp calls, got %d", callCount)
+				}
+			})
 		}
 	})
 }
 
 func TestSourceMetadataStorageWorker_PerformNfo(t *testing.T) {
+	t.Parallel()
+
 	t.Run("stores the NFO if specified", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_nfo": true})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"nfo_filepath": nil, "media_profile_id": profile.ID})
@@ -696,6 +621,7 @@ func TestSourceMetadataStorageWorker_PerformNfo(t *testing.T) {
 	})
 
 	t.Run("does not store the NFO if not specified", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_nfo": false})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"nfo_filepath": nil, "media_profile_id": profile.ID})
@@ -722,6 +648,7 @@ func TestSourceMetadataStorageWorker_PerformNfo(t *testing.T) {
 	})
 
 	t.Run("does not store the NFO if the series directory cannot be determined", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_nfo": true})
 		source := coretest.SourceFixture(t, ta, core.Attrs{"nfo_filepath": nil, "media_profile_id": profile.ID})

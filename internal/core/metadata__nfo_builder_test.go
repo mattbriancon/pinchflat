@@ -11,6 +11,7 @@ import (
 )
 
 func TestNfoBuilderBuildAndStoreForMediaItem(t *testing.T) {
+	t.Parallel()
 	ta := coretest.NewApp(t)
 
 	t.Run("returns the filepath", func(t *testing.T) {
@@ -146,6 +147,7 @@ func TestNfoBuilderBuildAndStoreForMediaItem(t *testing.T) {
 }
 
 func TestNfoBuilderBuildAndStoreForSource(t *testing.T) {
+	t.Parallel()
 	ta := coretest.NewApp(t)
 
 	t.Run("returns the filepath", func(t *testing.T) {
