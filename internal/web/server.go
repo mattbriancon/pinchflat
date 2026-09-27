@@ -1,11 +1,8 @@
-// Package web is the Go port of lib/pinchflat_web: router, plugs,
-// controllers (handlers), templates (templ) and components.
+// Package web is the HTTP layer: router, plugs, controllers (handlers),
+// templates (templ) and components.
 package web
 
 import (
-	"context"
-	"net/http"
-
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
@@ -33,6 +30,3 @@ func New(app *core.App, opts Options) *Server {
 	}
 	return &Server{App: app, Opts: opts}
 }
-
-// ctx returns the request context (shorthand used by handlers).
-func ctxOf(r *http.Request) context.Context { return r.Context() }

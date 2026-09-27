@@ -1,6 +1,5 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/sources/source_live/index_table_live.ex.
 // There is no LiveView session here, so the mount-time session values
 // (initial_sort_key: :custom_name, initial_sort_direction: :asc,
 // results_per_page: 10) are this controller's defaults for blank query

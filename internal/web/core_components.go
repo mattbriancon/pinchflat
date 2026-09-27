@@ -1,9 +1,8 @@
 package web
 
-// Port of lib/pinchflat_web/components/core_components.ex. The renderable
-// pieces live in core_components.templ (templ requires its own file type);
-// this file holds the plain-Go parts: prop structs and the `input/1`
-// multi-clause dispatch, which templ's DSL can't express directly.
+// The renderable pieces live in core_components.templ (templ requires its
+// own file type); this file holds the plain-Go parts: prop structs and the
+// input dispatch, which templ's DSL can't express directly.
 
 import (
 	"github.com/a-h/templ"

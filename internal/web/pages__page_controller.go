@@ -8,8 +8,6 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
-// Port of lib/pinchflat_web/controllers/pages/page_controller.ex.
-
 // PageControllerHome: home action
 func (s *Server) PageControllerHome(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

@@ -1,10 +1,8 @@
 package web
 
-// Port of lib/pinchflat_web/router.ex. Every public URL is unchanged.
-// There are no htmx fragment routes (STRATEGY.md decision 4: every page
-// renders everything on first load); the two mutations that used to be
-// LiveView events are plain form POSTs that redirect back.
-// Hand-written W4 infrastructure.
+// Every public URL is unchanged. There are no htmx fragment routes: every
+// page renders everything on first load, and the two mutations that used
+// to be LiveView events are plain form POSTs that redirect back.
 
 import (
 	"net/http"

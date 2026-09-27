@@ -1,7 +1,6 @@
 package web
 
-// Port of lib/pinchflat_web/components/custom_components/tab_components.ex
-// (the renderable half is custom_components__tab_components.templ).
+// The renderable half is custom_components__tab_components.templ.
 
 import (
 	"context"

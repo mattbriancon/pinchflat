@@ -5,12 +5,8 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import (
-	"github.com/a-h/templ"
-	templruntime "github.com/a-h/templ/runtime"
-)
-
-// Port of lib/pinchflat_web/controllers/searches/search_html.ex.
+import "github.com/a-h/templ"
+import templruntime "github.com/a-h/templ/runtime"
 
 // HighlightSearchTerms renders search terms highlighted in a string of text
 // based on `[PF_HIGHLIGHT]` and `[/PF_HIGHLIGHT]` tags.
@@ -44,7 +40,7 @@ func HighlightSearchTerms(text string) templ.Component {
 				var templ_7745c5c3_Var2 string
 				templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(fragment.text)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `searches__search_html__components.templ`, Line: 10, Col: 49}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `searches__search_html__components.templ`, Line: 8, Col: 49}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 				if templ_7745c5c3_Err != nil {
@@ -58,7 +54,7 @@ func HighlightSearchTerms(text string) templ.Component {
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(fragment.text)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `searches__search_html__components.templ`, Line: 12, Col: 18}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `searches__search_html__components.templ`, Line: 10, Col: 18}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {

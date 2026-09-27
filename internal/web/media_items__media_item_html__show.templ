@@ -1,7 +1,5 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/media_items/media_item_html/show.html.heex
-
 import (
 	"strings"
 
@@ -136,7 +134,6 @@ templ mediaItemsTaskScheduledAtCell(row any) {
 		@TextDatetimeInZone(task.Job.ScheduledAt.Time, "", "")
 	}
 }
-
 
 templ miText(s string) {
 	{ s }

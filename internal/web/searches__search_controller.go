@@ -6,8 +6,6 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
-// Port of lib/pinchflat_web/controllers/searches/search_controller.ex.
-
 // SearchControllerShow: show(conn, params)
 func (s *Server) SearchControllerShow(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

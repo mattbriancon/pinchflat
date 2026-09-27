@@ -1,7 +1,5 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/health_controller.ex.
-
 import "net/http"
 
 // HealthControllerCheck: json(conn, %{status: "ok"}).

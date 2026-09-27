@@ -1,7 +1,5 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/media_items/media_item_html.ex
-
 import (
 	"path/filepath"
 	"strings"

@@ -5,13 +5,10 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import (
-	"github.com/a-h/templ"
-	templruntime "github.com/a-h/templ/runtime"
-	"github.com/mattbriancon/pinchflat/internal/core"
-)
+import "github.com/a-h/templ"
+import templruntime "github.com/a-h/templ/runtime"
 
-// Port of lib/pinchflat_web/controllers/media_profiles/media_profile_html/actions_dropdown.html.heex.
+import "github.com/mattbriancon/pinchflat/internal/core"
 
 // MediaProfilesHTMLActionsDropdown is actions_dropdown/1.
 func MediaProfilesHTMLActionsDropdown(mediaProfile *core.MediaProfile) templ.Component {
@@ -77,7 +74,7 @@ func mediaProfilesCopyJSONOption(mediaProfile *core.MediaProfile) templ.Componen
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(mediaProfilesCopyWithCallbacksJS(mediaProfile))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__actions_dropdown.templ`, Line: 19, Col: 93}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__actions_dropdown.templ`, Line: 17, Col: 93}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 		if templ_7745c5c3_Err != nil {
@@ -127,7 +124,7 @@ func mediaProfilesUseAsTemplateOption(mediaProfile *core.MediaProfile) templ.Com
 		var templ_7745c5c3_Var5 templ.SafeURL
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(P(ctx, "/media_profiles/new?template_id=%v", mediaProfile.ID)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__actions_dropdown.templ`, Line: 28, Col: 87}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__actions_dropdown.templ`, Line: 26, Col: 87}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {

@@ -5,12 +5,8 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import (
-	"github.com/a-h/templ"
-	templruntime "github.com/a-h/templ/runtime"
-)
-
-// Port of lib/pinchflat_web/components/custom_components/button_components.ex.
+import "github.com/a-h/templ"
+import templruntime "github.com/a-h/templ/runtime"
 
 // ButtonButton is button/1.
 func ButtonButton(color string, rounding string, class string, typ string, disabled bool, rest templ.Attributes, content templ.Component) templ.Component {
@@ -65,7 +61,7 @@ func ButtonButton(color string, rounding string, class string, typ string, disab
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(typ)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__button_components.templ`, Line: 16, Col: 12}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__button_components.templ`, Line: 14, Col: 12}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 		if templ_7745c5c3_Err != nil {
@@ -148,7 +144,7 @@ func ButtonButtonDropdown(text string, class string, options []ButtonButtonOptio
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(text)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__button_components.templ`, Line: 31, Col: 9}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__button_components.templ`, Line: 29, Col: 9}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {

@@ -1,13 +1,10 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/sources/source_html/media_item_table_live.ex
-// (the render/1 clauses; fetching lives in the .go file). Rendered inline for
-// each media_state tab on the source show page: paging/search are each
-// media_state's own query params (<state>_page, <state>_q) so switching one
-// tab's page or search doesn't disturb another's, and the form/links carry
-// ?tab= so a reload lands back on the right tab (STRATEGY.md decision 4: no
-// htmx, no fragment endpoint, no PubSub "reload_page" -- a browser reload
-// replaces it).
+// Rendered inline for each media_state tab on the source show page: paging
+// and search are each media_state's own query params (<state>_page,
+// <state>_q) so switching one tab's page or search doesn't disturb
+// another's, and the form/links carry ?tab= so a reload lands back on the
+// right tab. Fetching lives in the sibling .go file.
 
 import (
 	"github.com/mattbriancon/pinchflat/internal/core"

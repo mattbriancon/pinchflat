@@ -5,15 +5,13 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import (
-	"github.com/a-h/templ"
-	templruntime "github.com/a-h/templ/runtime"
-)
+import "github.com/a-h/templ"
+import templruntime "github.com/a-h/templ/runtime"
 
-// Port of lib/pinchflat_web/components/layouts.ex (the renderable half; see
-// layouts.go for active_path?/2 and the App/Options accessors).
+// The renderable half; see layouts.go for the active-path check and the
+// App/Options accessors.
 
-// LayoutsNavLink is nav_link/1. currentPath is Phoenix.Controller.current_path
+// LayoutsNavLink renders a nav link. currentPath is
 // (Elixir's @conn); pass web.CurrentPath(ctx).
 func LayoutsNavLink(text string, href string, currentPath string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {

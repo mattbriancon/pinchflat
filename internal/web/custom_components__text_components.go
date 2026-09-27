@@ -1,6 +1,5 @@
 package web
 
-// Port of lib/pinchflat_web/components/custom_components/text_components.ex.
 // The renderable half lives in custom_components__text_components.templ;
 // this file holds the plain-Go logic (regex splitting, strftime, byte
 // sizes) that templ's DSL can't express directly.
