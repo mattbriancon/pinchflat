@@ -154,9 +154,10 @@ func TestJobTableLive_JobRendering(t *testing.T) {
 		}
 	})
 
-	// "listens for job:state change events" (PubSub broadcast -> re-render) has
-	// no Go equivalent: there is no server push in the htmx port (see
-	// STRATEGY.md / CONVENTIONS "LiveViews -> htmx"); the fragment endpoint is
-	// instead re-fetched by a manual "Reload" button, which the other tests in
-	// this file already exercise by re-GETting /_live/jobs.
+	t.Run("listens for job:state change events", func(t *testing.T) {
+		// PubSub broadcast -> re-render has no Go equivalent: there is no server
+		// push in the htmx port (STRATEGY.md); the Reload button re-fetches
+		// /_live/jobs, which the other tests here exercise.
+		t.Skip("DROPPED: no server push; replaced by the Reload button")
+	})
 }
