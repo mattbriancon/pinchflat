@@ -1,0 +1,99 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/media_profiles/media_profile_html/output_template_help.html.heex.
+
+templ mediaProfilesArrowIcon() {
+	@CoreIcon("hero-arrow-top-right-on-square", "h-4 w-4", nil)
+}
+
+// MediaProfilesHTMLOutputTemplateHelp is output_template_help/1.
+templ MediaProfilesHTMLOutputTemplateHelp() {
+	<aside>
+		<h2 class="text-xl font-bold mb-2">Output Template Syntax</h2>
+		<section class="ml-2 md:ml-4 mb-4 max-w-prose overflow-auto">
+			<p>When generating an output template, you have 3 options for syntax:</p>
+			<ul class="list-disc list-inside ml-2 md:ml-5">
+				<li>
+					Liquid-style:
+					@TextInlineCodeString("/" + mediaProfilesBrace("channel") + "/" + mediaProfilesBrace("title") + " - " + mediaProfilesBrace("id") + "." + mediaProfilesBrace("ext"))
+				</li>
+				<li>
+					<code class="text-sm">yt-dlp</code>-style
+					@TextInlineLink("https://github.com/yt-dlp/yt-dlp?tab=readme-ov-file#output-template", mediaProfilesArrowIcon())
+					:
+					@TextInlineCodeString("/%(channel)s/%(duration>%H-%M-%S)s-%(id)s.%(ext)s")
+				</li>
+				<li>
+					Any bare words:
+					@TextInlineCodeString("/videos/1080p/" + mediaProfilesBrace("id") + "." + mediaProfilesBrace("ext"))
+				</li>
+			</ul>
+			<p class="my-2">
+				Apart from custom aliases, the liquid-style syntax maps 1:1 to the <code class="text-sm">yt-dlp</code>-style syntax behind-the-scenes. This means that
+				<em>any</em>
+				single-word <code class="text-sm">yt-dlp</code>
+				option can be used as liquid-style and it's automatically made filepath-safe. For example, the
+				@TextInlineCodeString(mediaProfilesBrace("duration"))
+				option is translated to
+				@TextInlineCodeString("%(duration)S")
+			</p>
+			<p class="my-2">
+				<strong>Major 🔑:</strong>
+				these syntaxes can be mixed and matched freely! I prefer to use liquid-style and bare words
+				but I'll include <code class="text-sm">yt-dlp</code>-style when I need more control. For example:
+				@TextInlineCodeString("/1080p/" + mediaProfilesBrace("channel") + "/" + mediaProfilesBrace("title") + "-(%(subtitles.en.-1.ext)s)." + mediaProfilesBrace("ext"))
+			</p>
+			<p class="my-2">
+				<strong>NOTE:</strong>
+				Your template <em>must</em>
+				end with an extension option (
+				@TextInlineCodeString("." + mediaProfilesBrace("ext"))
+				or
+				@TextInlineCodeString(".%(ext)S")
+				).
+				Downloading won't work as expected without it.
+			</p>
+		</section>
+
+		<h2 class="text-xl font-bold mb-2">Template Options</h2>
+		<section class="ml-2 md:ml-4 mb-4 overflow-auto">
+			<p class="max-w-prose">
+				Any single-word <code class="text-sm">yt-dlp</code>
+				option
+				@TextInlineLink("https://github.com/yt-dlp/yt-dlp?tab=readme-ov-file#output-template", mediaProfilesArrowIcon())
+				can be used with the curly braced liquid-style syntax.
+				This is just a list of the most common options as well as some custom aliases
+			</p>
+			<h3 class="text-lg font-bold my-2">Media Center Custom Aliases</h3>
+			<ul class="list-disc list-inside mb-4 ml-2 md:ml-5 max-w-prose">
+				for _, opt := range mediaProfilesMediaCenterCustomOutputTemplateOptions() {
+					<li class="mt-1">
+						@TextInlineCodeString(mediaProfilesBrace(opt.Key))
+						if opt.Value != "" {
+							<span>- @templ.Raw(opt.Value)</span>
+						}
+					</li>
+				}
+			</ul>
+			<h3 class="text-lg font-bold mb-2">Other Custom Aliases</h3>
+			<ul class="list-disc list-inside mb-4 ml-2 md:ml-5 max-w-prose">
+				for _, opt := range mediaProfilesOtherCustomOutputTemplateOptions() {
+					<li class="mt-1">
+						@TextInlineCodeString(mediaProfilesBrace(opt.Key))
+						if opt.Value != "" {
+							<span>- @templ.Raw(opt.Value)</span>
+						}
+					</li>
+				}
+			</ul>
+			<h3 class="text-lg font-bold mb-2">Common Options</h3>
+			<ul class="list-disc list-inside ml-2 md:ml-5">
+				for _, opt := range mediaProfilesCommonOutputTemplateOptions() {
+					<li class="mt-1">
+						@TextInlineCodeString(mediaProfilesBrace(opt))
+					</li>
+				}
+			</ul>
+		</section>
+	</aside>
+}

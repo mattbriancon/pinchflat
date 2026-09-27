@@ -1,0 +1,62 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/media_profiles/media_profile_html/show.html.heex.
+
+import "github.com/mattbriancon/pinchflat/internal/core"
+
+templ MediaProfilesHTMLShow(profile *core.MediaProfile, sources []*core.Source) {
+	<div class="page-header">
+		<div class="flex gap-3 items-center min-w-0">
+			<a href={ templ.SafeURL(P(ctx, "/media_profiles")) }>
+				@CoreIcon("hero-arrow-left", "back-link", nil)
+			</a>
+			<h2 class="page-title">
+				{ profile.Name }
+			</h2>
+		</div>
+		<nav>
+			<a href={ templ.SafeURL(P(ctx, "/media_profiles/%v/edit", profile.ID)) }>
+				@ButtonButton("bg-primary", "rounded-lg", "", "submit", false, nil, mediaProfilesShowEditLabel())
+			</a>
+		</nav>
+	</div>
+	<div class="card card-body">
+		<div class="max-w-full">
+			@TabTabbedLayout([]TabTab{
+				{ID: "media-profile", Title: "Media Profile", Content: mediaProfilesShowMediaProfileTab(profile)},
+				{ID: "sources", Title: "Sources", Content: mediaProfilesShowSourcesTab(sources)},
+			}, MediaProfilesHTMLActionsDropdown(profile))
+		</div>
+	</div>
+}
+
+templ mediaProfilesShowEditLabel() {
+	@CoreIcon("hero-pencil-square", "h-4 w-4", nil)
+	Edit <span class="hidden sm:inline pl-1">Media Profile</span>
+}
+
+templ mediaProfilesShowMediaProfileTab(profile *core.MediaProfile) {
+	<div class="flex flex-col gap-6 text-white">
+		<section>
+			<h3 class="section-title mt-2 mb-2">Raw Attributes</h3>
+			<ul>
+				for _, attr := range mediaProfilesRawAttributes(profile) {
+					<li class="py-1 border-b border-strokedark last:border-b-0 break-words md:w-2/3">
+						<strong>{ attr.Key }:</strong>
+						<code class="inline text-sm font-mono text-bodydark break-all p-0.5 mx-0.5">
+							if attr.IsURL {
+								@TextInlineLinkString(attr.Value, attr.Value)
+							} else {
+								{ attr.Value }
+							}
+						</code>
+					</li>
+				}
+			</ul>
+		</section>
+	</div>
+}
+
+templ mediaProfilesShowSourcesTab(sources []*core.Source) {
+	@TableTable(mediaProfilesShowSourcesTableProps(sources))
+}
