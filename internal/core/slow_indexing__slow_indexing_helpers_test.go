@@ -1079,3 +1079,27 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 		}
 	})
 }
+
+// Found by running the Go binary against a real database: with an output
+// path override, nothing else preloads media_profile, and building quality
+// options dereferenced a nil profile.
+func TestSlowIndexingHelpers_IndexAndEnqueuePreloadsMediaProfile(t *testing.T) {
+	t.Run("works for a freshly loaded source with an output path override", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+		fixture := coretest.SourceFixture(t, ta, core.Attrs{"output_path_template_override": "/{{ title }}.{{ ext }}"})
+		source, err := ta.App.SourcesGetSource(ta.Ctx, fixture.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+			if _, ok := opts.Get("format_sort"); !ok {
+				t.Error("expected the media profile's quality options")
+			}
+			return "", nil
+		})
+
+		if _, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, core.KW{}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+}

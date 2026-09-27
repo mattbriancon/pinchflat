@@ -39,20 +39,7 @@ templ mediaProfilesShowMediaProfileTab(profile *core.MediaProfile) {
 	<div class="flex flex-col gap-6 text-white">
 		<section>
 			<h3 class="section-title mt-2 mb-2">Raw Attributes</h3>
-			<ul>
-				for _, attr := range mediaProfilesRawAttributes(profile) {
-					<li class="py-1 border-b border-strokedark last:border-b-0 break-words md:w-2/3">
-						<strong>{ attr.Key }:</strong>
-						<code class="inline text-sm font-mono text-bodydark break-all p-0.5 mx-0.5">
-							if attr.IsURL {
-								@TextInlineLinkString(attr.Value, attr.Value)
-							} else {
-								{ attr.Value }
-							}
-						</code>
-					</li>
-				}
-			</ul>
+			@CoreListItemsFromMap(profile)
 		</section>
 	</div>
 }

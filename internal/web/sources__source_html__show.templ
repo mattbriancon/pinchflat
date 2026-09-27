@@ -54,7 +54,7 @@ templ sourceHTMLShowSourceTab(source *core.Source) {
 				<strong>Media Profile:</strong>
 				@TextSubtleLink(P(ctx, "/media_profiles/%v", source.MediaProfileID), "", sourceHTMLMediaProfileName(source))
 			</section>
-			@sourceHTMLListItemsFromMap(source)
+			@CoreListItemsFromMap(source)
 		</section>
 	</div>
 }
@@ -63,23 +63,6 @@ templ sourceHTMLMediaProfileName(source *core.Source) {
 	if source.MediaProfile != nil {
 		{ source.MediaProfile.Name }
 	}
-}
-
-templ sourceHTMLListItemsFromMap(source *core.Source) {
-	<ul>
-		for _, item := range sourcesListItemsFromMap(source) {
-			<li class="py-1 border-b border-strokedark last:border-b-0 break-words md:w-2/3">
-				<strong>{ item.Key }:</strong>
-				<code class="inline text-sm font-mono text-bodydark break-all p-0.5 mx-0.5">
-					if item.IsURL {
-						@TextInlineLinkString(item.Value, item.Value)
-					} else {
-						{ item.Value }
-					}
-				</code>
-			</li>
-		}
-	</ul>
 }
 
 templ sourceHTMLShowTasksTab(pendingTasks []*core.Task) {

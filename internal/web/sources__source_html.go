@@ -7,9 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"reflect"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/core"
@@ -184,59 +182,9 @@ func FindProfileByID(profiles []*core.MediaProfile, id int64) *core.MediaProfile
 	return nil
 }
 
-// sourcesListItem is one row of list_items_from_map/1 (core_components.ex):
-// a scalar struct field, formatted like Map.from_struct/1 would show it
-// (lists joined with ", "), plus whether the value looks like an http(s)
-// URL (rendered as a link).
-type sourcesListItem struct {
-	Key   string
-	Value string
-	IsURL bool
-}
-
-// sourcesListItemsFromMap is list_items_from_map(Map.from_struct(@source)):
-// core_components.ex's version isn't ported (it's outside this row), so
-// this is a private equivalent scoped to *core.Source. It walks the schema
-// fields in declaration order (skipping `db:"-"` associations, which
-// Elixir's filter drops as non-Date/DateTime structs or lists of structs).
-func sourcesListItemsFromMap(source *core.Source) []sourcesListItem {
-	var out []sourcesListItem
-	rv := reflect.ValueOf(*source)
-	rt := rv.Type()
-	for i := 0; i < rt.NumField(); i++ {
-		field := rt.Field(i)
-		tag := field.Tag.Get("db")
-		if tag == "" || tag == "-" {
-			continue
-		}
-		out = append(out, sourcesListItem{
-			Key:   strings.SplitN(tag, ",", 2)[0],
-			Value: InputValue(rv.Field(i).Interface()),
-			IsURL: sourcesLooksLikeURL(InputValue(rv.Field(i).Interface())),
-		})
-	}
-	return out
-}
-
-func sourcesLooksLikeURL(v string) bool {
-	return strings.HasPrefix(v, "http://") || strings.HasPrefix(v, "https://")
-}
-
-// sourcesJSONLiteral is the JS template literal
-// (String.raw`#{Jason.Formatter.pretty_print(Jason.encode!(@source))}`) used
-// by the "Copy JSON" action. The Go port has no Jason.Encoder derivation for
-// *core.Source, so it builds an ordered {field: value} map from the same
-// scalar fields as sourcesListItemsFromMap.
+// sourcesJSONLiteral is String.raw`#{Jason.Formatter.pretty_print(Jason.encode!(@source))}`
+// for the "Copy JSON" action. Source's encoder includes its media_profile,
+// so the caller must have preloaded it.
 func sourcesJSONLiteral(source *core.Source) string {
-	items := sourcesListItemsFromMap(source)
-	var b strings.Builder
-	b.WriteString("`{\n")
-	for i, item := range items {
-		if i > 0 {
-			b.WriteString(",\n")
-		}
-		fmt.Fprintf(&b, "  %q: %q", item.Key, item.Value)
-	}
-	b.WriteString("\n}`")
-	return b.String()
+	return "String.raw`" + prettyJSON(source) + "`"
 }

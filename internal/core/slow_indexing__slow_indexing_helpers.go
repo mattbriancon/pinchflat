@@ -76,20 +76,10 @@ func (a *App) SlowIndexingHelpersDeleteIndexingTasks(ctx context.Context, source
 
 // SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems/2
 func (a *App) SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx context.Context, source *Source, opts KW) ([]any, error) {
-	// Preload media_profile
-	source, err := a.SourcesGetSource(ctx, source.ID)
+	// source = Repo.preload(source, [:media_profile])
+	source, err := a.PreloadSourceMediaProfile(ctx, source)
 	if err != nil {
 		return nil, err
-	}
-	q := From[Source]("s").
-		LeftJoin("media_profiles mp ON mp.id = s.media_profile_id").
-		Where(squirrel.Eq{"s.id": source.ID})
-	sources, err := All[Source](ctx, a.Q(ctx), q)
-	if err != nil {
-		return nil, err
-	}
-	if len(sources) > 0 {
-		source = sources[0]
 	}
 
 	// Setup file watcher and kickoff indexing

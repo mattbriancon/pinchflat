@@ -89,7 +89,7 @@ templ mediaItemsShowMediaTab(mediaItem *core.MediaItem) {
 				if mediaItem.Source != nil {
 					@TextSubtleLink(P(ctx, "/sources/%v", mediaItem.SourceID), "_self", miText(mediaItem.Source.CustomName))
 				}
-				@mediaItemsListItemsFromMap(mediaItemRawAttributes(mediaItem))
+				@CoreListItemsFromMap(mediaItem)
 			</section>
 		</section>
 	</div>
@@ -137,25 +137,6 @@ templ mediaItemsTaskScheduledAtCell(row any) {
 	}
 }
 
-// mediaItemsListItemsFromMap is core_components.ex's list_items_from_map/1,
-// scoped to MediaItem (see the report: the ported core_components doesn't
-// have this component, so it's replicated here for this row only).
-templ mediaItemsListItemsFromMap(attrs []mediaItemAttr) {
-	<ul>
-		for _, a := range attrs {
-			<li class="py-1 border-b border-strokedark last:border-b-0 break-words md:w-2/3">
-				<strong>{ a.Key }:</strong>
-				<code class="inline text-sm font-mono text-bodydark break-all p-0.5 mx-0.5">
-					if a.IsURL {
-						@TextInlineLinkString(a.Value, a.Value)
-					} else {
-						{ a.Value }
-					}
-				</code>
-			</li>
-		}
-	</ul>
-}
 
 templ miText(s string) {
 	{ s }
