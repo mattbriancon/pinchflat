@@ -1,0 +1,81 @@
+package web
+
+import (
+	"context"
+	"fmt"
+	"io"
+
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
+
+// Port of lib/pinchflat_web/controllers/searches/search_html/show.html.heex.
+
+templ SearchHTMLShow(searchTerm string, searchResults []*core.MediaItem) {
+	<div class="page-header">
+		<h2 class="page-title">
+			{ fmt.Sprintf("Results for \"%s\"", searchTerm) }
+		</h2>
+	</div>
+
+	<div class="card card-body">
+		<div class="max-w-full">
+			<div class="flex flex-col gap-6 dark:text-white">
+				if len(searchResults) > 0 {
+					@TableTable(TableProps{
+						Rows:       toAny(searchResults),
+						TableClass: "text-black dark:text-white",
+						Columns: []TableColumn{
+							{
+								Label: "Title",
+								Class: "cell-wrap",
+								Render: func(row any) templ.Component {
+									result := row.(*core.MediaItem)
+									return TextSubtleLink(
+										fmt.Sprintf("/sources/%v/media/%v", result.SourceID, result.ID),
+										"",
+										buildTitleComponent(result.Title),
+									)
+								},
+							},
+							{
+								Label: "Excerpt",
+								Class: "!whitespace-normal min-w-64",
+								Render: func(row any) templ.Component {
+									result := row.(*core.MediaItem)
+									excerptText := ""
+									if result.MatchingSearchTerm != nil {
+										excerptText = *result.MatchingSearchTerm
+									}
+									return HighlightSearchTerms(excerptText)
+								},
+							},
+						},
+					})
+				} else {
+					<p class="font-bold text-lg text-center text-black dark:text-white">No results found</p>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+// Helper function to convert []*core.MediaItem to []any
+func toAny(items []*core.MediaItem) []any {
+	result := make([]any, len(items))
+	for i, item := range items {
+		result[i] = item
+	}
+	return result
+}
+
+// buildTitleComponent creates a component from a string title (pointer)
+func buildTitleComponent(title *string) templ.Component {
+	titleStr := ""
+	if title != nil {
+		titleStr = *title
+	}
+	return templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
+		_, err := io.WriteString(w, titleStr)
+		return err
+	})
+}
