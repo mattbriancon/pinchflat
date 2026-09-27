@@ -1,5 +1,10 @@
 package web
 
+import (
+	"context"
+	"fmt"
+)
+
 // Port of lib/pinchflat_web/controllers/settings/setting_html/app_info.html.heex.
 
 templ SettingHTMLAppInfo() {
@@ -12,15 +17,34 @@ templ SettingHTMLAppInfo() {
 	</div>
 	<div class="card card-body">
 		<div class="max-w-full">
-			<button class="text-center font-medium text-white whitespace-nowrap rounded-lg inline-flex items-center justify-center gap-1 px-4 py-2 text-sm bg-primary hover:bg-opacity-90 disabled:bg-opacity-50 disabled:cursor-not-allowed disabled:text-grey-5" type="button" x-data="{ copied: false }" x-on:click="copyWithCallbacks(diagnostic_info_string(), () => copied = true, () => copied = false)">
-				Copy Diagnostic Info
-				<span x-show="copied" x-transition.duration.150ms></span>
-			</button>
-			<a href="/download_logs">
-				<button class="text-center font-medium text-white whitespace-nowrap rounded-lg inline-flex items-center justify-center gap-1 px-4 py-2 text-sm bg-primary hover:bg-opacity-90 ml-4 disabled:bg-opacity-50 disabled:cursor-not-allowed disabled:text-grey-5" type="button">
-					Download Logs
-				</button>
+			@ButtonButton("bg-primary", "rounded-lg", "", "button", false, templ.Attributes{
+				"x-data":    "{ copied: false }",
+				"x-on:click": appInfoCopyScript(ctx),
+			}, appInfoCopyButtonContent())
+			<a href={ templ.URL(P(ctx, "/download_logs")) }>
+				@ButtonButton("bg-primary", "rounded-lg", "ml-4", "button", false, nil, appInfoDownloadLogsContent())
 			</a>
 		</div>
 	</div>
+}
+
+templ appInfoCopyButtonContent() {
+	Copy Diagnostic Info
+	<span x-show="copied" x-transition.duration.150ms>
+		@CoreIcon("hero-check", "ml-2 h-4 w-4", nil)
+	</span>
+}
+
+templ appInfoDownloadLogsContent() {
+	Download Logs
+}
+
+// appInfoCopyScript builds the x-on:click Alpine expression with the
+// diagnostic info string interpolated into the JS template literal, as
+// the .heex's `~s"copyWithCallbacks(`#{diagnostic_info_string()}`, ...)"` did.
+func appInfoCopyScript(ctx context.Context) string {
+	return fmt.Sprintf(
+		"\n        copyWithCallbacks(\n          `%s`, \n          () => copied = true, \n          () => copied = false\n        )\n      ",
+		DiagnosticInfoString(ctx, PageOf(ctx).Version),
+	)
 }

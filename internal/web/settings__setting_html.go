@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 )
@@ -19,23 +20,19 @@ func YoutubeAPIHelp() string {
 	return fmt.Sprintf(`API key for YouTube Data API v3. Greatly improves the accuracy of Fast Indexing. See <a href="%s" class="%s" target="_blank">here</a> for details on generating an API key`, url, helpLinkClasses())
 }
 
-// DiagnosticInfoString returns the diagnostic information string.
-// Note: This would normally pull from Settings in the database, but for simplicity
-// we're using the Elixir-style format. The actual app version should come from build info.
-func DiagnosticInfoString() string {
-	// Note: In a full port, these would be fetched from the Settings table in a context-aware way.
-	// For now, we use placeholders to match the Elixir format.
-	version := "0.1.0" // Placeholder; should come from build metadata
-	ytDlpVersion := "2024.01.01"
-	appriseVersion := "1.45.0"
+// DiagnosticInfoString returns the diagnostic information string
+// (diagnostic_info_string/0). appVersion is Application.spec(:pinchflat)[:vsn]
+// (the running server's Options.Version).
+func DiagnosticInfoString(ctx context.Context, appVersion string) string {
+	page := PageOf(ctx)
 
-	systemArch := runtime.GOARCH
-	// Timezone is not available without app context here, so we use UTC
-	tz := "UTC"
+	ytDlpVersion, _ := page.App.SettingsGetBang(ctx, "yt_dlp_version")
+	appriseVersion, _ := page.App.SettingsGetBang(ctx, "apprise_version")
+	systemArch := runtime.GOOS + "-" + runtime.GOARCH
 
 	return fmt.Sprintf(
-		"- App Version: %s\n- yt-dlp Version: %s\n- Apprise Version: %s\n- System Architecture: %s\n- Timezone: %s\n",
-		version, ytDlpVersion, appriseVersion, systemArch, tz,
+		"- App Version: %s\n- yt-dlp Version: %v\n- Apprise Version: %v\n- System Architecture: %s\n- Timezone: %s\n",
+		appVersion, ytDlpVersion, appriseVersion, systemArch, page.App.Config.Timezone,
 	)
 }
 

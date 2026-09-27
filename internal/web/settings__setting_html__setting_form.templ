@@ -5,18 +5,30 @@ import "github.com/mattbriancon/pinchflat/internal/core"
 // Port of lib/pinchflat_web/controllers/settings/setting_html/setting_form.html.heex.
 
 templ SettingHTMLSettingForm(changeset *core.Changeset, action string) {
-	<form method="POST" action={ action } x-data="{advancedMode: !!JSON.parse(localStorage.getItem('advancedMode'))}" x-init="$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))">
+	<form
+		method="post"
+		action={ action }
+		x-data="{advancedMode: !!JSON.parse(localStorage.getItem('advancedMode'))}"
+		x-init="$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))"
+	>
+		// Ecto.Changeset with a persisted (loaded) struct -> Phoenix.HTML.Form
+		// defaults to method "put", carried over the wire with the standard
+		// _method override hidden field (there is no CSRF token to emit; Go's
+		// cross-origin protection replaces it).
+		<input type="hidden" name="_method" value="put"/>
 		@formContent(FormFor(changeset, "setting"))
-		<button class="mt-6 mb-2 w-full sm:w-auto rounded-lg" type="submit">Save Settings</button>
+		@ButtonButton("bg-primary", "rounded-lg", "mt-6 mb-2 w-full sm:w-auto", "submit", false, nil, saveSettingsButtonContent())
 	</form>
+}
+
+templ saveSettingsButtonContent() {
+	Save Settings
 }
 
 // Helper that will be implemented in Go: we need to get the core package reference
 templ formContent(f *Form) {
 	if f.HasErrors() {
-		<div class="mb-4 p-4 rounded-lg bg-red-500/15 border border-red-500/40">
-			<p class="text-white font-semibold">Oops, something went wrong! Please check the errors below.</p>
-		</div>
+		@CoreError("Oops, something went wrong! Please check the errors below.")
 	}
 
 	<section>

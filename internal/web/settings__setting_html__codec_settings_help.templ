@@ -8,14 +8,14 @@ templ SettingHTMLCodecSettingsHelp() {
 		<section class="ml-2 md:ml-4 mb-2 max-w-prose">
 			<p>
 				Some users may want to specify the audio codec that <code class="text-sm">yt-dlp</code>
-				searches { "for" } when downloading content. { "For" } these users, you can specify one audio and video
+				searches { "for" } when downloading content. For these users, you can specify one audio and video
 				codec to prefer above all others.
 			</p>
 			<p class="mt-4">
 				NOTE: this is a <em>soft</em>
 				preference. If the codec you specify is not available, <code class="text-sm">yt-dlp</code>
 				will download the next best available codec. This is expected and intended behavior.
-				<a href="https://github.com/yt-dlp/yt-dlp#sorting-formats">See here</a>
+				@TextInlineLinkString("https://github.com/yt-dlp/yt-dlp#sorting-formats", "See here")
 				{ "for" } more information and a list of available codecs.
 			</p>
 		</section>
