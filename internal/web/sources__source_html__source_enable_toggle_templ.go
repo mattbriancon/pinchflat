@@ -14,9 +14,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import "fmt"
 
-// SourceEnableToggleRender is render/1 (update/2's assigns.form is
-// Sources.change_source(%Source{}, source), whose only visible effect here
-// is the current `enabled` value).
+// SourceEnableToggleRender renders the enabled toggle for a source.
 func SourceEnableToggleRender(sourceID int64, enabled bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -45,7 +43,7 @@ func SourceEnableToggleRender(sourceID int64, enabled bool) templ.Component {
 		var templ_7745c5c3_Var2 templ.SafeURL
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/sources/%v/enabled", sourceID)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_enable_toggle.templ`, Line: 17, Col: 62}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_enable_toggle.templ`, Line: 15, Col: 62}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
