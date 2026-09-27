@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/core"
@@ -49,7 +51,28 @@ func RenderMetadata(metadataName string) (string, error) {
 		return "", err
 	}
 
-	return string(content), nil
+	// The fixtures were recorded in the Elixir test container, so their
+	// filepaths start with /app/tmp. Point them at a writable directory:
+	// CI runs as a normal user and can't create /app.
+	return strings.ReplaceAll(string(content), "/app/tmp/", fixtureTmpDir()+"/"), nil
+}
+
+var (
+	fixtureTmpOnce sync.Once
+	fixtureTmp     string
+)
+
+// fixtureTmpDir is a per-process directory standing in for the fixtures'
+// /app/tmp.
+func fixtureTmpDir() string {
+	fixtureTmpOnce.Do(func() {
+		dir, err := os.MkdirTemp("", "pinchflat-fixtures-")
+		if err != nil {
+			panic(err)
+		}
+		fixtureTmp = dir
+	})
+	return fixtureTmp
 }
 
 // RenderMetadataWithFixedPaths reads a JSON metadata file and fixes hardcoded paths to work in the test environment.
