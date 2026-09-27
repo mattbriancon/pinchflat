@@ -15,3 +15,6 @@ Regenerate only if the Elixir code changes; do not hand-edit.
 captured with `mix ecto.migrate --log-migrations-sql` (statements separated by `-- +statement`).
 
 Elixir baseline at capture time: `mix test` → 972 tests, 0 failures.
+
+The Elixir app was deleted at cutover. To re-run `capture.sh`, check out
+commit `5ae7e94` (the last one containing it).

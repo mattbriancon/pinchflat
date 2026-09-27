@@ -24,7 +24,5 @@ jobs:
         run: go vet ./...
       - name: Test
         run: go test ./... -count=1
-      - name: Test parity with the Elixir suite
-        run: python3 docs/go-port/parity.py || true
       - name: Build
         run: CGO_ENABLED=0 go build ./cmd/pinchflat

@@ -1,75 +1,32 @@
-# Find eligible builder and runner images on Docker Hub. We use Ubuntu/Debian
-# instead of Alpine to avoid DNS resolution issues in production.
-ARG ELIXIR_VERSION=1.18.4
-ARG OTP_VERSION=27.2.4
+# Pinchflat (Go). The runtime layer matches the former Elixir image: same
+# tools (minus apprise), volumes, env, port and healthcheck.
+ARG GO_VERSION=1.25
 ARG DEBIAN_VERSION=bookworm-20250428-slim
-
-ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
 ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
 
-FROM ${BUILDER_IMAGE} AS builder
+FROM golang:${GO_VERSION}-bookworm AS builder
 
 ARG TARGETPLATFORM
+ARG VERSION=dev
 RUN echo "Building for ${TARGETPLATFORM:?}"
 
-# install build dependencies
-RUN apt-get update -y && \
-    # System packages
-    apt-get install -y \
-      build-essential \
-      git \
-      curl && \
-    # Node.js and Yarn
-    curl -sL https://deb.nodesource.com/setup_20.x -o nodesource_setup.sh && \
-    bash nodesource_setup.sh && \
-    apt-get install -y nodejs && \
-    npm install -g yarn && \
-    # Hex and Rebar
-    mix local.hex --force && \
-    mix local.rebar --force && \
-    # FFmpeg: yt-dlp's recommended build, always the current one. The previous
-    # pin (autobuild-2024-07-30-14-10, chosen to dodge #347) has since been
-    # pruned from yt-dlp/FFmpeg-Builds, which keeps only recent autobuilds.
-    export FFMPEG_DOWNLOAD=$(case ${TARGETPLATFORM:-linux/amd64} in \
+# FFmpeg: yt-dlp's recommended build, always the current one.
+RUN export FFMPEG_DOWNLOAD=$(case ${TARGETPLATFORM:-linux/amd64} in \
     "linux/amd64")   echo "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"   ;; \
     "linux/arm64")   echo "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz" ;; \
     *)               echo ""        ;; esac) && \
     curl -fL ${FFMPEG_DOWNLOAD} --output /tmp/ffmpeg.tar.xz && \
     tar -xf /tmp/ffmpeg.tar.xz --strip-components=2 --no-anchored -C /usr/local/bin/ "ffmpeg" && \
-    tar -xf /tmp/ffmpeg.tar.xz --strip-components=2 --no-anchored -C /usr/local/bin/ "ffprobe" && \
-    # Cleanup
-    apt-get clean && \
-    rm -f /var/lib/apt/lists/*_*
+    tar -xf /tmp/ffmpeg.tar.xz --strip-components=2 --no-anchored -C /usr/local/bin/ "ffprobe"
 
-# prepare build dir
-WORKDIR /app
-
-# set build ENV
-ENV MIX_ENV="prod"
-ENV ERL_FLAGS="+JPperf true"
-
-# install mix dependencies
-COPY mix.exs mix.lock ./
-RUN mix deps.get --only $MIX_ENV && mkdir config
-
-# copy compile-time config files before we compile dependencies
-# to ensure any relevant config change will trigger the dependencies
-# to be re-compiled.
-COPY config/config.exs config/${MIX_ENV}.exs config/
-RUN mix deps.compile
-
-COPY priv priv
-COPY lib lib
-COPY assets assets
-
-# Compile assets
-RUN yarn --cwd assets install && mix assets.deploy && mix compile
-
-# Changes to config/runtime.exs don't require recompiling the code
-COPY config/runtime.exs config/
-
-COPY rel rel
-RUN mix release
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY cmd cmd
+COPY internal internal
+# Templates (_templ.go) and CSS/JS (internal/web/static/assets) are generated
+# and committed, so no Node, templ or Tailwind is needed here.
+RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /out/pinchflat ./cmd/pinchflat
 
 ## -- Release Stage --
 
@@ -78,34 +35,26 @@ FROM ${RUNNER_IMAGE}
 ARG TARGETPLATFORM
 ARG PORT=8945
 
-COPY --from=builder ./usr/local/bin/ffmpeg /usr/bin/ffmpeg
-COPY --from=builder ./usr/local/bin/ffprobe /usr/bin/ffprobe
+COPY --from=builder /usr/local/bin/ffmpeg /usr/bin/ffmpeg
+COPY --from=builder /usr/local/bin/ffprobe /usr/bin/ffprobe
 
 RUN apt-get update -y && \
-    # System packages
     apt-get install -y \
-      libstdc++6 \
-      openssl \
-      libncurses5 \
       locales \
       ca-certificates \
+      tzdata \
       python3-mutagen \
       curl \
       zip \
       openssh-client \
       nano \
       python3 \
-      pipx \
       jq \
       # unzip is needed for Deno
       unzip \
       procps && \
     # Install Deno - required for YouTube downloads (See yt-dlp#14404)
     curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh -s -- -y --no-modify-path && \
-    # Apprise
-    export PIPX_HOME=/opt/pipx && \
-    export PIPX_BIN_DIR=/usr/local/bin && \
-    pipx install apprise && \
     # yt-dlp
     export YT_DLP_DOWNLOAD=$(case ${TARGETPLATFORM:-linux/amd64} in \
     "linux/amd64")   echo "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux"   ;; \
@@ -114,35 +63,31 @@ RUN apt-get update -y && \
     curl -L ${YT_DLP_DOWNLOAD} -o /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp && \
     yt-dlp -U && \
-    # Set the locale
     sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen && \
-    # Clean up
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# More locale setup
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 
 WORKDIR "/app"
 
-# Set up data volumes
-RUN mkdir -p /config /downloads /etc/elixir_tzdata_data /etc/yt-dlp/plugins && \ 
-  chmod ugo+rw /etc/elixir_tzdata_data /etc/yt-dlp /etc/yt-dlp/plugins /usr/local/bin /usr/local/bin/yt-dlp
+RUN mkdir -p /config /downloads /etc/yt-dlp/plugins /app/bin && \
+  chmod ugo+rw /etc/yt-dlp /etc/yt-dlp/plugins /usr/local/bin /usr/local/bin/yt-dlp
 
-# set runner ENV
-ENV MIX_ENV="prod"
 ENV PORT=${PORT}
 ENV RUN_CONTEXT="selfhosted"
 ENV UMASK=022
 EXPOSE ${PORT}
 
-# Only copy the final release from the build stage
-COPY --from=builder /app/_build/${MIX_ENV}/rel/pinchflat ./
+COPY --from=builder /out/pinchflat /app/bin/pinchflat
+# Old entrypoints kept for compose files that reference them.
+RUN printf '#!/bin/sh\nexec /app/bin/pinchflat start "$@"\n' > /app/bin/docker_start && \
+    printf '#!/bin/sh\nexec /app/bin/pinchflat migrate "$@"\n' > /app/bin/migrate && \
+    chmod a+rx /app/bin/docker_start /app/bin/migrate
 
 HEALTHCHECK --interval=30s --start-period=15s \
   CMD curl --fail http://localhost:${PORT}/healthcheck || exit 1
 
-# Start the app
-CMD ["/app/bin/docker_start"]
+CMD ["/app/bin/pinchflat"]

@@ -1,6 +1,8 @@
 # Porting Pinchflat to Go — Strategy
 
-Status: proposal. Companion file: [`MANIFEST.md`](./MANIFEST.md) (one row per `lib/` file → Go target, wave, and test to port).
+> **Status:** Phase 1 done. Every Elixir test had a same-named Go test (970/970) before the Elixir tree was deleted (W5). The last commit with the Elixir app, `parity.py` and the capture tooling is `5ae7e94`. Later decisions are in §11.
+
+Companion file: [`MANIFEST.md`](./MANIFEST.md) (one row per `lib/` file → Go target, wave, and test to port).
 
 ## 0. TL;DR
 
