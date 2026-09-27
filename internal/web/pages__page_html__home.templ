@@ -1,0 +1,68 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/pages/page_html/home.html.heex.
+
+import "context"
+
+templ PagesPageHTMLHome(ctx context.Context, mediaProfileCount, sourceCount, mediaItemCount, mediaItemSize int64) {
+	<div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+		<div class="card flex flex-col justify-center px-3 py-2.5 sm:px-4 sm:py-3">
+			<a href={ templ.URL(P(ctx, "/media_profiles")) } class="flex flex-col">
+				<span class="text-xs font-medium uppercase tracking-wide text-bodydark2">
+					Media @TextPluralize("Profile", int(mediaProfileCount), "")
+				</span>
+				<h4 class="text-xl font-bold text-white sm:text-2xl">
+					@TextLocalizedNumber(int(mediaProfileCount))
+				</h4>
+			</a>
+		</div>
+		<div class="card flex flex-col justify-center px-3 py-2.5 sm:px-4 sm:py-3">
+			<a href={ templ.URL(P(ctx, "/sources")) } class="flex flex-col">
+				<span class="text-xs font-medium uppercase tracking-wide text-bodydark2">
+					@TextPluralize("Source", int(sourceCount), "")
+				</span>
+				<h4 class="text-xl font-bold text-white sm:text-2xl">
+					@TextLocalizedNumber(int(sourceCount))
+				</h4>
+			</a>
+		</div>
+		<div class="card flex flex-col justify-center px-3 py-2.5 sm:px-4 sm:py-3">
+			<span class="flex flex-col">
+				<span class="text-xs font-medium uppercase tracking-wide text-bodydark2">
+					@TextPluralize("Download", int(mediaItemCount), "")
+				</span>
+				<h4 class="text-xl font-bold text-white sm:text-2xl">
+					@TextLocalizedNumber(int(mediaItemCount))
+				</h4>
+			</span>
+		</div>
+		<div class="card flex flex-col justify-center px-3 py-2.5 sm:px-4 sm:py-3">
+			<span class="flex flex-col">
+				<span class="text-xs font-medium uppercase tracking-wide text-bodydark2">Library Size</span>
+				<h4 class="text-xl font-bold text-white sm:text-2xl">
+					@TextReadableFilesize(mediaItemSize)
+				</h4>
+			</span>
+		</div>
+	</div>
+	<div class="card card-body mt-3">
+		<h2 class="section-title">Media History</h2>
+		@TabTabbedLayout([]TabTab{
+			{
+				Title: "Downloaded",
+				ID: "downloaded",
+				Content: PagesPageHTMLHistoryTableLiveWrapper(ctx, "downloaded"),
+			},
+			{
+				Title: "Pending",
+				ID: "pending",
+				Content: PagesPageHTMLHistoryTableLiveWrapper(ctx, "pending"),
+			},
+			{
+				Title: "Active Tasks",
+				ID: "active-tasks",
+				Content: PagesPageHTMLJobTableLiveWrapper(ctx),
+			},
+		}, nil)
+	</div>
+}

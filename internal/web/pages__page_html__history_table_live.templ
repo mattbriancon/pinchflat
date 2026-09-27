@@ -1,0 +1,139 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/pages/page_html/history_table_live.ex.
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/db"
+)
+
+// PagesPageHTMLHistoryTableLiveWrapper wraps the history table with htmx.
+templ PagesPageHTMLHistoryTableLiveWrapper(ctx context.Context, mediaState string) {
+	<div
+		id={ fmt.Sprintf("history-table-%s", mediaState) }
+		hx-get={ fmt.Sprintf("/_live/history?media_state=%s&page=1", mediaState) }
+		hx-trigger="load"
+		hx-swap="outerHTML"
+	>
+		Loading...
+	</div>
+}
+
+// PagesPageHTMLHistoryTableLiveContent renders the content of the history table.
+templ PagesPageHTMLHistoryTableLiveContent(ctx context.Context, page, totalPages int, records []*core.MediaItem, totalRecordCount int) {
+	if len(records) == 0 {
+		<div class="mb-4 flex items-center">
+			<button hx-get="/_live/history" hx-target="closest div" hx-swap="outerHTML" class="h-8 w-8">
+				@CoreIcon("hero-arrow-path", "", nil)
+			</button>
+			<p class="ml-2">Nothing Here!</p>
+		</div>
+	} else {
+		<div>
+			<span class="mb-4 flex items-center">
+				<button hx-get="/_live/history" hx-target="closest div" hx-swap="outerHTML" class="h-8 w-8" title="Refresh">
+					@CoreIcon("hero-arrow-path", "", nil)
+				</button>
+				<span class="ml-2">
+					Showing @TextLocalizedNumber(len(records)) of @TextLocalizedNumber(totalRecordCount)
+				</span>
+			</span>
+			@historyTableContentTable(ctx, records)
+			<section class="flex justify-center mt-5">
+				@TableLivePaginationControls(page, totalPages, historyTablePrevAttrs(page), historyTableNextAttrs(page, totalPages))
+			</section>
+		</div>
+	}
+}
+
+// historyTableContentTable renders the table rows for the history table.
+templ historyTableContentTable(ctx context.Context, records []*core.MediaItem) {
+	<div class="max-w-full overflow-x-auto">
+		<table class="w-full table-auto bg-boxdark text-sm text-white">
+			<thead>
+				<tr class="text-left bg-meta-4 border-b border-strokedark">
+					<th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-bodydark2 whitespace-nowrap">Title</th>
+					<th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-bodydark2 whitespace-nowrap">Upload Date</th>
+					<th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-bodydark2 whitespace-nowrap">Indexed At</th>
+					<th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-bodydark2 whitespace-nowrap">Downloaded At</th>
+					<th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-bodydark2 whitespace-nowrap">Source</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, mi := range records {
+					<tr class="border-b border-strokedark last:border-b-0 hover:bg-meta-4">
+						<td class="px-3 py-2 whitespace-nowrap cell-wrap">
+							<section class="flex items-start gap-1">
+								if mi.LastError != nil {
+									<span title={ derefString(mi.LastError) } class="text-red-500">
+										@CoreIcon("hero-exclamation-circle-solid", "", nil)
+									</span>
+								}
+								<span>
+									<a href={ templ.URL(P(ctx, "/sources/%v/media/%v", mi.SourceID, mi.ID)) } class="underline">
+										{ derefString(mi.Title) }
+									</a>
+								</span>
+							</section>
+						</td>
+						<td class="px-3 py-2 whitespace-nowrap">
+							{ mi.UploadedAt.Format("2006-01-02") }
+						</td>
+						<td class="px-3 py-2 whitespace-nowrap">
+							{ historyTableFormatDatetime(&mi.InsertedAt) }
+						</td>
+						<td class="px-3 py-2 whitespace-nowrap">
+							{ historyTableFormatDatetime(mi.MediaDownloadedAt) }
+						</td>
+						<td class="px-3 py-2 whitespace-nowrap">
+							if mi.Source != nil {
+								<a href={ templ.URL(P(ctx, "/sources/%v", mi.SourceID)) } class="underline">
+									{ mi.Source.CustomName }
+								</a>
+							}
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+func historyTableFormatDatetime(t *db.UTCDateTime) string {
+	if t == nil {
+		return ""
+	}
+	return t.Time.Format("2006-01-02 15:04")
+}
+
+func derefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+func historyTablePrevAttrs(page int) templ.Attributes {
+	if page <= 1 {
+		return nil
+	}
+	return templ.Attributes{
+		"hx-get":    fmt.Sprintf("/_live/history?page=%d", page-1),
+		"hx-target": "closest div",
+		"hx-swap":   "outerHTML",
+	}
+}
+
+func historyTableNextAttrs(page, totalPages int) templ.Attributes {
+	if page >= totalPages {
+		return nil
+	}
+	return templ.Attributes{
+		"hx-get":    fmt.Sprintf("/_live/history?page=%d", page+1),
+		"hx-target": "closest div",
+		"hx-swap":   "outerHTML",
+	}
+}

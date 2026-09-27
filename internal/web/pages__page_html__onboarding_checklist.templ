@@ -1,0 +1,61 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/pages/page_html/onboarding_checklist.html.heex.
+
+import "context"
+
+templ PagesPageHTMLOnboardingChecklist(ctx context.Context, mediaProfilesExist, sourcesExist bool) {
+	<div class="card card-body">
+		<div class="max-w-full overflow-x-auto">
+			<div class="flex flex-col gap-10 items-center dark:text-white">
+				<section class="text-center">
+					<h2 class="text-3xl font-bold">Welcome to Pinchflat</h2>
+					<p class="text-lg text-bodydark">Getting started is easy</p>
+				</section>
+				<section class={ templ.KV("opacity-20", mediaProfilesExist), "text-center" }>
+					<h3 class="text-xl font-bold">1. Create a Media Profile</h3>
+					<p class="text-md text-bodydark">Media Profiles set your preferences for fetching and downloading media.</p>
+					<p class="text-md text-bodydark">Don't worry, you can create more Media Profiles later!</p>
+					<div class="mt-8">
+						<a href={ templ.URL(P(ctx, "/media_profiles/new")) }>
+							@ButtonButton("bg-primary", "rounded-lg", "", "button", mediaProfilesExist, nil, onboardingButtonContent("hero-plus", "New Media Profile"))
+						</a>
+					</div>
+				</section>
+				<section class={ templ.KV("opacity-20", !mediaProfilesExist || sourcesExist), "text-center" }>
+					<h3 class="text-xl font-bold">2. Create a Source</h3>
+					<p class="text-md text-bodydark">Sources are the channels and playlists you want to download.</p>
+					<p class="text-md text-bodydark">
+						Each Media Profile can control many Sources so it's easy to add more content!
+					</p>
+					<div class="mt-8">
+						<a href={ templ.URL(P(ctx, "/sources/new")) }>
+							@ButtonButton("bg-primary", "rounded-lg", "", "button", !mediaProfilesExist, nil, onboardingButtonContent("hero-plus", "New Source"))
+						</a>
+					</div>
+				</section>
+				<section class={ templ.KV("opacity-20", !sourcesExist), "text-center" }>
+					<h3 class="text-xl font-bold">3. That's it!</h3>
+					<p class="text-md text-bodydark">Everything is set up and running based on your preferences.</p>
+					<p class="text-md text-bodydark">
+						Remember that indexing and downloading media can take a while, many hours for a large source.
+					</p>
+					<p class="text-md text-bodydark">Feel free to add more Media Profiles or Sources in the meantime!</p>
+					<div class="mt-8">
+						<a href={ templ.URL(P(ctx, "/?onboarding=0")) }>
+							@ButtonButton("bg-primary", "rounded-lg", "", "button", !sourcesExist, nil, onboardingButtonContent("", "Let's Go 🚀"))
+						</a>
+					</div>
+				</section>
+			</div>
+		</div>
+	</div>
+}
+
+// onboardingButtonContent creates button content with optional icon.
+templ onboardingButtonContent(icon, text string) {
+	if icon != "" {
+		@CoreIcon(icon, "h-4 w-4", nil)
+	}
+	{ text }
+}
