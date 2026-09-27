@@ -8,47 +8,57 @@ import (
 )
 
 func TestUpdateWorker_Perform(t *testing.T) {
-	t.Run("calls the yt-dlp runner to update yt-dlp", func(t *testing.T) {
-		ta := coretest.NewApp(t)
+	t.Parallel()
+	tests := []struct {
+		name        string
+		versionResp string
+		expectVer   string
+	}{
+		{
+			name:        "calls yt-dlp runner to update",
+			versionResp: "",
+			expectVer:   "",
+		},
+		{
+			name:        "saves new version to database",
+			versionResp: "1.2.3",
+			expectVer:   "1.2.3",
+		},
+	}
 
-		ta.YtDlpMock.Update.Expect(func() (string, error) {
-			return "", nil
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ta := coretest.NewApp(t)
+
+			ta.YtDlpMock.Update.Expect(func() (string, error) {
+				return "", nil
+			})
+			ta.YtDlpMock.Version.Expect(func() (string, error) {
+				return tt.versionResp, nil
+			})
+
+			err := ta.Oban.PerformJob(ta.Ctx, core.UpdateWorkerName, map[string]any{})
+			if err != nil {
+				t.Fatalf("PerformJob failed: %v", err)
+			}
+
+			if tt.expectVer != "" {
+				val, err := ta.SettingsGet(ta.Ctx, "yt_dlp_version")
+				if err != nil {
+					t.Fatalf("SettingsGet failed: %v", err)
+				}
+
+				var version string
+				if v, ok := val.(*string); ok && v != nil {
+					version = *v
+				} else if v, ok := val.(string); ok {
+					version = v
+				}
+				if version != tt.expectVer {
+					t.Errorf("expected version %q, got %q", tt.expectVer, version)
+				}
+			}
 		})
-		ta.YtDlpMock.Version.Expect(func() (string, error) {
-			return "", nil
-		})
-
-		err := ta.Oban.PerformJob(ta.Ctx, core.UpdateWorkerName, map[string]any{})
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
-	})
-
-	t.Run("saves the new version to the database", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-
-		ta.YtDlpMock.Update.Expect(func() (string, error) {
-			return "", nil
-		})
-		ta.YtDlpMock.Version.Expect(func() (string, error) {
-			return "1.2.3", nil
-		})
-
-		ta.Oban.PerformJob(ta.Ctx, core.UpdateWorkerName, map[string]any{})
-
-		val, err := ta.SettingsGet(ta.Ctx, "yt_dlp_version")
-		if err != nil {
-			t.Errorf("Failed to get yt_dlp_version: %v", err)
-		}
-
-		var version string
-		if v, ok := val.(*string); ok && v != nil {
-			version = *v
-		} else if v, ok := val.(string); ok {
-			version = v
-		}
-		if version != "1.2.3" {
-			t.Errorf("Expected yt_dlp_version to be '1.2.3', got %v (type: %T)", val, val)
-		}
-	})
+	}
 }

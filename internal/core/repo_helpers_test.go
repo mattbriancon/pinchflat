@@ -9,10 +9,9 @@ import (
 )
 
 func TestRepoHelpers_InsertUniqueJob(t *testing.T) {
-	ta := coretest.NewApp(t)
-
-	t.Run("returns {:ok, job} if there is no conflict", func(t *testing.T) {
-		// Register the test worker
+	t.Run("no conflict", func(t *testing.T) {
+		t.Parallel()
+		ta := coretest.NewApp(t)
 		ta.Oban.Register(coretest.TestJobWorkerName, obanlite.WorkerOpts{Queue: "default"}, coretest.TestJobWorker{})
 
 		spec := obanlite.NewJob(coretest.TestJobWorkerName, map[string]any{})
@@ -21,15 +20,16 @@ func TestRepoHelpers_InsertUniqueJob(t *testing.T) {
 			t.Fatalf("InsertUniqueJob failed: %v", err)
 		}
 		if job == nil {
-			t.Fatalf("expected Job, got nil")
+			t.Fatalf("expected Job")
 		}
 		if duplicate {
-			t.Errorf("expected duplicate=false, got true")
+			t.Errorf("expected duplicate=false")
 		}
 	})
 
-	t.Run("returns {:duplicate, original_job} if there is a conflict", func(t *testing.T) {
-		// Register the test worker
+	t.Run("duplicate", func(t *testing.T) {
+		t.Parallel()
+		ta := coretest.NewApp(t)
 		ta.Oban.Register(coretest.TestJobWorkerName, obanlite.WorkerOpts{Queue: "default"}, coretest.TestJobWorker{})
 
 		spec := obanlite.NewJob(coretest.TestJobWorkerName, map[string]any{"foo": "bar"})
@@ -40,10 +40,10 @@ func TestRepoHelpers_InsertUniqueJob(t *testing.T) {
 			t.Fatalf("first InsertUniqueJob failed: %v", err)
 		}
 		if job1 == nil {
-			t.Fatalf("expected Job, got nil")
+			t.Fatalf("expected Job")
 		}
 		if duplicate1 {
-			t.Errorf("expected duplicate=false for first insert, got true")
+			t.Errorf("expected duplicate=false for first insert")
 		}
 
 		job2, duplicate2, err := ta.InsertUniqueJob(ta.Ctx, spec)
@@ -51,56 +51,54 @@ func TestRepoHelpers_InsertUniqueJob(t *testing.T) {
 			t.Fatalf("second InsertUniqueJob failed: %v", err)
 		}
 		if job2 == nil {
-			t.Fatalf("expected Job, got nil")
+			t.Fatalf("expected Job")
 		}
 		if !duplicate2 {
-			t.Errorf("expected duplicate=true for second insert, got false")
+			t.Errorf("expected duplicate=true for second insert")
 		}
 		if job1.ID != job2.ID {
 			t.Errorf("expected same job ID %d, got %d", job1.ID, job2.ID)
 		}
 	})
 
-	t.Run("returns the error if there is an error", func(t *testing.T) {
-		// In Go, we pass an empty/invalid spec to Oban and expect an error
-		spec := obanlite.JobSpec{Worker: ""} // Missing worker name should cause an error
+	t.Run("error", func(t *testing.T) {
+		t.Parallel()
+		ta := coretest.NewApp(t)
+		spec := obanlite.JobSpec{Worker: ""}
 		_, _, err := ta.InsertUniqueJob(ta.Ctx, spec)
 		if err == nil {
-			t.Errorf("expected error, got nil")
+			t.Errorf("expected error for invalid job spec")
 		}
 	})
 }
 
 func TestRepoHelpers_MaybeLimit(t *testing.T) {
-	t.Run("applies a limit if provided", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		coretest.MediaProfileFixture(t, ta, core.Attrs{})
-		coretest.MediaProfileFixture(t, ta, core.Attrs{})
+	t.Parallel()
+	tests := []struct {
+		name          string
+		limit         *int
+		expectedCount int
+	}{
+		{"with limit", core.Ptr(1), 1},
+		{"without limit", nil, 2},
+	}
 
-		q := core.From[core.MediaProfile]()
-		q = core.MaybeLimit(q, core.Ptr(1))
-		count, err := core.Scalar[int](ta.Ctx, ta.Q(ta.Ctx), core.SQ.Select("COUNT(*)").FromSelect(q, "mp"))
-		if err != nil {
-			t.Fatalf("Scalar failed: %v", err)
-		}
-		if count != 1 {
-			t.Errorf("expected count 1, got %d", count)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ta := coretest.NewApp(t)
+			coretest.MediaProfileFixture(t, ta, core.Attrs{})
+			coretest.MediaProfileFixture(t, ta, core.Attrs{})
 
-	t.Run("does not apply a limit if not provided", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		coretest.MediaProfileFixture(t, ta, core.Attrs{})
-		coretest.MediaProfileFixture(t, ta, core.Attrs{})
-
-		q := core.From[core.MediaProfile]()
-		q = core.MaybeLimit(q, nil)
-		count, err := core.Scalar[int](ta.Ctx, ta.Q(ta.Ctx), core.SQ.Select("COUNT(*)").FromSelect(q, "mp"))
-		if err != nil {
-			t.Fatalf("Scalar failed: %v", err)
-		}
-		if count != 2 {
-			t.Errorf("expected count 2, got %d", count)
-		}
-	})
+			q := core.From[core.MediaProfile]()
+			q = core.MaybeLimit(q, tt.limit)
+			count, err := core.Scalar[int](ta.Ctx, ta.Q(ta.Ctx), core.SQ.Select("COUNT(*)").FromSelect(q, "mp"))
+			if err != nil {
+				t.Fatalf("Scalar failed: %v", err)
+			}
+			if count != tt.expectedCount {
+				t.Errorf("expected count %d, got %d", tt.expectedCount, count)
+			}
+		})
+	}
 }

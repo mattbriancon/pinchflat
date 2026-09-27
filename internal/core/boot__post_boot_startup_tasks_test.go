@@ -9,21 +9,18 @@ import (
 )
 
 func TestPostBootStartupTasks_UpdateYtDlp(t *testing.T) {
-	t.Run("enqueues an update job", func(t *testing.T) {
-		ta := coretest.NewApp(t)
+	t.Parallel()
+	ta := coretest.NewApp(t)
 
-		enqueued := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.UpdateWorkerName})
-		if len(enqueued) != 0 {
-			t.Errorf("Expected no jobs enqueued, got %d", len(enqueued))
-		}
+	if len(ta.Oban.Enqueued(t, obanlite.Match{Worker: core.UpdateWorkerName})) != 0 {
+		t.Errorf("expected no jobs initially")
+	}
 
-		if err := ta.PostBootStartupTasksInit(ta.Ctx); err != nil {
-			t.Errorf("PostBootStartupTasksInit failed: %v", err)
-		}
+	if err := ta.PostBootStartupTasksInit(ta.Ctx); err != nil {
+		t.Fatalf("PostBootStartupTasksInit failed: %v", err)
+	}
 
-		enqueued = ta.Oban.Enqueued(t, obanlite.Match{Worker: core.UpdateWorkerName})
-		if len(enqueued) != 1 {
-			t.Errorf("Expected 1 job enqueued, got %d", len(enqueued))
-		}
-	})
+	if len(ta.Oban.Enqueued(t, obanlite.Match{Worker: core.UpdateWorkerName})) != 1 {
+		t.Errorf("expected 1 job enqueued")
+	}
 }

@@ -14,6 +14,7 @@ import (
 // The JSON given to user scripts must match what the Elixir encoders wrote.
 func TestSourceAndProfileJSONMatchElixirGolden(t *testing.T) {
 	app, ctx := goldenApp(t)
+
 	decode := func(b []byte) map[string]any {
 		var m map[string]any
 		if err := json.Unmarshal(b, &m); err != nil {
@@ -45,6 +46,7 @@ func TestSourceAndProfileJSONMatchElixirGolden(t *testing.T) {
 			t.Errorf("source JSON differs\n got: %v\nwant: %v", got, want)
 		}
 	})
+
 	t.Run("media profile", func(t *testing.T) {
 		p, err := core.MustOne[core.MediaProfile](ctx, app.DB, core.From[core.MediaProfile]().Where(sq.Eq{"id": 2}))
 		if err != nil {
