@@ -2,13 +2,20 @@ package web
 
 // Port of lib/pinchflat_web/components/custom_components/tab_components.ex.
 // tabs.js (web/assets/js/tabs.js) provides getTabFromHash/setTabByName.
+//
+// Tabs are still switched client-side (no reload), but since paging/search
+// inside a tab now reloads the whole page (STRATEGY.md decision 4), the
+// selected tab is also carried as the ?tab= query param so a reload lands
+// back on it; tabInitialID reads it, falling back to the URL hash, then the
+// first tab.
 
 // TabTabbedLayout is tabbed_layout/1: tabs is required and non-empty, like
 // the Elixir version (hd(assigns.tab)).
 templ TabTabbedLayout(tabs []TabTab, tabAppend templ.Component) {
+	{{ initialTab := tabInitialID(ctx, tabs) }}
 	<div
-		x-data={ "{ openTab: getTabFromHash('" + tabFirstID(tabs) + "', '" + tabFirstID(tabs) + "'), activeClasses: 'text-white border-meta-5', inactiveClasses: 'border-transparent' }" }
-		x-on:hashchange.window={ "openTab = getTabFromHash(openTab, '" + tabFirstID(tabs) + "')" }
+		x-data={ "{ openTab: getTabFromHash('" + initialTab + "', '" + initialTab + "'), activeClasses: 'text-white border-meta-5', inactiveClasses: 'border-transparent' }" }
+		x-on:hashchange.window={ "openTab = getTabFromHash(openTab, '" + initialTab + "')" }
 		class="w-full"
 	>
 		<header class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-b border-strokedark">

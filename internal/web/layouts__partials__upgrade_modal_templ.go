@@ -9,8 +9,10 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 // Port of lib/pinchflat_web/components/layouts/partials/upgrade_modal.heex.
-// {live_render(@conn, Pinchflat.UpgradeButtonLive)} becomes an inline Alpine
-// component (see layouts__partials__upgrade_button_live.go).
+// {live_render(@conn, Pinchflat.UpgradeButtonLive)} becomes a plain form
+// POST to /settings/pro that redirects back (STRATEGY.md decision 4: no
+// htmx); Alpine still disables the button until the typed text matches (see
+// SettingControllerUnlockPro).
 func upgradeModalContent() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -63,7 +65,7 @@ func upgradeModalContent() templ.Component {
 		var templ_7745c5c3_Var2 templ.SafeURL
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("https://github.com/github/dmca/blob/9a85e0f021f7967af80e186b890776a50443f06c/2020/11/2020-11-16-RIAA-reversal-effletter.pdf"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `layouts__partials__upgrade_modal.templ`, Line: 22, Col: 149}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `layouts__partials__upgrade_modal.templ`, Line: 24, Col: 149}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -85,20 +87,20 @@ func upgradeModalContent() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "into the text box and press the button.</p><form id=\"upgradeForm\" data-suppress-enter=\"true\" hx-post=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "into the text box and press the button.</p><form id=\"upgradeForm\" method=\"post\" action=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(P(ctx, "/_live/upgrade"))
+		var templ_7745c5c3_Var3 templ.SafeURL
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/settings/pro")))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `layouts__partials__upgrade_modal.templ`, Line: 32, Col: 86}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `layouts__partials__upgrade_modal.templ`, Line: 34, Col: 82}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" hx-trigger=\"input changed\" hx-swap=\"none\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" data-suppress-enter=\"true\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -106,7 +108,7 @@ func upgradeModalContent() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</form><button class=\"text-center font-medium text-white whitespace-nowrap rounded-sm inline-flex items-center justify-center gap-1 px-4 py-2 text-sm bg-primary hover:bg-opacity-90 disabled:bg-opacity-50 disabled:cursor-not-allowed disabled:text-grey-5 w-full mt-4\" type=\"button\" x-bind:disabled=\"text.trim().toLowerCase() !== 'got it'\" x-on:click=\"hideModal('upgrade-modal'); setTimeout(() => { proEnabled = true }, 200)\">Unlock Pro</button></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<button class=\"text-center font-medium text-white whitespace-nowrap rounded-sm inline-flex items-center justify-center gap-1 px-4 py-2 text-sm bg-primary hover:bg-opacity-90 disabled:bg-opacity-50 disabled:cursor-not-allowed disabled:text-grey-5 w-full mt-4\" type=\"submit\" x-bind:disabled=\"text.trim().toLowerCase() !== 'got it'\">Unlock Pro</button></form></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

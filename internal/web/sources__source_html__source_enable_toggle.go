@@ -12,11 +12,11 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
-// SourceEnableToggleUpdate is handle_event("update", %{"source" =>
-// source_params}, socket): it persists the toggle and re-renders the
-// fragment. Like the Elixir version, an update failure (e.g. a bad
-// changeset) is silently ignored -- Sources.update_source's result is never
-// pattern-matched there either.
+// SourceEnableToggleUpdate is POST /sources/{id}/enabled: it persists the
+// toggle and redirects back to the page it came from (STRATEGY.md decision
+// 4: a plain form POST, not an htmx fragment update). Like the Elixir
+// version, an update failure (e.g. a bad changeset) is silently ignored --
+// Sources.update_source's result is never pattern-matched there either.
 func (s *Server) SourceEnableToggleUpdate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id, _ := strconv.ParseInt(URLParam(r, "id"), 10, 64)
@@ -28,10 +28,7 @@ func (s *Server) SourceEnableToggleUpdate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	enabled := source.Enabled
-	if updated, err := s.App.SourcesUpdateSource(ctx, source, sourceParams, core.KW{}); err == nil {
-		enabled = updated.Enabled
-	}
+	_, _ = s.App.SourcesUpdateSource(ctx, source, sourceParams, core.KW{})
 
-	s.RenderFragment(w, r, http.StatusOK, SourceEnableToggleRender(id, enabled))
+	s.redirectBack(w, r, P(ctx, "/sources"))
 }

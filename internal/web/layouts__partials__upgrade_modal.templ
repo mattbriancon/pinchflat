@@ -1,8 +1,10 @@
 package web
 
 // Port of lib/pinchflat_web/components/layouts/partials/upgrade_modal.heex.
-// {live_render(@conn, Pinchflat.UpgradeButtonLive)} becomes an inline Alpine
-// component (see layouts__partials__upgrade_button_live.go).
+// {live_render(@conn, Pinchflat.UpgradeButtonLive)} becomes a plain form
+// POST to /settings/pro that redirects back (STRATEGY.md decision 4: no
+// htmx); Alpine still disables the button until the typed text matches (see
+// SettingControllerUnlockPro).
 
 templ upgradeModalContent() {
 	<section x-data="{ text: '' }">
@@ -29,17 +31,16 @@ templ upgradeModalContent() {
 			@TextInlineCodeString("got it")
 			into the text box and press the button.
 		</p>
-		<form id="upgradeForm" data-suppress-enter="true" hx-post={ P(ctx, "/_live/upgrade") } hx-trigger="input changed" hx-swap="none">
+		<form id="upgradeForm" method="post" action={ templ.URL(P(ctx, "/settings/pro")) } data-suppress-enter="true">
 			@CoreInput(CoreInputProps{ID: "unlock-pro-textbox", Name: "unlock-pro-textbox", Type: "text", Rest: templ.Attributes{"x-model": "text"}})
+			<button
+				class="text-center font-medium text-white whitespace-nowrap rounded-sm inline-flex items-center justify-center gap-1 px-4 py-2 text-sm bg-primary hover:bg-opacity-90 disabled:bg-opacity-50 disabled:cursor-not-allowed disabled:text-grey-5 w-full mt-4"
+				type="submit"
+				x-bind:disabled="text.trim().toLowerCase() !== 'got it'"
+			>
+				Unlock Pro
+			</button>
 		</form>
-		<button
-			class="text-center font-medium text-white whitespace-nowrap rounded-sm inline-flex items-center justify-center gap-1 px-4 py-2 text-sm bg-primary hover:bg-opacity-90 disabled:bg-opacity-50 disabled:cursor-not-allowed disabled:text-grey-5 w-full mt-4"
-			type="button"
-			x-bind:disabled="text.trim().toLowerCase() !== 'got it'"
-			x-on:click="hideModal('upgrade-modal'); setTimeout(() => { proEnabled = true }, 200)"
-		>
-			Unlock Pro
-		</button>
 	</section>
 }
 

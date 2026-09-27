@@ -1,12 +1,12 @@
 package web
 
 // Port of lib/pinchflat_web/controllers/sources/source_live/index_table_live.ex.
-// See router.go: GET /_live/sources?sort_key=&sort_direction=&page=. There is
-// no LiveView session here, so the mount-time session values
+// There is no LiveView session here, so the mount-time session values
 // (initial_sort_key: :custom_name, initial_sort_direction: :asc,
-// results_per_page: 10) become this handler's defaults for blank query
+// results_per_page: 10) are this controller's defaults for blank query
 // params, and feed_base_url is recomputed from the request on every render
-// instead of being fixed at mount.
+// instead of being fixed at mount. sort_key/sort_direction/page are plain
+// query params on GET /sources (STRATEGY.md decision 4: no htmx).
 
 import (
 	"context"
@@ -15,11 +15,10 @@ import (
 	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/a-h/templ"
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
-const sourceLiveIndexTableLimit = 10
+const sourceIndexTableLimit = 10
 
 // sourceLiveIndexRow is the map(s, ^Source.__schema__(:fields)) |> select_merge
 // shape from sources_query/0: a fixed, known result shape, so it's its own
@@ -36,8 +35,8 @@ type sourceLiveIndexRow struct {
 	MediaSizeBytes   int64   `db:"media_size_bytes"`
 }
 
-// sourceLiveIndexTableLiveState is this render's assigns.
-type sourceLiveIndexTableLiveState struct {
+// sourceIndexTableState is the sources index table's render state.
+type sourceIndexTableState struct {
 	Sources       []*sourceLiveIndexRow
 	SortKey       string
 	SortDirection string
@@ -46,9 +45,9 @@ type sourceLiveIndexTableLiveState struct {
 	FeedBaseURL   string
 }
 
-// SourceLiveIndexTableLiveRender is PinchflatWeb.Sources.SourceLive.IndexTableLive.
-func (s *Server) SourceLiveIndexTableLiveRender(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+// sourceIndexTableFetch fetches the sources index table's state for the
+// current request's sort_key/sort_direction/page query params.
+func (s *Server) sourceIndexTableFetch(ctx context.Context, r *http.Request) (*sourceIndexTableState, error) {
 	sortKey := sourceLiveIndexSortKey(r.URL.Query().Get("sort_key"))
 	sortDirection := sourceLiveIndexSortDirection(r.URL.Query().Get("sort_direction"))
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
@@ -57,29 +56,26 @@ func (s *Server) SourceLiveIndexTableLiveRender(w http.ResponseWriter, r *http.R
 	}
 
 	query := sourceLiveIndexTableLiveQuery()
-	pag, err := s.GetPaginationAttributes(ctx, query, page, sourceLiveIndexTableLimit)
+	pag, err := s.GetPaginationAttributes(ctx, query, page, sourceIndexTableLimit)
 	if err != nil {
-		s.Fail(w, r, err)
-		return
+		return nil, err
 	}
 
 	ordered := query.OrderBy(sourceLiveIndexOrderBy(sortKey, sortDirection)).
 		Limit(uint64(pag.Limit)).Offset(uint64(pag.Offset))
 	sources, err := core.All[sourceLiveIndexRow](ctx, s.App.Q(ctx), ordered)
 	if err != nil {
-		s.Fail(w, r, err)
-		return
+		return nil, err
 	}
 
-	state := &sourceLiveIndexTableLiveState{
+	return &sourceIndexTableState{
 		Sources:       sources,
 		SortKey:       sortKey,
 		SortDirection: sortDirection,
 		Page:          pag.Page,
 		TotalPages:    pag.TotalPages,
 		FeedBaseURL:   PageOf(ctx).BaseURL + P(ctx, "/sources"),
-	}
-	s.RenderFragment(w, r, http.StatusOK, SourceLiveIndexTableLiveRenderComponent(state))
+	}, nil
 }
 
 // sources_query/0: sources joined to their (non-deleted) media profile, with
@@ -177,28 +173,34 @@ func sourceLiveIndexPodcastAppURL(feedURL string) string {
 	return sourceLiveIndexHTTPScheme.ReplaceAllString(feedURL, "podcast://")
 }
 
-func sourceLiveIndexFragmentURL(ctx context.Context, sortKey, sortDirection string, page int) string {
-	return P(ctx, "/_live/sources") + "?sort_key=" + sortKey + "&sort_direction=" + sortDirection + "&page=" + strconv.Itoa(page)
+// sourceIndexURL builds the /sources link for the given sort/page (a plain
+// page reload; see STRATEGY.md decision 4).
+func sourceIndexURL(ctx context.Context, sortKey, sortDirection string, page int) string {
+	return withQuery(ctx, P(ctx, "/sources"), map[string]string{
+		"sort_key":       sortKey,
+		"sort_direction": sortDirection,
+		"page":           strconv.Itoa(page),
+	})
 }
 
-func sourceLiveIndexTargetAttrs(ctx context.Context, sortKey, sortDirection string, page int) templ.Attributes {
-	return templ.Attributes{
-		"hx-get":    sourceLiveIndexFragmentURL(ctx, sortKey, sortDirection, page),
-		"hx-target": "#source-table",
-		"hx-swap":   "outerHTML",
-	}
-}
-
-// "sort_update": clicking a sortable column header.
-func sourceLiveIndexHeaderAttrs(ctx context.Context, state *sourceLiveIndexTableLiveState) func(string) templ.Attributes {
-	return func(colSortKey string) templ.Attributes {
+// sourceIndexHeaderURL is the sortable column header's link target: clicking
+// it re-sorts by that column (toggling direction if it's already sorted by
+// it) and jumps back to page 1.
+func sourceIndexHeaderURL(ctx context.Context, state *sourceIndexTableState) func(string) string {
+	return func(colSortKey string) string {
 		newDirection := GetSortDirection(state.SortKey, colSortKey, state.SortDirection)
-		return sourceLiveIndexTargetAttrs(ctx, colSortKey, newDirection, 1)
+		return sourceIndexURL(ctx, colSortKey, newDirection, 1)
 	}
 }
 
-// "page_change".
-func sourceLiveIndexPageAttrs(ctx context.Context, state *sourceLiveIndexTableLiveState, direction string) templ.Attributes {
-	newPage := UpdatePageNumber(state.Page, direction, state.TotalPages)
-	return sourceLiveIndexTargetAttrs(ctx, state.SortKey, state.SortDirection, newPage)
+// sourceIndexPageURL builds the prev (delta -1) / next (delta 1) page link,
+// "" when that direction isn't available.
+func sourceIndexPageURL(ctx context.Context, state *sourceIndexTableState, delta int) string {
+	if delta < 0 && state.Page <= 1 {
+		return ""
+	}
+	if delta > 0 && state.Page >= state.TotalPages {
+		return ""
+	}
+	return sourceIndexURL(ctx, state.SortKey, state.SortDirection, state.Page+delta)
 }

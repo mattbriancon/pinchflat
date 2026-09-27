@@ -10,9 +10,19 @@ import templruntime "github.com/a-h/templ/runtime"
 
 // Port of lib/pinchflat_web/controllers/pages/page_html/home.html.heex.
 
-import "context"
+import (
+	"context"
 
-func PagesPageHTMLHome(ctx context.Context, mediaProfileCount, sourceCount, mediaItemCount, mediaItemSize int64) templ.Component {
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
+
+func PagesPageHTMLHome(
+	ctx context.Context,
+	mediaProfileCount, sourceCount, mediaItemCount, mediaItemSize int64,
+	downloadedRecords []*core.MediaItem, downloadedPage, downloadedTotalPages, downloadedTotalCount int,
+	pendingRecords []*core.MediaItem, pendingPage, pendingTotalPages, pendingTotalCount int,
+	tasks []*core.Task,
+) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -40,7 +50,7 @@ func PagesPageHTMLHome(ctx context.Context, mediaProfileCount, sourceCount, medi
 		var templ_7745c5c3_Var2 templ.SafeURL
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/media_profiles")))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__home.templ`, Line: 10, Col: 49}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__home.templ`, Line: 20, Col: 49}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -61,7 +71,7 @@ func PagesPageHTMLHome(ctx context.Context, mediaProfileCount, sourceCount, medi
 		var templ_7745c5c3_Var3 templ.SafeURL
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/sources")))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__home.templ`, Line: 20, Col: 42}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__home.templ`, Line: 30, Col: 42}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -115,17 +125,17 @@ func PagesPageHTMLHome(ctx context.Context, mediaProfileCount, sourceCount, medi
 			{
 				Title:   "Downloaded",
 				ID:      "downloaded",
-				Content: PagesPageHTMLHistoryTableLiveWrapper(ctx, "downloaded"),
+				Content: PagesPageHTMLHistoryTableContent(ctx, "downloaded", downloadedPage, downloadedTotalPages, downloadedRecords, downloadedTotalCount),
 			},
 			{
 				Title:   "Pending",
 				ID:      "pending",
-				Content: PagesPageHTMLHistoryTableLiveWrapper(ctx, "pending"),
+				Content: PagesPageHTMLHistoryTableContent(ctx, "pending", pendingPage, pendingTotalPages, pendingRecords, pendingTotalCount),
 			},
 			{
 				Title:   "Active Tasks",
 				ID:      "active-tasks",
-				Content: PagesPageHTMLJobTableLiveWrapper(ctx),
+				Content: PagesPageHTMLJobTableContent(ctx, tasks),
 			},
 		}, nil).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {

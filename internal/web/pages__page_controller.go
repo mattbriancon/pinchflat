@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
@@ -68,13 +69,43 @@ func renderHomePage(s *Server, ctx context.Context, w http.ResponseWriter, r *ht
 		return
 	}
 
+	downloadedRecords, downloadedPage, downloadedTotalPages, downloadedTotalCount, err := historyTableFetch(
+		ctx, s.App, "downloaded", queryPage(r, "downloaded_page"))
+	if err != nil {
+		s.Fail(w, r, err)
+		return
+	}
+	pendingRecords, pendingPage, pendingTotalPages, pendingTotalCount, err := historyTableFetch(
+		ctx, s.App, "pending", queryPage(r, "pending_page"))
+	if err != nil {
+		s.Fail(w, r, err)
+		return
+	}
+	tasks, err := getJobTableTasks(ctx, s.App)
+	if err != nil {
+		s.Fail(w, r, err)
+		return
+	}
+
 	s.Render(w, r, http.StatusOK, LayoutApp, PagesPageHTMLHome(
 		ctx,
 		int64(mediaProfileCount),
 		int64(sourceCount),
 		int64(mediaItemCount),
 		int64(mediaItemSize),
+		downloadedRecords, downloadedPage, downloadedTotalPages, downloadedTotalCount,
+		pendingRecords, pendingPage, pendingTotalPages, pendingTotalCount,
+		tasks,
 	))
+}
+
+// queryPage reads a page-number query param, defaulting to 1.
+func queryPage(r *http.Request, name string) int {
+	page, _ := strconv.Atoi(r.URL.Query().Get(name))
+	if page < 1 {
+		return 1
+	}
+	return page
 }
 
 // renderOnboardingPage renders the onboarding checklist page.

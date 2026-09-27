@@ -14,24 +14,23 @@ type TableColumn struct {
 	Render func(row any) templ.Component
 }
 
-// TableProps is table/1's assigns. HeaderAttrs, when set, builds the extra
-// attributes for a sortable column's <th> (phx-click="sort_update"
-// phx-value-sort_key={col[:sort_key]} becomes whatever htmx attributes the
-// caller's live table wires up); nil means no attributes.
+// TableProps is table/1's assigns. HeaderURL, when set, builds the link
+// target for a sortable column's header (a plain page reload with the new
+// sort_key/sort_direction in the query string); nil means no columns sort.
 type TableProps struct {
 	Rows          []any
 	TableClass    string
 	SortKey       string
 	SortDirection string // "asc" or "desc"
 	Columns       []TableColumn
-	HeaderAttrs   func(sortKey string) templ.Attributes
+	HeaderURL     func(sortKey string) string
 }
 
-func tableHeaderAttrs(p TableProps, col TableColumn) templ.Attributes {
-	if p.HeaderAttrs == nil || col.SortKey == "" {
-		return nil
+func tableHeaderURL(p TableProps, col TableColumn) string {
+	if p.HeaderURL == nil || col.SortKey == "" {
+		return ""
 	}
-	return p.HeaderAttrs(col.SortKey)
+	return p.HeaderURL(col.SortKey)
 }
 
 func tableSortIcon(direction string) string {
@@ -39,11 +38,4 @@ func tableSortIcon(direction string) string {
 		return "hero-chevron-up"
 	}
 	return "hero-chevron-down"
-}
-
-func tableConditionalAttrs(cond bool, attrs templ.Attributes) templ.Attributes {
-	if !cond {
-		return nil
-	}
-	return attrs
 }

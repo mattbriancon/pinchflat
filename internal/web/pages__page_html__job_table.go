@@ -2,24 +2,12 @@ package web
 
 import (
 	"context"
-	"net/http"
 	"strings"
 
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
 // Port of lib/pinchflat_web/controllers/pages/page_html/job_table_live.ex.
-
-// JobTableLiveRender renders the job table as an htmx fragment.
-func (s *Server) JobTableLiveRender(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	tasks, err := getJobTableTasks(ctx, s.App)
-	if err != nil {
-		s.Fail(w, r, err)
-		return
-	}
-	s.RenderFragment(w, r, http.StatusOK, PagesPageHTMLJobTableLiveContent(ctx, tasks))
-}
 
 // getJobTableTasks fetches all executing tasks with show_in_dashboard tag.
 func getJobTableTasks(ctx context.Context, app *core.App) ([]*core.Task, error) {
