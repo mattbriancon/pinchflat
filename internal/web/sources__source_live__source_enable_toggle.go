@@ -1,10 +1,37 @@
 package web
 
-import "net/http"
+// Port of lib/pinchflat_web/controllers/sources/source_live/source_enable_toggle.ex.
+// The render/1 templ component lives in the companion .templ file (this
+// LiveComponent has no separate .heex source; its markup is inline in the
+// .ex file via ~H).
 
-// Skeleton for PinchflatWeb.Sources.SourceLive.SourceEnableToggle. Replace each stub with the port.
+import (
+	"net/http"
+	"strconv"
 
-// SourceEnableToggleUpdate
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
+
+// SourceEnableToggleUpdate is handle_event("update", %{"source" =>
+// source_params}, socket): it persists the toggle and re-renders the
+// fragment. Like the Elixir version, an update failure (e.g. a bad
+// changeset) is silently ignored -- Sources.update_source's result is never
+// pattern-matched there either.
 func (s *Server) SourceEnableToggleUpdate(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "unported: PinchflatWeb.Sources.SourceLive.SourceEnableToggle", http.StatusNotImplemented)
+	ctx := r.Context()
+	id, _ := strconv.ParseInt(URLParam(r, "id"), 10, 64)
+	sourceParams := ParseForm(r, "source")
+
+	source, err := s.App.SourcesGetSource(ctx, id)
+	if err != nil {
+		s.Fail(w, r, err)
+		return
+	}
+
+	enabled := source.Enabled
+	if updated, err := s.App.SourcesUpdateSource(ctx, source, sourceParams, core.KW{}); err == nil {
+		enabled = updated.Enabled
+	}
+
+	s.RenderFragment(w, r, http.StatusOK, SourceEnableToggleRender(id, enabled))
 }
