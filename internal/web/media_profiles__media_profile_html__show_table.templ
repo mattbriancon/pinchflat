@@ -1,0 +1,31 @@
+package web
+
+import "github.com/mattbriancon/pinchflat/internal/core"
+
+templ mediaProfilesShowSourceNameCell(source *core.Source) {
+	@TextSubtleLink(P(ctx, "/sources/%v", source.ID), "_self", mediaProfilesShowSourceNameLabel(source))
+}
+
+templ mediaProfilesShowSourceNameLabel(source *core.Source) {
+	if source.CustomName != "" {
+		{ source.CustomName }
+	} else {
+		{ source.CollectionName }
+	}
+}
+
+templ mediaProfilesShowSourceTypeCell(source *core.Source) {
+	{ string(source.CollectionType) }
+}
+
+templ mediaProfilesShowSourceDownloadCell(source *core.Source) {
+	if source.DownloadMedia {
+		@CoreIcon("hero-check", "", nil)
+	} else {
+		@CoreIcon("hero-x-mark", "", nil)
+	}
+}
+
+templ mediaProfilesShowSourceEditCell(source *core.Source) {
+	@TextIconLink(P(ctx, "/sources/%v/edit", source.ID), "hero-pencil-square", "mr-4")
+}

@@ -100,15 +100,28 @@ func TestMediaProfileController_Create(t *testing.T) {
 		c.App.SettingsSet(c.Ctx, core.KW{core.Opt("onboarding", false)})
 
 		attrs := core.Attrs{
-			"name":                   "test profile",
-			"output_path_template":   "output.{{ ext }}",
+			"name":                 "test profile",
+			"output_path_template": "output.{{ ext }}",
 		}
 
 		res := c.Post("/media_profiles", "media_profile", attrs)
 
+		profiles, err := c.App.ProfilesListMediaProfiles(c.Ctx)
+		if err != nil || len(profiles) != 1 {
+			t.Fatalf("expected exactly one created media profile, got %v (err=%v)", profiles, err)
+		}
+		id := profiles[0].ID
+
 		redirectTo := res.RedirectedTo(t)
-		if !strings.Contains(redirectTo, "/media_profiles/") {
-			t.Errorf("expected redirect to /media_profiles/, got %s", redirectTo)
+		expected := "/media_profiles/" + fmt.Sprint(id)
+		if redirectTo != expected {
+			t.Errorf("expected redirect to %s, got %s", expected, redirectTo)
+		}
+
+		res2 := c.Get(fmt.Sprintf("/media_profiles/%d", id))
+		html := res2.HTML(t, http.StatusOK)
+		if !strings.Contains(html, "Media Profile") {
+			t.Errorf("expected 'Media Profile' in response")
 		}
 	})
 
@@ -185,11 +198,11 @@ func TestMediaProfileController_Update(t *testing.T) {
 		profile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{})
 
 		attrs := core.Attrs{
-			"name":                   "updated name",
-			"output_path_template":   "new_template.{{ ext }}",
+			"name":                 "updated name",
+			"output_path_template": "new_template.{{ ext }}",
 		}
 
-		res := c.Patch("/media_profiles/" + fmt.Sprint(profile.ID), "media_profile", attrs)
+		res := c.Patch("/media_profiles/"+fmt.Sprint(profile.ID), "media_profile", attrs)
 		redirectTo := res.RedirectedTo(t)
 
 		expectedPath := "/media_profiles/" + fmt.Sprint(profile.ID)
@@ -204,11 +217,11 @@ func TestMediaProfileController_Update(t *testing.T) {
 		profile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{})
 
 		attrs := core.Attrs{
-			"name": nil,
+			"name":                 nil,
 			"output_path_template": nil,
 		}
 
-		res := c.Patch("/media_profiles/" + fmt.Sprint(profile.ID), "media_profile", attrs)
+		res := c.Patch("/media_profiles/"+fmt.Sprint(profile.ID), "media_profile", attrs)
 		html := res.HTML(t, http.StatusOK)
 
 		if !strings.Contains(html, profile.Name) {
