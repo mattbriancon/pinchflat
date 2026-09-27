@@ -23,7 +23,7 @@ func (s *Server) JobTableLiveRender(w http.ResponseWriter, r *http.Request) {
 
 // getJobTableTasks fetches all executing tasks with show_in_dashboard tag.
 func getJobTableTasks(ctx context.Context, app *core.App) ([]*core.Task, error) {
-	q := core.TasksQueryNew().
+	q := core.TasksQueryJoinJob(core.TasksQueryNew()).
 		Where(core.TasksQueryInState([]string{"executing"})).
 		Where(core.TasksQueryHasTag("show_in_dashboard")).
 		OrderBy("j.attempted_at DESC")
@@ -33,19 +33,16 @@ func getJobTableTasks(ctx context.Context, app *core.App) ([]*core.Task, error) 
 		return nil, err
 	}
 
-	// Preload associations
+	// Preload associations (preload(tasks: [:job, :media_item, :source])).
 	for _, task := range tasks {
-		if task.MediaItemID != nil {
-			mi, _ := app.MediaGetMediaItem(ctx, *task.MediaItemID)
-			task.MediaItem = mi
-			if mi != nil {
-				s, _ := app.SourcesGetSource(ctx, mi.SourceID)
-				task.Source = s
-			}
+		if _, err := app.PreloadTaskJob(ctx, task); err != nil {
+			return nil, err
 		}
-		if task.SourceID != nil {
-			s, _ := app.SourcesGetSource(ctx, *task.SourceID)
-			task.Source = s
+		if _, err := app.PreloadTaskMediaItem(ctx, task); err != nil {
+			return nil, err
+		}
+		if _, err := app.PreloadTaskSource(ctx, task); err != nil {
+			return nil, err
 		}
 	}
 

@@ -49,7 +49,7 @@ func (s *Server) HistoryTableLiveRender(w http.ResponseWriter, r *http.Request) 
 		record.Source = source
 	}
 
-	s.RenderFragment(w, r, http.StatusOK, PagesPageHTMLHistoryTableLiveContent(ctx, clampedPage, totalPages, records, totalRecordCount))
+	s.RenderFragment(w, r, http.StatusOK, PagesPageHTMLHistoryTableLiveContent(ctx, mediaState, clampedPage, totalPages, records, totalRecordCount))
 }
 
 // generateHistoryTableBaseQuery creates the base query for the history table.

@@ -12,7 +12,7 @@ templ PagesPageHTMLOnboardingChecklist(ctx context.Context, mediaProfilesExist, 
 					<h2 class="text-3xl font-bold">Welcome to Pinchflat</h2>
 					<p class="text-lg text-bodydark">Getting started is easy</p>
 				</section>
-				<section class={ templ.KV("opacity-20", mediaProfilesExist), "text-center" }>
+				<section class={ "text-center", templ.KV("opacity-20", mediaProfilesExist) }>
 					<h3 class="text-xl font-bold">1. Create a Media Profile</h3>
 					<p class="text-md text-bodydark">Media Profiles set your preferences for fetching and downloading media.</p>
 					<p class="text-md text-bodydark">Don't worry, you can create more Media Profiles later!</p>
@@ -22,7 +22,7 @@ templ PagesPageHTMLOnboardingChecklist(ctx context.Context, mediaProfilesExist, 
 						</a>
 					</div>
 				</section>
-				<section class={ templ.KV("opacity-20", !mediaProfilesExist || sourcesExist), "text-center" }>
+				<section class={ "text-center", templ.KV("opacity-20", !mediaProfilesExist || sourcesExist) }>
 					<h3 class="text-xl font-bold">2. Create a Source</h3>
 					<p class="text-md text-bodydark">Sources are the channels and playlists you want to download.</p>
 					<p class="text-md text-bodydark">
@@ -34,7 +34,7 @@ templ PagesPageHTMLOnboardingChecklist(ctx context.Context, mediaProfilesExist, 
 						</a>
 					</div>
 				</section>
-				<section class={ templ.KV("opacity-20", !sourcesExist), "text-center" }>
+				<section class={ "text-center", templ.KV("opacity-20", !sourcesExist) }>
 					<h3 class="text-xl font-bold">3. That's it!</h3>
 					<p class="text-md text-bodydark">Everything is set up and running based on your preferences.</p>
 					<p class="text-md text-bodydark">
@@ -43,7 +43,7 @@ templ PagesPageHTMLOnboardingChecklist(ctx context.Context, mediaProfilesExist, 
 					<p class="text-md text-bodydark">Feel free to add more Media Profiles or Sources in the meantime!</p>
 					<div class="mt-8">
 						<a href={ templ.URL(P(ctx, "/?onboarding=0")) }>
-							@ButtonButton("bg-primary", "rounded-lg", "", "button", !sourcesExist, nil, onboardingButtonContent("", "Let's Go 🚀"))
+							@ButtonButton("bg-primary", "rounded-lg", "", "button", !sourcesExist, nil, onboardingLetsGoContent())
 						</a>
 					</div>
 				</section>
@@ -58,4 +58,10 @@ templ onboardingButtonContent(icon, text string) {
 		@CoreIcon(icon, "h-4 w-4", nil)
 	}
 	{ text }
+}
+
+// onboardingLetsGoContent is the "Let's Go 🚀" button content.
+templ onboardingLetsGoContent() {
+	Let's Go
+	<span class="font-bold mx-2">🚀</span>
 }

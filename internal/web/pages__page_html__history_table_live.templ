@@ -23,10 +23,10 @@ templ PagesPageHTMLHistoryTableLiveWrapper(ctx context.Context, mediaState strin
 }
 
 // PagesPageHTMLHistoryTableLiveContent renders the content of the history table.
-templ PagesPageHTMLHistoryTableLiveContent(ctx context.Context, page, totalPages int, records []*core.MediaItem, totalRecordCount int) {
+templ PagesPageHTMLHistoryTableLiveContent(ctx context.Context, mediaState string, page, totalPages int, records []*core.MediaItem, totalRecordCount int) {
 	if len(records) == 0 {
 		<div class="mb-4 flex items-center">
-			<button hx-get="/_live/history" hx-target="closest div" hx-swap="outerHTML" class="h-8 w-8">
+			<button hx-get={ historyTableReloadURL(mediaState, page) } hx-target="closest div" hx-swap="outerHTML" class="h-8 w-8">
 				@CoreIcon("hero-arrow-path", "", nil)
 			</button>
 			<p class="ml-2">Nothing Here!</p>
@@ -34,7 +34,7 @@ templ PagesPageHTMLHistoryTableLiveContent(ctx context.Context, page, totalPages
 	} else {
 		<div>
 			<span class="mb-4 flex items-center">
-				<button hx-get="/_live/history" hx-target="closest div" hx-swap="outerHTML" class="h-8 w-8" title="Refresh">
+				<button hx-get={ historyTableReloadURL(mediaState, page) } hx-target="closest div" hx-swap="outerHTML" class="h-8 w-8" title="Refresh">
 					@CoreIcon("hero-arrow-path", "", nil)
 				</button>
 				<span class="ml-2">
@@ -43,7 +43,7 @@ templ PagesPageHTMLHistoryTableLiveContent(ctx context.Context, page, totalPages
 			</span>
 			@historyTableContentTable(ctx, records)
 			<section class="flex justify-center mt-5">
-				@TableLivePaginationControls(page, totalPages, historyTablePrevAttrs(page), historyTableNextAttrs(page, totalPages))
+				@TableLivePaginationControls(page, totalPages, historyTablePrevAttrs(mediaState, page), historyTableNextAttrs(mediaState, page, totalPages))
 			</section>
 		</div>
 	}
@@ -68,9 +68,7 @@ templ historyTableContentTable(ctx context.Context, records []*core.MediaItem) {
 						<td class="px-3 py-2 whitespace-nowrap cell-wrap">
 							<section class="flex items-start gap-1">
 								if mi.LastError != nil {
-									<span title={ derefString(mi.LastError) } class="text-red-500">
-										@CoreIcon("hero-exclamation-circle-solid", "", nil)
-									</span>
+									@TextTooltip(derefString(mi.LastError), "bottom-right", "w-64", "", historyTableErrorIcon())
 								}
 								<span>
 									<a href={ templ.URL(P(ctx, "/sources/%v/media/%v", mi.SourceID, mi.ID)) } class="underline">
@@ -102,6 +100,11 @@ templ historyTableContentTable(ctx context.Context, records []*core.MediaItem) {
 	</div>
 }
 
+// historyTableErrorIcon is the icon slot content passed into TextTooltip.
+templ historyTableErrorIcon() {
+	@CoreIcon("hero-exclamation-circle-solid", "text-red-500", nil)
+}
+
 func historyTableFormatDatetime(t *db.UTCDateTime) string {
 	if t == nil {
 		return ""
@@ -116,23 +119,27 @@ func derefString(s *string) string {
 	return *s
 }
 
-func historyTablePrevAttrs(page int) templ.Attributes {
+func historyTableReloadURL(mediaState string, page int) string {
+	return fmt.Sprintf("/_live/history?media_state=%s&page=%d", mediaState, page)
+}
+
+func historyTablePrevAttrs(mediaState string, page int) templ.Attributes {
 	if page <= 1 {
 		return nil
 	}
 	return templ.Attributes{
-		"hx-get":    fmt.Sprintf("/_live/history?page=%d", page-1),
+		"hx-get":    historyTableReloadURL(mediaState, page-1),
 		"hx-target": "closest div",
 		"hx-swap":   "outerHTML",
 	}
 }
 
-func historyTableNextAttrs(page, totalPages int) templ.Attributes {
+func historyTableNextAttrs(mediaState string, page, totalPages int) templ.Attributes {
 	if page >= totalPages {
 		return nil
 	}
 	return templ.Attributes{
-		"hx-get":    fmt.Sprintf("/_live/history?page=%d", page+1),
+		"hx-get":    historyTableReloadURL(mediaState, page+1),
 		"hx-target": "closest div",
 		"hx-swap":   "outerHTML",
 	}

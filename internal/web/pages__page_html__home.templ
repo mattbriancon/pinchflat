@@ -9,7 +9,7 @@ templ PagesPageHTMLHome(ctx context.Context, mediaProfileCount, sourceCount, med
 		<div class="card flex flex-col justify-center px-3 py-2.5 sm:px-4 sm:py-3">
 			<a href={ templ.URL(P(ctx, "/media_profiles")) } class="flex flex-col">
 				<span class="text-xs font-medium uppercase tracking-wide text-bodydark2">
-					Media @TextPluralize("Profile", int(mediaProfileCount), "")
+					Media @TextPluralize("Profile", int(mediaProfileCount), "s")
 				</span>
 				<h4 class="text-xl font-bold text-white sm:text-2xl">
 					@TextLocalizedNumber(int(mediaProfileCount))
@@ -19,7 +19,7 @@ templ PagesPageHTMLHome(ctx context.Context, mediaProfileCount, sourceCount, med
 		<div class="card flex flex-col justify-center px-3 py-2.5 sm:px-4 sm:py-3">
 			<a href={ templ.URL(P(ctx, "/sources")) } class="flex flex-col">
 				<span class="text-xs font-medium uppercase tracking-wide text-bodydark2">
-					@TextPluralize("Source", int(sourceCount), "")
+					@TextPluralize("Source", int(sourceCount), "s")
 				</span>
 				<h4 class="text-xl font-bold text-white sm:text-2xl">
 					@TextLocalizedNumber(int(sourceCount))
@@ -29,7 +29,7 @@ templ PagesPageHTMLHome(ctx context.Context, mediaProfileCount, sourceCount, med
 		<div class="card flex flex-col justify-center px-3 py-2.5 sm:px-4 sm:py-3">
 			<span class="flex flex-col">
 				<span class="text-xs font-medium uppercase tracking-wide text-bodydark2">
-					@TextPluralize("Download", int(mediaItemCount), "")
+					@TextPluralize("Download", int(mediaItemCount), "s")
 				</span>
 				<h4 class="text-xl font-bold text-white sm:text-2xl">
 					@TextLocalizedNumber(int(mediaItemCount))

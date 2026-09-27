@@ -46,7 +46,7 @@ func PagesPageHTMLHome(ctx context.Context, mediaProfileCount, sourceCount, medi
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"flex flex-col\"><span class=\"text-xs font-medium uppercase tracking-wide text-bodydark2\">Media @TextPluralize(\"Profile\", int(mediaProfileCount), \"\")</span><h4 class=\"text-xl font-bold text-white sm:text-2xl\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"flex flex-col\"><span class=\"text-xs font-medium uppercase tracking-wide text-bodydark2\">Media @TextPluralize(\"Profile\", int(mediaProfileCount), \"s\")</span><h4 class=\"text-xl font-bold text-white sm:text-2xl\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -71,7 +71,7 @@ func PagesPageHTMLHome(ctx context.Context, mediaProfileCount, sourceCount, medi
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = TextPluralize("Source", int(sourceCount), "").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = TextPluralize("Source", int(sourceCount), "s").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -87,7 +87,7 @@ func PagesPageHTMLHome(ctx context.Context, mediaProfileCount, sourceCount, medi
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = TextPluralize("Download", int(mediaItemCount), "").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = TextPluralize("Download", int(mediaItemCount), "s").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
