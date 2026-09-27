@@ -7,109 +7,126 @@ import (
 )
 
 func TestOutputPathParser_Parse(t *testing.T) {
-	t.Run("it returns the rendered string when the string is valid", func(t *testing.T) {
-		result, err := core.OutputPathParserParse("{{ foo }}", map[string]string{"foo": "bar"}, defaultFetcher)
-		if err != nil {
-			t.Errorf("got error: %v", err)
-		}
-		if result != "bar" {
-			t.Errorf("expected 'bar', got '%s'", result)
-		}
-	})
+	t.Parallel()
 
-	t.Run("it works with filepath-like strings", func(t *testing.T) {
-		result, err := core.OutputPathParserParse("{{ foo }}/{{ bar }}", map[string]string{"foo": "bar", "bar": "baz"}, defaultFetcher)
-		if err != nil {
-			t.Errorf("got error: %v", err)
-		}
-		if result != "bar/baz" {
-			t.Errorf("expected 'bar/baz', got '%s'", result)
-		}
-	})
+	tests := []struct {
+		name       string
+		input      string
+		variables  map[string]string
+		fetcher    func(string, map[string]string) string
+		want       string
+		wantErr    bool
+		wantErrMsg string
+	}{
+		{
+			name:      "returns the rendered string when the string is valid",
+			input:     "{{ foo }}",
+			variables: map[string]string{"foo": "bar"},
+			fetcher:   defaultFetcher,
+			want:      "bar",
+		},
+		{
+			name:      "works with filepath-like strings",
+			input:     "{{ foo }}/{{ bar }}",
+			variables: map[string]string{"foo": "bar", "bar": "baz"},
+			fetcher:   defaultFetcher,
+			want:      "bar/baz",
+		},
+		{
+			name:      "works when mixing text and variables",
+			input:     "{{ foo }} text {{ bar }}",
+			variables: map[string]string{"foo": "bar", "bar": "baz"},
+			fetcher:   defaultFetcher,
+			want:      "bar text baz",
+		},
+		{
+			name:      "removes the placeholder but doesn't blow up when the variable isn't provided",
+			input:     "{{ foo }}",
+			variables: map[string]string{},
+			fetcher:   defaultFetcher,
+			want:      "",
+		},
+		{
+			name:      "accepts any number of spaces between open and closing tags (no spaces)",
+			input:     "{{foo}}",
+			variables: map[string]string{"foo": "bar"},
+			fetcher:   defaultFetcher,
+			want:      "bar",
+		},
+		{
+			name:      "accepts any number of spaces between open and closing tags (left space)",
+			input:     "{{ foo}}",
+			variables: map[string]string{"foo": "bar"},
+			fetcher:   defaultFetcher,
+			want:      "bar",
+		},
+		{
+			name:      "accepts any number of spaces between open and closing tags (right space)",
+			input:     "{{foo }}",
+			variables: map[string]string{"foo": "bar"},
+			fetcher:   defaultFetcher,
+			want:      "bar",
+		},
+		{
+			name:      "accepts any number of spaces between open and closing tags (many spaces)",
+			input:     "{{   foo   }}",
+			variables: map[string]string{"foo": "bar"},
+			fetcher:   defaultFetcher,
+			want:      "bar",
+		},
+		{
+			name:      "doesn't interpret single braces as variables",
+			input:     "{foo}",
+			variables: map[string]string{},
+			fetcher:   defaultFetcher,
+			want:      "{foo}",
+		},
+		{
+			name:       "returns an error when the string is invalid",
+			input:      "{{ 1-1 }",
+			variables:  map[string]string{},
+			fetcher:    defaultFetcher,
+			want:       "",
+			wantErr:    true,
+			wantErrMsg: "expected end of string",
+		},
+		{
+			name:      "supports a custom fetcher function",
+			input:     "{{ foo }}",
+			variables: map[string]string{},
+			fetcher: func(identifier string, variables map[string]string) string {
+				return "quux"
+			},
+			want: "quux",
+		},
+	}
 
-	t.Run("it works when mixing text and variables", func(t *testing.T) {
-		result, err := core.OutputPathParserParse("{{ foo }} text {{ bar }}", map[string]string{"foo": "bar", "bar": "baz"}, defaultFetcher)
-		if err != nil {
-			t.Errorf("got error: %v", err)
-		}
-		if result != "bar text baz" {
-			t.Errorf("expected 'bar text baz', got '%s'", result)
-		}
-	})
-
-	t.Run("it removes the placeholder but doesn't blow up when the variable isn't provided", func(t *testing.T) {
-		result, err := core.OutputPathParserParse("{{ foo }}", map[string]string{}, defaultFetcher)
-		if err != nil {
-			t.Errorf("got error: %v", err)
-		}
-		if result != "" {
-			t.Errorf("expected '', got '%s'", result)
-		}
-	})
-
-	t.Run("it accepts any number of spaces between open and closing tags", func(t *testing.T) {
-		testCases := []struct {
-			input    string
-			expected string
-		}{
-			{"{{foo}}", "bar"},
-			{"{{ foo}}", "bar"},
-			{"{{foo }}", "bar"},
-			{"{{   foo   }}", "bar"},
-		}
-		variables := map[string]string{"foo": "bar"}
-
-		for _, tc := range testCases {
-			result, err := core.OutputPathParserParse(tc.input, variables, defaultFetcher)
-			if err != nil {
-				t.Errorf("got error for '%s': %v", tc.input, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := core.OutputPathParserParse(tt.input, tt.variables, tt.fetcher)
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("expected error, got nil")
+				}
+				if err.Error() != tt.wantErrMsg {
+					t.Errorf("expected '%s', got '%s'", tt.wantErrMsg, err.Error())
+				}
+				if result != "" {
+					t.Errorf("expected empty result on error, got '%s'", result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("got unexpected error: %v", err)
+				}
+				if result != tt.want {
+					t.Errorf("expected '%s', got '%s'", tt.want, result)
+				}
 			}
-			if result != tc.expected {
-				t.Errorf("for '%s': expected '%s', got '%s'", tc.input, tc.expected, result)
-			}
-		}
-	})
-
-	t.Run("it doesn't interpret single braces as variables", func(t *testing.T) {
-		result, err := core.OutputPathParserParse("{foo}", map[string]string{}, defaultFetcher)
-		if err != nil {
-			t.Errorf("got error: %v", err)
-		}
-		if result != "{foo}" {
-			t.Errorf("expected '{foo}', got '%s'", result)
-		}
-	})
-
-	t.Run("it returns an error when the string is invalid", func(t *testing.T) {
-		result, err := core.OutputPathParserParse("{{ 1-1 }", map[string]string{}, defaultFetcher)
-		if err == nil {
-			t.Errorf("expected error, got nil")
-		}
-		if err.Error() != "expected end of string" {
-			t.Errorf("expected 'expected end of string', got '%s'", err.Error())
-		}
-		if result != "" {
-			t.Errorf("expected empty result on error, got '%s'", result)
-		}
-	})
-
-	t.Run("it supports a custom fetcher function", func(t *testing.T) {
-		customFetcher := func(identifier string, variables map[string]string) string {
-			return "quux"
-		}
-
-		result, err := core.OutputPathParserParse("{{ foo }}", map[string]string{}, customFetcher)
-		if err != nil {
-			t.Errorf("got error: %v", err)
-		}
-		if result != "quux" {
-			t.Errorf("expected 'quux', got '%s'", result)
-		}
-	})
+		})
+	}
 }
 
-// defaultFetcher looks identifiers up in variables, rendering missing ones
-// as "".
+// defaultFetcher looks identifiers up in variables, rendering missing ones as "".
 func defaultFetcher(identifier string, variables map[string]string) string {
 	return variables[identifier]
 }

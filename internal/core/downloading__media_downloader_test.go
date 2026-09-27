@@ -11,6 +11,8 @@ import (
 )
 
 func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
+	t.Parallel()
+
 	t.Run("calls the backend runner", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
@@ -190,6 +192,8 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 }
 
 func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonDownloadableMedia(t *testing.T) {
+	t.Parallel()
+
 	t.Run("calls the download runner if the media is currently downloadable", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
@@ -273,6 +277,8 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonDownloadableMedia(t 
 }
 
 func TestMediaDownloader_DownloadForMediaItem_WhenTestingOverrideOptions(t *testing.T) {
+	t.Parallel()
+
 	t.Run("includes override opts if specified", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
@@ -321,6 +327,8 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingOverrideOptions(t *test
 }
 
 func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("sets use_cookies if the source uses cookies", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "all_operations"})
@@ -422,6 +430,8 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 }
 
 func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns a recovered tuple on recoverable errors", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
@@ -594,6 +604,8 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 }
 
 func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testing.T) {
+	t.Parallel()
+
 	t.Run("retries with cookies if we think it would help and the source allows", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "when_needed"})
@@ -723,6 +735,8 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 }
 
 func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *testing.T) {
+	t.Parallel()
+
 	t.Run("sets the media_downloaded_at", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
@@ -1072,6 +1086,8 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 }
 
 func TestMediaDownloader_DownloadForMediaItem_WhenTestingNFOGeneration(t *testing.T) {
+	t.Parallel()
+
 	t.Run("generates an NFO file if the source is set to download NFOs", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_nfo": true})
