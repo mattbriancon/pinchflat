@@ -47,19 +47,21 @@ func TestSourceIndexTable_InitialRendering(t *testing.T) {
 		}
 	})
 
-	t.Run("links each source's RSS feed to the podcast app", func(t *testing.T) {
+	t.Run("links each source's RSS feed", func(t *testing.T) {
 		c := webtest.New(t)
 		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
 
 		req := httptest.NewRequest("GET", "/sources", nil)
-		req.Host = "pinchflat.local"
+		req.Host = "pinchflat.example.com"
+		req.Header.Set("X-Forwarded-Proto", "https")
 		html := c.Do(req).HTML(t, 200)
 
-		if !strings.Contains(html, fmt.Sprintf("podcast://pinchflat.local/sources/%s/feed.xml", core.Deref(source.UUID))) {
-			t.Errorf("expected podcast:// feed link in response, got: %s", html)
+		want := fmt.Sprintf(`href="https://pinchflat.example.com/sources/%s/feed.xml"`, core.Deref(source.UUID))
+		if !strings.Contains(html, want) {
+			t.Errorf("expected %s in response, got: %s", want, html)
 		}
-		if !strings.Contains(html, fmt.Sprintf("http://pinchflat.local/sources/%s/feed.xml", core.Deref(source.UUID))) {
-			t.Errorf("expected http:// feed link in response, got: %s", html)
+		if strings.Contains(html, "podcast://") {
+			t.Errorf("did not expect a podcast:// link")
 		}
 	})
 
@@ -69,9 +71,6 @@ func TestSourceIndexTable_InitialRendering(t *testing.T) {
 
 		html := c.Get("/sources").HTML(t, 200)
 
-		if !strings.Contains(html, "podcast://") {
-			t.Errorf("expected 'podcast://' in response")
-		}
 		if !strings.Contains(html, fmt.Sprintf("/sources/%s/feed.xml", core.Deref(source.UUID))) {
 			t.Errorf("expected the feed path in response")
 		}

@@ -82,10 +82,10 @@ templ sourceLiveIndexRSSCell(state *sourceIndexTableState, row *sourceLiveIndexR
 	{{ feedURL := sourceLiveIndexRSSFeedURL(state.FeedBaseURL, row) }}
 	<div class="flex items-center gap-1">
 		<a
-			href={ templ.SafeURL(sourceLiveIndexPodcastAppURL(feedURL)) }
+			href={ templ.SafeURL(feedURL) }
 			class="flex h-8 w-8 items-center justify-center rounded-lg text-orange-400 hover:bg-meta-4 hover:text-orange-300"
-			title="Open in podcast app"
-			aria-label={ "Open " + row.CustomName + " in podcast app" }
+			title="Open RSS feed"
+			aria-label={ "Open RSS feed for " + row.CustomName }
 		>
 			@CoreIcon("hero-rss", "h-5 w-5", nil)
 		</a>

@@ -11,7 +11,6 @@ package web
 import (
 	"context"
 	"net/http"
-	"regexp"
 	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
@@ -163,14 +162,6 @@ func sourceLiveIndexSortDirection(v string) string {
 // rss_feed_url/2.
 func sourceLiveIndexRSSFeedURL(feedBaseURL string, row *sourceLiveIndexRow) string {
 	return feedBaseURL + "/" + core.Deref(row.UUID) + "/feed.xml"
-}
-
-var sourceLiveIndexHTTPScheme = regexp.MustCompile(`^https?://`)
-
-// podcast_app_url/1: the podcast:// scheme hands the feed to the device's
-// podcast app (Apple Podcasts on iOS/macOS).
-func sourceLiveIndexPodcastAppURL(feedURL string) string {
-	return sourceLiveIndexHTTPScheme.ReplaceAllString(feedURL, "podcast://")
 }
 
 // sourceIndexURL builds the /sources link for the given sort/page (a plain
