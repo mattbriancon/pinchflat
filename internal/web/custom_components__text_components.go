@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 // textDescURLPattern is ~r{https?://\S+}.
@@ -148,7 +148,7 @@ func textPluralize(word string, count int, suffix string) string {
 
 // textReadableFilesize is readable_filesize/1.
 func textReadableFilesize(byteSize int64) (float64, string) {
-	return core.NumberUtilsHumanByteSize(byteSize, core.KW{})
+	return fsutil.HumanByteSize(byteSize, 2)
 }
 
 func textReadableFilesizeValue(byteSize int64) float64 {

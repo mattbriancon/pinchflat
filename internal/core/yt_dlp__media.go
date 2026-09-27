@@ -2,25 +2,13 @@ package core
 
 import (
 	"context"
-	"encoding/json"
-	"strings"
-	"time"
+
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
-// YtDlpMedia represents a piece of media parsed from yt-dlp's output.
-// Not a database table, just a struct used for parsing yt-dlp responses.
-type YtDlpMedia struct {
-	MediaID                string     `json:"media_id"`
-	Title                  string     `json:"title"`
-	Description            string     `json:"description"`
-	OriginalURL            string     `json:"original_url"`
-	Livestream             bool       `json:"livestream"`
-	ShortFormContent       *bool      `json:"short_form_content"`
-	UploadedAt             *time.Time `json:"uploaded_at"`
-	DurationSeconds        *int       `json:"duration_seconds"`
-	PredictedMediaFilepath string     `json:"predicted_media_filepath"`
-	PlaylistIndex          *int       `json:"playlist_index"`
-}
+// YtDlpMedia is an alias kept for the many existing core call sites; the
+// type itself lives in internal/ytdlp alongside its response parsing.
+type YtDlpMedia = ytdlp.Media
 
 // YtDlpMediaDownload/3
 func (a *App) YtDlpMediaDownload(ctx context.Context, url string, commandOpts KW, addlOpts KW) (map[string]any, error) {
@@ -89,47 +77,12 @@ func (a *App) YtDlpMediaGetMediaAttributes(ctx context.Context, url string, comm
 	return YtDlpMediaResponseToStruct(parsed), nil
 }
 
-// YtDlpMediaIndexingOutputTemplate/0
-func YtDlpMediaIndexingOutputTemplate() string {
-	return "%(.{id,title,live_status,original_url,description,aspect_ratio,duration,upload_date,timestamp,playlist_index,filename})j"
-}
+// YtDlpMediaIndexingOutputTemplate is ytdlp.IndexingOutputTemplate.
+func YtDlpMediaIndexingOutputTemplate() string { return ytdlp.IndexingOutputTemplate() }
 
-// YtDlpMediaResponseToStruct/1
+// YtDlpMediaResponseToStruct is ytdlp.ResponseToStruct.
 func YtDlpMediaResponseToStruct(response map[string]any) *YtDlpMedia {
-	media := &YtDlpMedia{
-		MediaID:     ytDlpMediaGetString(response, "id"),
-		Title:       ytDlpMediaGetString(response, "title"),
-		Description: ytDlpMediaGetString(response, "description"),
-		OriginalURL: ytDlpMediaGetString(response, "original_url"),
-		Livestream:  ytDlpMediaIsLivestream(response),
-	}
-
-	// Handle duration_seconds
-	if duration := ytDlpMediaGetFloat(response, "duration"); duration != nil {
-		rounded := int(*duration)
-		media.DurationSeconds = &rounded
-	}
-
-	// Handle short_form_content
-	if originalURL := ytDlpMediaGetString(response, "original_url"); originalURL != "" {
-		sfc := ytDlpMediaShortFormContent(response)
-		media.ShortFormContent = &sfc
-	}
-
-	// Handle uploaded_at
-	media.UploadedAt = ytDlpMediaParseUploadedAt(response)
-
-	// Handle playlist_index
-	if playlistIndex := ytDlpMediaGetInt(response, "playlist_index"); playlistIndex != nil {
-		media.PlaylistIndex = playlistIndex
-	} else {
-		zero := 0
-		media.PlaylistIndex = &zero
-	}
-
-	media.PredictedMediaFilepath = ytDlpMediaGetString(response, "filename")
-
-	return media
+	return ytdlp.ResponseToStruct(response)
 }
 
 func ytDlpMediaGetString(response map[string]any, key string) string {
@@ -139,85 +92,6 @@ func ytDlpMediaGetString(response map[string]any, key string) string {
 		}
 	}
 	return ""
-}
-
-func ytDlpMediaGetFloat(response map[string]any, key string) *float64 {
-	if val, ok := response[key]; ok && val != nil {
-		// Handle json.Number type
-		if jn, ok := val.(json.Number); ok {
-			f, err := jn.Float64()
-			if err == nil {
-				return &f
-			}
-		}
-		// Handle float64 type
-		if f, ok := val.(float64); ok {
-			return &f
-		}
-	}
-	return nil
-}
-
-func ytDlpMediaGetInt(response map[string]any, key string) *int {
-	if val, ok := response[key]; ok && val != nil {
-		// Handle json.Number type
-		if jn, ok := val.(json.Number); ok {
-			i, err := jn.Int64()
-			if err == nil {
-				result := int(i)
-				return &result
-			}
-		}
-		// Handle float64 type (JSON numbers come as float64)
-		if f, ok := val.(float64); ok {
-			i := int(f)
-			return &i
-		}
-	}
-	return nil
-}
-
-func ytDlpMediaIsLivestream(response map[string]any) bool {
-	liveStatus := ytDlpMediaGetString(response, "live_status")
-	return liveStatus != "" && liveStatus != "not_live"
-}
-
-func ytDlpMediaShortFormContent(response map[string]any) bool {
-	originalURL := ytDlpMediaGetString(response, "original_url")
-	if strings.Contains(originalURL, "/shorts/") {
-		return true
-	}
-
-	// Heuristic: duration <= 180 and aspect_ratio <= 0.85
-	duration := ytDlpMediaGetFloat(response, "duration")
-	aspectRatio := ytDlpMediaGetFloat(response, "aspect_ratio")
-
-	if duration != nil && aspectRatio != nil && *duration <= 180 && *aspectRatio <= 0.85 {
-		return true
-	}
-
-	return false
-}
-
-func ytDlpMediaParseUploadedAt(response map[string]any) *time.Time {
-	// Try to parse from timestamp first
-	if timestamp := ytDlpMediaGetInt(response, "timestamp"); timestamp != nil {
-		t := time.Unix(int64(*timestamp), 0).UTC()
-		return &t
-	}
-
-	// Fall back to upload_date
-	uploadDate := ytDlpMediaGetString(response, "upload_date")
-	if uploadDate == "" {
-		return nil
-	}
-
-	parsedTime, err := MetadataFileHelpersParseUploadDate(uploadDate)
-	if err != nil {
-		return nil
-	}
-
-	return &parsedTime
 }
 
 func ytDlpMediaParseDownloadableStatus(response map[string]any) (string, error) {

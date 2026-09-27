@@ -8,6 +8,7 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
@@ -143,7 +144,7 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
-			return "", &core.CommandError{Output: "some_error", Status: 1}
+			return "", &fsutil.CommandError{Output: "some_error", Status: 1}
 		})
 
 		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
@@ -449,7 +450,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 				outputFilepath := outputFilePathVal.(string)
 				metadata, _ := coretest.RenderMetadata("media_metadata")
 				os.WriteFile(outputFilepath, []byte(metadata), 0o644)
-				return "", &core.CommandError{Output: "Unable to communicate with SponsorBlock", Status: 1}
+				return "", &fsutil.CommandError{Output: "Unable to communicate with SponsorBlock", Status: 1}
 			} else if action == "download_thumbnail" {
 				return "", nil
 			}
@@ -483,7 +484,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 				outputFilepath := outputFilePathVal.(string)
 				metadata, _ := coretest.RenderMetadata("media_metadata")
 				os.WriteFile(outputFilepath, []byte(metadata), 0o644)
-				return "", &core.CommandError{Output: "Unable to communicate with SponsorBlock", Status: 1}
+				return "", &fsutil.CommandError{Output: "Unable to communicate with SponsorBlock", Status: 1}
 			} else if action == "download_thumbnail" {
 				return "", nil
 			}
@@ -518,7 +519,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 				return "{}", nil
 			} else if action == "download" {
 				// Don't write metadata to the output file, so recovery fails
-				return "", &core.CommandError{Output: "Unable to communicate with SponsorBlock", Status: 1}
+				return "", &fsutil.CommandError{Output: "Unable to communicate with SponsorBlock", Status: 1}
 			}
 			return "", nil
 		})
@@ -554,7 +555,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 				outputFilepath := outputFilePathVal.(string)
 				metadata, _ := coretest.RenderMetadata("media_metadata")
 				os.WriteFile(outputFilepath, []byte(metadata), 0o644)
-				return "", &core.CommandError{Output: "Unable to communicate with SponsorBlock", Status: 1}
+				return "", &fsutil.CommandError{Output: "Unable to communicate with SponsorBlock", Status: 1}
 			} else if action == "download_thumbnail" {
 				return "", nil
 			}
@@ -584,7 +585,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			} else if action == "download" {
-				return "", &core.CommandError{Output: "Unable to communicate with SponsorBlock", Status: 1}
+				return "", &fsutil.CommandError{Output: "Unable to communicate with SponsorBlock", Status: 1}
 			}
 			return "", nil
 		})
@@ -620,7 +621,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 			useCookies, _ := addlOpts.Get("use_cookies")
 			if action == "get_downloadable_status" {
 				if useCookies == false {
-					return "", &core.CommandError{Output: "Sign in to confirm your age", Status: 1}
+					return "", &fsutil.CommandError{Output: "Sign in to confirm your age", Status: 1}
 				} else if useCookies == true {
 					return "{}", nil
 				}
@@ -652,7 +653,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
 			if action == "get_downloadable_status" {
-				return "", &core.CommandError{Output: "Some other error", Status: 1}
+				return "", &fsutil.CommandError{Output: "Some other error", Status: 1}
 			}
 			return "", nil
 		})
@@ -683,7 +684,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
 			if action == "get_downloadable_status" {
-				return "", &core.CommandError{Output: "Sign in to confirm your age", Status: 1}
+				return "", &fsutil.CommandError{Output: "Sign in to confirm your age", Status: 1}
 			}
 			return "", nil
 		})
@@ -714,7 +715,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
 			if action == "get_downloadable_status" {
-				return "", &core.CommandError{Output: "This video is available to this channel's members", Status: 1}
+				return "", &fsutil.CommandError{Output: "This video is available to this channel's members", Status: 1}
 			}
 			return "", nil
 		})

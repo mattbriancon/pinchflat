@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"path/filepath"
 
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 )
 
@@ -176,7 +177,7 @@ func fetchSourceMetadataAndImages(ctx context.Context, a *App, seriesDirectory a
 // fetchMetadataForSource/1
 func fetchMetadataForSource(ctx context.Context, a *App, source *Source) (map[string]any, error) {
 	tmpDir := a.Config.TmpfileDirectory
-	tmpOutputPath := filepath.Join(tmpDir, StringUtilsRandomString(16), "source_image.%(ext)s")
+	tmpOutputPath := filepath.Join(tmpDir, fsutil.RandomString(16), "source_image.%(ext)s")
 
 	baseOpts := KW{
 		Opt("convert_thumbnails", "jpg"),

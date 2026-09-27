@@ -8,6 +8,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 )
 
@@ -246,7 +247,7 @@ func TestPreJobStartupTasks_RunAppInitScript(t *testing.T) {
 			return "1", nil
 		})
 		ta.UserScriptMock.Run.Expect(func(event string, data any) error {
-			return &core.CommandError{Output: "boom", Status: 1}
+			return &fsutil.CommandError{Output: "boom", Status: 1}
 		})
 
 		if err := ta.PreJobStartupTasksInit(ta.Ctx); err != nil {

@@ -10,7 +10,6 @@ package core
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/db"
@@ -90,16 +89,6 @@ type UserScriptRunner interface {
 // HTTPClient is Pinchflat.HTTP.HTTPBehaviour.
 type HTTPClient interface {
 	Get(ctx context.Context, url string, headers KW, opts KW) (string, error)
-}
-
-// CommandError is Elixir's {:error, output, status} from a command runner.
-type CommandError struct {
-	Output string
-	Status int
-}
-
-func (e *CommandError) Error() string {
-	return fmt.Sprintf("command exited %d: %s", e.Status, strings.TrimSpace(e.Output))
 }
 
 // --- Keyword lists ---

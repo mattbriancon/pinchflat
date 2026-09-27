@@ -3,6 +3,8 @@ package core
 import (
 	"fmt"
 	"strings"
+
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 // OpmlFeedBuilder builds OPML feeds for a list of sources.
@@ -13,7 +15,7 @@ func OpmlFeedBuilderBuild(urlBase string, sources []*Source) string {
 	for _, source := range sources {
 		sourceRoute := opmlFeedBuilderSourceRoute(urlBase, source)
 		// Each item is an Elixir heredoc, so it ends with a newline.
-		outline := fmt.Sprintf("<outline type=\"rss\" text=\"%s\" xmlUrl=\"%s\" />\n", XmlUtilsSafe(source.CustomName), XmlUtilsSafe(sourceRoute))
+		outline := fmt.Sprintf("<outline type=\"rss\" text=\"%s\" xmlUrl=\"%s\" />\n", fsutil.XMLSafe(source.CustomName), fsutil.XMLSafe(sourceRoute))
 		sourcesXML = append(sourcesXML, outline)
 	}
 

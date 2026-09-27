@@ -1,9 +1,10 @@
 package core
 
 import (
-	"context"
 	"fmt"
 	"path/filepath"
+
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 // SourceImageParserStoreSourceImages/2
@@ -171,8 +172,7 @@ func moveImage(key string, attrs imageAttrs, baseDirectory string) map[string]st
 	extension := filepath.Ext(attrs.currentFilepath)
 	finalFilepath := filepath.Join(baseDirectory, fmt.Sprintf("%s%s", attrs.finalFilename, extension))
 
-	ctx := context.Background()
-	if err := FilesystemUtilsCpP(ctx, attrs.currentFilepath, finalFilepath); err != nil {
+	if err := fsutil.CopyFile(attrs.currentFilepath, finalFilepath); err != nil {
 		return map[string]string{}
 	}
 

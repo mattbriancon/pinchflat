@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"strings"
+
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 // MediaCollectionGetMediaAttributesForCollection/3
@@ -18,7 +20,7 @@ func (a *App) MediaCollectionGetMediaAttributesForCollection(ctx context.Context
 
 	useCookies := addlOpts.Bool("use_cookies")
 	outputTemplate := YtDlpMediaIndexingOutputTemplate()
-	outputFilepath, err := a.FilesystemUtilsGenerateMetadataTmpfile(ctx, "json")
+	outputFilepath, err := fsutil.GenerateTmpfile(a.Config.TmpfileDirectory, "json")
 	if err != nil {
 		return nil, err
 	}

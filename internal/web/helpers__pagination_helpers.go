@@ -8,6 +8,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 // PaginationAttributes holds the pagination state returned by GetPaginationAttributes.
@@ -30,7 +31,7 @@ func (s *Server) GetPaginationAttributes(ctx context.Context, query sq.SelectBui
 	}
 
 	totalPages := int(math.Max(math.Ceil(float64(totalRecordCount)/float64(recordsPerPage)), 1))
-	clampedPage := core.NumberUtilsClamp(page, 1, totalPages)
+	clampedPage := fsutil.Clamp(page, 1, totalPages)
 
 	return &PaginationAttributes{
 		Page:             clampedPage,

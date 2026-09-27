@@ -6,6 +6,7 @@ package web
 
 import (
 	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 // mpKV is one entry of media_center_custom_output_template_options/0 and
@@ -159,5 +160,5 @@ func mediaProfilesAudioOutputTemplate() string {
 // double_brace/1 (Pinchflat.Utils.StringUtils), used throughout the form and
 // output_template_help templates.
 func mediaProfilesBrace(s string) string {
-	return core.StringUtilsDoubleBrace(s)
+	return fsutil.DoubleBrace(s)
 }
