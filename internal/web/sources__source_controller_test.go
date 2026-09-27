@@ -72,6 +72,7 @@ func TestSourceController_New(t *testing.T) {
 func TestSourceController_Create(t *testing.T) {
 	t.Run("redirects to show when data is valid", func(t *testing.T) {
 		c := webtest.New(t)
+		c.App.SettingsSet(c.Ctx, core.KW{core.Opt("onboarding", false)})
 		profile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{})
 		c.YtDlpMock.Run.ExpectN(1, func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
 			return "{\"channel\":\"test\",\"channel_id\":\"ch123\",\"playlist_id\":\"pl123\",\"playlist_title\":\"test\"}", nil
@@ -329,6 +330,24 @@ func TestSourceController_ForceIndex(t *testing.T) {
 		jobs := c.Oban.Enqueued(t, obanlite.Match{Args: map[string]any{"id": source.ID, "force": true}})
 		if len(jobs) == 0 {
 			t.Errorf("expected job to be enqueued with force=true")
+		}
+	})
+
+	t.Run("deletes pending indexing tasks", func(t *testing.T) {
+		c := webtest.New(t)
+		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		task, _ := c.App.SlowIndexingHelpersKickoffIndexingTask(c.Ctx, source, core.Attrs{}, core.KW{})
+		task, _ = c.App.PreloadTaskJob(c.Ctx, task)
+		initialState := task.Job.State
+
+		c.Post(fmt.Sprintf("/sources/%d/force_index", source.ID), "", nil)
+
+		// Reload the task to check the job state changed
+		reloadedTask, _ := c.App.TasksGetTaskBang(c.Ctx, task.ID)
+		reloadedTask, _ = c.App.PreloadTaskJob(c.Ctx, reloadedTask)
+
+		if initialState == "cancelled" || reloadedTask.Job.State != "cancelled" {
+			t.Errorf("expected job state to change to cancelled, was %s now %s", initialState, reloadedTask.Job.State)
 		}
 	})
 

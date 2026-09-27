@@ -135,11 +135,11 @@ func (s *Server) SourceControllerUpdate(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	source, err = s.App.SourcesUpdateSource(ctx, source, sourceParams, core.KW{})
+	updated, err := s.App.SourcesUpdateSource(ctx, source, sourceParams, core.KW{})
 	if err != nil {
 		var csErr *core.ChangesetError
 		if errors.As(err, &csErr) {
-			// Re-render form with errors
+			// Re-render form with errors, passing the original loaded source
 			mediaProfiles, _ := s.App.ProfilesListMediaProfiles(ctx)
 			s.Render(w, r, http.StatusOK, LayoutApp, SourceHTMLEdit(source, csErr.Changeset, mediaProfiles))
 			return
@@ -149,7 +149,7 @@ func (s *Server) SourceControllerUpdate(w http.ResponseWriter, r *http.Request) 
 	}
 
 	s.PutFlash(w, r, "info", "Source updated successfully.")
-	s.Redirect(w, r, P(ctx, "/sources/%v", source.ID))
+	s.Redirect(w, r, P(ctx, "/sources/%v", updated.ID))
 }
 
 // SourceControllerDelete marks a source for deletion.
@@ -165,7 +165,7 @@ func (s *Server) SourceControllerDelete(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Mark for deletion
-	source, err = s.App.SourcesUpdateSource(ctx, source, core.Attrs{
+	_, err = s.App.SourcesUpdateSource(ctx, source, core.Attrs{
 		"marked_for_deletion_at": time.Now().UTC(),
 	}, core.KW{})
 	if err != nil {
@@ -185,7 +185,7 @@ func (s *Server) SourceControllerDelete(w http.ResponseWriter, r *http.Request) 
 // SourceControllerForceDownloadPending forces pending media downloads.
 func (s *Server) SourceControllerForceDownloadPending(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	id, _ := strconv.ParseInt(URLParam(r, "id"), 10, 64)
+	id, _ := strconv.ParseInt(URLParam(r, "source_id"), 10, 64)
 
 	source, err := s.App.SourcesGetSource(ctx, id)
 	if err != nil {
@@ -205,7 +205,7 @@ func (s *Server) SourceControllerForceDownloadPending(w http.ResponseWriter, r *
 // SourceControllerForceRedownload forces redownload of existing media.
 func (s *Server) SourceControllerForceRedownload(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	id, _ := strconv.ParseInt(URLParam(r, "id"), 10, 64)
+	id, _ := strconv.ParseInt(URLParam(r, "source_id"), 10, 64)
 
 	source, err := s.App.SourcesGetSource(ctx, id)
 	if err != nil {
@@ -225,7 +225,7 @@ func (s *Server) SourceControllerForceRedownload(w http.ResponseWriter, r *http.
 // SourceControllerForceIndex forces an indexing task.
 func (s *Server) SourceControllerForceIndex(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	id, _ := strconv.ParseInt(URLParam(r, "id"), 10, 64)
+	id, _ := strconv.ParseInt(URLParam(r, "source_id"), 10, 64)
 
 	source, err := s.App.SourcesGetSource(ctx, id)
 	if err != nil {
@@ -245,7 +245,7 @@ func (s *Server) SourceControllerForceIndex(w http.ResponseWriter, r *http.Reque
 // SourceControllerForceMetadataRefresh forces a metadata refresh.
 func (s *Server) SourceControllerForceMetadataRefresh(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	id, _ := strconv.ParseInt(URLParam(r, "id"), 10, 64)
+	id, _ := strconv.ParseInt(URLParam(r, "source_id"), 10, 64)
 
 	source, err := s.App.SourcesGetSource(ctx, id)
 	if err != nil {
@@ -265,7 +265,7 @@ func (s *Server) SourceControllerForceMetadataRefresh(w http.ResponseWriter, r *
 // SourceControllerSyncFilesOnDisk forces a file sync.
 func (s *Server) SourceControllerSyncFilesOnDisk(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	id, _ := strconv.ParseInt(URLParam(r, "id"), 10, 64)
+	id, _ := strconv.ParseInt(URLParam(r, "source_id"), 10, 64)
 
 	source, err := s.App.SourcesGetSource(ctx, id)
 	if err != nil {
