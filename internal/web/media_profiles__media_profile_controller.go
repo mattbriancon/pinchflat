@@ -56,7 +56,7 @@ func (s *Server) MediaProfileControllerNew(w http.ResponseWriter, r *http.Reques
 
 	// Preload an existing media profile for faster creation
 	var csStruct *core.MediaProfile
-	if id, err := strconv.ParseInt(templateID, 10, 64); templateID != "" && err == nil {
+	if id, err := strconv.ParseInt(templateID, 10, 64); err == nil {
 		if profile, err := s.App.ProfilesGetMediaProfile(ctx, id); err == nil && profile != nil {
 			csStruct = profile
 		}
