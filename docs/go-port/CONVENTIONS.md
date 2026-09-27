@@ -322,28 +322,45 @@ Infrastructure already written, which you use but must not change:
 - Alpine attributes (`x-data`, `@click`, `x-show`, ...) are kept exactly.
 - After editing `.templ` files, run `templ generate -path internal/web` (the binary is at `~/go/bin/templ`) and commit the generated `_templ.go` files.
 
-### LiveViews → htmx
+### LiveViews → no htmx
 
-LiveView events become internal endpoints, already routed in `router.go`:
+There is no htmx and no `/_live/*` fragment endpoints (STRATEGY.md decision
+4): every page renders all its content on the first request, and anything
+new (paging, sorting, search, a tab reload, a "Refresh" affordance) is a
+normal navigation.
 
-| LiveView | Endpoint | Handler |
-|---|---|---|
-| JobTableLive | `GET /_live/jobs` | `JobTableLiveRender` |
-| HistoryTableLive | `GET /_live/history?media_state=&page=` | `HistoryTableLiveRender` |
-| SourceLive.IndexTableLive | `GET /_live/sources?sort_key=&sort_direction=&page=` | `SourceLiveIndexTableLiveRender` |
-| SourceEnableToggle | `POST /_live/sources/{id}/enabled` | `SourceEnableToggleUpdate` |
-| MediaItemTableLive | `GET /_live/sources/{id}/media?media_state=&page=&q=` | `MediaItemTableLiveRender` |
-| AppriseServerLive | `POST /_live/settings/apprise_test` | `AppriseServerLiveSendTest` |
-| UpgradeButtonLive | `POST /_live/upgrade` (typed text; sets pro_enabled) | `UpgradeButtonLiveCheckMatchingText` |
-
-- Each LiveView becomes:
-  - a templ component that renders the whole LiveView's output, embedded where the page used `live_render`, wrapped in a `<div id="..." hx-get="..." hx-trigger="..." hx-swap="outerHTML">`;
-  - a handler that renders that component as a fragment (`s.RenderFragment`).
-- `phx-click="page_change"` → `hx-get` with the new page in the query string, targeting the wrapper.
-- `phx-change` on a search box → `hx-get` with `hx-trigger="input changed delay:200ms"`.
-- `reload_page` / `media_table` broadcasts → a refresh button that re-fetches the fragment (no server push; see STRATEGY.md).
+- Each LiveView becomes a templ component that renders its whole output
+  inline where the page used `live_render` (or, for a page-level LiveView
+  like `SourceLive.IndexTableLive`, inline in the controller action), fed by
+  a plain function that fetches its data from the request's query params.
+- `phx-click="page_change"` / a sortable column header → a plain `<a
+  href="?...">` link that reloads the page with the new query params (see
+  `TableLivePaginationControls`'s `prevURL`/`nextURL` and `TableTable`'s
+  `HeaderURL`). Use `withQuery` (helpers__query_helpers.go) to change one
+  param while keeping the rest of the page's state (another table's page, a
+  search term, the active tab).
+- `phx-change` on a search box → a plain GET `<form>`; carry any state that
+  isn't one of the form's own inputs (e.g. the active tab, another tab's
+  page) as hidden inputs (`preservedParams`), so submitting it doesn't reset
+  them.
+- Two or more independently pageable tables on one page (e.g. the home
+  page's history tables) each get their own query param
+  (`<name>_page`, `<name>_q`, ...) so paging or searching one doesn't reset
+  another.
+- Tabs (`TabTabbedLayout`) stay client-side (Alpine + `web/assets/js/tabs.js`
+  hash tracking), but since a paging/search link inside a tab now reloads the
+  whole page, pass `?tab=<id>` on those links/forms so the reload reselects
+  the right tab; `TabTabbedLayout` reads it (`tabInitialID`) as the initial
+  tab, falling back to the URL hash, then the first tab.
+- A mutation (a toggle, a button) is a plain HTML `<form method="post"
+  action="...">`; Alpine may auto-submit it (`x-on:change="$el.form.requestSubmit()"`).
+  The handler redirects back (303) to the `Referer` when it's this app's own
+  origin and under BASE_ROUTE_PATH (`s.redirectBack`), else a fallback path.
+- `reload_page` / `media_table` broadcasts have no equivalent (no server
+  push; see STRATEGY.md): a browser reload of the page replaces them.
 - Tests using `live_isolated`/`render_click` become:
-  - `webtest` GETs/POSTs to the fragment endpoints, asserting on the returned HTML;
+  - `webtest` GETs/POSTs to the real page, with query params, asserting on
+    the returned HTML;
   - render-only tests may call the component directly with `templ.ToGoHTML`.
 
 ### Web tests
