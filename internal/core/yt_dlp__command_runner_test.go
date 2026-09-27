@@ -33,7 +33,7 @@ func TestYtDlpCommandRunner_Run(t *testing.T) {
 
 		// Wrap the executable to use 101_exit_code.sh
 		originalExec := ta.Config.YtDlpExecutable
-		ta.Config.YtDlpExecutable = coretest.RepoPath("test/support/scripts/yt-dlp-mocks/101_exit_code.sh")
+		ta.Config.YtDlpExecutable = coretest.RepoPath("testdata/support/scripts/yt-dlp-mocks/101_exit_code.sh")
 		defer func() { ta.Config.YtDlpExecutable = originalExec }()
 
 		runner := &core.YtDlpCommandRunner{App: ta.App}

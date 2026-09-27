@@ -34,11 +34,11 @@ func NowMinus(offset int, unit string) time.Time {
 	return NowPlus(-offset, unit)
 }
 
-// RenderMetadata reads a JSON metadata file from test/support/files directory.
+// RenderMetadata reads a JSON metadata file from testdata/support/files.
 func RenderMetadata(metadataName string) (string, error) {
 	jsonFilepath := filepath.Join(
 		dbtest.RepoRoot(),
-		"test",
+		"testdata",
 		"support",
 		"files",
 		metadataName+".json",
@@ -56,7 +56,7 @@ func RenderMetadata(metadataName string) (string, error) {
 func RenderMetadataWithFixedPaths(metadataName string) (string, error) {
 	jsonFilepath := filepath.Join(
 		dbtest.RepoRoot(),
-		"test",
+		"testdata",
 		"support",
 		"files",
 		metadataName+".json",
@@ -75,7 +75,7 @@ func RenderMetadataWithFixedPaths(metadataName string) (string, error) {
 
 	// Fix thumbnail paths
 	if thumbnails, ok := data["thumbnails"].([]any); ok {
-		testPhotosDir := filepath.Join(dbtest.RepoRoot(), "test", "support", "files", "channel_photos")
+		testPhotosDir := filepath.Join(dbtest.RepoRoot(), "testdata", "support", "files", "channel_photos")
 		for _, thumb := range thumbnails {
 			if thumbMap, ok := thumb.(map[string]any); ok {
 				if fp, ok := thumbMap["filepath"].(string); ok {

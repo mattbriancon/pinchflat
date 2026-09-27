@@ -14,7 +14,7 @@ import (
 func loadMetadataFixture(t *testing.T) map[string]any {
 	t.Helper()
 	root := dbtest.RepoRoot()
-	fixtureFile := filepath.Join(root, "test", "support", "files", "media_metadata.json")
+	fixtureFile := filepath.Join(root, "testdata", "support", "files", "media_metadata.json")
 
 	data, err := os.ReadFile(fixtureFile)
 	if err != nil {
@@ -335,7 +335,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 		os.MkdirAll(filepath.Dir(modified), 0755)
 
 		// Copy the fixture file
-		fixtureFile := filepath.Join(root, "test", "support", "files", "thumbnail.jpg")
+		fixtureFile := filepath.Join(root, "testdata", "support", "files", "thumbnail.jpg")
 		fixtureData, err := os.ReadFile(fixtureFile)
 		if err != nil {
 			t.Skipf("skipping thumbnail tests: could not read fixture file: %v", err)
@@ -459,7 +459,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingInfojsonMetadata(t *testing
 
 	os.MkdirAll(filepath.Dir(infojsonFilename), 0755)
 
-	fixtureFile := filepath.Join(root, "test", "support", "files", "example.info.json")
+	fixtureFile := filepath.Join(root, "testdata", "support", "files", "example.info.json")
 	fixtureData, err := os.ReadFile(fixtureFile)
 	if err != nil {
 		t.Skipf("skipping infojson tests: could not read fixture file: %v", err)

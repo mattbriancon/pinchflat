@@ -39,7 +39,7 @@ func TestSourceImageParserStoreSourceImages(t *testing.T) {
 
 	t.Run("returns the avatar_uncropped as the poster", func(t *testing.T) {
 		baseDir := ta.Config.TmpfileDirectory
-		sourceImagePath := coretest.RepoPath("test/support/files/channel_photos/a.0.jpg")
+		sourceImagePath := coretest.RepoPath("testdata/support/files/channel_photos/a.0.jpg")
 		metadata := map[string]any{
 			"thumbnails": []any{
 				map[string]any{
@@ -65,7 +65,7 @@ func TestSourceImageParserStoreSourceImages(t *testing.T) {
 
 	t.Run("returns the banner_uncropped as the fanart", func(t *testing.T) {
 		baseDir := ta.Config.TmpfileDirectory
-		sourceImagePath := coretest.RepoPath("test/support/files/channel_photos/a.0.jpg")
+		sourceImagePath := coretest.RepoPath("testdata/support/files/channel_photos/a.0.jpg")
 		metadata := map[string]any{
 			"thumbnails": []any{
 				map[string]any{
@@ -148,7 +148,7 @@ func TestSourceImageParserStoreSourceImagesFallbacks(t *testing.T) {
 
 	t.Run("uses the entries list for a fallback poster if needed", func(t *testing.T) {
 		baseDir := ta.Config.TmpfileDirectory
-		sourceImagePath := coretest.RepoPath("test/support/files/channel_photos/a.0.jpg")
+		sourceImagePath := coretest.RepoPath("testdata/support/files/channel_photos/a.0.jpg")
 		metadata := map[string]any{
 			"thumbnails": []any{},
 			"entries": []any{
@@ -233,7 +233,7 @@ func TestSourceImageParserStoreSourceImagesFallbacks(t *testing.T) {
 
 // Helper function to create parsed channel source metadata
 func renderParsedChannelSourceMetadata() map[string]any {
-	sourceImagePath := coretest.RepoPath("test/support/files/channel_photos/a.0.jpg")
+	sourceImagePath := coretest.RepoPath("testdata/support/files/channel_photos/a.0.jpg")
 	return map[string]any{
 		"thumbnails": []any{
 			map[string]any{

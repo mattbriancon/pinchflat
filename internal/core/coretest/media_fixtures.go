@@ -72,10 +72,10 @@ func MediaItemWithMetadataAttachmentsFixture(t testing.TB, ta *TestApp, attrs co
 	jsonGzFilepath := filepath.Join(metadataDir, "metadata.json.gz")
 	thumbnailFilepath := filepath.Join(metadataDir, "thumbnail.jpg")
 
-	if err := fileCopy(RepoPath("test/support/files/media_metadata.json"), jsonGzFilepath); err != nil {
+	if err := fileCopy(RepoPath("testdata/support/files/media_metadata.json"), jsonGzFilepath); err != nil {
 		t.Fatalf("copy metadata: %v", err)
 	}
-	if err := fileCopy(RepoPath("test/support/files/thumbnail.jpg"), thumbnailFilepath); err != nil {
+	if err := fileCopy(RepoPath("testdata/support/files/thumbnail.jpg"), thumbnailFilepath); err != nil {
 		t.Fatalf("copy thumbnail: %v", err)
 	}
 
@@ -104,13 +104,13 @@ func MediaItemWithAttachmentsFixture(t testing.TB, ta *TestApp, attrs core.Attrs
 	thumbnailFilepath := filepath.Join(baseDir, "thumbnail.jpg")
 	subtitleFilepath := filepath.Join(baseDir, "subtitle.en.srt")
 
-	if err := fileCopy(RepoPath("test/support/files/media.mkv"), storedMediaFilepath); err != nil {
+	if err := fileCopy(RepoPath("testdata/support/files/media.mkv"), storedMediaFilepath); err != nil {
 		t.Fatalf("copy media: %v", err)
 	}
-	if err := fileCopy(RepoPath("test/support/files/thumbnail.jpg"), thumbnailFilepath); err != nil {
+	if err := fileCopy(RepoPath("testdata/support/files/thumbnail.jpg"), thumbnailFilepath); err != nil {
 		t.Fatalf("copy thumbnail: %v", err)
 	}
-	if err := fileCopy(RepoPath("test/support/files/subtitle.srt"), subtitleFilepath); err != nil {
+	if err := fileCopy(RepoPath("testdata/support/files/subtitle.srt"), subtitleFilepath); err != nil {
 		t.Fatalf("copy subtitle: %v", err)
 	}
 
@@ -150,7 +150,7 @@ func MediaAttributesReturnFixture() string {
 func MediaFilePathFixture() string {
 	return filepath.Join(
 		RepoPath(""),
-		"test",
+		"testdata",
 		"support",
 		"files",
 		"media.mkv",
@@ -161,7 +161,7 @@ func MediaFilePathFixture() string {
 func ThumbnailFilePathFixture() string {
 	return filepath.Join(
 		RepoPath(""),
-		"test",
+		"testdata",
 		"support",
 		"files",
 		"thumbnail.jpg",
@@ -172,7 +172,7 @@ func ThumbnailFilePathFixture() string {
 func SubtitleFilePathFixture() string {
 	return filepath.Join(
 		RepoPath(""),
-		"test",
+		"testdata",
 		"support",
 		"files",
 		"subtitle.srt",
@@ -183,7 +183,7 @@ func SubtitleFilePathFixture() string {
 func InfoJsonFilePathFixture() string {
 	return filepath.Join(
 		RepoPath(""),
-		"test",
+		"testdata",
 		"support",
 		"files",
 		"example.info.json",
@@ -194,7 +194,7 @@ func InfoJsonFilePathFixture() string {
 func MediaMetadataFilePathFixture() string {
 	return filepath.Join(
 		RepoPath(""),
-		"test",
+		"testdata",
 		"support",
 		"files",
 		"media_metadata.json",

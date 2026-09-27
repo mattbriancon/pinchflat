@@ -637,7 +637,7 @@ func TestYtDlpMedia_ResponseToStructUploadedAt(t *testing.T) {
 }
 
 func renderMetadata(t *testing.T, name string) string {
-	data, err := os.ReadFile(coretest.RepoPath(filepath.Join("test/support/files", name+".json")))
+	data, err := os.ReadFile(coretest.RepoPath(filepath.Join("testdata/support/files", name+".json")))
 	if err != nil {
 		t.Fatal(err)
 	}

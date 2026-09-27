@@ -88,8 +88,8 @@ func NewApp(t testing.TB) *TestApp {
 	testDataDir := dir // per-test, replacing the shared /tmp/test/* of config/test.exs
 	cfg := core.Config{
 		Env:                     "test",
-		YtDlpExecutable:         filepath.Join(root, "test/support/scripts/yt-dlp-mocks/repeater.sh"),
-		AppriseExecutable:       filepath.Join(root, "test/support/scripts/yt-dlp-mocks/repeater.sh"),
+		YtDlpExecutable:         filepath.Join(root, "testdata/support/scripts/yt-dlp-mocks/repeater.sh"),
+		AppriseExecutable:       filepath.Join(root, "testdata/support/scripts/yt-dlp-mocks/repeater.sh"),
 		MediaDirectory:          filepath.Join(testDataDir, "media"),
 		MetadataDirectory:       filepath.Join(testDataDir, "metadata"),
 		ExtrasDirectory:         filepath.Join(dir, "extras"),

@@ -106,13 +106,13 @@ func SourceWithMetadataAttachmentsFixture(t testing.TB, ta *TestApp, attrs core.
 	fanartFilepath := filepath.Join(metadataDir, "fanart.jpg")
 
 	// Copy test files
-	if err := fileCopy(RepoPath("test/support/files/media_metadata.json"), jsonGzFilepath); err != nil {
+	if err := fileCopy(RepoPath("testdata/support/files/media_metadata.json"), jsonGzFilepath); err != nil {
 		t.Fatalf("copy metadata: %v", err)
 	}
-	if err := fileCopy(RepoPath("test/support/files/thumbnail.jpg"), posterFilepath); err != nil {
+	if err := fileCopy(RepoPath("testdata/support/files/thumbnail.jpg"), posterFilepath); err != nil {
 		t.Fatalf("copy poster: %v", err)
 	}
-	if err := fileCopy(RepoPath("test/support/files/thumbnail.jpg"), fanartFilepath); err != nil {
+	if err := fileCopy(RepoPath("testdata/support/files/thumbnail.jpg"), fanartFilepath); err != nil {
 		t.Fatalf("copy fanart: %v", err)
 	}
 
