@@ -14,29 +14,32 @@ func TestOpmlFeedBuilder_Build(t *testing.T) {
 
 	source := coretest.SourceFixture(t, ta, core.Attrs{})
 
-	t.Run("returns an XML document", func(t *testing.T) {
+	t.Run("returns XML", func(t *testing.T) {
+
 		res := core.OpmlFeedBuilderBuild("http://example.com", []*core.Source{source})
 
 		if !strings.Contains(res, `<?xml version="1.0" encoding="UTF-8"?>`) {
-			t.Errorf("expected XML declaration, got: %v", res)
+			t.Errorf("missing XML declaration")
 		}
 	})
 
-	t.Run("escapes illegal characters", func(t *testing.T) {
-		source := coretest.SourceFixture(t, ta, core.Attrs{"custom_name": "A & B"})
-		res := core.OpmlFeedBuilderBuild("http://example.com", []*core.Source{source})
+	t.Run("escapes ampersands", func(t *testing.T) {
+
+		src := coretest.SourceFixture(t, ta, core.Attrs{"custom_name": "A & B"})
+		res := core.OpmlFeedBuilderBuild("http://example.com", []*core.Source{src})
 
 		if !strings.Contains(res, `A &amp; B`) {
-			t.Errorf("expected escaped ampersand, got: %v", res)
+			t.Errorf("missing escaped ampersand")
 		}
 	})
 
-	t.Run("build podcast link with URL base", func(t *testing.T) {
+	t.Run("builds source link", func(t *testing.T) {
+
 		res := core.OpmlFeedBuilderBuild("http://example.com", []*core.Source{source})
 
 		expectedURL := "http://example.com/sources/" + *source.UUID + "/feed.xml"
 		if !strings.Contains(res, expectedURL) {
-			t.Errorf("expected %q in output, got: %v", expectedURL, res)
+			t.Errorf("missing source URL")
 		}
 	})
 }

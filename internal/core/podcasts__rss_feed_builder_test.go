@@ -17,51 +17,55 @@ func TestRssFeedBuilder_Build(t *testing.T) {
 
 	source := coretest.SourceFixture(t, ta, core.Attrs{})
 
-	t.Run("returns an XML document", func(t *testing.T) {
+	t.Run("returns XML", func(t *testing.T) {
+
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("build failed: %v", err)
 		}
 
 		if !strings.Contains(res, `<?xml version="1.0" encoding="UTF-8"?>`) {
-			t.Errorf("expected XML declaration, got: %v", res)
+			t.Errorf("missing XML declaration")
 		}
 	})
 
-	t.Run("escapes illegal characters", func(t *testing.T) {
-		source := coretest.SourceFixture(t, ta, core.Attrs{"custom_name": "A & B"})
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
+	t.Run("escapes ampersands", func(t *testing.T) {
+
+		src := coretest.SourceFixture(t, ta, core.Attrs{"custom_name": "A & B"})
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, src, core.KW{})
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("build failed: %v", err)
 		}
 
 		if !strings.Contains(res, `<title>A &amp; B</title>`) {
-			t.Errorf("expected escaped ampersand in title, got: %v", res)
+			t.Errorf("missing escaped ampersand")
 		}
 	})
 
-	t.Run("can optionally apply a limit to media items", func(t *testing.T) {
+	t.Run("applies limit", func(t *testing.T) {
+
 		goodMedia := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{core.Opt("limit", 0)})
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("build failed: %v", err)
 		}
 
 		if strings.Contains(res, *goodMedia.Title) {
-			t.Errorf("media item should not be in output with limit 0")
+			t.Errorf("limit 0 should exclude media")
 		}
 	})
 
-	t.Run("can optionally specify a URL base", func(t *testing.T) {
+	t.Run("uses custom URL base", func(t *testing.T) {
+
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{core.Opt("url_base", "http://example.com")})
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("build failed: %v", err)
 		}
 
 		expectedURL := "http://example.com/sources/" + *source.UUID + "/feed.xml"
 		if !strings.Contains(res, expectedURL) {
-			t.Errorf("expected %q in output", expectedURL)
+			t.Errorf("missing custom URL")
 		}
 	})
 }
@@ -72,91 +76,97 @@ func TestRssFeedBuilder_Build_SourceXml(t *testing.T) {
 
 	source := coretest.SourceFixture(t, ta, core.Attrs{})
 
-	t.Run("returns XML for static source attributes", func(t *testing.T) {
+	t.Run("includes source attributes", func(t *testing.T) {
+
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("build failed: %v", err)
 		}
 
 		if !strings.Contains(res, "<title>"+source.CustomName+"</title>") {
-			t.Errorf("expected custom name in title")
+			t.Errorf("missing custom name")
 		}
 		if !strings.Contains(res, "<link>"+source.OriginalURL+"</link>") {
-			t.Errorf("expected original URL in link")
+			t.Errorf("missing original URL")
 		}
 		if !strings.Contains(res, "<description>"+*source.Description+"</description>") {
-			t.Errorf("expected description")
+			t.Errorf("missing description")
 		}
 		if !strings.Contains(res, "<itunes:author>"+source.CustomName+"</itunes:author>") {
-			t.Errorf("expected itunes:author")
+			t.Errorf("missing itunes:author")
 		}
 		if !strings.Contains(res, "<podcast:guid>"+*source.UUID+"</podcast:guid>") {
-			t.Errorf("expected podcast:guid")
+			t.Errorf("missing podcast:guid")
 		}
 	})
 
-	t.Run("returns the lastBuildDate and pubDate based off the source's timestamps", func(t *testing.T) {
+	t.Run("sets build and pub dates", func(t *testing.T) {
+
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("build failed: %v", err)
 		}
 
 		lastBuildDate := formatRSSDate(source.UpdatedAt.Time)
 		pubDate := formatRSSDate(source.InsertedAt.Time)
 
 		if !strings.Contains(res, "<lastBuildDate>"+lastBuildDate+"</lastBuildDate>") {
-			t.Errorf("expected lastBuildDate, got: %v", res)
+			t.Errorf("missing lastBuildDate")
 		}
 		if !strings.Contains(res, "<pubDate>"+pubDate+"</pubDate>") {
-			t.Errorf("expected pubDate, got: %v", res)
+			t.Errorf("missing pubDate")
 		}
 	})
 
-	t.Run("returns a self-link", func(t *testing.T) {
+	t.Run("includes self link", func(t *testing.T) {
+
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("build failed: %v", err)
 		}
 
 		expectedLink := `http://localhost:8945/sources/` + *source.UUID + `/feed.xml`
 		if !strings.Contains(res, expectedLink) {
-			t.Errorf("expected self link %q", expectedLink)
+			t.Errorf("missing self link")
 		}
 	})
 
-	t.Run("returns a link to the feed image", func(t *testing.T) {
-		source := coretest.SourceWithMetadataAttachmentsFixture(t, ta, core.Attrs{})
+	t.Run("includes image when available", func(t *testing.T) {
 
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
+		src := coretest.SourceWithMetadataAttachmentsFixture(t, ta, core.Attrs{})
+
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, src, core.KW{})
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("build failed: %v", err)
 		}
 
 		parts := strings.Split(res, "<image>")
 		if len(parts) < 2 {
-			t.Fatalf("expected image tag")
+			t.Fatalf("missing image tag")
 		}
 		imagePart := parts[1]
 
-		expectedImageURL := `http://localhost:8945/sources/` + *source.UUID + `/feed_image.jpg`
+		expectedImageURL := `http://localhost:8945/sources/` + *src.UUID + `/feed_image.jpg`
 		if !strings.Contains(imagePart, expectedImageURL) {
-			t.Errorf("expected image URL %q in %q", expectedImageURL, imagePart)
+			t.Errorf("missing image URL")
 		}
-		if !strings.Contains(imagePart, "<title>"+source.CustomName+"</title>") {
-			t.Errorf("expected image title")
+		if !strings.Contains(imagePart, "<title>"+src.CustomName+"</title>") {
+			t.Errorf("missing image title")
 		}
-		if !strings.Contains(imagePart, "<link>"+source.OriginalURL+"</link>") {
-			t.Errorf("expected image link")
+		if !strings.Contains(imagePart, "<link>"+src.OriginalURL+"</link>") {
+			t.Errorf("missing image link")
 		}
 
-		if !strings.Contains(res, `<itunes:image href="http://localhost:8945/sources/`+*source.UUID+`/feed_image.jpg"></itunes:image>`) {
-			t.Errorf("expected itunes:image")
+		if !strings.Contains(res, `<itunes:image href="http://localhost:8945/sources/`+*src.UUID+`/feed_image.jpg"></itunes:image>`) {
+			t.Errorf("missing itunes:image")
 		}
 	})
 }
 
 func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
-	t.Run("only includes media persisted to disk", func(t *testing.T) {
+	t.Parallel()
+	t.Run("filters persisted media", func(t *testing.T) {
+
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
 
@@ -167,21 +177,22 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("build failed: %v", err)
 		}
 
 		if goodMedia.Title != nil && !strings.Contains(res, "<title>"+*goodMedia.Title+"</title>") {
-			t.Errorf("expected good media title in output")
+			t.Errorf("missing good media")
 		}
 		if badMedia.Title != nil && strings.Contains(res, "<title>"+*badMedia.Title+"</title>") {
-			t.Errorf("bad media should not be in output")
+			t.Errorf("should exclude non-existent file")
 		}
 		if pendingMedia.Title != nil && strings.Contains(res, "<title>"+*pendingMedia.Title+"</title>") {
-			t.Errorf("pending media should not be in output")
+			t.Errorf("should exclude pending media")
 		}
 	})
 
-	t.Run("returns XML for static media attributes", func(t *testing.T) {
+	t.Run("includes media attributes", func(t *testing.T) {
+
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
 
@@ -190,39 +201,40 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("build failed: %v", err)
 		}
 
 		parts := strings.Split(res, "<item>")
 		if len(parts) < 2 {
-			t.Fatalf("expected item tag")
+			t.Fatalf("missing item tag")
 		}
 		itemXml := parts[1]
 
 		if !strings.Contains(itemXml, "<guid isPermaLink=\"false\">"+*mediaItem.UUID+"</guid>") {
-			t.Errorf("expected guid")
+			t.Errorf("missing guid")
 		}
 		if mediaItem.Title != nil && !strings.Contains(itemXml, "<title>"+*mediaItem.Title+"</title>") {
-			t.Errorf("expected title")
+			t.Errorf("missing title")
 		}
 		if !strings.Contains(itemXml, "<link>"+mediaItem.OriginalURL+"</link>") {
-			t.Errorf("expected link")
+			t.Errorf("missing link")
 		}
 		if mediaItem.Description != nil && !strings.Contains(itemXml, "<description>"+*mediaItem.Description+"</description>") {
-			t.Errorf("expected description")
+			t.Errorf("missing description")
 		}
 		if !strings.Contains(itemXml, "<itunes:author>"+source.CustomName+"</itunes:author>") {
-			t.Errorf("expected itunes:author")
+			t.Errorf("missing itunes:author")
 		}
 		if mediaItem.Title != nil && !strings.Contains(itemXml, "<itunes:subtitle>"+*mediaItem.Title+"</itunes:subtitle>") {
-			t.Errorf("expected itunes:subtitle")
+			t.Errorf("missing itunes:subtitle")
 		}
 		if mediaItem.Description != nil && !strings.Contains(itemXml, "<itunes:summary><![CDATA["+*mediaItem.Description+"]]></itunes:summary>") {
-			t.Errorf("expected itunes:summary with CDATA")
+			t.Errorf("missing itunes:summary")
 		}
 	})
 
-	t.Run("returns pubDate based off the media's uploaded_at", func(t *testing.T) {
+	t.Run("sets pubDate", func(t *testing.T) {
+
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
 
@@ -232,21 +244,22 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("build failed: %v", err)
 		}
 
 		parts := strings.Split(res, "<item>")
 		if len(parts) < 2 {
-			t.Fatalf("expected item tag")
+			t.Fatalf("missing item tag")
 		}
 		itemXml := parts[1]
 
 		if !strings.Contains(itemXml, "<pubDate>Wed, 01 Jan 2020 00:00:00 +0000</pubDate>") {
-			t.Errorf("expected pubDate")
+			t.Errorf("missing pubDate")
 		}
 	})
 
-	t.Run("returns an enclosure tag with the media's stream URL", func(t *testing.T) {
+	t.Run("includes enclosure", func(t *testing.T) {
+
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
 
@@ -255,30 +268,31 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("build failed: %v", err)
 		}
 
 		parts := strings.Split(res, "<item>")
 		if len(parts) < 2 {
-			t.Fatalf("expected item tag")
+			t.Fatalf("missing item tag")
 		}
 		itemXml := parts[1]
 
 		if !strings.Contains(itemXml, "<enclosure") {
-			t.Errorf("expected enclosure tag")
+			t.Errorf("missing enclosure")
 		}
 		if !strings.Contains(itemXml, `http://localhost:8945/media/`+*mediaItem.UUID+`/stream.mp4`) {
-			t.Errorf("expected media stream URL")
+			t.Errorf("missing stream URL")
 		}
 		if !strings.Contains(itemXml, `length="1234"`) {
-			t.Errorf("expected length attribute")
+			t.Errorf("missing length")
 		}
 		if !strings.Contains(itemXml, `type="video/mp4"`) {
-			t.Errorf("expected type attribute")
+			t.Errorf("missing type")
 		}
 	})
 
-	t.Run("returns image tags if the media has a thumbnail", func(t *testing.T) {
+	t.Run("includes image tags when available", func(t *testing.T) {
+
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
 
@@ -287,25 +301,26 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("build failed: %v", err)
 		}
 
 		parts := strings.Split(res, "<item>")
 		if len(parts) < 2 {
-			t.Fatalf("expected item tag")
+			t.Fatalf("missing item tag")
 		}
 		itemXml := parts[1]
 
 		if !strings.Contains(itemXml, `<itunes:image href="http://localhost:8945/media/`+*mediaItem.UUID+`/episode_image.jpg"></itunes:image>`) {
-			t.Errorf("expected itunes:image")
+			t.Errorf("missing itunes:image")
 		}
 
 		if !strings.Contains(itemXml, `<podcast:images srcset="http://localhost:8945/media/`+*mediaItem.UUID+`/episode_image.jpg" />`) {
-			t.Errorf("expected podcast:images")
+			t.Errorf("missing podcast:images")
 		}
 	})
 
-	t.Run("does not return image tags if the media does not have a thumbnail", func(t *testing.T) {
+	t.Run("omits image tags when none", func(t *testing.T) {
+
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
 
@@ -315,20 +330,20 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("build failed: %v", err)
 		}
 
 		parts := strings.Split(res, "<item>")
 		if len(parts) < 2 {
-			t.Fatalf("expected item tag")
+			t.Fatalf("missing item tag")
 		}
 		itemXml := parts[1]
 
 		if strings.Contains(itemXml, "itunes:image") {
-			t.Errorf("should not have itunes:image tag")
+			t.Errorf("should not have itunes:image")
 		}
 		if strings.Contains(itemXml, "podcast:images") {
-			t.Errorf("should not have podcast:images tag")
+			t.Errorf("should not have podcast:images")
 		}
 	})
 }
