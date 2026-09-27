@@ -2,42 +2,37 @@ package web
 
 // Port of lib/pinchflat_web/controllers/settings/setting_html/apprise_server_live.ex (LiveView -> htmx).
 
-templ SettingHTMLAppriseServerLiveFragment(value any) {
-	@CoreInput(CoreInputProps{
-		ID:          "setting_apprise_server",
-		Name:        "setting[apprise_server]",
-		Label:       "Apprise Server",
-		Type:        "text",
-		Value:       value,
-		Help:        AppriseServerHelp(),
-		HTMLHelp:    true,
-		InputClass:  "font-mono text-sm mr-4",
-		Rest: templ.Attributes{
-			"placeholder": "https://discordapp.com/api/webhooks/{WebhookID}/{WebhookToken}",
-			"hx-post":     "/_live/settings/apprise_test",
-			"hx-trigger":  "change",
-			"hx-swap":     "outerHTML",
-		},
-		InputAppend: AppriseTestButton("hero-paper-airplane", "Send Test"),
-	})
+// SettingHTMLAppriseServerLiveFragment is AppriseServerLive.render/1: the
+// input plus its appended "send test" icon button. iconName/tooltip carry
+// what would be the LiveView's icon_name/tooltip assigns (paper-airplane
+// "Send Test" on mount, check "Sent!" right after a click).
+templ SettingHTMLAppriseServerLiveFragment(value string, iconName string, tooltip string) {
+	<div id="setting_apprise_server-wrapper">
+		@CoreInput(CoreInputProps{
+			ID:         "setting_apprise_server",
+			Name:       "setting[apprise_server]",
+			Type:       "text",
+			Value:      value,
+			Label:      "Apprise Server",
+			Help:       AppriseServerHelp(),
+			HTMLHelp:   true,
+			InputClass: "font-mono text-sm mr-4",
+			Rest: templ.Attributes{
+				"placeholder": "https://discordapp.com/api/webhooks/{WebhookID}/{WebhookToken}",
+			},
+			InputAppend: appriseTestButton(iconName, tooltip),
+		})
+	</div>
 }
 
-// AppriseTestButton is the icon button appended to the input.
-templ AppriseTestButton(iconName string, tooltip string) {
+// appriseTestButton is the <:input_append> icon_button, wired to POST the
+// current value (via hx-include, since there is no server-held LiveView
+// state to remember what was last typed).
+templ appriseTestButton(iconName string, tooltip string) {
 	@ButtonIconButton(iconName, "h-12 w-12", tooltip, templ.Attributes{
-		"type": "button",
-		"hx-post": "/_live/settings/apprise_test",
-		"hx-target": "this",
-		"hx-swap": "outerHTML",
-	})
-}
-
-// AppriseTestButtonResult is the button after test is sent (shows checkmark).
-templ AppriseTestButtonResult(iconName string, tooltip string) {
-	@ButtonIconButton(iconName, "h-12 w-12", tooltip, templ.Attributes{
-		"type": "button",
-		"hx-post": "/_live/settings/apprise_test",
-		"hx-target": "this",
-		"hx-swap": "outerHTML swap:4s",
+		"hx-post":    "/_live/settings/apprise_test",
+		"hx-include": "#setting_apprise_server",
+		"hx-target":  "#setting_apprise_server-wrapper",
+		"hx-swap":    "outerHTML",
 	})
 }

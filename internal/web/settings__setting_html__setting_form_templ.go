@@ -89,15 +89,15 @@ func formContent(f *Form) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<section><section class=\"flex justify-between items-center mt-4\"><h3 class=\"section-title\">Notification Settings</h3><span class=\"cursor-pointer hover:underline\" x-on:click=\"advancedMode = !advancedMode\">Editing Mode: <span x-text=\"advancedMode ? 'Advanced' : 'Standard'\"></span></span></section><!-- AppriseServerLive fragment - replaces the live_render call --><div hx-get=\"/_live/settings/apprise_test\" hx-trigger=\"load\" hx-swap=\"innerHTML\"><!-- Will be replaced with AppriseServerLiveRender content -->")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<section><section class=\"flex justify-between items-center mt-4\"><h3 class=\"section-title\">Notification Settings</h3><span class=\"cursor-pointer hover:underline\" x-on:click=\"advancedMode = !advancedMode\">Editing Mode: <span x-text=\"advancedMode ? 'Advanced' : 'Standard'\"></span></span></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = SettingHTMLAppriseServerLiveFragment(f.Field("apprise_server").Value).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = SettingHTMLAppriseServerLiveFragment(InputValue(f.Field("apprise_server").Value), "hero-paper-airplane", "Send Test").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div></section><section class=\"mt-8\"><section><h3 class=\"section-title\">Extractor Settings</h3>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</section><section class=\"mt-8\"><section><h3 class=\"section-title\">Extractor Settings</h3>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

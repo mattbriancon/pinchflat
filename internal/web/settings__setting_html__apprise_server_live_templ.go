@@ -9,7 +9,12 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 // Port of lib/pinchflat_web/controllers/settings/setting_html/apprise_server_live.ex (LiveView -> htmx).
-func SettingHTMLAppriseServerLiveFragment(value any) templ.Component {
+
+// SettingHTMLAppriseServerLiveFragment is AppriseServerLive.render/1: the
+// input plus its appended "send test" icon button. iconName/tooltip carry
+// what would be the LiveView's icon_name/tooltip assigns (paper-airplane
+// "Send Test" on mount, check "Sent!" right after a click).
+func SettingHTMLAppriseServerLiveFragment(value string, iconName string, tooltip string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -30,23 +35,28 @@ func SettingHTMLAppriseServerLiveFragment(value any) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"setting_apprise_server-wrapper\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
 		templ_7745c5c3_Err = CoreInput(CoreInputProps{
 			ID:         "setting_apprise_server",
 			Name:       "setting[apprise_server]",
-			Label:      "Apprise Server",
 			Type:       "text",
 			Value:      value,
+			Label:      "Apprise Server",
 			Help:       AppriseServerHelp(),
 			HTMLHelp:   true,
 			InputClass: "font-mono text-sm mr-4",
 			Rest: templ.Attributes{
 				"placeholder": "https://discordapp.com/api/webhooks/{WebhookID}/{WebhookToken}",
-				"hx-post":     "/_live/settings/apprise_test",
-				"hx-trigger":  "change",
-				"hx-swap":     "outerHTML",
 			},
-			InputAppend: AppriseTestButton("hero-paper-airplane", "Send Test"),
+			InputAppend: appriseTestButton(iconName, tooltip),
 		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -54,8 +64,10 @@ func SettingHTMLAppriseServerLiveFragment(value any) templ.Component {
 	})
 }
 
-// AppriseTestButton is the icon button appended to the input.
-func AppriseTestButton(iconName string, tooltip string) templ.Component {
+// appriseTestButton is the <:input_append> icon_button, wired to POST the
+// current value (via hx-include, since there is no server-held LiveView
+// state to remember what was last typed).
+func appriseTestButton(iconName string, tooltip string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -77,45 +89,10 @@ func AppriseTestButton(iconName string, tooltip string) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		templ_7745c5c3_Err = ButtonIconButton(iconName, "h-12 w-12", tooltip, templ.Attributes{
-			"type":      "button",
-			"hx-post":   "/_live/settings/apprise_test",
-			"hx-target": "this",
-			"hx-swap":   "outerHTML",
-		}).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		return nil
-	})
-}
-
-// AppriseTestButtonResult is the button after test is sent (shows checkmark).
-func AppriseTestButtonResult(iconName string, tooltip string) templ.Component {
-	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
-			return templ_7745c5c3_CtxErr
-		}
-		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-		if !templ_7745c5c3_IsBuffer {
-			defer func() {
-				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err == nil {
-					templ_7745c5c3_Err = templ_7745c5c3_BufErr
-				}
-			}()
-		}
-		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var3 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var3 == nil {
-			templ_7745c5c3_Var3 = templ.NopComponent
-		}
-		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = ButtonIconButton(iconName, "h-12 w-12", tooltip, templ.Attributes{
-			"type":      "button",
-			"hx-post":   "/_live/settings/apprise_test",
-			"hx-target": "this",
-			"hx-swap":   "outerHTML swap:4s",
+			"hx-post":    "/_live/settings/apprise_test",
+			"hx-include": "#setting_apprise_server",
+			"hx-target":  "#setting_apprise_server-wrapper",
+			"hx-swap":    "outerHTML",
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

@@ -29,11 +29,7 @@ templ formContent(f *Form) {
 			</span>
 		</section>
 
-		<!-- AppriseServerLive fragment - replaces the live_render call -->
-		<div hx-get="/_live/settings/apprise_test" hx-trigger="load" hx-swap="innerHTML">
-			<!-- Will be replaced with AppriseServerLiveRender content -->
-			@SettingHTMLAppriseServerLiveFragment(f.Field("apprise_server").Value)
-		</div>
+		@SettingHTMLAppriseServerLiveFragment(InputValue(f.Field("apprise_server").Value), "hero-paper-airplane", "Send Test")
 	</section>
 
 	<section class="mt-8">
