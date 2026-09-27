@@ -1,0 +1,307 @@
+package web
+
+// Port of lib/pinchflat_web/components/core_components.ex (the renderable
+// half; see core_components.go for the prop structs and the input/1
+// dispatch). modal/1 isn't ported (nothing uses it since the Pro and donate
+// dialogs were removed), nor are the LiveView socket flashes.
+
+// CoreFlash is flash/1: the message for `kind` ("info"/"error") comes from
+// the request's flash (Page.Flash), matching Phoenix.Flash.get(@flash, kind).
+templ CoreFlash(kind string, title string) {
+	if msg := PageOf(ctx).Flash[kind]; msg != "" {
+		<div id={ "flash-" + kind } class="pb-3" role="alert">
+			<div
+				class={
+					"flex justify-between gap-3 w-full rounded-lg border border-l-4 px-4 py-3 text-white",
+					templ.KV("border-emerald-500/40 border-l-emerald-400 bg-emerald-500/15", kind == "info"),
+					templ.KV("border-red-500/40 border-l-red-400 bg-red-500/15", kind == "error"),
+				}
+			>
+				<main>
+					if title != "" {
+						<h5 class="font-semibold">{ title }</h5>
+					}
+					<p class="mt-0.5 text-sm leading-5 text-bodydark">{ msg }</p>
+				</main>
+				<button type="button" aria-label="close" x-on:click={ "document.getElementById('flash-" + kind + "').remove()" }>
+					@CoreIcon("hero-x-mark-solid", "h-5 w-5 opacity-70 hover:opacity-100", nil)
+				</button>
+			</div>
+		</div>
+	}
+}
+
+// CoreFlashGroup is flash_group/1 (the client-error/server-error flashes
+// assumed a LiveView socket and are dropped; see the file doc comment).
+templ CoreFlashGroup() {
+	<div class="flex flex-col" id="flash-group">
+		@CoreFlash("info", "Success!")
+		@CoreFlash("error", "Error!")
+	</div>
+}
+
+// CoreSimpleForm is simple_form/1.
+templ CoreSimpleForm(rest templ.Attributes, content templ.Component, actions templ.Component) {
+	<form { rest... }>
+		@content
+		if actions != nil {
+			<div class="mt-2 flex items-center justify-between gap-6">
+				@actions
+			</div>
+		}
+	</form>
+}
+
+templ coreInputCheckbox(p CoreInputProps) {
+	<div>
+		<label class="flex items-center gap-4 text-sm leading-6">
+			<input type="hidden" name={ p.Name } value="false"/>
+			<input
+				type="checkbox"
+				id={ p.ID }
+				name={ p.Name }
+				value="true"
+				checked?={ *p.Checked }
+				class={ "rounded focus:ring-0", p.InputClass }
+				{ p.Rest... }
+			/>
+			{ p.Label }
+			if p.LabelSuffix != "" {
+				<span class="text-xs text-bodydark">{ p.LabelSuffix }</span>
+			}
+		</label>
+		@CoreHelp(p.Help, p.HTMLHelp)
+		@coreErrors(p.Errors)
+	</div>
+}
+
+templ coreInputCheckboxGroup(p CoreInputProps) {
+	<div>
+		@CoreLabel(p.ID, p.Label, p.LabelSuffix)
+		<section class="grid grid-cols-1 gap-1.5 md:grid-cols-2 max-w-prose mb-2 ml-1">
+			for _, option := range p.Options {
+				<div class="flex items-center">
+					<input
+						type="checkbox"
+						id={ p.ID + "-" + option.Value }
+						name={ p.Name + "[]" }
+						value={ option.Value }
+						checked?={ coreOptionsInList(p.Value, option.Value) }
+						class={ "rounded border-form-strokedark bg-form-input text-primary h-4 w-4", "focus:ring-offset-0 ring-offset-0 focus:ring-0", p.InputClass }
+					/>
+					<label for={ p.ID + "-" + option.Value } class="ml-2 cursor-pointer select-none">
+						{ option.Label }
+					</label>
+				</div>
+			}
+		</section>
+		@CoreHelp(p.Help, p.HTMLHelp)
+		@coreErrors(p.Errors)
+	</div>
+}
+
+templ coreInputToggle(p CoreInputProps) {
+	<div x-data={ "{ enabled: " + InputValue(*p.Checked) + " }" } id={ p.ID + "-wrapper" }>
+		if p.Label != "" {
+			@CoreLabel(p.ID, p.Label, p.LabelSuffix)
+		}
+		<div class="relative flex flex-col">
+			<input type="hidden" id={ p.ID } name={ p.Name } x-bind:value="enabled" { p.Rest... }/>
+			<!-- This triggers a `change` event on the hidden input when the toggle is clicked -->
+			<div class="inline-block cursor-pointer" x-on:click={ "enabled = !enabled; dispatchFor('" + p.ID + "', 'change')" }>
+				<div x-bind:class="enabled && '!bg-primary !border-primary'" class="block h-6 w-11 rounded-full border border-form-strokedark bg-meta-4 transition"></div>
+				<div x-bind:class="enabled && '!translate-x-5'" class={ "absolute left-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-white transition", p.InputClass }></div>
+			</div>
+			@CoreHelp(p.Help, p.HTMLHelp)
+			@coreErrors(p.Errors)
+		</div>
+	</div>
+}
+
+templ coreInputSelect(p CoreInputProps) {
+	<div>
+		if p.Label != "" {
+			@CoreLabel(p.ID, p.Label, p.LabelSuffix)
+		}
+		<div class="flex">
+			<select
+				id={ p.ID }
+				name={ p.Name }
+				class={
+					"relative z-20 w-full appearance-none rounded-lg border border-form-strokedark",
+					"py-2 pl-3 pr-10 outline-none transition",
+					"focus:border-primary focus:ring-0 active:border-primary bg-form-input text-white",
+					"disabled:text-opacity-50 disabled:cursor-not-allowed disabled:border-black",
+					p.InputClass,
+				}
+				multiple?={ p.Multiple }
+				{ p.Rest... }
+			>
+				if p.Prompt != "" {
+					<option value="">{ p.Prompt }</option>
+				}
+				for _, option := range p.Options {
+					<option value={ option.Value } selected?={ coreOptionSelected(p.Value, option.Value) }>{ option.Label }</option>
+				}
+			</select>
+			if p.InputAppend != nil {
+				@p.InputAppend
+			}
+		</div>
+		@CoreHelp(p.Help, p.HTMLHelp)
+		@coreErrors(p.Errors)
+	</div>
+}
+
+templ coreInputTextarea(p CoreInputProps) {
+	<div>
+		@CoreLabel(p.ID, p.Label, p.LabelSuffix)
+		<textarea
+			id={ p.ID }
+			name={ p.Name }
+			class={
+				"block w-full rounded-lg bg-form-input text-white focus:ring-0 sm:text-sm sm:leading-6",
+				"min-h-[6rem]",
+				p.InputClass,
+				templ.KV("border-form-strokedark focus:border-primary", len(p.Errors) == 0),
+				templ.KV("border-rose-400 focus:border-rose-400", len(p.Errors) != 0),
+			}
+			{ p.Rest... }
+		>{ InputValue(p.Value) }</textarea>
+		@CoreHelp(p.Help, p.HTMLHelp)
+		@coreErrors(p.Errors)
+	</div>
+}
+
+templ coreInputDefault(p CoreInputProps) {
+	<div>
+		@CoreLabel(p.ID, p.Label, p.LabelSuffix)
+		<div class="flex items-center">
+			<input
+				type={ p.Type }
+				name={ p.Name }
+				id={ p.ID }
+				value={ InputValue(p.Value) }
+				class={
+					"w-full rounded-lg border px-3 py-2 font-normal border-form-strokedark bg-form-input",
+					"outline-none transition active:border-primary disabled:cursor-default disabled:bg-whiter",
+					"text-white placeholder:text-bodydark2 focus:border-primary focus:ring-0",
+					p.InputClass,
+					templ.KV("border-rose-400 focus:border-rose-400", len(p.Errors) != 0),
+				}
+				{ p.Rest... }
+			/>
+			if p.InputAppend != nil {
+				@p.InputAppend
+			}
+		</div>
+		@CoreHelp(p.Help, p.HTMLHelp)
+		@coreErrors(p.Errors)
+	</div>
+}
+
+// CoreHelp is help/1.
+templ CoreHelp(help string, htmlHelp bool) {
+	if help != "" {
+		<p class="mt-1 text-sm leading-5 text-bodydark2">
+			if htmlHelp {
+				@templ.Raw(help)
+			} else {
+				{ help }
+			}
+		</p>
+	}
+}
+
+// CoreLabel is label/1. A blank id/label still renders (Elixir always
+// renders <.label>; callers that never show it skip calling this).
+templ CoreLabel(forID string, label string, suffix string) {
+	<label for={ forID } class="mt-4 mb-1.5 inline-block text-sm font-medium text-white">
+		{ label }
+		if suffix != "" {
+			<span class="text-xs text-bodydark">{ suffix }</span>
+		}
+	</label>
+}
+
+// CoreError is error/1.
+templ CoreError(msg string) {
+	<p class="mt-1 mb-3 flex gap-2 text-sm leading-6 text-rose-400">
+		@CoreIcon("hero-exclamation-circle-mini", "mt-1 h-4 w-4 flex-none", nil)
+		{ msg }
+	</p>
+}
+
+templ coreErrors(errors []string) {
+	for _, msg := range errors {
+		@CoreError(msg)
+	}
+}
+
+// CoreOldHeader is old_header/1 (unused by any current page, kept for
+// parity with the Elixir source).
+templ CoreOldHeader(class string, actions templ.Component, content templ.Component, subtitle templ.Component) {
+	<header class={ templ.KV("flex items-center justify-between gap-6", actions != nil), class }>
+		<div>
+			<h1 class="text-lg font-semibold leading-8 text-zinc-800">
+				@content
+			</h1>
+			if subtitle != nil {
+				<p class="mt-2 text-sm leading-6 text-zinc-600">
+					@subtitle
+				</p>
+			}
+		</div>
+		<div class="flex-none">
+			if actions != nil {
+				@actions
+			}
+		</div>
+	</header>
+}
+
+// CoreList is list/1.
+templ CoreList(items []CoreListItem) {
+	<div class="mt-2 mb-14">
+		<dl class="-my-4 divide-y dark:divide-strokedark">
+			for _, item := range items {
+				<div class="flex gap-4 py-4 text-sm leading-6 sm:gap-8">
+					<dt class="w-1/4 flex-none dark:text-white">{ item.Title }</dt>
+					<dd class="dark:text-white">
+						@item.Content
+					</dd>
+				</div>
+			}
+		</dl>
+	</div>
+}
+
+// CoreBack is back/1.
+templ CoreBack(href string, content templ.Component) {
+	<div class="mt-16">
+		<a href={ templ.URL(href) } class="text-sm font-semibold leading-6 text-zinc-900 hover:text-zinc-700">
+			@CoreIcon("hero-arrow-left-solid", "h-3 w-3", nil)
+			@content
+		</a>
+	</div>
+}
+
+// CoreIcon is icon/1: <.icon name="hero-x"> renders <span class="hero-x ...">.
+// attrs is the :rest global (nil for none, e.g. button_dropdown's
+// x-bind:class on its chevron).
+templ CoreIcon(name string, class string, attrs templ.Attributes) {
+	<span class={ name, class } { attrs... }></span>
+}
+
+// CoreLinkButton is <.link method="delete" href=... data-confirm=...>: a
+// button-styled form, since a bare <a> can't send a non-GET request.
+templ CoreLinkButton(href string, method string, confirm string, class string, content templ.Component) {
+	<form action={ templ.URL(href) } method="post" class="inline">
+		<input type="hidden" name="_method" value={ method }/>
+		<button type="submit" class={ class } if confirm != "" {
+			data-confirm={ confirm }
+		}>
+			@content
+		</button>
+	</form>
+}

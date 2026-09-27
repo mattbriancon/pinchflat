@@ -1,0 +1,48 @@
+package web
+
+// Port of lib/pinchflat_web/components/custom_components/tab_components.ex.
+// tabs.js (web/assets/js/tabs.js) provides getTabFromHash/setTabByName.
+//
+// Tabs are still switched client-side (no reload), but since paging/search
+// inside a tab now reloads the whole page (STRATEGY.md decision 4), the
+// selected tab is also carried as the ?tab= query param so a reload lands
+// back on it; tabInitialID reads it, falling back to the URL hash, then the
+// first tab.
+
+// TabTabbedLayout is tabbed_layout/1: tabs is required and non-empty, like
+// the Elixir version (hd(assigns.tab)).
+templ TabTabbedLayout(tabs []TabTab, tabAppend templ.Component) {
+	{{ initialTab := tabInitialID(ctx, tabs) }}
+	<div
+		x-data={ "{ openTab: getTabFromHash('" + initialTab + "', '" + initialTab + "'), activeClasses: 'text-white border-meta-5', inactiveClasses: 'border-transparent' }" }
+		x-on:hashchange.window={ "openTab = getTabFromHash(openTab, '" + initialTab + "')" }
+		class="w-full"
+	>
+		<header class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-b border-strokedark">
+			<div class="no-scrollbar -mb-px flex gap-5 overflow-x-auto sm:gap-8">
+				for _, tab := range tabs {
+					<a
+						href="#"
+						x-on:click.prevent={ "openTab = setTabByName('" + tab.ID + "')" }
+						x-bind:class={ "openTab === '" + tab.ID + "' ? activeClasses : inactiveClasses" }
+						class="border-b-2 py-2.5 whitespace-nowrap font-medium hover:text-meta-5"
+					>
+						{ tab.Title }
+					</a>
+				}
+			</div>
+			<div class="mb-2 md:mb-0 flex gap-3 items-center empty:hidden">
+				if tabAppend != nil {
+					@tabAppend
+				}
+			</div>
+		</header>
+		<div class="mt-3 min-h-40 overflow-x-auto">
+			for _, tab := range tabs {
+				<div x-show={ "openTab === '" + tab.ID + "'" } class="leading-normal">
+					@tab.Content
+				</div>
+			}
+		</div>
+	</div>
+}

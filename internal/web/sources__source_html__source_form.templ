@@ -1,0 +1,211 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/sources/source_html/source_form.html.heex.
+
+import (
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
+
+// SourceFormProps is source_form/1's assigns.
+type SourceFormProps struct {
+	Changeset     *core.Changeset
+	MediaProfiles []*core.MediaProfile
+	Action        string
+	Method        string
+}
+
+templ SourceHTMLSourceForm(props SourceFormProps) {
+	@CoreSimpleForm(
+		templ.Attributes{
+			"action":  props.Action,
+			"method":  "post",
+			"x-data":  "{ advancedMode: !!JSON.parse(localStorage.getItem('advancedMode')) }",
+			"x-init":  "$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))",
+		},
+		sourceFormBody(props),
+		nil,
+	)
+}
+
+templ sourceFormBody(props SourceFormProps) {
+	if props.Method == "patch" {
+		<input type="hidden" name="_method" value="patch"/>
+	}
+	if props.Changeset.Action != "" {
+		@CoreError("Oops, something went wrong! Please check the errors below.")
+	}
+	{{ f := FormFor(props.Changeset, "source") }}
+	<section x-data="{ mediaProfileId: null }">
+		<section class="flex justify-between items-center mt-4">
+			<h3 class="section-title">
+				General Options
+			</h3>
+			<span class="cursor-pointer hover:underline" x-on:click="advancedMode = !advancedMode">
+				Editing Mode: <span x-text="advancedMode ? 'Advanced' : 'Standard'"></span>
+			</span>
+		</section>
+		@CoreInput(CoreInputProps{
+			Field: ptrField(f.Field("original_url")),
+			Type:  "text",
+			Label: "Source URL",
+			Help:  "URL of a channel or playlist (required)",
+			Rest:  templ.Attributes{"x-init": "$el.focus()"},
+		})
+		@CoreInput(CoreInputProps{
+			Field: ptrField(f.Field("custom_name")),
+			Type:  "text",
+			Label: "Custom Name",
+			Help:  "Does not impact indexing or downloading. Will be inferred from the source if left blank",
+		})
+		@CoreInput(CoreInputProps{
+			Field:   ptrField(f.Field("media_profile_id")),
+			Options: MediaProfileOptions(props.MediaProfiles),
+			Type:    "select",
+			Label:   "Media Profile",
+			Help:    "Sets your preferences for what media to look for and how to store it",
+			Rest:    templ.Attributes{"x-model.fill": "mediaProfileId"},
+		})
+		<h3 class="mt-6 section-title">
+			Indexing Options
+		</h3>
+		<section x-data="{ fastIndexingEnabled: null }">
+			@CoreInput(CoreInputProps{
+				Field:   ptrField(f.Field("index_frequency_minutes")),
+				Options: FriendlyIndexFrequencyOptions(),
+				Type:    "select",
+				Label:   "Index Frequency",
+				Help:    "Indexing is the process of checking for media to download. For best results, set this to the longest delay you can tolerate for this source",
+				Rest: templ.Attributes{
+					"x-bind:disabled": "fastIndexingEnabled == true",
+					"x-init":          "$watch('fastIndexingEnabled', v => v && ($el.value = 30 * 24 * 60))",
+				},
+			})
+			<div>
+				@CoreInput(CoreInputProps{
+					Field:       ptrField(f.Field("fast_index")),
+					Type:        "toggle",
+					Label:       "Use Fast Indexing",
+					Help:        "Not recommended for playlists. Overrides 'Index Frequency'. See below for more details (seriously, there's a TL;DR that's worth reading)",
+					Rest: templ.Attributes{
+						"x-init": "fastIndexingEnabled = enabled; $watch('enabled', value => fastIndexingEnabled = !!value)",
+					},
+				})
+			</div>
+		</section>
+		<h3 class="mt-6 section-title">
+			Downloading Options
+		</h3>
+		@CoreInput(CoreInputProps{
+			Field: ptrField(f.Field("download_media")),
+			Type:  "toggle",
+			Label: "Download Media",
+			Help:  "Unchecking still indexes media but it won't be downloaded until you enable this option",
+		})
+		@CoreInput(CoreInputProps{
+			Field:   ptrField(f.Field("cookie_behaviour")),
+			Options: FriendlyCookieBehaviourOptions(),
+			Type:    "select",
+			Label:   "Cookie Behaviour",
+			Help:    "Uses your YouTube cookies for this source (if configured). 'When Needed' tries to minimize cookie usage except for certain indexing and downloading tasks. See docs",
+		})
+		<section x-show="advancedMode">
+			@CoreInput(CoreInputProps{
+				Field: ptrField(f.Field("min_duration_seconds")),
+				Type:  "number",
+				Label: "Minimum Duration (seconds)",
+				Help:  "Minimum duration of the media to be downloaded. Can be blank",
+				Rest:  templ.Attributes{"min": "0"},
+			})
+			@CoreInput(CoreInputProps{
+				Field: ptrField(f.Field("max_duration_seconds")),
+				Type:  "number",
+				Label: "Maximum Duration (seconds)",
+				Help:  "Maximum duration of the media to be downloaded. Can be blank",
+				Rest:  templ.Attributes{"min": "0"},
+			})
+		</section>
+		<section x-data={ "{ cutoffDate: '" + InputValue(f.Field("download_cutoff_date").Value) + "' }" }>
+			@CoreInput(CoreInputProps{
+				Field:   ptrField(f.Field("download_cutoff_date")),
+				Type:    "text",
+				Label:   "Download Cutoff Date",
+				Help:    "Only download media uploaded after this date. Leave blank to download all media. Must be in YYYY-MM-DD format. Old media may be deleted or downloaded if you change this date",
+				Rest: templ.Attributes{
+					"placeholder": "YYYY-MM-DD",
+					"maxlength":   "10",
+					"pattern":     `((?:19|20)[0-9][0-9])-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])`,
+					"title":       "YYYY-MM-DD",
+					"x-model":     "cutoffDate",
+				},
+				InputAppend: sourceFormCutoffDatePreset(f),
+			})
+		</section>
+		@CoreInput(CoreInputProps{
+			Field:    ptrField(f.Field("retention_period_days")),
+			Type:     "number",
+			Label:    "Retention Period (days)",
+			Help:     "Days between when media is <em>downloaded</em> and when it's deleted. Leave blank to keep media indefinitely",
+			HTMLHelp: true,
+			Rest:     templ.Attributes{"min": "0"},
+		})
+		<section x-show="advancedMode">
+			<h3 class="mt-6 section-title">
+				Advanced Options
+			</h3>
+			<p class="text-sm mt-2">
+				Tread carefully
+			</p>
+			@CoreInput(CoreInputProps{
+				Field:    ptrField(f.Field("title_filter_regex")),
+				Type:     "text",
+				Label:    "Title Filter Regex",
+				Help:     TitleFilterRegexHelp(),
+				HTMLHelp: true,
+				Rest:     templ.Attributes{"placeholder": "(?i)^How to Bike$"},
+			})
+			<section
+				x-data={ "{ placeholders: JSON.parse('" + OutputPathTemplateOverridePlaceholders(props.MediaProfiles) + "'), inputValue: null }" }
+				x-on:load-template="inputValue = placeholders[mediaProfileId]"
+			>
+				@CoreInput(CoreInputProps{
+					Field:      ptrField(f.Field("output_path_template_override")),
+					Type:       "text",
+					InputClass: "font-mono",
+					Label:      "Output path template override",
+					Help:       OutputPathTemplateOverrideHelp(),
+					HTMLHelp:   true,
+					Rest: templ.Attributes{
+						"x-bind:placeholder": "placeholders[mediaProfileId]",
+						"x-model.fill":       "inputValue",
+					},
+				})
+			</section>
+		</section>
+		@ButtonButton("bg-primary", "rounded-lg", "my-6 w-full sm:w-auto", "submit", false, nil, sourceFormSaveText())
+		<div class="rounded-sm dark:bg-meta-4 p-4 md:p-6 mb-5">
+			@SourceHTMLFastIndexingHelp()
+		</div>
+	</section>
+}
+
+templ sourceFormSaveText() {
+	Save Source
+}
+
+templ sourceFormCutoffDatePreset(f *Form) {
+	@CoreInput(CoreInputProps{
+		Prompt:     "Select preset",
+		Name:       "download_cutoff_date_preset",
+		Value:      "",
+		Options:    CutoffDatePresetOptions(ctx),
+		Type:       "select",
+		InputClass: "w-30 lg:w-60 ml-2 md:ml-4",
+		Rest: templ.Attributes{
+			"x-on:change": "cutoffDate = $event.target.value || '" + InputValue(f.Field("download_cutoff_date").Value) + "'",
+		},
+	})
+}
+
+// ptrField hands CoreInput a *FormField the way Elixir passes f[:name]
+// (a Phoenix.HTML.FormField struct) as the `field` assign.
+func ptrField(f FormField) *FormField { return &f }

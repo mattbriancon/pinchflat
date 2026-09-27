@@ -1,0 +1,129 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/pages/page_html/history_table_live.ex.
+// Rendered inline on the home page's first load; paging uses its own query
+// param per table (<media_state>_page) so paging one history table doesn't
+// reset the other, and carries ?tab= so the right tab stays selected on
+// reload (STRATEGY.md decision 4: no htmx, no fragment endpoint).
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/db"
+)
+
+// PagesPageHTMLHistoryTableContent renders the content of the history table.
+templ PagesPageHTMLHistoryTableContent(ctx context.Context, mediaState string, page, totalPages int, records []*core.MediaItem, totalRecordCount int) {
+	if len(records) == 0 {
+		<div class="mb-4 flex items-center">
+			<p>Nothing Here!</p>
+		</div>
+	} else {
+		<div>
+			<span class="mb-4 flex items-center">
+				{ "Showing " }
+				@TextLocalizedNumber(len(records))
+				{ " of " }
+				@TextLocalizedNumber(totalRecordCount)
+			</span>
+			@historyTableContentTable(ctx, records)
+			<section class="flex justify-center mt-5">
+				@TableLivePaginationControls(page, totalPages, historyTablePageURL(ctx, mediaState, page, totalPages, -1), historyTablePageURL(ctx, mediaState, page, totalPages, 1))
+			</section>
+		</div>
+	}
+}
+
+// historyTableContentTable renders the table rows for the history table.
+templ historyTableContentTable(ctx context.Context, records []*core.MediaItem) {
+	<div class="max-w-full overflow-x-auto">
+		<table class="w-full table-auto bg-boxdark text-sm text-white">
+			<thead>
+				<tr class="text-left bg-meta-4 border-b border-strokedark">
+					<th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-bodydark2 whitespace-nowrap">Title</th>
+					<th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-bodydark2 whitespace-nowrap">Upload Date</th>
+					<th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-bodydark2 whitespace-nowrap">Indexed At</th>
+					<th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-bodydark2 whitespace-nowrap">Downloaded At</th>
+					<th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-bodydark2 whitespace-nowrap">Source</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, mi := range records {
+					<tr class="border-b border-strokedark last:border-b-0 hover:bg-meta-4">
+						<td class="px-3 py-2 whitespace-nowrap cell-wrap">
+							<section class="flex items-start gap-1">
+								if mi.LastError != nil {
+									@TextTooltip(derefString(mi.LastError), "bottom-right", "w-64", "", historyTableErrorIcon())
+								}
+								<span>
+									<a href={ templ.URL(P(ctx, "/sources/%v/media/%v", mi.SourceID, mi.ID)) } class="underline">
+										{ derefString(mi.Title) }
+									</a>
+								</span>
+							</section>
+						</td>
+						<td class="px-3 py-2 whitespace-nowrap">
+							{ mi.UploadedAt.Format("2006-01-02") }
+						</td>
+						<td class="px-3 py-2 whitespace-nowrap">
+							{ historyTableFormatDatetime(&mi.InsertedAt) }
+						</td>
+						<td class="px-3 py-2 whitespace-nowrap">
+							{ historyTableFormatDatetime(mi.MediaDownloadedAt) }
+						</td>
+						<td class="px-3 py-2 whitespace-nowrap">
+							if mi.Source != nil {
+								<a href={ templ.URL(P(ctx, "/sources/%v", mi.SourceID)) } class="underline">
+									{ mi.Source.CustomName }
+								</a>
+							}
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+// historyTableErrorIcon is the icon slot content passed into TextTooltip.
+templ historyTableErrorIcon() {
+	@CoreIcon("hero-exclamation-circle-solid", "text-red-500", nil)
+}
+
+func historyTableFormatDatetime(t *db.UTCDateTime) string {
+	if t == nil {
+		return ""
+	}
+	return t.Time.Format("2006-01-02 15:04")
+}
+
+func derefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+// historyTablePageParam is the query param that carries this table's page
+// number (kept separate per media_state so paging one doesn't reset the
+// other's page).
+func historyTablePageParam(mediaState string) string {
+	return mediaState + "_page"
+}
+
+// historyTablePageURL builds the link for the prev ("delta" -1) or next
+// ("delta" 1) page, "" when that direction isn't available.
+func historyTablePageURL(ctx context.Context, mediaState string, page, totalPages, delta int) string {
+	if delta < 0 && page <= 1 {
+		return ""
+	}
+	if delta > 0 && page >= totalPages {
+		return ""
+	}
+	return withQuery(ctx, P(ctx, "/"), map[string]string{
+		historyTablePageParam(mediaState): fmt.Sprint(page + delta),
+		"tab":                             mediaState,
+	})
+}

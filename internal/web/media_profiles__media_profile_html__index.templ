@@ -1,0 +1,52 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/media_profiles/media_profile_html/index.html.heex.
+
+templ MediaProfilesHTMLIndex(profiles []MediaProfileWithCount) {
+	<div class="page-header">
+		<h2 class="page-title">
+			Media Profiles
+		</h2>
+		<nav>
+			<a href={ templ.SafeURL(P(ctx, "/media_profiles/new")) }>
+				@ButtonButton("bg-primary", "rounded-lg", "", "submit", false, nil, mediaProfilesIndexNewLabel())
+			</a>
+		</nav>
+	</div>
+	<div class="card overflow-hidden">
+		<div class="max-w-full overflow-x-auto">
+			<div class="flex flex-col">
+				@TableTable(mediaProfilesIndexTableProps(profiles))
+			</div>
+		</div>
+	</div>
+}
+
+templ mediaProfilesIndexNewLabel() {
+	@CoreIcon("hero-plus", "h-4 w-4", nil)
+	New <span class="hidden sm:inline pl-1">Media Profile</span>
+}
+
+templ mediaProfilesIndexNameCell(mp MediaProfileWithCount) {
+	@TextSubtleLink(P(ctx, "/media_profiles/%v", mp.Profile.ID), "_self", mediaProfilesIndexNameLabel(mp))
+}
+
+templ mediaProfilesIndexNameLabel(mp MediaProfileWithCount) {
+	{ mp.Profile.Name }
+}
+
+templ mediaProfilesIndexResolutionCell(mp MediaProfileWithCount) {
+	{ string(mp.Profile.PreferredResolution) }
+}
+
+templ mediaProfilesIndexSourcesCell(mp MediaProfileWithCount) {
+	@TextSubtleLink(P(ctx, "/media_profiles/%v/#tab-sources", mp.Profile.ID), "_self", mediaProfilesIndexSourceCountLabel(mp))
+}
+
+templ mediaProfilesIndexSourceCountLabel(mp MediaProfileWithCount) {
+	@TextLocalizedNumber(int(mp.SourceCount))
+}
+
+templ mediaProfilesIndexEditCell(mp MediaProfileWithCount) {
+	@TextIconLink(P(ctx, "/media_profiles/%v/edit", mp.Profile.ID), "hero-pencil-square", "mr-4")
+}

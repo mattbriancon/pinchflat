@@ -1,0 +1,144 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/sources/source_html/actions_dropdown.html.heex.
+
+import (
+	"fmt"
+
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
+
+templ SourceHTMLActionsDropdown(source *core.Source) {
+	@ButtonButtonDropdown("Actions", "justify-center w-full sm:w-50", sourcesActionsDropdownOptions(source))
+}
+
+func sourcesActionsDropdownOptions(source *core.Source) []ButtonButtonOption {
+	opts := []ButtonButtonOption{
+		{Content: sourcesActionsCopyRSS(source)},
+		{Content: sourcesActionsCopyJSON(source)},
+		{Content: sourcesActionsUseAsTemplate(source)},
+		{Content: sourcesActionsSeparator()},
+	}
+	if source.DownloadMedia {
+		opts = append(opts, ButtonButtonOption{Content: sourcesActionsDownloadPending(source)})
+		opts = append(opts, ButtonButtonOption{Content: sourcesActionsRedownload(source)})
+	}
+	opts = append(opts,
+		ButtonButtonOption{Content: sourcesActionsForceIndex(source)},
+		ButtonButtonOption{Content: sourcesActionsRefreshMetadata(source)},
+		ButtonButtonOption{Content: sourcesActionsSyncFiles(source)},
+		ButtonButtonOption{Content: sourcesActionsSeparator()},
+		ButtonButtonOption{Content: sourcesActionsDeleteSource(source)},
+		ButtonButtonOption{Content: sourcesActionsDeleteSourceAndFiles(source)},
+	)
+	return opts
+}
+
+templ sourcesActionsCopyRSS(source *core.Source) {
+	<a
+		href={ templ.URL(RssFeedURL(ctx, source)) }
+		x-data="{ copied: false }"
+		x-on:click={ "$event.preventDefault(); copyWithCallbacks('" + RssFeedURL(ctx, source) + "', () => copied = true, () => copied = false)" }
+	>
+		Copy RSS Feed
+		<span x-show="copied" x-transition.duration.150ms>
+			@CoreIcon("hero-check", "ml-2 h-4 w-4", nil)
+		</span>
+	</a>
+}
+
+templ sourcesActionsCopyJSON(source *core.Source) {
+	<span
+		x-data="{ copied: false }"
+		x-on:click={ "copyWithCallbacks(" + sourcesJSONLiteral(source) + ", () => copied = true, () => copied = false)" }
+	>
+		Copy JSON
+		<span x-show="copied" x-transition.duration.150ms>
+			@CoreIcon("hero-check", "ml-2 h-4 w-4", nil)
+		</span>
+	</span>
+}
+
+templ sourcesActionsUseAsTemplate(source *core.Source) {
+	<a href={ templ.URL(P(ctx, "/sources/new") + "?template_id=" + fmt.Sprint(source.ID)) }>
+		Use as Template
+	</a>
+}
+
+templ sourcesActionsSeparator() {
+	<div class="my-1 h-px w-full bg-strokedark"></div>
+}
+
+templ sourcesActionsDownloadPending(source *core.Source) {
+	@CoreLinkButton(
+		P(ctx, "/sources/%v/force_download_pending", source.ID),
+		"post",
+		"Are you sure you want to force a download of all pending media items? This isn't normally needed.",
+		"",
+		sourcesActionsText("Download Pending"),
+	)
+}
+
+templ sourcesActionsRedownload(source *core.Source) {
+	@CoreLinkButton(
+		P(ctx, "/sources/%v/force_redownload", source.ID),
+		"post",
+		"Are you sure you want to re-download all currently downloaded media items? This doesn't upgrade your media, but will download any missing files if your settings have changed. This isn't normally needed.",
+		"",
+		sourcesActionsText("Redownload Existing"),
+	)
+}
+
+templ sourcesActionsForceIndex(source *core.Source) {
+	@CoreLinkButton(
+		P(ctx, "/sources/%v/force_index", source.ID),
+		"post",
+		"Are you sure you want index all content from this source? This isn't normally needed.",
+		"",
+		sourcesActionsText("Force Index"),
+	)
+}
+
+templ sourcesActionsRefreshMetadata(source *core.Source) {
+	@CoreLinkButton(
+		P(ctx, "/sources/%v/force_metadata_refresh", source.ID),
+		"post",
+		"Are you sure you want to refresh this source's metadata?",
+		"",
+		sourcesActionsText("Refresh Metadata"),
+	)
+}
+
+templ sourcesActionsSyncFiles(source *core.Source) {
+	@CoreLinkButton(
+		P(ctx, "/sources/%v/sync_files_on_disk", source.ID),
+		"post",
+		"Are you sure you want to sync files? This will update media items if their files have been deleted. File addition or moves are not detected. This isn't normally needed.",
+		"",
+		sourcesActionsText("Sync Files on Disk"),
+	)
+}
+
+templ sourcesActionsDeleteSource(source *core.Source) {
+	@CoreLinkButton(
+		P(ctx, "/sources/%v", source.ID),
+		"delete",
+		"Are you sure you want to delete this source (leaving files in place)? This cannot be undone.",
+		"",
+		sourcesActionsText("Delete Source"),
+	)
+}
+
+templ sourcesActionsDeleteSourceAndFiles(source *core.Source) {
+	@CoreLinkButton(
+		P(ctx, "/sources/%v", source.ID)+"?delete_files=true",
+		"delete",
+		"Are you sure you want to delete this source and it's files on disk? This cannot be undone.",
+		"mt-5 md:mt-0",
+		sourcesActionsText("Delete Source + Files"),
+	)
+}
+
+templ sourcesActionsText(s string) {
+	{ s }
+}

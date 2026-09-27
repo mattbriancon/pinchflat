@@ -1,0 +1,147 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/media_items/media_item_html/show.html.heex
+
+import (
+	"strings"
+
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
+
+templ MediaItemsMediaItemHTMLShow(mediaItem *core.MediaItem) {
+	<div class="page-header">
+		<div class="flex gap-3 items-center min-w-0">
+			<a href={ templ.URL(P(ctx, "/sources/%v", mediaItem.SourceID)) }>
+				@CoreIcon("hero-arrow-left", "back-link", nil)
+			</a>
+			<h2 class="page-title">
+				{ miStr(mediaItem.Title) }
+			</h2>
+		</div>
+
+		<nav>
+			<a href={ templ.URL(P(ctx, "/sources/%v/media/%v/edit", mediaItem.SourceID, mediaItem.ID)) }>
+				@ButtonButton("bg-primary", "rounded-lg", "", "submit", false, nil, mediaItemsEditButtonContent())
+			</a>
+		</nav>
+	</div>
+	<div class="card card-body">
+		<div class="max-w-full">
+			@TabTabbedLayout(mediaItemsShowTabs(mediaItem), MediaItemsMediaItemHTMLActionsDropdown(mediaItem))
+		</div>
+	</div>
+}
+
+templ mediaItemsEditButtonContent() {
+	@CoreIcon("hero-pencil-square", "h-4 w-4", nil)
+	Edit
+}
+
+func mediaItemsShowTabs(mediaItem *core.MediaItem) []TabTab {
+	return []TabTab{
+		{ID: "media", Title: "Media", Content: mediaItemsShowMediaTab(mediaItem)},
+		{ID: "tasks", Title: "Tasks", Content: mediaItemsShowTasksTab(mediaItem)},
+	}
+}
+
+templ mediaItemsShowMediaTab(mediaItem *core.MediaItem) {
+	<div class="flex flex-col gap-6 text-white">
+		if mediaItem.LastError != nil && *mediaItem.LastError != "" {
+			<section class="mt-2">
+				<div class="flex items-center gap-1 mb-2">
+					@CoreIcon("hero-exclamation-circle-solid", "text-red-500", nil)
+					<h3 class="font-bold text-xl">Last Error</h3>
+				</div>
+				<span>{ *mediaItem.LastError }</span>
+			</section>
+		}
+		if mediaFileExists(mediaItem) {
+			<section class="grid grid-cols-1 xl:gap-6 mt-2">
+				<div>
+					@MediaItemsMediaItemHTMLMediaPreview(mediaItem)
+				</div>
+				<aside class="mt-4">
+					<h2 class="text-xl mb-2">{ miStr(mediaItem.Title) }</h2>
+					<div>Uploaded: { mediaItem.UploadedAt.Time.Format("2006-01-02") }</div>
+					<div>
+						if mediaItemIsHTTPURL(mediaItem.OriginalURL) {
+							<span>
+								@TextSubtleLink(mediaItem.OriginalURL, "_blank", miText("Open Original"))
+								<span class="mx-2">or</span>
+							</span>
+						}
+						<span>
+							@TextSubtleLink(P(ctx, "/media/%v/stream?v=%v", miStr(mediaItem.UUID), mediaItem.UpdatedAt.Time.Unix()), "_blank", miText("Open Local Stream"))
+						</span>
+					</div>
+					if mediaItem.Description != nil && *mediaItem.Description != "" {
+						<div class="mt-4 text-bodydark">
+							@TextRenderDescription(*mediaItem.Description)
+						</div>
+					}
+				</aside>
+			</section>
+		}
+		<section>
+			<h3 class="section-title mb-2">Raw Attributes</h3>
+			<section>
+				<strong>Source:</strong>
+				if mediaItem.Source != nil {
+					@TextSubtleLink(P(ctx, "/sources/%v", mediaItem.SourceID), "_self", miText(mediaItem.Source.CustomName))
+				}
+				@CoreListItemsFromMap(mediaItem)
+			</section>
+		</section>
+	</div>
+}
+
+templ mediaItemsShowTasksTab(mediaItem *core.MediaItem) {
+	if len(mediaItem.Tasks) > 0 {
+		@TableTable(TableProps{
+			Rows:       mediaItemsTaskRows(mediaItem.Tasks),
+			TableClass: "text-white",
+			Columns: []TableColumn{
+				{Label: "Worker", Render: mediaItemsTaskWorkerCell},
+				{Label: "State", Render: mediaItemsTaskStateCell},
+				{Label: "Scheduled At", Render: mediaItemsTaskScheduledAtCell},
+			},
+		})
+	} else {
+		<p class="text-black dark:text-white">Nothing Here!</p>
+	}
+}
+
+func mediaItemsTaskRows(tasks []*core.Task) []any {
+	rows := make([]any, len(tasks))
+	for i, t := range tasks {
+		rows[i] = t
+	}
+	return rows
+}
+
+templ mediaItemsTaskWorkerCell(row any) {
+	if task, ok := row.(*core.Task); ok && task.Job != nil {
+		{ task.Job.Worker }
+	}
+}
+
+templ mediaItemsTaskStateCell(row any) {
+	if task, ok := row.(*core.Task); ok && task.Job != nil {
+		{ task.Job.State }
+	}
+}
+
+templ mediaItemsTaskScheduledAtCell(row any) {
+	if task, ok := row.(*core.Task); ok && task.Job != nil {
+		@TextDatetimeInZone(task.Job.ScheduledAt.Time, "", "")
+	}
+}
+
+
+templ miText(s string) {
+	{ s }
+}
+
+func mediaItemIsHTTPURL(url string) bool {
+	return strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://")
+}

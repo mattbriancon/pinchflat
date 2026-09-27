@@ -1,0 +1,132 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/sources/source_live/index_table_live.html.heex.
+
+templ SourceHTMLIndexTable(state *sourceIndexTableState) {
+	<div class="flex flex-col">
+		@TableTable(TableProps{
+			Rows:          sourceLiveIndexRows(state.Sources),
+			TableClass:    "text-white",
+			SortKey:       state.SortKey,
+			SortDirection: state.SortDirection,
+			Columns:       sourceLiveIndexColumns(state),
+			HeaderURL:     sourceIndexHeaderURL(ctx, state),
+		})
+		<section class="flex justify-center my-3">
+			@TableLivePaginationControls(
+				state.Page,
+				state.TotalPages,
+				sourceIndexPageURL(ctx, state, -1),
+				sourceIndexPageURL(ctx, state, 1),
+			)
+		</section>
+	</div>
+}
+
+func sourceLiveIndexRows(sources []*sourceLiveIndexRow) []any {
+	out := make([]any, len(sources))
+	for i, s := range sources {
+		out[i] = s
+	}
+	return out
+}
+
+func sourceLiveIndexColumns(state *sourceIndexTableState) []TableColumn {
+	return []TableColumn{
+		{
+			Label: "Name", Class: "cell-wrap", SortKey: "custom_name",
+			Render: func(row any) templ.Component { return sourceLiveIndexNameCell(row.(*sourceLiveIndexRow)) },
+		},
+		{
+			Label: "RSS",
+			Render: func(row any) templ.Component {
+				return sourceLiveIndexRSSCell(state, row.(*sourceLiveIndexRow))
+			},
+		},
+		{
+			Label: "Pending", SortKey: "pending_count",
+			Render: func(row any) templ.Component { return sourceLiveIndexPendingCell(row.(*sourceLiveIndexRow)) },
+		},
+		{
+			Label: "Downloaded", SortKey: "downloaded_count",
+			Render: func(row any) templ.Component { return sourceLiveIndexDownloadedCell(row.(*sourceLiveIndexRow)) },
+		},
+		{
+			Label: "Size", SortKey: "media_size_bytes",
+			Render: func(row any) templ.Component { return sourceLiveIndexSizeCell(row.(*sourceLiveIndexRow)) },
+		},
+		{
+			Label: "Media Profile", SortKey: "media_profile_name",
+			Render: func(row any) templ.Component { return sourceLiveIndexProfileCell(row.(*sourceLiveIndexRow)) },
+		},
+		{
+			Label: "Enabled?", SortKey: "enabled",
+			Render: func(row any) templ.Component { return sourceLiveIndexEnabledCell(row.(*sourceLiveIndexRow)) },
+		},
+		{
+			Label: "", Class: "flex place-content-evenly",
+			Render: func(row any) templ.Component { return sourceLiveIndexEditCell(row.(*sourceLiveIndexRow)) },
+		},
+	}
+}
+
+templ sourceLiveIndexNameCell(row *sourceLiveIndexRow) {
+	@TextSubtleLink(P(ctx, "/sources/%v", row.ID), "", sourceLiveIndexCustomName(row))
+}
+
+templ sourceLiveIndexCustomName(row *sourceLiveIndexRow) {
+	{ row.CustomName }
+}
+
+templ sourceLiveIndexRSSCell(state *sourceIndexTableState, row *sourceLiveIndexRow) {
+	{{ feedURL := sourceLiveIndexRSSFeedURL(state.FeedBaseURL, row) }}
+	<div class="flex items-center gap-1">
+		<a
+			href={ templ.SafeURL(feedURL) }
+			class="flex h-8 w-8 items-center justify-center rounded-lg text-orange-400 hover:bg-meta-4 hover:text-orange-300"
+			title="Open RSS feed"
+			aria-label={ "Open RSS feed for " + row.CustomName }
+		>
+			@CoreIcon("hero-rss", "h-5 w-5", nil)
+		</a>
+		<button
+			type="button"
+			class="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-meta-4 hover:text-white"
+			title="Copy RSS link"
+			aria-label={ "Copy RSS link for " + row.CustomName }
+			x-data="{ copied: false }"
+			x-on:click={ "copyWithCallbacks('" + feedURL + "', () => copied = true, () => copied = false)" }
+		>
+			@CoreIcon("hero-document-duplicate", "h-4 w-4", templ.Attributes{"x-show": "!copied"})
+			@CoreIcon("hero-check", "h-4 w-4 text-meta-3", templ.Attributes{"x-show": "copied", "x-cloak": "true"})
+		</button>
+	</div>
+}
+
+templ sourceLiveIndexPendingCell(row *sourceLiveIndexRow) {
+	@TextSubtleLink(P(ctx, "/sources/%v/#tab-pending", row.ID), "", TextLocalizedNumber(row.PendingCount))
+}
+
+templ sourceLiveIndexDownloadedCell(row *sourceLiveIndexRow) {
+	@TextSubtleLink(P(ctx, "/sources/%v/#tab-downloaded", row.ID), "", TextLocalizedNumber(row.DownloadedCount))
+}
+
+templ sourceLiveIndexSizeCell(row *sourceLiveIndexRow) {
+	@TextReadableFilesize(row.MediaSizeBytes)
+}
+
+templ sourceLiveIndexProfileCell(row *sourceLiveIndexRow) {
+	@TextSubtleLink(P(ctx, "/media_profiles/%v", row.MediaProfileID), "", sourceLiveIndexProfileName(row))
+}
+
+templ sourceLiveIndexProfileName(row *sourceLiveIndexRow) {
+	{ row.MediaProfileName }
+}
+
+templ sourceLiveIndexEnabledCell(row *sourceLiveIndexRow) {
+	@SourceEnableToggleRender(row.ID, row.Enabled)
+}
+
+templ sourceLiveIndexEditCell(row *sourceLiveIndexRow) {
+	@TextIconLink(P(ctx, "/sources/%v/edit", row.ID), "hero-pencil-square", "mx-1")
+}

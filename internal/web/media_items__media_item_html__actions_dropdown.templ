@@ -1,0 +1,86 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/media_items/media_item_html/actions_dropdown.html.heex
+
+import (
+
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
+
+templ MediaItemsMediaItemHTMLActionsDropdown(mediaItem *core.MediaItem) {
+	@ButtonButtonDropdown("Actions", "justify-center w-full sm:w-50", []ButtonButtonOption{
+		{Content: mediaItemsCopyJSONOption(mediaItem)},
+		{Content: mediaItemsDividerOption()},
+		{Content: mediaItemsForceDownloadOption(mediaItem)},
+		{Content: mediaItemsDividerOption()},
+		{Content: mediaItemsDeleteFilesOption(mediaItem)},
+		{Content: mediaItemsDeleteAndIgnoreOption(mediaItem)},
+	})
+}
+
+templ mediaItemsDividerOption() {
+	<div class="my-1 h-px w-full bg-strokedark"></div>
+}
+
+// mediaItemsCopyJSONOption is the <:option> that copies
+// Jason.Formatter.pretty_print(Jason.encode!(@media_item)) to the clipboard.
+templ mediaItemsCopyJSONOption(mediaItem *core.MediaItem) {
+	<span x-data="{ copied: false }" x-on:click={ mediaItemsCopyJSONScript(mediaItem) }>
+		Copy JSON
+		<span x-show="copied" x-transition.duration.150ms>
+			@CoreIcon("hero-check", "ml-2 h-4 w-4", nil)
+		</span>
+	</span>
+}
+
+templ mediaItemsForceDownloadOption(mediaItem *core.MediaItem) {
+	@CoreLinkButton(
+		P(ctx, "/sources/%v/media/%v/force_download", mediaItem.SourceID, mediaItem.ID),
+		"post",
+		"Are you sure you force a download of this media?",
+		"w-full text-left",
+		mediaItemsForceDownloadText(),
+	)
+}
+
+templ mediaItemsForceDownloadText() {
+	Force Download
+}
+
+templ mediaItemsDeleteFilesOption(mediaItem *core.MediaItem) {
+	@CoreLinkButton(
+		P(ctx, "/sources/%v/media/%v", mediaItem.SourceID, mediaItem.ID),
+		"delete",
+		"Are you sure you want to delete all files for this media item? This cannot be undone.",
+		"w-full text-left",
+		mediaItemsDeleteFilesText(),
+	)
+}
+
+templ mediaItemsDeleteFilesText() {
+	Delete Files
+}
+
+templ mediaItemsDeleteAndIgnoreOption(mediaItem *core.MediaItem) {
+	@CoreLinkButton(
+		P(ctx, "/sources/%v/media/%v?prevent_download=true", mediaItem.SourceID, mediaItem.ID),
+		"delete",
+		"Are you sure you want to delete all files for this media item and prevent it from re-downloading in the future? This cannot be undone.",
+		"w-full text-left",
+		mediaItemsDeleteAndIgnoreText(),
+	)
+}
+
+templ mediaItemsDeleteAndIgnoreText() {
+	Delete and Ignore
+}
+
+// mediaItemsCopyJSONScript builds the Alpine click handler that copies
+// Jason.Formatter.pretty_print(Jason.encode!(@media_item)) to the clipboard.
+func mediaItemsCopyJSONScript(mediaItem *core.MediaItem) string {
+	return "copyWithCallbacks(" +
+		"String.raw`" + prettyJSON(mediaItem) + "`, " +
+		"() => copied = true, " +
+		"() => copied = false" +
+		")"
+}

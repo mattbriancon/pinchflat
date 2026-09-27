@@ -1,0 +1,110 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/sources/source_html/media_item_table_live.ex
+// (the render/1 clauses; fetching lives in the .go file). Rendered inline for
+// each media_state tab on the source show page: paging/search are each
+// media_state's own query params (<state>_page, <state>_q) so switching one
+// tab's page or search doesn't disturb another's, and the form/links carry
+// ?tab= so a reload lands back on the right tab (STRATEGY.md decision 4: no
+// htmx, no fragment endpoint, no PubSub "reload_page" -- a browser reload
+// replaces it).
+
+import (
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
+
+// SourceHTMLMediaItemTable is render/1.
+templ SourceHTMLMediaItemTable(data *mediaItemTableData) {
+	if data.TotalRecordCount == 0 {
+		<div id={ mediaItemTableWrapperID(data.Source.ID, data.MediaState) } class="mb-4 flex items-center">
+			<p>Nothing Here!</p>
+		</div>
+	} else {
+		<div id={ mediaItemTableWrapperID(data.Source.ID, data.MediaState) }>
+			<header class="flex justify-between items-center mb-4">
+				<span class="mx-2">
+					Showing
+					@TextLocalizedNumber(len(data.Records))
+					of
+					@TextLocalizedNumber(data.FilteredRecordCount)
+				</span>
+				<form method="get" action={ templ.URL(P(ctx, "/sources/%v", data.Source.ID)) }>
+					@mediaItemTableHiddenParams(data)
+					<div class="bg-meta-4 rounded-md">
+						<div class="relative">
+							<span class="absolute left-2 top-1/2 -translate-y-1/2 flex">
+								@CoreIcon("hero-magnifying-glass", "", nil)
+							</span>
+							<input
+								type="text"
+								name={ mediaItemTableSearchParam(data.MediaState) }
+								value={ data.SearchTerm }
+								placeholder="Search in table..."
+								class="w-full bg-transparent pl-9 pr-4 border-0 focus:ring-0 focus:outline-none"
+							/>
+						</div>
+					</div>
+				</form>
+			</header>
+			@TableTable(TableProps{
+				Rows:       mediaItemTableRows(data.Records),
+				TableClass: "text-white",
+				Columns:    mediaItemTableColumns(data),
+			})
+			<section class="flex justify-center mt-5">
+				@TableLivePaginationControls(
+					data.Page,
+					data.TotalPages,
+					mediaItemTablePageURL(ctx, data, -1),
+					mediaItemTablePageURL(ctx, data, 1),
+				)
+			</section>
+		</div>
+	}
+}
+
+// mediaItemTableHiddenParams preserves every other tab's page/search and the
+// active tab, so submitting this tab's search form doesn't reset them.
+templ mediaItemTableHiddenParams(data *mediaItemTableData) {
+	<input type="hidden" name="tab" value={ data.MediaState }/>
+	for k, vals := range preservedParams(ctx, mediaItemTablePageParam(data.MediaState), mediaItemTableSearchParam(data.MediaState), "tab") {
+		for _, v := range vals {
+			<input type="hidden" name={ k } value={ v }/>
+		}
+	}
+}
+
+templ mediaItemTableTitleCell(data *mediaItemTableData, item *core.MediaItem) {
+	<section class="flex items-start gap-1">
+		if item.LastError != nil && *item.LastError != "" {
+			@TextTooltip(*item.LastError, "bottom-right", "w-64", "", mediaItemTableErrorIcon())
+		}
+		<span>
+			@TextSubtleLink(P(ctx, "/sources/%v/media/%v", data.Source.ID, item.ID), "", mediaItemTableTitle(item))
+		</span>
+	</section>
+}
+
+templ mediaItemTableErrorIcon() {
+	@CoreIcon("hero-exclamation-circle-solid", "text-red-500", nil)
+}
+
+templ mediaItemTableTitle(item *core.MediaItem) {
+	{ core.Deref(item.Title) }
+}
+
+templ mediaItemTableIgnoredCell(item *core.MediaItem) {
+	if item.PreventDownload {
+		@CoreIcon("hero-check", "", nil)
+	} else {
+		@CoreIcon("hero-x-mark", "", nil)
+	}
+}
+
+templ mediaItemTableUploadDateCell(item *core.MediaItem) {
+	{ item.UploadedAt.UTC().Format("2006-01-02") }
+}
+
+templ mediaItemTableEditCell(data *mediaItemTableData, item *core.MediaItem) {
+	@TextIconLink(P(ctx, "/sources/%v/media/%v/edit", data.Source.ID, item.ID), "hero-pencil-square", "mr-4")
+}

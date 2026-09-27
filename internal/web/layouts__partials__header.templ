@@ -1,0 +1,40 @@
+package web
+
+// Port of lib/pinchflat_web/components/layouts/partials/header.html.heex.
+
+templ LayoutsPartialsHeader() {
+	<header class="sticky top-0 z-999 w-full border-b border-strokedark bg-boxdark">
+		<div class="mx-auto flex max-w-screen-2xl flex-wrap items-center gap-x-3 gap-y-1 px-3 pt-2 sm:px-4 lg:flex-nowrap lg:gap-x-6 lg:px-6 lg:py-2">
+			<a href={ P(ctx, "/") } class="flex shrink-0 items-center gap-2">
+				<img src={ P(ctx, "/images/icon-2024-03-20.png") } alt="Pinchflat" class="h-8 w-8"/>
+				<span class="hidden text-lg font-bold text-white sm:inline">Pinchflat</span>
+			</a>
+			<nav
+				aria-label="Main navigation"
+				class="no-scrollbar order-last -mx-3 flex w-[calc(100%+1.5rem)] gap-0.5 overflow-x-auto px-2 pb-2 sm:gap-1 sm:-mx-4 sm:w-[calc(100%+2rem)] sm:px-3 lg:order-none lg:mx-0 lg:w-auto lg:flex-1 lg:px-0 lg:pb-0"
+			>
+				@LayoutsNavLink("Home", P(ctx, "/"), CurrentPath(ctx))
+				@LayoutsNavLink("Sources", P(ctx, "/sources"), CurrentPath(ctx))
+				@LayoutsNavLink("Media Profiles", P(ctx, "/media_profiles"), CurrentPath(ctx))
+				@LayoutsNavLink("Settings", P(ctx, "/settings"), CurrentPath(ctx))
+				@LayoutsNavLink("App Info", P(ctx, "/app_info"), CurrentPath(ctx))
+			</nav>
+			<div class="min-w-0 flex-1 rounded-lg border border-strokedark bg-form-input focus-within:border-primary lg:w-80 lg:flex-none">
+				<div class="relative">
+					<span class="absolute left-2.5 top-1/2 -translate-y-1/2 flex text-bodydark2">
+						@CoreIcon("hero-magnifying-glass", "h-4 w-4", nil)
+					</span>
+					<form action={ P(ctx, "/search") }>
+						<input
+							type="text"
+							name="q"
+							value={ Param(ctx, "q") }
+							placeholder="Search all media..."
+							class="w-full bg-transparent py-1.5 pl-8 pr-3 text-sm text-white placeholder:text-bodydark2 border-0 focus:ring-0 focus:outline-none"
+						/>
+					</form>
+				</div>
+			</div>
+		</div>
+	</header>
+}

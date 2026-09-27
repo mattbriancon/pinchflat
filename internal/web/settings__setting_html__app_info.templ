@@ -1,0 +1,50 @@
+package web
+
+import (
+	"context"
+	"fmt"
+)
+
+// Port of lib/pinchflat_web/controllers/settings/setting_html/app_info.html.heex.
+
+templ SettingHTMLAppInfo() {
+	<div class="page-header">
+		<div class="flex gap-3 items-center">
+			<h2 class="page-title">
+				App Info
+			</h2>
+		</div>
+	</div>
+	<div class="card card-body">
+		<div class="max-w-full">
+			@ButtonButton("bg-primary", "rounded-lg", "", "button", false, templ.Attributes{
+				"x-data":    "{ copied: false }",
+				"x-on:click": appInfoCopyScript(ctx),
+			}, appInfoCopyButtonContent())
+			<a href={ templ.URL(P(ctx, "/download_logs")) }>
+				@ButtonButton("bg-primary", "rounded-lg", "ml-4", "button", false, nil, appInfoDownloadLogsContent())
+			</a>
+		</div>
+	</div>
+}
+
+templ appInfoCopyButtonContent() {
+	Copy Diagnostic Info
+	<span x-show="copied" x-transition.duration.150ms>
+		@CoreIcon("hero-check", "ml-2 h-4 w-4", nil)
+	</span>
+}
+
+templ appInfoDownloadLogsContent() {
+	Download Logs
+}
+
+// appInfoCopyScript builds the x-on:click Alpine expression with the
+// diagnostic info string interpolated into the JS template literal, as
+// the .heex's `~s"copyWithCallbacks(`#{diagnostic_info_string()}`, ...)"` did.
+func appInfoCopyScript(ctx context.Context) string {
+	return fmt.Sprintf(
+		"\n        copyWithCallbacks(\n          `%s`, \n          () => copied = true, \n          () => copied = false\n        )\n      ",
+		DiagnosticInfoString(ctx, PageOf(ctx).Version),
+	)
+}
