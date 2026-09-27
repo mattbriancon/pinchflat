@@ -1,0 +1,43 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/media_items/media_item_html/media_item_form.html.heex
+
+templ MediaItemsMediaItemHTMLMediaItemForm(f *Form, action string) {
+	@CoreSimpleForm(
+		templ.Attributes{
+			"action": action,
+			"method": "post",
+			"x-data": "{ advancedMode: !!JSON.parse(localStorage.getItem('advancedMode')) }",
+			"x-init": "$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))",
+		},
+		mediaItemFormContent(f),
+		nil,
+	)
+}
+
+templ mediaItemFormContent(f *Form) {
+	<input type="hidden" name="_method" value="put"/>
+	if f.HasErrors() {
+		@CoreError("Oops, something went wrong! Please check the errors below.")
+	}
+	<h3 class="section-title">
+		General Options
+	</h3>
+	@CoreInput(CoreInputProps{
+		Field: fieldRef(f.Field("prevent_download")),
+		Type:  "toggle",
+		Label: "Prevent Download",
+		Help:  "Checking excludes this media item from automatic download. Download can still be manually forced",
+	})
+	@CoreInput(CoreInputProps{
+		Field: fieldRef(f.Field("prevent_culling")),
+		Type:  "toggle",
+		Label: "Prevent Automatic Deletion",
+		Help:  "Checking excludes media from being automatically deleted based on media retention rules",
+	})
+	@ButtonButton("bg-primary", "rounded-lg", "my-6 w-full sm:w-auto", "submit", false, nil, mediaItemFormSaveText())
+}
+
+templ mediaItemFormSaveText() {
+	Save Media Item
+}
