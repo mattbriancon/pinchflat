@@ -1,10 +1,29 @@
 package web
 
-import "net/http"
+import (
+	"net/http"
 
-// Skeleton for PinchflatWeb.Searches.SearchController. Replace each stub with the port.
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
 
-// SearchControllerShow
+// Port of lib/pinchflat_web/controllers/searches/search_controller.ex.
+
+// SearchControllerShow: show(conn, params)
 func (s *Server) SearchControllerShow(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "unported: PinchflatWeb.Searches.SearchController", http.StatusNotImplemented)
+	ctx := r.Context()
+	searchTerm := r.URL.Query().Get("q")
+	if searchTerm == "" {
+		searchTerm = ""
+	}
+
+	searchResults, err := s.App.MediaSearch(ctx, searchTerm, core.KW{})
+	if err != nil {
+		s.Fail(w, r, err)
+		return
+	}
+	if searchResults == nil {
+		searchResults = []*core.MediaItem{}
+	}
+
+	s.Render(w, r, http.StatusOK, LayoutApp, SearchHTMLShow(searchTerm, searchResults))
 }
