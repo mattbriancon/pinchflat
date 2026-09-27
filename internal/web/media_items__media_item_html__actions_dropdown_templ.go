@@ -11,8 +11,6 @@ import templruntime "github.com/a-h/templ/runtime"
 // Port of lib/pinchflat_web/controllers/media_items/media_item_html/actions_dropdown.html.heex
 
 import (
-	"encoding/json"
-
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
@@ -111,7 +109,7 @@ func mediaItemsCopyJSONOption(mediaItem *core.MediaItem) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(mediaItemsCopyJSONScript(mediaItem))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__actions_dropdown.templ`, Line: 29, Col: 82}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__actions_dropdown.templ`, Line: 28, Col: 82}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 		if templ_7745c5c3_Err != nil {
@@ -325,64 +323,14 @@ func mediaItemsDeleteAndIgnoreText() templ.Component {
 	})
 }
 
-// mediaItemsCopyJSONScript builds the Alpine click handler that copies the
-// media item's JSON (Jason.Formatter.pretty_print equivalent: json.Indent)
-// to the clipboard, matching the button_dropdown option's inline JS.
+// mediaItemsCopyJSONScript builds the Alpine click handler that copies
+// Jason.Formatter.pretty_print(Jason.encode!(@media_item)) to the clipboard.
 func mediaItemsCopyJSONScript(mediaItem *core.MediaItem) string {
-	payload := mediaItemsCopyJSONPayload(mediaItem)
-	b, err := json.MarshalIndent(payload, "", "  ")
-	if err != nil {
-		b = []byte("{}")
-	}
 	return "copyWithCallbacks(" +
-		"String.raw`" + string(b) + "`, " +
+		"String.raw`" + prettyJSON(mediaItem) + "`, " +
 		"() => copied = true, " +
 		"() => copied = false" +
 		")"
-}
-
-// mediaItemsCopyJSONPayload mirrors MediaItem.json_exluded_fields/0's
-// Jason.Encoder: every field except __meta__/__struct__/metadata/tasks/
-// media_items_search_index, with source preloaded.
-func mediaItemsCopyJSONPayload(mediaItem *core.MediaItem) map[string]any {
-	m := map[string]any{
-		"id":                       mediaItem.ID,
-		"media_id":                 mediaItem.MediaID,
-		"title":                    mediaItem.Title,
-		"media_filepath":           mediaItem.MediaFilepath,
-		"source_id":                mediaItem.SourceID,
-		"subtitle_filepaths":       mediaItem.SubtitleFilepaths,
-		"thumbnail_filepath":       mediaItem.ThumbnailFilepath,
-		"metadata_filepath":        mediaItem.MetadataFilepath,
-		"livestream":               mediaItem.Livestream,
-		"original_url":             mediaItem.OriginalURL,
-		"media_downloaded_at":      miUTCDateTimeStr(mediaItem.MediaDownloadedAt),
-		"details_updated_at":       miUTCDateTimeStr(mediaItem.DetailsUpdatedAt),
-		"description":              mediaItem.Description,
-		"media_size_bytes":         mediaItem.MediaSizeBytes,
-		"short_form_content":       mediaItem.ShortFormContent,
-		"uploaded_at":              mediaItem.UploadedAt.Time.Format("2006-01-02T15:04:05Z"),
-		"nfo_filepath":             mediaItem.NfoFilepath,
-		"uuid":                     mediaItem.UUID,
-		"duration_seconds":         mediaItem.DurationSeconds,
-		"prevent_download":         mediaItem.PreventDownload,
-		"culled_at":                miUTCDateTimeStr(mediaItem.CulledAt),
-		"prevent_culling":          mediaItem.PreventCulling,
-		"media_redownloaded_at":    miUTCDateTimeStr(mediaItem.MediaRedownloadedAt),
-		"upload_date_index":        mediaItem.UploadDateIndex,
-		"playlist_index":           mediaItem.PlaylistIndex,
-		"predicted_media_filepath": mediaItem.PredictedMediaFilepath,
-		"last_error":               mediaItem.LastError,
-		"inserted_at":              mediaItem.InsertedAt.Time.Format("2006-01-02T15:04:05Z"),
-		"updated_at":               mediaItem.UpdatedAt.Time.Format("2006-01-02T15:04:05Z"),
-	}
-	if mediaItem.Source != nil {
-		m["source"] = map[string]any{
-			"id":          mediaItem.Source.ID,
-			"custom_name": mediaItem.Source.CustomName,
-		}
-	}
-	return m
 }
 
 var _ = templruntime.GeneratedTemplate
