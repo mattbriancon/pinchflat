@@ -42,13 +42,11 @@ func loadSettings() (Settings, error) {
 	extras := getenv("EXTRAS_PATH", filepath.Join(configPath, "extras"))
 
 	yt, _ := exec.LookPath("yt-dlp")
-	apprise, _ := exec.LookPath("apprise")
 
 	s := Settings{
 		Core: core.Config{
 			Env:                     "prod",
 			YtDlpExecutable:         yt,
-			AppriseExecutable:       apprise,
 			MediaDirectory:          mediaPath,
 			MetadataDirectory:       getenv("METADATA_PATH", filepath.Join(configPath, "metadata")),
 			ExtrasDirectory:         extras,

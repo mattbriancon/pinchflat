@@ -1,6 +1,6 @@
 // Replaces the LiveView client. Server-rendered pages use htmx for the
 // interactions LiveView used to handle (table paging/sorting/search, toggles,
-// the apprise test button), and Alpine.js as before.
+// the source enable toggle), and Alpine.js as before.
 
 // Progress bar during htmx requests (was phx:page-loading-start/stop).
 topbar.config({ barColors: { 0: '#29d' }, shadowColor: 'rgba(0, 0, 0, .3)' })

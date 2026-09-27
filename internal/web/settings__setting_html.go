@@ -8,12 +8,6 @@ import (
 
 // Port of lib/pinchflat_web/controllers/settings/setting_html.ex.
 
-// AppriseServerHelp returns the help text for the Apprise server field.
-func AppriseServerHelp() string {
-	url := "https://github.com/caronc/apprise/wiki/URLBasics"
-	return fmt.Sprintf(`Server endpoint for Apprise notifications when new media is found. See <a href="%s" class="%s" target="_blank">Apprise docs</a> for more information`, url, helpLinkClasses())
-}
-
 // YoutubeAPIHelp returns the help text for the YouTube API key field.
 func YoutubeAPIHelp() string {
 	url := "https://github.com/kieraneglin/pinchflat/wiki/Generating-a-YouTube-API-key"
@@ -27,12 +21,11 @@ func DiagnosticInfoString(ctx context.Context, appVersion string) string {
 	page := PageOf(ctx)
 
 	ytDlpVersion, _ := page.App.SettingsGetBang(ctx, "yt_dlp_version")
-	appriseVersion, _ := page.App.SettingsGetBang(ctx, "apprise_version")
 	systemArch := runtime.GOOS + "-" + runtime.GOARCH
 
 	return fmt.Sprintf(
-		"- App Version: %s\n- yt-dlp Version: %v\n- Apprise Version: %v\n- System Architecture: %s\n- Timezone: %s\n",
-		appVersion, ytDlpVersion, appriseVersion, systemArch, page.App.Config.Timezone,
+		"- App Version: %s\n- yt-dlp Version: %v\n- System Architecture: %s\n- Timezone: %s\n",
+		appVersion, ytDlpVersion, systemArch, page.App.Config.Timezone,
 	)
 }
 

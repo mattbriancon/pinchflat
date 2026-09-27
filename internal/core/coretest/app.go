@@ -22,7 +22,6 @@ import (
 type TestApp struct {
 	*core.App
 	YtDlpMock      *YtDlpMock
-	AppriseMock    *AppriseMock
 	UserScriptMock *UserScriptMock
 	HTTPMock       *HTTPMock
 	Ctx            context.Context
@@ -89,7 +88,6 @@ func NewApp(t testing.TB) *TestApp {
 	cfg := core.Config{
 		Env:                     "test",
 		YtDlpExecutable:         filepath.Join(root, "testdata/support/scripts/yt-dlp-mocks/repeater.sh"),
-		AppriseExecutable:       filepath.Join(root, "testdata/support/scripts/yt-dlp-mocks/repeater.sh"),
 		MediaDirectory:          filepath.Join(testDataDir, "media"),
 		MetadataDirectory:       filepath.Join(testDataDir, "metadata"),
 		ExtrasDirectory:         filepath.Join(dir, "extras"),
@@ -108,7 +106,6 @@ func NewApp(t testing.TB) *TestApp {
 
 	ta := &TestApp{
 		YtDlpMock:      NewYtDlpMock(t),
-		AppriseMock:    NewAppriseMock(t),
 		UserScriptMock: NewUserScriptMock(t),
 		HTTPMock:       NewHTTPMock(t),
 		Ctx:            context.Background(),
@@ -118,7 +115,6 @@ func NewApp(t testing.TB) *TestApp {
 		Oban:        obanlite.New(d),
 		Config:      cfg,
 		YtDlp:       ytDlpRunner{ta.YtDlpMock},
-		Apprise:     appriseRunner{ta.AppriseMock},
 		UserScripts: userScriptRunner{ta.UserScriptMock},
 		HTTP:        httpClient{ta.HTTPMock},
 	}

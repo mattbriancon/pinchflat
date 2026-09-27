@@ -132,16 +132,7 @@ func applyDefaultSettings(ctx context.Context, a *App) error {
 		return err
 	}
 
-	appriseVersion, err := a.Apprise.Version(ctx)
-	if err != nil {
-		return err
-	}
-
 	if _, err := a.SettingsSet(ctx, KW{Opt("yt_dlp_version", ytDlpVersion)}); err != nil {
-		return err
-	}
-
-	if _, err := a.SettingsSet(ctx, KW{Opt("apprise_version", appriseVersion)}); err != nil {
 		return err
 	}
 

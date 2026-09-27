@@ -72,7 +72,7 @@ func (a *App) MediaCollectionIndexingWorkerPerform(ctx context.Context, job *oba
 
 	// Case 1: If indexing is on a schedule
 	if indexFreq > 0 {
-		if err := mediaCollectionIndexingWorkerPerformIndexingAndNotification(ctx, a, source, args.Force); err != nil {
+		if err := mediaCollectionIndexingWorkerPerformIndexing(ctx, a, source, args.Force); err != nil {
 			return err
 		}
 		if err := mediaCollectionIndexingWorkerMaybeEnqueueFastIndexingTask(ctx, a, source); err != nil {
@@ -86,7 +86,7 @@ func (a *App) MediaCollectionIndexingWorkerPerform(ctx context.Context, job *oba
 
 	// Case 2: If source has never been indexed
 	if lastIndexedAt == nil {
-		if err := mediaCollectionIndexingWorkerPerformIndexingAndNotification(ctx, a, source, args.Force); err != nil {
+		if err := mediaCollectionIndexingWorkerPerformIndexing(ctx, a, source, args.Force); err != nil {
 			return err
 		}
 		return nil
@@ -95,7 +95,7 @@ func (a *App) MediaCollectionIndexingWorkerPerform(ctx context.Context, job *oba
 	// Case 3: If source has been indexed and is not meant to reschedule
 	// Only perform indexing if forced
 	if args.Force {
-		if err := mediaCollectionIndexingWorkerPerformIndexingAndNotification(ctx, a, source, true); err != nil {
+		if err := mediaCollectionIndexingWorkerPerformIndexing(ctx, a, source, true); err != nil {
 			return err
 		}
 	}
@@ -105,25 +105,10 @@ func (a *App) MediaCollectionIndexingWorkerPerform(ctx context.Context, job *oba
 
 // Private helpers
 
-func mediaCollectionIndexingWorkerPerformIndexingAndNotification(ctx context.Context, a *App, source *Source, wasForced bool) error {
-	apprise, err := a.SettingsGetBang(ctx, "apprise_server")
-	if err != nil {
-		return err
-	}
-
-	// apprise_server is stored as a single string (List.wrap in Elixir); wrap
-	// it into a one-element slice for the notification runner.
-	appriseServers := []string{}
-	if s, ok := apprise.(string); ok && s != "" {
-		appriseServers = []string{s}
-	}
-
-	_, err = a.SourceNotificationsWrapNewMediaNotification(ctx, appriseServers, source, func() (any, error) {
-		return a.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx, source, KW{
-			Opt("was_forced", wasForced),
-		})
+func mediaCollectionIndexingWorkerPerformIndexing(ctx context.Context, a *App, source *Source, wasForced bool) error {
+	_, err := a.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx, source, KW{
+		Opt("was_forced", wasForced),
 	})
-
 	return err
 }
 

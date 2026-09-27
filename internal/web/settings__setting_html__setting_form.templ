@@ -31,24 +31,16 @@ templ formContent(f *Form) {
 		@CoreError("Oops, something went wrong! Please check the errors below.")
 	}
 
-	<section>
-		<section class="flex justify-between items-center mt-4">
-			<h3 class="section-title">
-				Notification Settings
-			</h3>
-			<span class="cursor-pointer hover:underline" x-on:click="advancedMode = !advancedMode">
-				Editing Mode: <span x-text="advancedMode ? 'Advanced' : 'Standard'"></span>
-			</span>
-		</section>
-
-		@SettingHTMLAppriseServerLiveFragment(InputValue(f.Field("apprise_server").Value), "hero-paper-airplane", "Send Test")
-	</section>
-
-	<section class="mt-8">
+	<section class="mt-4">
 		<section>
-			<h3 class="section-title">
-				Extractor Settings
-			</h3>
+			<section class="flex justify-between items-center">
+				<h3 class="section-title">
+					Extractor Settings
+				</h3>
+				<span class="cursor-pointer hover:underline" x-on:click="advancedMode = !advancedMode">
+					Editing Mode: <span x-text="advancedMode ? 'Advanced' : 'Standard'"></span>
+				</span>
+			</section>
 
 			@renderFormFieldInput(f, "youtube_api_key", "YouTube API Key(s)", "text", YoutubeAPIHelp(), true, "font-mono text-sm mr-4")
 			@renderFormFieldInput(f, "extractor_sleep_interval_seconds", "Sleep Interval (seconds)", "number", "Sleep interval in seconds between each extractor request. Must be a positive whole number. Set to 0 to disable", false, "")

@@ -33,26 +33,6 @@ func (r ytDlpRunner) Run(_ context.Context, url, action string, opts core.KW, ot
 func (r ytDlpRunner) Version(context.Context) (string, error) { return r.m.Version.next()() }
 func (r ytDlpRunner) Update(context.Context) (string, error)  { return r.m.Update.next()() }
 
-// AppriseMock replaces AppriseRunnerMock.
-type AppriseMock struct {
-	Run     *Mock[func(endpoints []string, opts core.KW) error]
-	Version *Mock[func() (string, error)]
-}
-
-func NewAppriseMock(t testing.TB) *AppriseMock {
-	return &AppriseMock{
-		Run:     newMock[func([]string, core.KW) error](t, "AppriseRunnerMock.run"),
-		Version: newMock[func() (string, error)](t, "AppriseRunnerMock.version"),
-	}
-}
-
-type appriseRunner struct{ m *AppriseMock }
-
-func (r appriseRunner) Run(_ context.Context, endpoints []string, opts core.KW) error {
-	return r.m.Run.next()(endpoints, opts)
-}
-func (r appriseRunner) Version(context.Context) (string, error) { return r.m.Version.next()() }
-
 // UserScriptMock replaces UserScriptRunnerMock.
 type UserScriptMock struct {
 	Run *Mock[func(event string, data any) error]

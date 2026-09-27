@@ -50,6 +50,26 @@ func rawRows(t *testing.T, d *db.DB, table string, cols []string) map[int64]stri
 	return out
 }
 
+// retiredColumns are kept in the database (never dropped, so the schema
+// stays what Elixir left) but no longer used by the Go app.
+var retiredColumns = map[string][]string{
+	"settings": {"apprise_server", "apprise_version"}, // Apprise notifications removed
+}
+
+func withoutRetired(table string, cols []string) []string {
+	var out []string
+outer:
+	for _, c := range cols {
+		for _, r := range retiredColumns[table] {
+			if c == r {
+				continue outer
+			}
+		}
+		out = append(out, c)
+	}
+	return out
+}
+
 func checkSchema[T core.Schema](t *testing.T) {
 	var zero T
 	table := zero.TableName()
@@ -57,14 +77,16 @@ func checkSchema[T core.Schema](t *testing.T) {
 		ctx := context.Background()
 		d := dbtest.CopyOf(t, dbtest.ElixirFixture("populated.db"))
 
-		want := tableColumns(t, d, table)
+		dbCols := tableColumns(t, d, table)
+		want := withoutRetired(table, dbCols)
 		got := core.Columns[T]()
 		sort.Strings(got)
 		if strings.Join(got, ",") != strings.Join(want, ",") {
 			t.Fatalf("%T columns\n got: %v\nwant: %v", zero, got, want)
 		}
 
-		before := rawRows(t, d, table, want)
+		// Compare every database column, so retired ones must survive too.
+		before := rawRows(t, d, table, dbCols)
 		recs, err := core.All[T](ctx, d, core.From[T]())
 		if err != nil {
 			t.Fatalf("scan %s: %v", table, err)
@@ -90,12 +112,12 @@ func checkSchema[T core.Schema](t *testing.T) {
 				t.Fatalf("write back %s %v: %v", table, id, err)
 			}
 		}
-		after := rawRows(t, d, table, want)
+		after := rawRows(t, d, table, dbCols)
 		for id, b := range before {
 			if after[id] == b {
 				continue
 			}
-			if table == "media_items" && legacyUploadedAtOnly(want, b, after[id]) {
+			if table == "media_items" && legacyUploadedAtOnly(dbCols, b, after[id]) {
 				continue
 			}
 			t.Errorf("%s row %d changed on round trip\n before: %s\n  after: %s", table, id, b, after[id])

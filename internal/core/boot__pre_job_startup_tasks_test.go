@@ -19,9 +19,6 @@ func TestPreJobStartupTasks_EnsureTmpfileDirectory(t *testing.T) {
 		ta.YtDlpMock.Version.Stub(func() (string, error) {
 			return "1", nil
 		})
-		ta.AppriseMock.Version.Stub(func() (string, error) {
-			return "2", nil
-		})
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
 			return nil
 		})
@@ -51,9 +48,6 @@ func TestPreJobStartupTasks_ResetExecutingJobs(t *testing.T) {
 		// Setup stubs
 		ta.YtDlpMock.Version.Stub(func() (string, error) {
 			return "1", nil
-		})
-		ta.AppriseMock.Version.Stub(func() (string, error) {
-			return "2", nil
 		})
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
 			return nil
@@ -89,9 +83,6 @@ func TestPreJobStartupTasks_CreateBlankYtDlpFiles(t *testing.T) {
 		ta.YtDlpMock.Version.Stub(func() (string, error) {
 			return "1", nil
 		})
-		ta.AppriseMock.Version.Stub(func() (string, error) {
-			return "2", nil
-		})
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
 			return nil
 		})
@@ -120,9 +111,6 @@ func TestPreJobStartupTasks_CreateBlankYtDlpFiles(t *testing.T) {
 		// Setup stubs
 		ta.YtDlpMock.Version.Stub(func() (string, error) {
 			return "1", nil
-		})
-		ta.AppriseMock.Version.Stub(func() (string, error) {
-			return "2", nil
 		})
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
 			return nil
@@ -155,9 +143,6 @@ func TestPreJobStartupTasks_CreateBlankUserScriptFile(t *testing.T) {
 		ta.YtDlpMock.Version.Stub(func() (string, error) {
 			return "1", nil
 		})
-		ta.AppriseMock.Version.Stub(func() (string, error) {
-			return "2", nil
-		})
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
 			return nil
 		})
@@ -186,9 +171,6 @@ func TestPreJobStartupTasks_CreateBlankUserScriptFile(t *testing.T) {
 		// Setup stubs
 		ta.YtDlpMock.Version.Stub(func() (string, error) {
 			return "1", nil
-		})
-		ta.AppriseMock.Version.Stub(func() (string, error) {
-			return "2", nil
 		})
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
 			return nil
@@ -229,9 +211,6 @@ func TestPreJobStartupTasks_ApplyDefaultSettings(t *testing.T) {
 		ta.YtDlpMock.Version.Stub(func() (string, error) {
 			return "1", nil
 		})
-		ta.AppriseMock.Version.Stub(func() (string, error) {
-			return "2", nil
-		})
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
 			return nil
 		})
@@ -246,36 +225,6 @@ func TestPreJobStartupTasks_ApplyDefaultSettings(t *testing.T) {
 		}
 	})
 
-	t.Run("sets apprise version", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-
-		os.RemoveAll(ta.Config.TmpfileDirectory)
-		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("apprise_version", nil)})
-
-		val, _ := ta.SettingsGet(ta.Ctx, "apprise_version")
-		if val != nil {
-			t.Errorf("Expected apprise_version to be nil, got %v", val)
-		}
-
-		ta.YtDlpMock.Version.Stub(func() (string, error) {
-			return "1", nil
-		})
-		ta.AppriseMock.Version.Stub(func() (string, error) {
-			return "2", nil
-		})
-		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
-			return nil
-		})
-
-		if err := ta.PreJobStartupTasksInit(ta.Ctx); err != nil {
-			t.Errorf("PreJobStartupTasksInit failed: %v", err)
-		}
-
-		val, _ = ta.SettingsGet(ta.Ctx, "apprise_version")
-		if val != "2" {
-			t.Errorf("Expected apprise_version to be '2', got %v", val)
-		}
-	})
 }
 
 func TestPreJobStartupTasks_RunAppInitScript(t *testing.T) {
@@ -285,10 +234,6 @@ func TestPreJobStartupTasks_RunAppInitScript(t *testing.T) {
 		ta.YtDlpMock.Version.Stub(func() (string, error) {
 			return "1", nil
 		})
-		ta.AppriseMock.Version.Stub(func() (string, error) {
-			return "2", nil
-		})
-
 		// Verify the app_init event is called with empty data
 		called := false
 		ta.UserScriptMock.Run.Expect(func(event string, data any) error {
@@ -311,7 +256,6 @@ func TestPreJobStartupTasks_RunAppInitScript(t *testing.T) {
 	t.Run("boots even if the app_init script exits non-zero", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ta.YtDlpMock.Version.Stub(func() (string, error) { return "1", nil })
-		ta.AppriseMock.Version.Stub(func() (string, error) { return "2", nil })
 		ta.UserScriptMock.Run.Expect(func(event string, data any) error {
 			return &core.CommandError{Output: "boom", Status: 1}
 		})

@@ -2,7 +2,7 @@ package core
 
 // App replaces the Elixir application environment: the Repo, Oban, the
 // Application.get_env config, and the swappable runner modules
-// (yt_dlp_runner, apprise_runner, user_script_runner, http_client).
+// (yt_dlp_runner, user_script_runner, http_client).
 // Any ported function that touched one of those is a method on *App.
 //
 // Hand-written W0 infrastructure; not a manifest row.
@@ -21,7 +21,6 @@ import (
 type Config struct {
 	Env                     string // "prod", "dev" or "test" (config_env())
 	YtDlpExecutable         string
-	AppriseExecutable       string
 	MediaDirectory          string
 	MetadataDirectory       string
 	ExtrasDirectory         string
@@ -43,7 +42,6 @@ type App struct {
 	Config Config
 
 	YtDlp       YtDlpRunner
-	Apprise     AppriseRunner
 	UserScripts UserScriptRunner
 	HTTP        HTTPClient
 }
@@ -81,13 +79,6 @@ type YtDlpRunner interface {
 	Run(ctx context.Context, url string, action string, opts KW, outputTemplate string, addlOpts KW) (string, error)
 	Version(ctx context.Context) (string, error)
 	Update(ctx context.Context) (string, error)
-}
-
-// AppriseRunner is Pinchflat.Lifecycle.Notifications.AppriseCommandRunner.
-// endpoints is one server string or a list, as in Elixir.
-type AppriseRunner interface {
-	Run(ctx context.Context, endpoints []string, opts KW) error
-	Version(ctx context.Context) (string, error)
 }
 
 // UserScriptRunner is Pinchflat.Lifecycle.UserScripts.UserScriptCommandRunner.

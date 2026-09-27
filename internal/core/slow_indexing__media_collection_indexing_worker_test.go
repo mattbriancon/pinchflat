@@ -98,10 +98,6 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			return "", nil
 		})
 
-		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
-			return nil
-		})
-
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
 			Worker: core.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
@@ -127,10 +123,6 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			return "", nil
 		})
 
-		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
-			return nil
-		})
-
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
 			Worker: core.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
@@ -154,10 +146,6 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
 			return "", nil
-		})
-
-		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
-			return nil
 		})
 
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
@@ -192,10 +180,6 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 				}
 			}
 			return "", nil
-		})
-
-		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
-			return nil
 		})
 
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
@@ -243,10 +227,6 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
 			return "", nil
 		})
-		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
-			return nil
-		})
-
 		err := ta.Oban.PerformJob(ta.Ctx, core.MediaCollectionIndexingWorkerName, map[string]any{"id": source.ID})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -265,10 +245,6 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
 			return coretest.SourceAttributesReturnFixture(), nil
 		})
-		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
-			return nil
-		})
-
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
 			Worker: core.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
@@ -296,10 +272,6 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
 			return coretest.SourceAttributesReturnFixture(), nil
 		})
-		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
-			return nil
-		})
-
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
 			Worker: core.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
@@ -327,10 +299,6 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
 			return coretest.SourceAttributesReturnFixture(), nil
 		})
-		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
-			return nil
-		})
-
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
 			Worker: core.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
@@ -358,10 +326,6 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
 			return "", nil
 		})
-		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
-			return nil
-		})
-
 		beforeTime := coretest.Now()
 		err := ta.Oban.PerformJob(ta.Ctx, core.MediaCollectionIndexingWorkerName, map[string]any{"id": source.ID})
 		if err != nil {
@@ -387,10 +351,6 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
 			return "", nil
 		})
-		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
-			return nil
-		})
-
 		before, err := ta.App.TasksListTasksFor(ta.Ctx, source, core.Ptr("MediaCollectionIndexingWorker"), nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -420,10 +380,6 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
 			return "", nil
 		})
-		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
-			return nil
-		})
-
 		beforeTime := coretest.Now()
 
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
@@ -458,10 +414,6 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
 			return "", nil
 		})
-		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
-			return nil
-		})
-
 		existingJob, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
 			Worker: core.FastIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
@@ -497,10 +449,6 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
 			return "", nil
 		})
-		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
-			return nil
-		})
-
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
 			Worker: core.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
@@ -527,10 +475,6 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
 			return coretest.SourceAttributesReturnFixture(), nil
 		})
-		ta.AppriseMock.Run.Stub(func(endpoints []string, opts core.KW) error {
-			return nil
-		})
-
 		mediaItemMediaIDs := func() []string {
 			mediaItems, err := core.All[core.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), core.From[core.MediaItem]("mi").Where(map[string]interface{}{"mi.source_id": source.ID}))
 			if err != nil {
@@ -578,51 +522,6 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
 			Worker: core.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": 0},
-		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
-
-		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-	})
-}
-
-func TestMediaCollectionIndexingWorker_Perform_Notifications(t *testing.T) {
-	t.Run("sends a notification if new media was found", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		if _, err := ta.App.SettingsSet(ta.Ctx, core.KW{core.Opt("apprise_server", "server_1")}); err != nil {
-			t.Fatalf("unexpected error setting apprise_server: %v", err)
-		}
-
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			return coretest.SourceAttributesReturnFixture(), nil
-		})
-
-		ta.AppriseMock.Run.Expect(func(servers []string, opts core.KW) error {
-			if len(servers) != 1 || servers[0] != "server_1" {
-				t.Errorf("expected servers to be [\"server_1\"], got %v", servers)
-			}
-			if title, _ := opts.Get("title"); title == nil {
-				t.Error("expected title to be set")
-			} else if _, ok := title.(string); !ok {
-				t.Error("expected title to be a string")
-			}
-			if body, _ := opts.Get("body"); body == nil {
-				t.Error("expected body to be set")
-			} else if _, ok := body.(string); !ok {
-				t.Error("expected body to be a string")
-			}
-			return nil
-		})
-
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: core.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
 		})
 		if err != nil {
 			t.Fatalf("failed to insert job: %v", err)

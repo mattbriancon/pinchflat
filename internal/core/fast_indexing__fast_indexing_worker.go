@@ -57,38 +57,13 @@ func (a *App) FastIndexingWorkerPerform(ctx context.Context, job *obanlite.Job) 
 		return nil
 	}
 
-	fastIndexingWorkerPerformIndexingAndSendNotification(ctx, a, source)
+	fastIndexingWorkerPerformIndexing(ctx, a, source)
 	return fastIndexingWorkerRescheduleIndexing(ctx, a, source)
 }
 
-func fastIndexingWorkerPerformIndexingAndSendNotification(ctx context.Context, a *App, source *Source) {
-	newMediaItems, err := a.FastIndexingHelpersIndexAndKickoffDownloads(ctx, source)
-	if err != nil {
+func fastIndexingWorkerPerformIndexing(ctx context.Context, a *App, source *Source) {
+	if _, err := a.FastIndexingHelpersIndexAndKickoffDownloads(ctx, source); err != nil {
 		slog.Error("Error indexing media", "source_id", source.ID, "error", err)
-		return
-	}
-
-	var filteredItems []*MediaItem
-	for _, item := range newMediaItems {
-		if item != nil {
-			pending, err := a.MediaPendingDownload(ctx, item)
-			if err == nil && pending {
-				filteredItems = append(filteredItems, item)
-			}
-		}
-	}
-
-	if source.DownloadMedia {
-		appriseServer, err := a.SettingsGet(ctx, "apprise_server")
-		if err == nil {
-			// apprise_server is stored as a single string (List.wrap in Elixir);
-			// wrap it into a one-element slice for the notification runner.
-			servers := []string{}
-			if s, ok := appriseServer.(string); ok && s != "" {
-				servers = []string{s}
-			}
-			_ = a.SourceNotificationsSendNewMediaNotification(ctx, servers, source, len(filteredItems))
-		}
 	}
 }
 

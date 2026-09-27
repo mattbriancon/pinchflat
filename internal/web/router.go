@@ -87,7 +87,6 @@ func (s *Server) Router() http.Handler {
 		r.Get("/_live/sources", s.SourceLiveIndexTableLiveRender)
 		r.Post("/_live/sources/{id}/enabled", s.SourceEnableToggleUpdate)
 		r.Get("/_live/sources/{id}/media", s.MediaItemTableLiveRender)
-		r.Post("/_live/settings/apprise_test", s.AppriseServerLiveSendTest)
 		r.Post("/_live/upgrade", s.UpgradeButtonLiveCheckMatchingText)
 	})
 

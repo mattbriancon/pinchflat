@@ -29,7 +29,7 @@ Every item below becomes an automated test in Phase 0 or a checklist item for cu
 | Env vars | Everything in `config/runtime.exs`: `MEDIA_PATH`, `CONFIG_PATH`, `DATABASE_PATH`, `LOG_PATH`, `METADATA_PATH`, `EXTRAS_PATH`, `TMPFILE_PATH`, `PORT`, `BASIC_AUTH_USERNAME/PASSWORD`, `EXPOSE_FEED_ENDPOINTS`, `BASE_ROUTE_PATH`, `ENABLE_IPV6`, `ENABLE_PROMETHEUS`, `YT_DLP_WORKER_CONCURRENCY`, `LOG_LEVEL`, `JOURNAL_MODE`, `SECRET_KEY_BASE`, `TZ`, and `UMASK` (from `docker_start`). `TZ_DATA_PATH`, `DNS_CLUSTER_QUERY` and `PHX_SERVER` can be ignored. |
 | Filesystem layout | Same default paths. `extras/cookies.txt`, `extras/user-scripts/lifecycle`, the yt-dlp config under `/etc/yt-dlp`, and the metadata directory layout all stay the same. |
 | User script hook | `lifecycle <event> <json>` with events `app_init`, `media_pre_download`, `media_downloaded`, `media_deleted`. The JSON shape comes from the **custom `Jason.Encoder` impls** in `media_item.ex:190`, `source.ex:186` and `media_profile.ex:101`, so field names and field sets must match. |
-| Apprise | Same title and body strings, same server string format. |
+| Apprise | Removed (§11.5). Its settings columns are kept, unused. |
 | yt-dlp invocations | Same argv for the same inputs. The option builder tests guarantee this. |
 | RSS/OPML XML | Byte-for-byte identical output for the same DB. Verified by a diff test against the Elixir output. |
 | Docker image | Same volumes (`/config`, `/downloads`, `/etc/yt-dlp`), same port env, same healthcheck, same PUID/UMASK behaviour, same bundled tools (yt-dlp, ffmpeg, deno, apprise). |
@@ -311,4 +311,5 @@ Your instinct is mostly right. The exceptions are **`priv/repo/migrations` and `
 1. **Cutover:** decided. Hard cutover with downtime; Elixir and Go never coexist; no rollback to Elixir except by restoring the DB backup.
 2. **`/metrics`:** decided. Names may change; the endpoint must keep working, and it's scraped by the Datadog agent (§4.6).
 3. **Repo:** decided. Same repo, `go.mod` at the root, Elixir deleted in W5.
-4. **Frontend:** decided. Server-rendered `templ` + htmx + Alpine.js + Tailwind, with no server push; tables refresh by button or page reload.
+4. **Frontend:** decided, then revised after the port: server-rendered `templ` + Alpine.js + Tailwind, **no htmx**. Every page renders everything on first load; anything new (paging, search, sorting, refresh) is a normal link or form that reloads the page. Toggles and buttons are plain form POSTs that redirect back.
+5. **Apprise:** removed after the port. No notifications are sent and the image no longer bundles apprise/pipx. The `settings.apprise_server` and `apprise_version` columns stay in the database untouched (no migration drops them), so the schema stays what Elixir left.

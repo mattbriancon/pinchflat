@@ -26,7 +26,7 @@ func TestSettingController_UpdateSettings(t *testing.T) {
 	t.Run("saves and redirects when data is valid", func(t *testing.T) {
 		c := webtest.New(t)
 
-		updateAttrs := core.Attrs{"apprise_server": "test://server"}
+		updateAttrs := core.Attrs{"download_throughput_limit": "4.2M"}
 		res := c.Patch("/settings", "setting", updateAttrs)
 
 		if res.RedirectedTo(t) != "/settings" {
@@ -35,8 +35,8 @@ func TestSettingController_UpdateSettings(t *testing.T) {
 
 		// Verify the setting was saved
 		res = c.Get("/settings")
-		if !strings.Contains(res.HTML(t, 200), "test://server") {
-			t.Error("expected updated apprise_server in HTML")
+		if !strings.Contains(res.HTML(t, 200), "4.2M") {
+			t.Error("expected updated download_throughput_limit in HTML")
 		}
 	})
 }

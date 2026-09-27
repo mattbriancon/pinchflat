@@ -106,8 +106,6 @@ func settingsFieldNameToStructField(dbName string) string {
 		"onboarding":                       "Onboarding",
 		"pro_enabled":                      "ProEnabled",
 		"yt_dlp_version":                   "YtDlpVersion",
-		"apprise_server":                   "AppriseServer",
-		"apprise_version":                  "AppriseVersion",
 		"video_codec_preference":           "VideoCodecPreference",
 		"audio_codec_preference":           "AudioCodecPreference",
 		"youtube_api_key":                  "YoutubeAPIKey",
