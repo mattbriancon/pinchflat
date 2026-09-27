@@ -104,7 +104,6 @@ func settingsFieldNameToStructField(dbName string) string {
 	// This is a simple mapping based on the Setting struct
 	fieldMap := map[string]string{
 		"onboarding":                       "Onboarding",
-		"pro_enabled":                      "ProEnabled",
 		"yt_dlp_version":                   "YtDlpVersion",
 		"video_codec_preference":           "VideoCodecPreference",
 		"audio_codec_preference":           "AudioCodecPreference",

@@ -53,7 +53,7 @@ func rawRows(t *testing.T, d *db.DB, table string, cols []string) map[int64]stri
 // retiredColumns are kept in the database (never dropped, so the schema
 // stays what Elixir left) but no longer used by the Go app.
 var retiredColumns = map[string][]string{
-	"settings": {"apprise_server", "apprise_version"}, // Apprise notifications removed
+	"settings": {"apprise_server", "apprise_version", "pro_enabled"}, // Apprise and Pro mode removed
 }
 
 func withoutRetired(table string, cols []string) []string {

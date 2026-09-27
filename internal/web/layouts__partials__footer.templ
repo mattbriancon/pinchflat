@@ -12,10 +12,6 @@ templ LayoutsPartialsFooter() {
 				@LayoutsFooterLink("hero-book-open", "Docs", "https://github.com/kieraneglin/pinchflat/wiki")
 				@LayoutsFooterLink("si-github", "Github", "https://github.com/kieraneglin/pinchflat")
 				@LayoutsFooterLink("si-discord", "Discord", "https://discord.gg/j7T6dCuwU4")
-				<button type="button" class="flex items-center gap-1.5 hover:text-white" x-on:click="showModal('donate-modal')">
-					@CoreIcon("hero-currency-dollar", "h-4 w-4", nil)
-					Donate
-				</button>
 			</nav>
 			<div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
 				<span class="flex items-center gap-2" x-on:click={ "markVersionAsSeen('" + layoutsVersion(ctx) + "')" }>

@@ -243,14 +243,12 @@ templ MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) {
 			</p>
 
 			<section
-				x-on:click="showModal('upgrade-modal')"
 				x-data="{ presets: { default: false, media_center: true, audio: false, archiving: false } }"
 			>
 				@CoreInput(CoreInputProps{
 					Field:       mediaProfilesField(f, "download_nfo"),
 					Type:        "toggle",
 					Label:       "Download NFO data",
-					LabelSuffix: "(pro)",
 					Help:        "Downloads NFO data alongside media file for use with Jellyfin, Kodi, etc.",
 					Rest:        templ.Attributes{"x-init": "$watch('selectedPreset', p => p && (enabled = presets[p]))"},
 				})

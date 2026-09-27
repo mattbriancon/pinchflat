@@ -330,17 +330,16 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</section><h3 class=\"mt-6 section-title\">Media Center Options</h3><p class=\"text-sm mt-2 max-w-prose\">Everything in this section is experimental - please open a GitHub issue if you see something odd. <strong>These options only work if this Media Profile's output template is set to split media into seasons.</strong> Try the \"Media Center\" preset if you're not sure.</p><section x-on:click=\"showModal('upgrade-modal')\" x-data=\"{ presets: { default: false, media_center: true, audio: false, archiving: false } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</section><h3 class=\"mt-6 section-title\">Media Center Options</h3><p class=\"text-sm mt-2 max-w-prose\">Everything in this section is experimental - please open a GitHub issue if you see something odd. <strong>These options only work if this Media Profile's output template is set to split media into seasons.</strong> Try the \"Media Center\" preset if you're not sure.</p><section x-data=\"{ presets: { default: false, media_center: true, audio: false, archiving: false } }\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = CoreInput(CoreInputProps{
-			Field:       mediaProfilesField(f, "download_nfo"),
-			Type:        "toggle",
-			Label:       "Download NFO data",
-			LabelSuffix: "(pro)",
-			Help:        "Downloads NFO data alongside media file for use with Jellyfin, Kodi, etc.",
-			Rest:        templ.Attributes{"x-init": "$watch('selectedPreset', p => p && (enabled = presets[p]))"},
+			Field: mediaProfilesField(f, "download_nfo"),
+			Type:  "toggle",
+			Label: "Download NFO data",
+			Help:  "Downloads NFO data alongside media file for use with Jellyfin, Kodi, etc.",
+			Rest:  templ.Attributes{"x-init": "$watch('selectedPreset', p => p && (enabled = presets[p]))"},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

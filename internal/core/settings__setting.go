@@ -3,7 +3,6 @@ package core
 type Setting struct {
 	ID                            int64   `db:"id"`
 	Onboarding                    bool    `db:"onboarding"`
-	ProEnabled                    bool    `db:"pro_enabled"`
 	YtDlpVersion                  *string `db:"yt_dlp_version"`
 	VideoCodecPreference          string  `db:"video_codec_preference"`
 	AudioCodecPreference          string  `db:"audio_codec_preference"`
@@ -19,7 +18,6 @@ func (Setting) TableName() string { return "settings" }
 func NewSetting() *Setting {
 	return &Setting{
 		Onboarding:                    true,
-		ProEnabled:                    false,
 		VideoCodecPreference:          "avc",
 		AudioCodecPreference:          "m4a",
 		RouteToken:                    "tmp-token",
@@ -30,7 +28,6 @@ func NewSetting() *Setting {
 
 var settingAllowedFields = []string{
 	"onboarding",
-	"pro_enabled",
 	"yt_dlp_version",
 	"video_codec_preference",
 	"audio_codec_preference",
@@ -42,7 +39,6 @@ var settingAllowedFields = []string{
 
 var settingRequiredFields = []string{
 	"onboarding",
-	"pro_enabled",
 	"video_codec_preference",
 	"audio_codec_preference",
 	"extractor_sleep_interval_seconds",

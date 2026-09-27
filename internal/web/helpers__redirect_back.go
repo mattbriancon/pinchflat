@@ -1,7 +1,7 @@
 package web
 
 // redirectBack is the "reload the page we came from" pattern the no-htmx
-// mutations use (source enable toggle, pro upgrade): a 303 back to the
+// mutations use (the source enable toggle): a 303 back to the
 // Referer when it's same-origin and under BASE_ROUTE_PATH, else a sensible
 // fallback (STRATEGY.md decision 4).
 

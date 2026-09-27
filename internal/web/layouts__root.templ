@@ -24,15 +24,8 @@ templ LayoutsRoot(content templ.Component) {
 			<script defer type="text/javascript" src={ P(ctx, "/assets/app.js") }></script>
 			<script defer type="text/javascript" src={ P(ctx, "/assets/alpine.min.js") }></script>
 		</head>
-		<body
-			x-data={ "{ proEnabled: " + InputValue(layoutsProEnabled(ctx)) + ", onboarding: " + InputValue(PageOf(ctx).Onboarding) + " }" }
-			class="dark text-bodydark bg-boxdark-2"
-		>
+		<body class="dark text-bodydark bg-boxdark-2">
 			@content
-			@LayoutsPartialsDonateModal()
-			<template x-if="!proEnabled && !onboarding">
-				@LayoutsPartialsUpgradeModal()
-			</template>
 		</body>
 	</html>
 }

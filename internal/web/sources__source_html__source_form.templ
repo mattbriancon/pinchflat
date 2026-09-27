@@ -80,12 +80,11 @@ templ sourceFormBody(props SourceFormProps) {
 					"x-init":          "$watch('fastIndexingEnabled', v => v && ($el.value = 30 * 24 * 60))",
 				},
 			})
-			<div x-on:click="showModal('upgrade-modal')">
+			<div>
 				@CoreInput(CoreInputProps{
 					Field:       ptrField(f.Field("fast_index")),
 					Type:        "toggle",
 					Label:       "Use Fast Indexing",
-					LabelSuffix: "(pro)",
 					Help:        "Not recommended for playlists. Overrides 'Index Frequency'. See below for more details (seriously, there's a TL;DR that's worth reading)",
 					Rest: templ.Attributes{
 						"x-init": "fastIndexingEnabled = enabled; $watch('enabled', value => fastIndexingEnabled = !!value)",

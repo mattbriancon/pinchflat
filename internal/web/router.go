@@ -84,8 +84,6 @@ func (s *Server) Router() http.Handler {
 		r.Delete("/sources/{source_id}/media/{id}", s.MediaItemControllerDelete)
 		r.Post("/sources/{source_id}/media/{media_item_id}/force_download", s.MediaItemControllerForceDownload)
 
-		// The pro upgrade modal's "Unlock Pro" form.
-		r.Post("/settings/pro", s.SettingControllerUnlockPro)
 	})
 
 	return r

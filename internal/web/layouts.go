@@ -29,21 +29,6 @@ func layoutsYtDlpVersion(ctx context.Context) string {
 	return s
 }
 
-// layoutsProEnabled is Settings.get!(:pro_enabled), used by the root layout's
-// x-data (whether the upgrade modal can show).
-func layoutsProEnabled(ctx context.Context) bool {
-	a := layoutsApp(ctx)
-	if a == nil {
-		return false
-	}
-	v, err := a.SettingsGet(ctx, "pro_enabled")
-	if err != nil {
-		return false
-	}
-	b, _ := v.(bool)
-	return b
-}
-
 // layoutsVersion is Application.spec(:pinchflat)[:vsn].
 func layoutsVersion(ctx context.Context) string { return PageOf(ctx).Version }
 

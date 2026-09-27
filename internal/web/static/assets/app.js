@@ -56,19 +56,6 @@ window.isVersionSeen = (versionString) => {
   return localStorage.getItem('seenVersion') === versionString
 }
 
-// Replaces Phoenix.LiveView.JS.show/hide(to: "#id") for CoreModal, which has
-// no LiveView socket to push a show/hide command over. The modal's own
-// x-data listens for these on window and flips its `open` flag.
-window.showModal = (id) => {
-  window.dispatchEvent(new CustomEvent('pf-show-modal', { detail: id }))
-  document.body.classList.add('overflow-hidden')
-}
-
-window.hideModal = (id) => {
-  window.dispatchEvent(new CustomEvent('pf-hide-modal', { detail: id }))
-  document.body.classList.remove('overflow-hidden')
-}
-
 window.dispatchFor = (elementOrId, eventName, detail = {}) => {
   const element =
     typeof elementOrId === 'string' ? document.getElementById(elementOrId) : elementOrId
@@ -80,12 +67,4 @@ window.dispatchFor = (elementOrId, eventName, detail = {}) => {
   }, 0)
 }
 // Replaces the LiveView client: server-rendered pages use plain navigations
-// (links, GET forms, POST forms that redirect back) instead of htmx, and
-// Alpine.js as before.
-
-// phx-hook="supress-enter-submission"
-document.addEventListener('keypress', (event) => {
-  if (event.key === 'Enter' && event.target.closest('[data-suppress-enter]')) {
-    event.preventDefault()
-  }
-})
+// (links, GET forms, POST forms that redirect back) plus Alpine.js.

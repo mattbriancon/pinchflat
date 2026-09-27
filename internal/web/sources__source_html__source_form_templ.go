@@ -146,16 +146,15 @@ func sourceFormBody(props SourceFormProps) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div x-on:click=\"showModal('upgrade-modal')\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = CoreInput(CoreInputProps{
-			Field:       ptrField(f.Field("fast_index")),
-			Type:        "toggle",
-			Label:       "Use Fast Indexing",
-			LabelSuffix: "(pro)",
-			Help:        "Not recommended for playlists. Overrides 'Index Frequency'. See below for more details (seriously, there's a TL;DR that's worth reading)",
+			Field: ptrField(f.Field("fast_index")),
+			Type:  "toggle",
+			Label: "Use Fast Indexing",
+			Help:  "Not recommended for playlists. Overrides 'Index Frequency'. See below for more details (seriously, there's a TL;DR that's worth reading)",
 			Rest: templ.Attributes{
 				"x-init": "fastIndexingEnabled = enabled; $watch('enabled', value => fastIndexingEnabled = !!value)",
 			},
@@ -217,7 +216,7 @@ func sourceFormBody(props SourceFormProps) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ cutoffDate: '" + InputValue(f.Field("download_cutoff_date").Value) + "' }")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 128, Col: 97}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 127, Col: 97}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 		if templ_7745c5c3_Err != nil {
@@ -281,7 +280,7 @@ func sourceFormBody(props SourceFormProps) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ placeholders: JSON.parse('" + OutputPathTemplateOverridePlaceholders(props.MediaProfiles) + "'), inputValue: null }")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 168, Col: 132}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 167, Col: 132}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 		if templ_7745c5c3_Err != nil {

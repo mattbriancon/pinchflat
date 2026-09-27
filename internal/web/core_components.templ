@@ -2,65 +2,8 @@ package web
 
 // Port of lib/pinchflat_web/components/core_components.ex (the renderable
 // half; see core_components.go for the prop structs and the input/1
-// dispatch). LiveView JS commands (phx-click={JS.exec(...)}, show_modal/
-// hide_modal, phx-mounted/phx-remove) have no socket to run against in the
-// Go port, so they become Alpine: window.showModal(id)/hideModal(id)
-// (web/assets/js/alpine_helpers.js) dispatch a window CustomEvent that the
-// modal's own x-data listens for. phx-disconnected/phx-connected (the
-// "client-error"/"server-error" flashes) assume a LiveView socket that no
-// longer exists, so they're dropped; see the report.
-
-import "fmt"
-
-// CoreModal is modal/1.
-templ CoreModal(id string, allowClose bool, content templ.Component) {
-	<div
-		id={ id }
-		x-data="{ open: false }"
-		x-on:pf-show-modal.window={ "if ($event.detail === '" + id + "') { open = true }" }
-		x-on:pf-hide-modal.window={ "if ($event.detail === '" + id + "') { open = false }" }
-		x-show="open"
-		x-cloak
-		class="relative z-99999"
-	>
-		<div id={ id + "-bg" } class="bg-black-2/80 fixed inset-0 transition-opacity" aria-hidden="true"></div>
-		<div
-			class="fixed inset-0 overflow-y-auto"
-			aria-labelledby={ id + "-title" }
-			aria-describedby={ id + "-description" }
-			role="dialog"
-			aria-modal="true"
-			tabindex="0"
-			x-on:keydown.escape.window={ fmt.Sprintf("if (%t) hideModal('%s')", allowClose, id) }
-		>
-			<div class="flex min-h-full items-center justify-center">
-				<div class="w-full max-w-3xl p-2 sm:p-6 lg:py-8">
-					<div
-						id={ id + "-container" }
-						x-on:click.outside={ fmt.Sprintf("if (%t) hideModal('%s')", allowClose, id) }
-						class="relative rounded-xl border border-strokedark bg-graydark p-5 sm:p-8 shadow-lg transition"
-					>
-						if allowClose {
-							<div class="absolute top-4 right-4">
-								<button
-									x-on:click={ "hideModal('" + id + "')" }
-									type="button"
-									class="-m-3 flex-none p-3 opacity-60 hover:opacity-80"
-									aria-label="close"
-								>
-									@CoreIcon("hero-x-mark-solid", "h-5 w-5 text-white", nil)
-								</button>
-							</div>
-						}
-						<div id={ id + "-content" }>
-							@content
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-}
+// dispatch). modal/1 isn't ported (nothing uses it since the Pro and donate
+// dialogs were removed), nor are the LiveView socket flashes.
 
 // CoreFlash is flash/1: the message for `kind` ("info"/"error") comes from
 // the request's flash (Page.Flash), matching Phoenix.Flash.get(@flash, kind).
