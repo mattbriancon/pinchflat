@@ -1,7 +1,6 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/sources/source_html.ex: the helper
-// functions and template-property definitions.
+// Helper functions and template-property definitions for the sources pages.
 
 import (
 	"context"

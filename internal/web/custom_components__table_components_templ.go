@@ -5,14 +5,10 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import (
-	"github.com/a-h/templ"
-	templruntime "github.com/a-h/templ/runtime"
-)
+import "github.com/a-h/templ"
+import templruntime "github.com/a-h/templ/runtime"
 
-// Port of lib/pinchflat_web/components/custom_components/table_components.ex
-// (the renderable half; see custom_components__table_components.go for
-// TableProps/TableColumn).
+// See custom_components__table_components.go for TableProps/TableColumn.
 
 // TableTable is table/1.
 func TableTable(p TableProps) templ.Component {
@@ -75,7 +71,7 @@ func TableTable(p TableProps) templ.Component {
 				var templ_7745c5c3_Var4 templ.SafeURL
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(headerURL))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__table_components.templ`, Line: 16, Col: 38}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__table_components.templ`, Line: 14, Col: 38}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -88,7 +84,7 @@ func TableTable(p TableProps) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(col.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__table_components.templ`, Line: 17, Col: 20}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__table_components.templ`, Line: 15, Col: 20}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -116,7 +112,7 @@ func TableTable(p TableProps) templ.Component {
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(col.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__table_components.templ`, Line: 24, Col: 20}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__table_components.templ`, Line: 22, Col: 20}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -222,7 +218,7 @@ func TableLivePaginationControls(pageNumber int, totalPages int, prevURL string,
 			var templ_7745c5c3_Var10 templ.SafeURL
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(prevURL))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__table_components.templ`, Line: 55, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__table_components.templ`, Line: 53, Col: 31}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -282,7 +278,7 @@ func TableLivePaginationControls(pageNumber int, totalPages int, prevURL string,
 			var templ_7745c5c3_Var11 templ.SafeURL
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(nextURL))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__table_components.templ`, Line: 77, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__table_components.templ`, Line: 75, Col: 31}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {

@@ -1,6 +1,5 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/sources/source_html/media_item_table_live.ex.
 // Rendered inline for each media_state tab on the source show page.
 
 import (

@@ -5,13 +5,12 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
+import "github.com/a-h/templ"
+import templruntime "github.com/a-h/templ/runtime"
+
 import (
-	"github.com/a-h/templ"
-	templruntime "github.com/a-h/templ/runtime"
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
-
-// Port of lib/pinchflat_web/controllers/media_items/media_item_html/actions_dropdown.html.heex
 
 func MediaItemsMediaItemHTMLActionsDropdown(mediaItem *core.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -108,7 +107,7 @@ func mediaItemsCopyJSONOption(mediaItem *core.MediaItem) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(mediaItemsCopyJSONScript(mediaItem))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__actions_dropdown.templ`, Line: 28, Col: 82}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__actions_dropdown.templ`, Line: 26, Col: 82}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 		if templ_7745c5c3_Err != nil {

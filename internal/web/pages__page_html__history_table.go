@@ -8,8 +8,6 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
-// Port of lib/pinchflat_web/controllers/pages/page_html/history_table_live.ex.
-
 const historyTableLimit = 5
 
 // historyTableFetch fetches one media_state's page of history for the home

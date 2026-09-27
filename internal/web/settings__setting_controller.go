@@ -8,8 +8,6 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
-// Port of lib/pinchflat_web/controllers/settings/setting_controller.ex.
-
 // SettingControllerShow: show(conn, _params)
 func (s *Server) SettingControllerShow(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

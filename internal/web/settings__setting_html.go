@@ -6,8 +6,6 @@ import (
 	"runtime"
 )
 
-// Port of lib/pinchflat_web/controllers/settings/setting_html.ex.
-
 // YoutubeAPIHelp returns the help text for the YouTube API key field.
 func YoutubeAPIHelp() string {
 	url := "https://github.com/kieraneglin/pinchflat/wiki/Generating-a-YouTube-API-key"

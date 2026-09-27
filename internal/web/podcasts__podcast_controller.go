@@ -10,8 +10,6 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
-// Port of lib/pinchflat_web/controllers/podcasts/podcast_controller.ex.
-
 // PodcastControllerOpmlFeed: opml_feed(conn, _params)
 func (s *Server) PodcastControllerOpmlFeed(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

@@ -1,8 +1,8 @@
 package web
 
-// Port of lib/pinchflat_web/components/layouts.ex. The renderable pieces
-// (LayoutsNavLink, LayoutsFooterLink) are in layouts.templ; this file has
-// active_path?/2 and the Settings/version lookups used by the layouts.
+// The renderable pieces (LayoutsNavLink, LayoutsFooterLink) are in
+// layouts.templ; this file has the active-path check and the
+// Settings/version lookups used by the layouts.
 
 import (
 	"context"

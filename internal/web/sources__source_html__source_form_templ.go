@@ -5,13 +5,12 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
+import "github.com/a-h/templ"
+import templruntime "github.com/a-h/templ/runtime"
+
 import (
-	"github.com/a-h/templ"
-	templruntime "github.com/a-h/templ/runtime"
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
-
-// Port of lib/pinchflat_web/controllers/sources/source_html/source_form.html.heex.
 
 // SourceFormProps is source_form/1's assigns.
 type SourceFormProps struct {
@@ -215,7 +214,7 @@ func sourceFormBody(props SourceFormProps) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ cutoffDate: '" + InputValue(f.Field("download_cutoff_date").Value) + "' }")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 127, Col: 97}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 125, Col: 97}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 		if templ_7745c5c3_Err != nil {
@@ -279,7 +278,7 @@ func sourceFormBody(props SourceFormProps) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ placeholders: JSON.parse('" + OutputPathTemplateOverridePlaceholders(props.MediaProfiles) + "'), inputValue: null }")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 167, Col: 132}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 165, Col: 132}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 		if templ_7745c5c3_Err != nil {

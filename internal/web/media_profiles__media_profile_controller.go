@@ -1,7 +1,5 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/media_profiles/media_profile_controller.ex
-
 import (
 	"log/slog"
 	"net/http"

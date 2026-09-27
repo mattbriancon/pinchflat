@@ -1,6 +1,5 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/sources/source_live/source_enable_toggle.ex.
 // The render/1 templ component lives in the companion .templ file (this
 // LiveComponent has no separate .heex source; its markup is inline in the
 // .ex file via ~H).

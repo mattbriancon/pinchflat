@@ -5,12 +5,8 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import (
-	"github.com/a-h/templ"
-	templruntime "github.com/a-h/templ/runtime"
-)
-
-// Port of lib/pinchflat_web/controllers/media_profiles/media_profile_html/media_profile_form.html.heex.
+import "github.com/a-h/templ"
+import templruntime "github.com/a-h/templ/runtime"
 
 // MediaProfilesHTMLMediaProfileForm is media_profile_form/1. Callers build f
 // with FormFor(changeset, "media_profile"), matching the `:let={f}` in the
@@ -56,7 +52,7 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(method)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__media_profile_form.templ`, Line: 11, Col: 53}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__media_profile_form.templ`, Line: 9, Col: 53}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 			if templ_7745c5c3_Err != nil {
@@ -112,7 +108,7 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ \n        presets: { \n          default: '" + mediaProfilesDefaultOutputTemplate() + "',\n          media_center: '" + mediaProfilesMediaCenterOutputTemplate() + "',\n          audio: '" + mediaProfilesAudioOutputTemplate() + "',\n          archiving: '" + mediaProfilesDefaultOutputTemplate() + "'\n        }\n    }")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__media_profile_form.templ`, Line: 60, Col: 342}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__media_profile_form.templ`, Line: 58, Col: 342}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 		if templ_7745c5c3_Err != nil {

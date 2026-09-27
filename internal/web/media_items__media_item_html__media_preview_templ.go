@@ -5,13 +5,12 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
+import "github.com/a-h/templ"
+import templruntime "github.com/a-h/templ/runtime"
+
 import (
-	"github.com/a-h/templ"
-	templruntime "github.com/a-h/templ/runtime"
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
-
-// Port of lib/pinchflat_web/controllers/media_items/media_item_html/media_preview.heex
 
 func MediaItemsMediaItemHTMLMediaPreview(mediaItem *core.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -42,7 +41,7 @@ func MediaItemsMediaItemHTMLMediaPreview(mediaItem *core.MediaItem) templ.Compon
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.URL(P(ctx, "/media/%v/stream?v=%v", miStr(mediaItem.UUID), mediaItem.UpdatedAt.Time.Unix())))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__media_preview.templ`, Line: 12, Col: 115}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__media_preview.templ`, Line: 10, Col: 115}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 			if templ_7745c5c3_Err != nil {
@@ -61,7 +60,7 @@ func MediaItemsMediaItemHTMLMediaPreview(mediaItem *core.MediaItem) templ.Compon
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.URL(P(ctx, "/media/%v/stream?v=%v", miStr(mediaItem.UUID), mediaItem.UpdatedAt.Time.Unix())))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__media_preview.templ`, Line: 19, Col: 115}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__media_preview.templ`, Line: 17, Col: 115}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {

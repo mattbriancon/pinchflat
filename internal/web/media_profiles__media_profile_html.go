@@ -1,9 +1,8 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/media_profiles/media_profile_html.ex
-// (the plain-Go half; the renderable templates live in the sibling .templ
-// files). Helper names use the mp prefix to avoid collisions with other
-// controllers' files in this flat package.
+// The renderable templates live in the sibling .templ files. Helper names
+// use the mp prefix to avoid collisions with other controllers' files in
+// this flat package.
 
 import (
 	"github.com/mattbriancon/pinchflat/internal/core"

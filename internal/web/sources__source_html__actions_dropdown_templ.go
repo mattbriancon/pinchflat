@@ -5,15 +5,14 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
+import "github.com/a-h/templ"
+import templruntime "github.com/a-h/templ/runtime"
+
 import (
 	"fmt"
 
-	"github.com/a-h/templ"
-	templruntime "github.com/a-h/templ/runtime"
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
-
-// Port of lib/pinchflat_web/controllers/sources/source_html/actions_dropdown.html.heex.
 
 func SourceHTMLActionsDropdown(source *core.Source) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -94,7 +93,7 @@ func sourcesActionsCopyRSS(source *core.Source) templ.Component {
 		var templ_7745c5c3_Var3 templ.SafeURL
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(RssFeedURL(ctx, source)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 39, Col: 43}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 37, Col: 43}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -107,7 +106,7 @@ func sourcesActionsCopyRSS(source *core.Source) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue("$event.preventDefault(); copyWithCallbacks('" + RssFeedURL(ctx, source) + "', () => copied = true, () => copied = false)")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 41, Col: 137}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 39, Col: 137}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 		if templ_7745c5c3_Err != nil {
@@ -157,7 +156,7 @@ func sourcesActionsCopyJSON(source *core.Source) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue("copyWithCallbacks(" + sourcesJSONLiteral(source) + ", () => copied = true, () => copied = false)")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 53, Col: 113}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 51, Col: 113}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 		if templ_7745c5c3_Err != nil {
@@ -207,7 +206,7 @@ func sourcesActionsUseAsTemplate(source *core.Source) templ.Component {
 		var templ_7745c5c3_Var8 templ.SafeURL
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/sources/new") + "?template_id=" + fmt.Sprint(source.ID)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 63, Col: 86}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 61, Col: 86}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
@@ -519,7 +518,7 @@ func sourcesActionsText(s string) templ.Component {
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(s)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 143, Col: 4}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 141, Col: 4}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {

@@ -1,6 +1,5 @@
 package web
 
-// Port of lib/pinchflat_web/endpoint.ex and lib/pinchflat_web/plugs.ex.
 // Hand-written W4 infrastructure.
 
 import (

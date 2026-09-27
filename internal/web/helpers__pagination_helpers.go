@@ -1,6 +1,5 @@
 package web
 
-// Port of lib/pinchflat_web/helpers/pagination_helpers.ex.
 // Methods for working with pagination, usually in the context of LiveViews or LiveComponents.
 
 import (

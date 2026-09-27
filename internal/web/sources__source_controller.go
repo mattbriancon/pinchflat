@@ -1,7 +1,5 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/sources/source_controller.ex.
-
 import (
 	"errors"
 	"net/http"
