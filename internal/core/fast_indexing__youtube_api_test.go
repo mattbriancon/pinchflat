@@ -9,77 +9,65 @@ import (
 )
 
 func TestYoutubeApi_Enabled(t *testing.T) {
-	t.Run("returns true if the user has set YouTube API keys", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "key1, key2")})
+	t.Parallel()
+	tests := []struct {
+		name   string
+		keyVal any
+		want   bool
+	}{
+		{"multiple keys", "key1, key2", true},
+		{"single key", "test_key", true},
+		{"nil", nil, false},
+		{"whitespace only", "  ,  ,", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ta := coretest.NewApp(t)
+			ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", tt.keyVal)})
 
-		if !ta.YoutubeApiEnabled(ta.Ctx) {
-			t.Error("expected YoutubeApiEnabled to return true")
-		}
-	})
-
-	t.Run("returns true with a single API key", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "test_key")})
-
-		if !ta.YoutubeApiEnabled(ta.Ctx) {
-			t.Error("expected YoutubeApiEnabled to return true")
-		}
-	})
-
-	t.Run("returns false if the user has not set any API keys", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", nil)})
-
-		if ta.YoutubeApiEnabled(ta.Ctx) {
-			t.Error("expected YoutubeApiEnabled to return false")
-		}
-	})
-
-	t.Run("returns false if only empty or whitespace keys are provided", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "  ,  ,")})
-
-		if ta.YoutubeApiEnabled(ta.Ctx) {
-			t.Error("expected YoutubeApiEnabled to return false")
-		}
-	})
+			got := ta.YoutubeApiEnabled(ta.Ctx)
+			if got != tt.want {
+				t.Errorf("enabled=%v, want %v", got, tt.want)
+			}
+		})
+	}
 }
 
 func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
-	t.Run("rotates through API keys", func(t *testing.T) {
+	t.Parallel()
+	t.Run("rotates keys", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "key1, key2")})
 
 		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
 			if !strings.Contains(url, "key=key1") {
-				t.Errorf("expected URL to contain key=key1, got: %s", url)
+				t.Errorf("url missing key1: %s", url)
 			}
 			return "{}", nil
 		})
-
 		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
 			if !strings.Contains(url, "key=key2") {
-				t.Errorf("expected URL to contain key=key2, got: %s", url)
+				t.Errorf("url missing key2: %s", url)
 			}
 			return "{}", nil
 		})
-
 		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
 			if !strings.Contains(url, "key=key1") {
-				t.Errorf("expected URL to contain key=key1, got: %s", url)
+				t.Errorf("url missing key1: %s", url)
 			}
 			return "{}", nil
 		})
 
-		// three calls to verify rotation
 		ta.YoutubeApiGetRecentMediaIDs(ta.Ctx, source)
 		ta.YoutubeApiGetRecentMediaIDs(ta.Ctx, source)
 		ta.YoutubeApiGetRecentMediaIDs(ta.Ctx, source)
 	})
 
-	t.Run("calls the expected URL", func(t *testing.T) {
+	t.Run("builds correct URL", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "key1, key2")})
@@ -89,13 +77,12 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 			expectedURL := apiBase + "?part=contentDetails&maxResults=50&playlistId=" + source.CollectionID + "&key=key1"
 
 			if url != expectedURL {
-				t.Errorf("expected URL %s, got %s", expectedURL, url)
+				t.Errorf("url=%s, want %s", url, expectedURL)
 			}
 
-			// Check headers
 			accept, ok := headers.Get("accept")
 			if !ok || accept != "application/json" {
-				t.Errorf("expected headers to contain accept=application/json, got %v", headers)
+				t.Errorf("accept=%v, want application/json", accept)
 			}
 
 			return "{}", nil
@@ -103,29 +90,31 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 
 		_, err := ta.YoutubeApiGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {
-			t.Errorf("expected no error, got %v", err)
+			t.Errorf("unexpected error: %v", err)
 		}
 	})
 
-	t.Run("replaces channel IDs with playlist IDs if needed", func(t *testing.T) {
+	t.Run("converts channel to playlist ID", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_id": "UC_ABC123"})
 		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "key1, key2")})
 
 		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
 			if !strings.Contains(url, "playlistId=UU_ABC123&") {
-				t.Errorf("expected URL to contain playlistId=UU_ABC123&, got: %s", url)
+				t.Errorf("url missing converted ID: %s", url)
 			}
 			return "{}", nil
 		})
 
 		_, err := ta.YoutubeApiGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {
-			t.Errorf("expected no error, got %v", err)
+			t.Errorf("unexpected error: %v", err)
 		}
 	})
 
-	t.Run("returns an empty list if no media is returned", func(t *testing.T) {
+	t.Run("returns empty when no media", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "key1, key2")})
@@ -136,37 +125,34 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 
 		result, err := ta.YoutubeApiGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {
-			t.Errorf("expected no error, got %v", err)
+			t.Errorf("unexpected error: %v", err)
 		}
 		if len(result) != 0 {
-			t.Errorf("expected empty list, got %v", result)
+			t.Errorf("result=%v, want empty", result)
 		}
 	})
 
-	t.Run("returns media IDs if present", func(t *testing.T) {
+	t.Run("returns media IDs", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "key1, key2")})
 
 		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
-			return `{
-  "items": [
-    {"contentDetails": {"videoId": "test_1"}},
-    {"contentDetails": {"videoId": "test_2"}}
-  ]
-}`, nil
+			return `{"items":[{"contentDetails":{"videoId":"test_1"}},{"contentDetails":{"videoId":"test_2"}}]}`, nil
 		})
 
 		result, err := ta.YoutubeApiGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {
-			t.Errorf("expected no error, got %v", err)
+			t.Errorf("unexpected error: %v", err)
 		}
 		if len(result) != 2 || result[0] != "test_1" || result[1] != "test_2" {
-			t.Errorf("expected [test_1 test_2], got %v", result)
+			t.Errorf("result=%v, want [test_1 test_2]", result)
 		}
 	})
 
-	t.Run("returns an error if the HTTP request fails", func(t *testing.T) {
+	t.Run("propagates errors", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "key1, key2")})
@@ -177,7 +163,7 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 
 		_, err := ta.YoutubeApiGetRecentMediaIDs(ta.Ctx, source)
 		if err == nil {
-			t.Error("expected an error")
+			t.Error("expected error")
 		}
 	})
 }

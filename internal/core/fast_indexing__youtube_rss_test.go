@@ -9,51 +9,56 @@ import (
 )
 
 func TestYoutubeRss_Enabled(t *testing.T) {
+	t.Parallel()
 	t.Run("returns true", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
-
 		if !ta.YoutubeRssEnabled(ta.Ctx) {
-			t.Error("expected YoutubeRssEnabled to return true")
+			t.Error("expected true")
 		}
 	})
 }
 
 func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
-	t.Run("calls the expected URL for channel sources", func(t *testing.T) {
+	t.Parallel()
+	t.Run("builds URL for channel", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "channel", "collection_id": "channel_id"})
 
 		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
 			if !strings.Contains(url, "https://www.youtube.com/feeds/videos.xml?channel_id=channel_id") {
-				t.Errorf("expected URL to contain expected pattern, got: %s", url)
+				t.Errorf("url=%s, want channel pattern", url)
 			}
 			return "", nil
 		})
 
 		_, err := ta.YoutubeRssGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {
-			t.Errorf("expected no error, got %v", err)
+			t.Errorf("unexpected error: %v", err)
 		}
 	})
 
-	t.Run("calls the expected URL for playlist sources", func(t *testing.T) {
+	t.Run("builds URL for playlist", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "playlist", "collection_id": "playlist_id"})
 
 		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
 			if !strings.Contains(url, "https://www.youtube.com/feeds/videos.xml?playlist_id=playlist_id") {
-				t.Errorf("expected URL to contain expected pattern, got: %s", url)
+				t.Errorf("url=%s, want playlist pattern", url)
 			}
 			return "", nil
 		})
 
 		_, err := ta.YoutubeRssGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {
-			t.Errorf("expected no error, got %v", err)
+			t.Errorf("unexpected error: %v", err)
 		}
 	})
 
-	t.Run("returns an error if the HTTP request fails", func(t *testing.T) {
+	t.Run("returns fetch error", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -63,11 +68,12 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 
 		_, err := ta.YoutubeRssGetRecentMediaIDs(ta.Ctx, source)
 		if err == nil || err.Error() != "Failed to fetch RSS feed" {
-			t.Errorf("expected 'Failed to fetch RSS feed' error, got %v", err)
+			t.Errorf("err=%v, want 'Failed to fetch RSS feed'", err)
 		}
 	})
 
-	t.Run("returns the media IDs from the RSS feed", func(t *testing.T) {
+	t.Run("returns media IDs", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -77,14 +83,15 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 
 		result, err := ta.YoutubeRssGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {
-			t.Errorf("expected no error, got %v", err)
+			t.Errorf("unexpected error: %v", err)
 		}
 		if len(result) != 2 || result[0] != "test_1" || result[1] != "test_2" {
-			t.Errorf("expected [test_1 test_2], got %v", result)
+			t.Errorf("result=%v, want [test_1 test_2]", result)
 		}
 	})
 
-	t.Run("strips whitespace from media IDs", func(t *testing.T) {
+	t.Run("trims whitespace", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -94,14 +101,15 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 
 		result, err := ta.YoutubeRssGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {
-			t.Errorf("expected no error, got %v", err)
+			t.Errorf("unexpected error: %v", err)
 		}
 		if len(result) != 2 || result[0] != "test_1" || result[1] != "test_2" {
-			t.Errorf("expected [test_1 test_2], got %v", result)
+			t.Errorf("result=%v, want [test_1 test_2]", result)
 		}
 	})
 
-	t.Run("removes empty media IDs", func(t *testing.T) {
+	t.Run("filters empty IDs", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -111,14 +119,15 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 
 		result, err := ta.YoutubeRssGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {
-			t.Errorf("expected no error, got %v", err)
+			t.Errorf("unexpected error: %v", err)
 		}
 		if len(result) != 1 || result[0] != "test_1" {
-			t.Errorf("expected [test_1], got %v", result)
+			t.Errorf("result=%v, want [test_1]", result)
 		}
 	})
 
-	t.Run("removes duplicate media IDs", func(t *testing.T) {
+	t.Run("deduplicates IDs", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
@@ -128,10 +137,10 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 
 		result, err := ta.YoutubeRssGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {
-			t.Errorf("expected no error, got %v", err)
+			t.Errorf("unexpected error: %v", err)
 		}
 		if len(result) != 1 || result[0] != "test_1" {
-			t.Errorf("expected [test_1], got %v", result)
+			t.Errorf("result=%v, want [test_1]", result)
 		}
 	})
 }
