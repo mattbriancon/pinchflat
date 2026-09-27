@@ -8,36 +8,25 @@ package web
 // web/assets/js/alpine_helpers.js.
 
 import (
+	"bytes"
 	"encoding/json"
-	"reflect"
+	"strings"
 
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
-// mediaProfilesJSONFields is MediaProfile.json_exluded_fields/0, applied in
-// reverse: every db column except "sources" (the association).
-func mediaProfilesJSONFields(p *core.MediaProfile) map[string]any {
-	out := map[string]any{}
-	v := reflect.ValueOf(p).Elem()
-	t := v.Type()
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		tag := field.Tag.Get("db")
-		if tag == "" || tag == "-" {
-			continue
-		}
-		out[tag] = v.Field(i).Interface()
-	}
-	return out
-}
-
-// mediaProfilesCopyJSON is Jason.Formatter.pretty_print(Jason.encode!(...)).
+// mediaProfilesCopyJSON is Jason.Formatter.pretty_print(Jason.encode!(...)),
+// using the MediaProfile Jason.Encoder port in core (json_encoders.go) and,
+// like Jason, no HTML escaping.
 func mediaProfilesCopyJSON(p *core.MediaProfile) string {
-	b, err := json.MarshalIndent(mediaProfilesJSONFields(p), "", "  ")
-	if err != nil {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(p); err != nil {
 		return "{}"
 	}
-	return string(b)
+	return strings.TrimSuffix(buf.String(), "\n")
 }
 
 // mediaProfilesCopyWithCallbacksJS builds the Alpine x-on:click body.
