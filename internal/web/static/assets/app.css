@@ -2665,34 +2665,6 @@ body {
   opacity: 1;
 }
 
-.phx-no-feedback.phx-no-feedback\:hidden {
-  display: none;
-}
-
-.phx-no-feedback.phx-no-feedback\:border-form-strokedark {
-  --tw-border-opacity: 1;
-  border-color: rgb(59 66 78 / var(--tw-border-opacity));
-}
-
-.phx-no-feedback.phx-no-feedback\:focus\:border-primary:focus {
-  --tw-border-opacity: 1;
-  border-color: rgb(68 88 232 / var(--tw-border-opacity));
-}
-
-.phx-no-feedback .phx-no-feedback\:hidden {
-  display: none;
-}
-
-.phx-no-feedback .phx-no-feedback\:border-form-strokedark {
-  --tw-border-opacity: 1;
-  border-color: rgb(59 66 78 / var(--tw-border-opacity));
-}
-
-.phx-no-feedback .phx-no-feedback\:focus\:border-primary:focus {
-  --tw-border-opacity: 1;
-  border-color: rgb(68 88 232 / var(--tw-border-opacity));
-}
-
 .dark\:divide-strokedark:is(.dark *) > :not([hidden]) ~ :not([hidden]) {
   --tw-divide-opacity: 1;
   border-color: rgb(44 49 58 / var(--tw-divide-opacity));

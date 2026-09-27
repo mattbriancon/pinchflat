@@ -796,14 +796,14 @@ func coreInputToggle(p CoreInputProps) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, "\" phx-update=\"ignore\" id=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, "\" id=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var40 string
 		templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.ID + "-wrapper")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `core_components.templ`, Line: 161, Col: 105}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `core_components.templ`, Line: 161, Col: 85}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var40)
 		if templ_7745c5c3_Err != nil {
@@ -1131,7 +1131,7 @@ func coreInputTextarea(p CoreInputProps) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var55 = []any{"block w-full rounded-lg bg-form-input text-white focus:ring-0 sm:text-sm sm:leading-6",
-			"min-h-[6rem] phx-no-feedback:border-form-strokedark phx-no-feedback:focus:border-primary",
+			"min-h-[6rem]",
 			p.InputClass,
 			templ.KV("border-form-strokedark focus:border-primary", len(p.Errors) == 0),
 			templ.KV("border-rose-400 focus:border-rose-400", len(p.Errors) != 0),
@@ -1520,7 +1520,7 @@ func CoreError(msg string) templ.Component {
 			templ_7745c5c3_Var73 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 118, "<p class=\"mt-1 mb-3 flex gap-2 text-sm leading-6 text-rose-400 phx-no-feedback:hidden\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 118, "<p class=\"mt-1 mb-3 flex gap-2 text-sm leading-6 text-rose-400\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

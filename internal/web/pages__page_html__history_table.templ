@@ -23,7 +23,10 @@ templ PagesPageHTMLHistoryTableContent(ctx context.Context, mediaState string, p
 	} else {
 		<div>
 			<span class="mb-4 flex items-center">
-				Showing @TextLocalizedNumber(len(records)) of @TextLocalizedNumber(totalRecordCount)
+				{ "Showing " }
+				@TextLocalizedNumber(len(records))
+				{ " of " }
+				@TextLocalizedNumber(totalRecordCount)
 			</span>
 			@historyTableContentTable(ctx, records)
 			<section class="flex justify-center mt-5">

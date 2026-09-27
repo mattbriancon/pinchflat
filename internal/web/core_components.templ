@@ -158,7 +158,7 @@ templ coreInputCheckboxGroup(p CoreInputProps) {
 }
 
 templ coreInputToggle(p CoreInputProps) {
-	<div x-data={ "{ enabled: " + InputValue(*p.Checked) + " }" } phx-update="ignore" id={ p.ID + "-wrapper" }>
+	<div x-data={ "{ enabled: " + InputValue(*p.Checked) + " }" } id={ p.ID + "-wrapper" }>
 		if p.Label != "" {
 			@CoreLabel(p.ID, p.Label, p.LabelSuffix)
 		}
@@ -218,7 +218,7 @@ templ coreInputTextarea(p CoreInputProps) {
 			name={ p.Name }
 			class={
 				"block w-full rounded-lg bg-form-input text-white focus:ring-0 sm:text-sm sm:leading-6",
-				"min-h-[6rem] phx-no-feedback:border-form-strokedark phx-no-feedback:focus:border-primary",
+				"min-h-[6rem]",
 				p.InputClass,
 				templ.KV("border-form-strokedark focus:border-primary", len(p.Errors) == 0),
 				templ.KV("border-rose-400 focus:border-rose-400", len(p.Errors) != 0),
@@ -283,7 +283,7 @@ templ CoreLabel(forID string, label string, suffix string) {
 
 // CoreError is error/1.
 templ CoreError(msg string) {
-	<p class="mt-1 mb-3 flex gap-2 text-sm leading-6 text-rose-400 phx-no-feedback:hidden">
+	<p class="mt-1 mb-3 flex gap-2 text-sm leading-6 text-rose-400">
 		@CoreIcon("hero-exclamation-circle-mini", "mt-1 h-4 w-4 flex-none", nil)
 		{ msg }
 	</p>
