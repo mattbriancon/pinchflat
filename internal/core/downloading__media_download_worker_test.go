@@ -13,6 +13,8 @@ import (
 )
 
 func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
+	t.Parallel()
+
 	t.Run("starts the worker", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
@@ -113,6 +115,8 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 }
 
 func TestMediaDownloadWorker_Perform(t *testing.T) {
+	t.Parallel()
+
 	setup := func(t *testing.T) *coretest.TestApp {
 		ta := coretest.NewApp(t)
 

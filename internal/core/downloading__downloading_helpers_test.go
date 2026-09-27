@@ -9,6 +9,8 @@ import (
 )
 
 func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
+	t.Parallel()
+
 	t.Run("enqueues a job for each pending media item", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
@@ -115,6 +117,8 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 }
 
 func TestDownloadingHelpers_DequeuePendingDownloadTasks(t *testing.T) {
+	t.Parallel()
+
 	t.Run("deletes all pending tasks for a source's media items", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
@@ -143,6 +147,8 @@ func TestDownloadingHelpers_DequeuePendingDownloadTasks(t *testing.T) {
 }
 
 func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
+	t.Parallel()
+
 	setup := func(t *testing.T) (*coretest.TestApp, *core.MediaItem) {
 		ta := coretest.NewApp(t)
 		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})

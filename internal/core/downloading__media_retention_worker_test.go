@@ -11,10 +11,11 @@ import (
 )
 
 func TestMediaRetentionWorker_Perform(t *testing.T) {
+	t.Parallel()
+
 	t.Run("sets deleted media to not re-download", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
-
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 
 		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, 2)
@@ -43,7 +44,6 @@ func TestMediaRetentionWorker_Perform(t *testing.T) {
 	t.Run("sets culled_at timestamp on deleted media", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
-
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 
 		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, 2)
@@ -74,10 +74,11 @@ func TestMediaRetentionWorker_Perform(t *testing.T) {
 }
 
 func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *testing.T) {
+	t.Parallel()
+
 	t.Run("deletes media files that are past their retention date", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
-
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 
 		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, 2)
@@ -112,7 +113,6 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 	t.Run("deletes media files that are on their retention date per the 24-h clock", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
-
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 
 		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, 2)
@@ -159,7 +159,6 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 	t.Run("sets culled_at and prevent_download", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
-
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 
 		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, 2)
@@ -194,7 +193,6 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 	t.Run("doesn't cull if the source doesn't have a retention period", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
-
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 
 		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, nil)
@@ -236,7 +234,6 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 	t.Run("doesn't cull media items that have prevent_culling set", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
-
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 
 		_, oldMediaItem, _ := prepareRecordsForRetentionDate(t, ta, 2)
@@ -268,7 +265,6 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 	t.Run("doesn't cull if the media item has no media_filepath", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
-
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 
 		_, oldMediaItem, _ := prepareRecordsForRetentionDate(t, ta, 2)
