@@ -30,7 +30,48 @@ func SourceHTMLFastIndexingHelp() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"card card-body\"><h3 class=\"section-title mb-4\">Fast Indexing Help</h3><p class=\"text-gray-400 mb-4\">Fast indexing uses YouTube's RSS feed instead of yt-dlp to find new media. This is significantly faster but has some limitations.</p><ul class=\"list-disc list-inside text-gray-400 space-y-2\"><li>RSS feeds may lag behind the YouTube UI by several minutes</li><li>Playlist handling varies by how the creator configured it</li><li>Updates to existing media metadata may not be reflected immediately</li></ul></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<aside><h2 class=\"text-2xl font-bold mb-2\">What is fast indexing?</h2><section class=\"ml-2 md:ml-4 mb-4 max-w-prose\"><p>Indexing is the act of scanning a channel or playlist (aka: source) for new media.</p><p class=\"mt-2\">Normal indexing uses <code class=\"text-sm\">yt-dlp</code> to scan the entire source on your specified frequency, but it's very slow for large sources. This is the most accurate way to find uploaded media with the tradeoff being that pairing a large source that's indexed frequently will result in you spending most of your time indexing. Only so many indexing operations can be running at the same time so this can impact your other source's ability to index.</p><p class=\"mt-2\">Fast indexing takes a different approach. It still does an initial scan the slow way but after that it uses a secondary mechanism (either RSS or YouTube's API) to frequently check for new videos. This has the potential to be hundreds of times faster, but it can miss videos if the uploader un-privates an old video or uploads dozens of videos in the space of a few minutes.</p><p class=\"mt-2\">RSS is used by default but you should enable the YouTube API if you want the best version of fast indexing. This isn't needed for most users but it provides the fastest and most reliable media updates.")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = TextInlineLinkString("https://github.com/kieraneglin/pinchflat/wiki/Generating-a-YouTube-API-key", "Here is some documentation").Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "on how to get your API key which you can add in the")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = TextInlineLinkString(P(ctx, "/settings"), "settings").Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "page.</p><p class=\"mt-2\">To make up for this limitation, a normal index is still run monthly to catch any videos that were missed by fast indexing. Fast indexing overrides the normal index frequency.</p><p class=\"mt-4\"><h4 class=\"font-bold text-xl\">TL;DR</h4><strong class=\"mt-2 inline-block\">In general:</strong><ul class=\"list-disc list-inside ml-2 md:ml-5\"><li>Uses RSS by default which is fine for most users</li><li>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = TextInlineLinkString("https://github.com/kieraneglin/pinchflat/wiki/Generating-a-YouTube-API-key", "Create a YouTube API key").Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "and add it in your")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = TextInlineLinkString(P(ctx, "/settings"), "settings").Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var2 string
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs("for")
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__fast_indexing_help.templ`, Line: 40, Col: 13}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, " the fastest possible media updates</li></ul><strong class=\"mt-2 inline-block\">Fast indexing is great if any of these apply:</strong><ul class=\"list-disc list-inside ml-2 md:ml-5\"><li>The source is large channel and uploads frequently</li><li>You want to download a source's new content as soon as possible</li></ul><strong class=\"mt-2 inline-block\">Consider <em>not</em> using fast indexing if any of these apply:</strong><ul class=\"list-disc list-inside ml-2 md:ml-5\"><li>The source is a playlist</li><li>The source has under 200 videos</li><li>The source rarely uploads</li><li>You don't mind if it takes longer for new content to be picked up</li></ul></p></section></aside>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

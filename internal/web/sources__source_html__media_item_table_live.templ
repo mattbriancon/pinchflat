@@ -1,0 +1,120 @@
+package web
+
+// Port of lib/pinchflat_web/controllers/sources/source_html/media_item_table_live.ex
+// (the render/1 clauses; mount/handle_event live in the .go file). LiveView
+// PubSub ("media_table" reload broadcast) has no equivalent without a
+// socket, so "reload_page" just re-fetches this one fragment (see
+// CONVENTIONS "LiveViews -> htmx").
+
+import (
+	"fmt"
+
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
+
+func mediaItemTableLiveWrapperID(sourceID int64, mediaState string) string {
+	return fmt.Sprintf("media-table-%d-%s", sourceID, mediaState)
+}
+
+// SourceHTMLMediaItemTableLiveWrapper embeds the LiveView where the page
+// used live_render: it lazily loads the fragment below.
+templ SourceHTMLMediaItemTableLiveWrapper(sourceID int64, mediaState string) {
+	<div
+		id={ mediaItemTableLiveWrapperID(sourceID, mediaState) }
+		hx-get={ mediaItemTableLiveFragmentURL(ctx, sourceID, mediaState, 1, "") }
+		hx-trigger="load"
+		hx-swap="outerHTML"
+	></div>
+}
+
+// SourceHTMLMediaItemTableLive is render/1.
+templ SourceHTMLMediaItemTableLive(data *mediaItemTableLiveData) {
+	if data.TotalRecordCount == 0 {
+		<div id={ mediaItemTableLiveWrapperID(data.Source.ID, data.MediaState) } class="mb-4 flex items-center">
+			@ButtonIconButton("hero-arrow-path", "h-8 w-8", "", mediaItemTableLiveReloadAttrs(ctx, data))
+			<p class="ml-2">Nothing Here!</p>
+		</div>
+	} else {
+		<div id={ mediaItemTableLiveWrapperID(data.Source.ID, data.MediaState) }>
+			<header class="flex justify-between items-center mb-4">
+				<span class="flex items-center">
+					@ButtonIconButton("hero-arrow-path", "h-8 w-8", "Refresh", mediaItemTableLiveReloadAttrs(ctx, data))
+					<span class="mx-2">
+						Showing
+						@TextLocalizedNumber(len(data.Records))
+						of
+						@TextLocalizedNumber(data.FilteredRecordCount)
+					</span>
+				</span>
+				<div class="bg-meta-4 rounded-md">
+					<div class="relative">
+						<span class="absolute left-2 top-1/2 -translate-y-1/2 flex">
+							@CoreIcon("hero-magnifying-glass", "", nil)
+						</span>
+						<form>
+							<input
+								type="text"
+								name="q"
+								value={ data.SearchTerm }
+								placeholder="Search in table..."
+								class="w-full bg-transparent pl-9 pr-4 border-0 focus:ring-0 focus:outline-none"
+								hx-get={ mediaItemTableLiveFragmentURL(ctx, data.Source.ID, data.MediaState, 1, "") }
+								hx-trigger="input changed delay:200ms"
+								hx-target={ "#" + mediaItemTableLiveWrapperID(data.Source.ID, data.MediaState) }
+								hx-swap="outerHTML"
+							/>
+						</form>
+					</div>
+				</div>
+			</header>
+			@TableTable(TableProps{
+				Rows:       mediaItemTableLiveRows(data.Records),
+				TableClass: "text-white",
+				Columns:    mediaItemTableLiveColumns(data),
+			})
+			<section class="flex justify-center mt-5">
+				@TableLivePaginationControls(
+					data.Page,
+					data.TotalPages,
+					mediaItemTableLivePageAttrs(ctx, data, "dec"),
+					mediaItemTableLivePageAttrs(ctx, data, "inc"),
+				)
+			</section>
+		</div>
+	}
+}
+
+templ mediaItemTableLiveTitleCell(data *mediaItemTableLiveData, item *core.MediaItem) {
+	<section class="flex items-start gap-1">
+		if item.LastError != nil && *item.LastError != "" {
+			@TextTooltip(*item.LastError, "bottom-right", "w-64", "", mediaItemTableLiveErrorIcon())
+		}
+		<span>
+			@TextSubtleLink(P(ctx, "/sources/%v/media/%v", data.Source.ID, item.ID), "", mediaItemTableLiveTitle(item))
+		</span>
+	</section>
+}
+
+templ mediaItemTableLiveErrorIcon() {
+	@CoreIcon("hero-exclamation-circle-solid", "text-red-500", nil)
+}
+
+templ mediaItemTableLiveTitle(item *core.MediaItem) {
+	{ core.Deref(item.Title) }
+}
+
+templ mediaItemTableLiveIgnoredCell(item *core.MediaItem) {
+	if item.PreventDownload {
+		@CoreIcon("hero-check", "", nil)
+	} else {
+		@CoreIcon("hero-x-mark", "", nil)
+	}
+}
+
+templ mediaItemTableLiveUploadDateCell(item *core.MediaItem) {
+	{ item.UploadedAt.UTC().Format("2006-01-02") }
+}
+
+templ mediaItemTableLiveEditCell(data *mediaItemTableLiveData, item *core.MediaItem) {
+	@TextIconLink(P(ctx, "/sources/%v/media/%v/edit", data.Source.ID, item.ID), "hero-pencil-square", "mr-4")
+}

@@ -11,11 +11,10 @@ import templruntime "github.com/a-h/templ/runtime"
 // Port of lib/pinchflat_web/controllers/sources/source_html/source_form.html.heex.
 
 import (
-	"fmt"
-
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
+// SourceFormProps is source_form/1's assigns.
 type SourceFormProps struct {
 	Changeset     *core.Changeset
 	MediaProfiles []*core.MediaProfile
@@ -44,162 +43,363 @@ func SourceHTMLSourceForm(props SourceFormProps) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<form method=\"POST\" action=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var2 templ.SafeURL
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(props.Action)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 19, Col: 42}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"flex flex-col gap-4\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		if props.Method == "patch" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<input type=\"hidden\" name=\"_method\" value=\"PATCH\"> ")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		if props.Changeset.Action != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"border border-red-500 bg-red-500/10 rounded p-4 mb-4 text-red-400\"><p>Oops, something went wrong! Please check the errors below.</p></div>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<section class=\"flex flex-col gap-3\"><h3 class=\"section-title\">General Options</h3><div class=\"flex flex-col\"><label for=\"source_original_url\" class=\"mb-1 font-semibold\">Source URL</label> <input id=\"source_original_url\" name=\"source[original_url]\" type=\"text\" class=\"border rounded px-3 py-2 dark:bg-gray-800 dark:text-white\" autofocus> <span class=\"text-sm text-gray-400 mt-1\">URL of a channel or playlist (required)</span></div><div class=\"flex flex-col\"><label for=\"source_custom_name\" class=\"mb-1 font-semibold\">Custom Name</label> <input id=\"source_custom_name\" name=\"source[custom_name]\" type=\"text\" class=\"border rounded px-3 py-2 dark:bg-gray-800 dark:text-white\"> <span class=\"text-sm text-gray-400 mt-1\">Does not impact indexing. Will be inferred from the source if blank</span></div><div class=\"flex flex-col\"><label for=\"source_media_profile_id\" class=\"mb-1 font-semibold\">Media Profile</label> <select id=\"source_media_profile_id\" name=\"source[media_profile_id]\" class=\"border rounded px-3 py-2 dark:bg-gray-800 dark:text-white\"><option value=\"\">-- Select Profile --</option> ")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		for _, profile := range props.MediaProfiles {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<option value=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprint(profile.ID))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 65, Col: 44}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var4 string
-			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(profile.Name)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 65, Col: 61}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</option>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</select></div></section><section class=\"flex flex-col gap-3 mt-4\"><h3 class=\"section-title\">Indexing Options</h3><div class=\"flex flex-col\"><label for=\"source_index_frequency_minutes\" class=\"mb-1 font-semibold\">Index Frequency</label> <select id=\"source_index_frequency_minutes\" name=\"source[index_frequency_minutes]\" class=\"border rounded px-3 py-2 dark:bg-gray-800 dark:text-white\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		for _, pair := range FriendlyIndexFrequencies() {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<option value=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var5 string
-			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprint(pair[1]))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 82, Col: 41}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var6 string
-			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(pair[0].(string))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 82, Col: 62}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</option>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</select></div></section><section class=\"flex flex-col gap-3 mt-4\"><h3 class=\"section-title\">Downloading Options</h3><div class=\"flex items-center\"><input id=\"source_download_media\" name=\"source[download_media]\" type=\"checkbox\" value=\"true\" class=\"rounded\"> <label for=\"source_download_media\" class=\"ml-2 font-semibold\">Download Media</label></div><div class=\"flex flex-col\"><label for=\"source_cookie_behaviour\" class=\"mb-1 font-semibold\">Cookie Behaviour</label> <select id=\"source_cookie_behaviour\" name=\"source[cookie_behaviour]\" class=\"border rounded px-3 py-2 dark:bg-gray-800 dark:text-white\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		for _, pair := range FriendlyCookieBehaviours() {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<option value=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var7 string
-			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(pair[1].(string))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 110, Col: 38}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var8 string
-			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(pair[0].(string))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 110, Col: 59}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</option>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</select></div></section><div class=\"flex gap-2 mt-6\"><button type=\"submit\" class=\"btn btn-primary rounded-lg px-4 py-2\">Save Source</button> <a href=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var9 templ.SafeURL
-		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinURLErrs(P(ctx, "/sources"))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 120, Col: 31}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"btn rounded-lg px-4 py-2\">Cancel</a></div></form>")
+		templ_7745c5c3_Err = CoreSimpleForm(
+			templ.Attributes{
+				"action": props.Action,
+				"method": "post",
+				"x-data": "{ advancedMode: !!JSON.parse(localStorage.getItem('advancedMode')) }",
+				"x-init": "$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))",
+			},
+			sourceFormBody(props),
+			nil,
+		).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		return nil
 	})
 }
+
+func sourceFormBody(props SourceFormProps) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var2 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var2 == nil {
+			templ_7745c5c3_Var2 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		if props.Method == "patch" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<input type=\"hidden\" name=\"_method\" value=\"patch\"> ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		if props.Changeset.Action != "" {
+			templ_7745c5c3_Err = CoreError("Oops, something went wrong! Please check the errors below.").Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		f := FormFor(props.Changeset, "source")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<section x-data=\"{ mediaProfileId: null }\"><section class=\"flex justify-between items-center mt-4\"><h3 class=\"section-title\">General Options</h3><span class=\"cursor-pointer hover:underline\" x-on:click=\"advancedMode = !advancedMode\">Editing Mode: <span x-text=\"advancedMode ? 'Advanced' : 'Standard'\"></span></span></section>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Field: ptrField(f.Field("original_url")),
+			Type:  "text",
+			Label: "Source URL",
+			Help:  "URL of a channel or playlist (required)",
+			Rest:  templ.Attributes{"x-init": "$el.focus()"},
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Field: ptrField(f.Field("custom_name")),
+			Type:  "text",
+			Label: "Custom Name",
+			Help:  "Does not impact indexing or downloading. Will be inferred from the source if left blank",
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Field:   ptrField(f.Field("media_profile_id")),
+			Options: MediaProfileOptions(props.MediaProfiles),
+			Type:    "select",
+			Label:   "Media Profile",
+			Help:    "Sets your preferences for what media to look for and how to store it",
+			Rest:    templ.Attributes{"x-model.fill": "mediaProfileId"},
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<h3 class=\"mt-6 section-title\">Indexing Options</h3><section x-data=\"{ fastIndexingEnabled: null }\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Field:   ptrField(f.Field("index_frequency_minutes")),
+			Options: FriendlyIndexFrequencyOptions(),
+			Type:    "select",
+			Label:   "Index Frequency",
+			Help:    "Indexing is the process of checking for media to download. For best results, set this to the longest delay you can tolerate for this source",
+			Rest: templ.Attributes{
+				"x-bind:disabled": "fastIndexingEnabled == true",
+				"x-init":          "$watch('fastIndexingEnabled', v => v && ($el.value = 30 * 24 * 60))",
+			},
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div x-on:click=\"showModal('upgrade-modal')\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Field:       ptrField(f.Field("fast_index")),
+			Type:        "toggle",
+			Label:       "Use Fast Indexing",
+			LabelSuffix: "(pro)",
+			Help:        "Not recommended for playlists. Overrides 'Index Frequency'. See below for more details (seriously, there's a TL;DR that's worth reading)",
+			Rest: templ.Attributes{
+				"x-init": "fastIndexingEnabled = enabled; $watch('enabled', value => fastIndexingEnabled = !!value)",
+			},
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div></section><h3 class=\"mt-6 section-title\">Downloading Options</h3>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Field: ptrField(f.Field("download_media")),
+			Type:  "toggle",
+			Label: "Download Media",
+			Help:  "Unchecking still indexes media but it won't be downloaded until you enable this option",
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Field:   ptrField(f.Field("cookie_behaviour")),
+			Options: FriendlyCookieBehaviourOptions(),
+			Type:    "select",
+			Label:   "Cookie Behaviour",
+			Help:    "Uses your YouTube cookies for this source (if configured). 'When Needed' tries to minimize cookie usage except for certain indexing and downloading tasks. See docs",
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<section x-show=\"advancedMode\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Field: ptrField(f.Field("min_duration_seconds")),
+			Type:  "number",
+			Label: "Minimum Duration (seconds)",
+			Help:  "Minimum duration of the media to be downloaded. Can be blank",
+			Rest:  templ.Attributes{"min": "0"},
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Field: ptrField(f.Field("max_duration_seconds")),
+			Type:  "number",
+			Label: "Maximum Duration (seconds)",
+			Help:  "Maximum duration of the media to be downloaded. Can be blank",
+			Rest:  templ.Attributes{"min": "0"},
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</section><section x-data=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var3 string
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ cutoffDate: '" + InputValue(f.Field("download_cutoff_date").Value) + "' }")
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 128, Col: 97}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Field: ptrField(f.Field("download_cutoff_date")),
+			Type:  "text",
+			Label: "Download Cutoff Date",
+			Help:  "Only download media uploaded after this date. Leave blank to download all media. Must be in YYYY-MM-DD format. Old media may be deleted or downloaded if you change this date",
+			Rest: templ.Attributes{
+				"placeholder": "YYYY-MM-DD",
+				"maxlength":   "10",
+				"pattern":     `((?:19|20)[0-9][0-9])-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])`,
+				"title":       "YYYY-MM-DD",
+				"x-model":     "cutoffDate",
+			},
+			InputAppend: sourceFormCutoffDatePreset(f),
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</section>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Field:    ptrField(f.Field("retention_period_days")),
+			Type:     "number",
+			Label:    "Retention Period (days)",
+			Help:     "Days between when media is <em>downloaded</em> and when it's deleted. Leave blank to keep media indefinitely",
+			HTMLHelp: true,
+			Rest:     templ.Attributes{"min": "0"},
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<section x-show=\"advancedMode\"><h3 class=\"mt-6 section-title\">Advanced Options</h3><p class=\"text-sm mt-2\">Tread carefully</p>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Field:    ptrField(f.Field("title_filter_regex")),
+			Type:     "text",
+			Label:    "Title Filter Regex",
+			Help:     TitleFilterRegexHelp(),
+			HTMLHelp: true,
+			Rest:     templ.Attributes{"placeholder": "(?i)^How to Bike$"},
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<section x-data=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var4 string
+		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ placeholders: JSON.parse('" + OutputPathTemplateOverridePlaceholders(props.MediaProfiles) + "'), inputValue: null }")
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_form.templ`, Line: 168, Col: 132}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" x-on:load-template=\"inputValue = placeholders[mediaProfileId]\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Field:      ptrField(f.Field("output_path_template_override")),
+			Type:       "text",
+			InputClass: "font-mono",
+			Label:      "Output path template override",
+			Help:       OutputPathTemplateOverrideHelp(),
+			HTMLHelp:   true,
+			Rest: templ.Attributes{
+				"x-bind:placeholder": "placeholders[mediaProfileId]",
+				"x-model.fill":       "inputValue",
+			},
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</section></section>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = ButtonButton("bg-primary", "rounded-lg", "my-6 w-full sm:w-auto", "submit", false, nil, sourceFormSaveText()).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<div class=\"rounded-sm dark:bg-meta-4 p-4 md:p-6 mb-5\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = SourceHTMLFastIndexingHelp().Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div></section>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func sourceFormSaveText() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var5 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var5 == nil {
+			templ_7745c5c3_Var5 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "Save Source")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func sourceFormCutoffDatePreset(f *Form) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var6 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var6 == nil {
+			templ_7745c5c3_Var6 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = CoreInput(CoreInputProps{
+			Prompt:     "Select preset",
+			Name:       "download_cutoff_date_preset",
+			Value:      "",
+			Options:    CutoffDatePresetOptions(ctx),
+			Type:       "select",
+			InputClass: "w-30 lg:w-60 ml-2 md:ml-4",
+			Rest: templ.Attributes{
+				"x-on:change": "cutoffDate = $event.target.value || '" + InputValue(f.Field("download_cutoff_date").Value) + "'",
+			},
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+// ptrField hands CoreInput a *FormField the way Elixir passes f[:name]
+// (a Phoenix.HTML.FormField struct) as the `field` assign.
+func ptrField(f FormField) *FormField { return &f }
 
 var _ = templruntime.GeneratedTemplate

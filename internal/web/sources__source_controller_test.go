@@ -198,8 +198,8 @@ func TestSourceController_Update(t *testing.T) {
 	})
 }
 
-func TestSourceController_Delete(t *testing.T) {
-	t.Run("delete source in all cases - redirects to the sources page", func(t *testing.T) {
+func TestSourceController_Delete_InAllCases(t *testing.T) {
+	t.Run("redirects to the sources page", func(t *testing.T) {
 		c := webtest.New(t)
 		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
 
@@ -210,7 +210,7 @@ func TestSourceController_Delete(t *testing.T) {
 		}
 	})
 
-	t.Run("delete source in all cases - sets marked_for_deletion_at", func(t *testing.T) {
+	t.Run("sets marked_for_deletion_at", func(t *testing.T) {
 		c := webtest.New(t)
 		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
 
@@ -221,8 +221,10 @@ func TestSourceController_Delete(t *testing.T) {
 			t.Errorf("expected marked_for_deletion_at to be set")
 		}
 	})
+}
 
-	t.Run("delete source when just deleting the records - enqueues a job without the delete_files arg", func(t *testing.T) {
+func TestSourceController_Delete_JustDeletingRecords(t *testing.T) {
+	t.Run("enqueues a job without the delete_files arg", func(t *testing.T) {
 		c := webtest.New(t)
 		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
 
@@ -233,8 +235,10 @@ func TestSourceController_Delete(t *testing.T) {
 			t.Errorf("expected job to be enqueued with delete_files=false")
 		}
 	})
+}
 
-	t.Run("delete source when deleting the records and files - enqueues a job with the delete_files arg", func(t *testing.T) {
+func TestSourceController_Delete_DeletingRecordsAndFiles(t *testing.T) {
+	t.Run("enqueues a job without the delete_files arg", func(t *testing.T) {
 		c := webtest.New(t)
 		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
 
@@ -336,18 +340,24 @@ func TestSourceController_ForceIndex(t *testing.T) {
 	t.Run("deletes pending indexing tasks", func(t *testing.T) {
 		c := webtest.New(t)
 		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		task, _ := c.App.SlowIndexingHelpersKickoffIndexingTask(c.Ctx, source, core.Attrs{}, core.KW{})
+		task, err := c.App.SlowIndexingHelpersKickoffIndexingTask(c.Ctx, source, core.Attrs{}, core.KW{})
+		if err != nil {
+			t.Fatalf("kickoff failed: %v", err)
+		}
 		task, _ = c.App.PreloadTaskJob(c.Ctx, task)
-		initialState := task.Job.State
+
+		if task.Job.State != "available" {
+			t.Fatalf("expected job state 'available', got %s", task.Job.State)
+		}
 
 		c.Post(fmt.Sprintf("/sources/%d/force_index", source.ID), "", nil)
 
-		// Reload the task to check the job state changed
-		reloadedTask, _ := c.App.TasksGetTaskBang(c.Ctx, task.ID)
-		reloadedTask, _ = c.App.PreloadTaskJob(c.Ctx, reloadedTask)
-
-		if initialState == "cancelled" || reloadedTask.Job.State != "cancelled" {
-			t.Errorf("expected job state to change to cancelled, was %s now %s", initialState, reloadedTask.Job.State)
+		reloadedJob, err := c.Oban.GetJob(c.Ctx, task.Job.ID)
+		if err != nil {
+			t.Fatalf("reload job failed: %v", err)
+		}
+		if reloadedJob.State != "cancelled" {
+			t.Errorf("expected job state 'cancelled', got %s", reloadedJob.State)
 		}
 	})
 

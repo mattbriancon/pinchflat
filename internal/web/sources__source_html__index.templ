@@ -6,19 +6,18 @@ templ SourceHTMLIndex() {
 	<div class="page-header">
 		<h2 class="page-title">Sources</h2>
 		<nav class="flex items-center justify-between gap-6">
-			<a href={ templ.URL(OpmlFeedURL()) } x-data="{ copied: false }" x-on:click={`
-				$event.preventDefault();
-				copyWithCallbacks(
-					'` + OpmlFeedURL() + `',
-					() => copied = true,
-					() => copied = false
-				)
-			`}>
+			<a
+				href={ templ.URL(OpmlFeedURL(ctx)) }
+				x-data="{ copied: false }"
+				x-on:click={ "$event.preventDefault(); copyWithCallbacks('" + OpmlFeedURL(ctx) + "', () => copied = true, () => copied = false)" }
+			>
 				Copy OPML <span class="hidden sm:inline">Feed</span>
-				<span x-show="copied" x-transition:duration.150ms>@CoreIcon("hero-check", "ml-2 h-4 w-4", nil)</span>
+				<span x-show="copied" x-transition.duration.150ms>
+					@CoreIcon("hero-check", "ml-2 h-4 w-4", nil)
+				</span>
 			</a>
 			<a href={ templ.URL(P(ctx, "/sources/new")) }>
-				New Source
+				@ButtonButton("bg-primary", "rounded-lg", "", "submit", false, nil, sourceHTMLNewSourceButtonContent())
 			</a>
 		</nav>
 	</div>
@@ -28,4 +27,9 @@ templ SourceHTMLIndex() {
 			<div id="source-table" hx-get={ P(ctx, "/_live/sources") } hx-trigger="load" hx-swap="outerHTML"></div>
 		</div>
 	</div>
+}
+
+templ sourceHTMLNewSourceButtonContent() {
+	@CoreIcon("hero-plus", "h-4 w-4", nil)
+	New <span class="hidden sm:inline pl-1">Source</span>
 }

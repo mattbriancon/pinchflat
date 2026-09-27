@@ -4,15 +4,20 @@ package web
 // functions and template-property definitions.
 
 import (
+	"context"
 	"fmt"
+	"net/url"
+	"reflect"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db"
 )
 
-// FriendlyIndexFrequencies returns a list of (label, value) pairs for index frequency select.
+// FriendlyIndexFrequencies is friendly_index_frequencies/0: a list of
+// (label, value) pairs for the index frequency select.
 func FriendlyIndexFrequencies() [][2]interface{} {
 	return [][2]interface{}{
 		{"Only once when first created", int64(-1)},
@@ -27,7 +32,17 @@ func FriendlyIndexFrequencies() [][2]interface{} {
 	}
 }
 
-// FriendlyCookieBehaviours returns a list of (label, value) pairs for cookie behavior select.
+// FriendlyIndexFrequencyOptions is FriendlyIndexFrequencies as select options.
+func FriendlyIndexFrequencyOptions() []CoreSelectOption {
+	out := make([]CoreSelectOption, 0, len(FriendlyIndexFrequencies()))
+	for _, pair := range FriendlyIndexFrequencies() {
+		out = append(out, CoreSelectOption{Label: pair[0].(string), Value: fmt.Sprint(pair[1])})
+	}
+	return out
+}
+
+// FriendlyCookieBehaviours is friendly_cookie_behaviours/0: a list of
+// (label, value) pairs for the cookie behaviour select.
 func FriendlyCookieBehaviours() [][2]interface{} {
 	return [][2]interface{}{
 		{"Disabled", "disabled"},
@@ -36,9 +51,30 @@ func FriendlyCookieBehaviours() [][2]interface{} {
 	}
 }
 
-// CutoffDatePresets returns a list of (label, value) pairs for download cutoff date presets.
-func CutoffDatePresets() [][2]string {
-	now := time.Now().UTC()
+// FriendlyCookieBehaviourOptions is FriendlyCookieBehaviours as select options.
+func FriendlyCookieBehaviourOptions() []CoreSelectOption {
+	out := make([]CoreSelectOption, 0, len(FriendlyCookieBehaviours()))
+	for _, pair := range FriendlyCookieBehaviours() {
+		out = append(out, CoreSelectOption{Label: pair[0].(string), Value: pair[1].(string)})
+	}
+	return out
+}
+
+// MediaProfileOptions turns media profiles into select options
+// (Enum.map(@media_profiles, &{&1.name, &1.id})).
+func MediaProfileOptions(mediaProfiles []*core.MediaProfile) []CoreSelectOption {
+	out := make([]CoreSelectOption, 0, len(mediaProfiles))
+	for _, p := range mediaProfiles {
+		out = append(out, CoreSelectOption{Label: p.Name, Value: fmt.Sprint(p.ID)})
+	}
+	return out
+}
+
+// CutoffDatePresets is cutoff_date_presets/0: a list of (label, value) pairs
+// for download cutoff date presets, computed from "now" in the configured
+// timezone (Application.get_env(:pinchflat, :timezone)).
+func CutoffDatePresets(ctx context.Context) [][2]string {
+	now := sourcesHTMLNow(ctx)
 	return [][2]string{
 		{"7 days", computeDateOffset(now, 7)},
 		{"14 days", computeDateOffset(now, 14)},
@@ -50,16 +86,46 @@ func CutoffDatePresets() [][2]string {
 	}
 }
 
-// RssFeedURL returns the RSS feed URL for a source - called from templ with context.Context
-// Note: In templ context is always context.Context, so we can't easily type hint it here
-// These functions are called from templates where ctx is available
-func RssFeedURL(source *core.Source) string {
-	return fmt.Sprintf("/sources/%s/feed.xml", core.Deref(source.UUID))
+// CutoffDatePresetOptions is CutoffDatePresets as select options.
+func CutoffDatePresetOptions(ctx context.Context) []CoreSelectOption {
+	presets := CutoffDatePresets(ctx)
+	out := make([]CoreSelectOption, 0, len(presets))
+	for _, pair := range presets {
+		out = append(out, CoreSelectOption{Label: pair[0], Value: pair[1]})
+	}
+	return out
 }
 
-// OpmlFeedURL returns the OPML feed URL - template helper
-func OpmlFeedURL() string {
-	return "/sources/opml.xml"
+func sourcesHTMLNow(ctx context.Context) time.Time {
+	tz := "UTC"
+	if a := layoutsApp(ctx); a != nil && a.Config.Timezone != "" {
+		tz = a.Config.Timezone
+	}
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		loc = time.UTC
+	}
+	return time.Now().In(loc)
+}
+
+// RssFeedURL is rss_feed_url/2: the absolute RSS feed URL for a source. The
+// separate concatenation (rather than a single ~p sigil) works around a
+// Phoenix bug (see the Elixir source); it has no effect in the Go port but
+// is kept for parity.
+func RssFeedURL(ctx context.Context, source *core.Source) string {
+	return URL(ctx, "/sources/%v/feed", core.Deref(source.UUID)) + ".xml"
+}
+
+// OpmlFeedURL is opml_feed_url/1: the absolute, route-token-protected OPML
+// feed URL.
+func OpmlFeedURL(ctx context.Context) string {
+	token := ""
+	if a := layoutsApp(ctx); a != nil {
+		if v, err := a.SettingsGetBang(ctx, "route_token"); err == nil {
+			token, _ = v.(string)
+		}
+	}
+	return URL(ctx, "/sources/opml.xml") + "?route_token=" + url.QueryEscape(token)
 }
 
 // OutputPathTemplateOverridePlaceholders returns a JSON map of media profile output path templates.
@@ -116,4 +182,61 @@ func FindProfileByID(profiles []*core.MediaProfile, id int64) *core.MediaProfile
 		return profiles[idx]
 	}
 	return nil
+}
+
+// sourcesListItem is one row of list_items_from_map/1 (core_components.ex):
+// a scalar struct field, formatted like Map.from_struct/1 would show it
+// (lists joined with ", "), plus whether the value looks like an http(s)
+// URL (rendered as a link).
+type sourcesListItem struct {
+	Key   string
+	Value string
+	IsURL bool
+}
+
+// sourcesListItemsFromMap is list_items_from_map(Map.from_struct(@source)):
+// core_components.ex's version isn't ported (it's outside this row), so
+// this is a private equivalent scoped to *core.Source. It walks the schema
+// fields in declaration order (skipping `db:"-"` associations, which
+// Elixir's filter drops as non-Date/DateTime structs or lists of structs).
+func sourcesListItemsFromMap(source *core.Source) []sourcesListItem {
+	var out []sourcesListItem
+	rv := reflect.ValueOf(*source)
+	rt := rv.Type()
+	for i := 0; i < rt.NumField(); i++ {
+		field := rt.Field(i)
+		tag := field.Tag.Get("db")
+		if tag == "" || tag == "-" {
+			continue
+		}
+		out = append(out, sourcesListItem{
+			Key:   strings.SplitN(tag, ",", 2)[0],
+			Value: InputValue(rv.Field(i).Interface()),
+			IsURL: sourcesLooksLikeURL(InputValue(rv.Field(i).Interface())),
+		})
+	}
+	return out
+}
+
+func sourcesLooksLikeURL(v string) bool {
+	return strings.HasPrefix(v, "http://") || strings.HasPrefix(v, "https://")
+}
+
+// sourcesJSONLiteral is the JS template literal
+// (String.raw`#{Jason.Formatter.pretty_print(Jason.encode!(@source))}`) used
+// by the "Copy JSON" action. The Go port has no Jason.Encoder derivation for
+// *core.Source, so it builds an ordered {field: value} map from the same
+// scalar fields as sourcesListItemsFromMap.
+func sourcesJSONLiteral(source *core.Source) string {
+	items := sourcesListItemsFromMap(source)
+	var b strings.Builder
+	b.WriteString("`{\n")
+	for i, item := range items {
+		if i > 0 {
+			b.WriteString(",\n")
+		}
+		fmt.Fprintf(&b, "  %q: %q", item.Key, item.Value)
+	}
+	b.WriteString("\n}`")
+	return b.String()
 }

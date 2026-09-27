@@ -14,27 +14,106 @@ templ SourceHTMLShow(source *core.Source, pendingTasks []*core.Task) {
 				{ source.CustomName }
 			</h2>
 		</div>
-
 		<nav>
-			<a href={ templ.URL(P(ctx, "/sources/%v/edit", source.ID)) } class="btn bg-primary rounded-lg px-4 py-2">
-				Edit Source
+			<a href={ templ.URL(P(ctx, "/sources/%v/edit", source.ID)) }>
+				@ButtonButton("bg-primary", "rounded-lg", "", "submit", false, nil, sourceHTMLEditSourceButtonContent())
 			</a>
 		</nav>
 	</div>
-
 	<div class="card card-body">
 		<div class="max-w-full">
-			<div class="text-white">
-				<h3 class="section-title mb-4">Source Information</h3>
-				<div class="flex flex-col gap-2">
-					<div><strong>URL:</strong> { source.OriginalURL }</div>
-					<div><strong>Collection:</strong> { source.CollectionName }</div>
-					<div><strong>Type:</strong> { source.CollectionType }</div>
-					if source.CustomName != "" {
-						<div><strong>Custom Name:</strong> { source.CustomName }</div>
-					}
-				</div>
-			</div>
+			@TabTabbedLayout(sourceHTMLShowTabs(source, pendingTasks), sourceHTMLShowTabAppend(source))
 		</div>
 	</div>
+}
+
+templ sourceHTMLEditSourceButtonContent() {
+	@CoreIcon("hero-pencil-square", "h-4 w-4", nil)
+	Edit <span class="hidden sm:inline pl-1">Source</span>
+}
+
+templ sourceHTMLShowTabAppend(source *core.Source) {
+	@SourceHTMLActionsDropdown(source)
+}
+
+func sourceHTMLShowTabs(source *core.Source, pendingTasks []*core.Task) []TabTab {
+	return []TabTab{
+		{ID: "source", Title: "Source", Content: sourceHTMLShowSourceTab(source)},
+		{ID: "pending", Title: "Pending", Content: SourceHTMLMediaItemTableLiveWrapper(source.ID, "pending")},
+		{ID: "downloaded", Title: "Downloaded", Content: SourceHTMLMediaItemTableLiveWrapper(source.ID, "downloaded")},
+		{ID: "other", Title: "Other", Content: SourceHTMLMediaItemTableLiveWrapper(source.ID, "other")},
+		{ID: "tasks", Title: "Tasks", Content: sourceHTMLShowTasksTab(pendingTasks)},
+	}
+}
+
+templ sourceHTMLShowSourceTab(source *core.Source) {
+	<div class="flex flex-col text-white gap-6">
+		<section>
+			<h3 class="section-title mt-2 mb-2">Raw Attributes</h3>
+			<section>
+				<strong>Media Profile:</strong>
+				@TextSubtleLink(P(ctx, "/media_profiles/%v", source.MediaProfileID), "", sourceHTMLMediaProfileName(source))
+			</section>
+			@sourceHTMLListItemsFromMap(source)
+		</section>
+	</div>
+}
+
+templ sourceHTMLMediaProfileName(source *core.Source) {
+	if source.MediaProfile != nil {
+		{ source.MediaProfile.Name }
+	}
+}
+
+templ sourceHTMLListItemsFromMap(source *core.Source) {
+	<ul>
+		for _, item := range sourcesListItemsFromMap(source) {
+			<li class="py-1 border-b border-strokedark last:border-b-0 break-words md:w-2/3">
+				<strong>{ item.Key }:</strong>
+				<code class="inline text-sm font-mono text-bodydark break-all p-0.5 mx-0.5">
+					if item.IsURL {
+						@TextInlineLinkString(item.Value, item.Value)
+					} else {
+						{ item.Value }
+					}
+				</code>
+			</li>
+		}
+	</ul>
+}
+
+templ sourceHTMLShowTasksTab(pendingTasks []*core.Task) {
+	if len(pendingTasks) > 0 {
+		@TableTable(TableProps{
+			Rows:       sourceHTMLTaskRows(pendingTasks),
+			TableClass: "text-black dark:text-white",
+			Columns: []TableColumn{
+				{Label: "Worker", Render: func(row any) templ.Component { return sourceHTMLTaskWorkerCell(row.(*core.Task)) }},
+				{Label: "State", Render: func(row any) templ.Component { return sourceHTMLTaskStateCell(row.(*core.Task)) }},
+				{Label: "Scheduled At", Render: func(row any) templ.Component { return sourceHTMLTaskScheduledAtCell(row.(*core.Task)) }},
+			},
+		})
+	} else {
+		<p>Nothing Here!</p>
+	}
+}
+
+func sourceHTMLTaskRows(tasks []*core.Task) []any {
+	out := make([]any, len(tasks))
+	for i, t := range tasks {
+		out[i] = t
+	}
+	return out
+}
+
+templ sourceHTMLTaskWorkerCell(task *core.Task) {
+	{ task.Job.Worker }
+}
+
+templ sourceHTMLTaskStateCell(task *core.Task) {
+	{ task.Job.State }
+}
+
+templ sourceHTMLTaskScheduledAtCell(task *core.Task) {
+	@TextDatetimeInZone(task.Job.ScheduledAt.Time, "", "")
 }
