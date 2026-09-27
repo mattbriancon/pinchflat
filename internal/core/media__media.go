@@ -3,12 +3,14 @@ package core
 import (
 	"context"
 	"fmt"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 )
 
@@ -186,6 +188,23 @@ func (a *App) MediaChangeMediaItem(ctx context.Context, mediaItem *MediaItem, at
 	return MediaItemChangeset(ctx, a, mediaItem, attrs)
 }
 
+// ComputeAndSaveMediaFilesize fetches the on-disk size of a media item's
+// file and saves it to the database.
+func (a *App) ComputeAndSaveMediaFilesize(ctx context.Context, mediaItem *MediaItem) (*MediaItem, error) {
+	if mediaItem.MediaFilepath == nil {
+		return nil, fmt.Errorf("media_filepath is nil")
+	}
+
+	stat, err := os.Stat(*mediaItem.MediaFilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return a.MediaUpdateMediaItem(ctx, mediaItem, Attrs{
+		"media_size_bytes": stat.Size(),
+	})
+}
+
 // do_delete_media_files/1
 func mediaDoDeleteMediaFiles(ctx context.Context, mediaItem *MediaItem) error {
 	var paths []string
@@ -219,7 +238,7 @@ func mediaDoDeleteMediaFiles(ctx context.Context, mediaItem *MediaItem) error {
 	// Mirrors Elixir's Enum.each/2, which discards each call's return value
 	// (including "file not found" errors) rather than aborting the deletion.
 	for _, p := range paths {
-		_ = FilesystemUtilsDeleteFileAndRemoveEmptyDirectories(ctx, p)
+		_ = fsutil.DeleteFileAndRemoveEmptyDirs(p)
 	}
 	return nil
 }
@@ -248,7 +267,7 @@ func (a *App) mediaDeleteInternalMetadataFiles(ctx context.Context, mediaItem *M
 		}
 		// Mirrors Elixir's Enum.each/2, which discards each call's return
 		// value rather than aborting on a "file not found" error.
-		_ = FilesystemUtilsDeleteFileAndRemoveEmptyDirectories(ctx, path)
+		_ = fsutil.DeleteFileAndRemoveEmptyDirs(path)
 	}
 	return nil
 }

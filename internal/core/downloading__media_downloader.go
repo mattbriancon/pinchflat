@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 // MediaDownloader is the integration layer for downloading media.
@@ -45,7 +46,7 @@ func (a *App) MediaDownloaderDownloadForMediaItem(ctx context.Context, mediaItem
 // --- Private helpers ---
 
 func mediaDownloaderAttemptDownloadAndUpdateForMediaItem(ctx context.Context, a *App, mediaItem *MediaItem, overrideOpts KW) (*MediaDownloaderResult, error) {
-	outputFilepath, _ := a.FilesystemUtilsGenerateMetadataTmpfile(ctx, "json")
+	outputFilepath, _ := fsutil.GenerateTmpfile(a.Config.TmpfileDirectory, "json")
 	mediaWithPreloads, _ := a.PreloadMediaItemFull(ctx, mediaItem)
 
 	parsedJSON, dlErr := mediaDownloaderDownloadWithOptions(ctx, a, mediaItem.OriginalURL, mediaWithPreloads, outputFilepath, overrideOpts)
@@ -72,7 +73,7 @@ func mediaDownloaderAttemptDownloadAndUpdateForMediaItem(ctx context.Context, a 
 	}
 
 	// Check if it's a command error (yt-dlp error)
-	cmdErr, isCommandError := dlErr.(*CommandError)
+	cmdErr, isCommandError := dlErr.(*fsutil.CommandError)
 	if isCommandError {
 		errMsg := cmdErr.Output
 		slog.Error(fmt.Sprintf("yt-dlp download error for media item #%d: %v", mediaWithPreloads.ID, dlErr))
@@ -202,7 +203,7 @@ func mediaDownloaderDownloadWithOptions(ctx context.Context, a *App, url string,
 
 func mediaDownloaderMaybeRetryWithCookies(ctx context.Context, a *App, url string, itemWithPreloads *MediaItem, outputFilepath string, overrideOpts KW, err error) (map[string]any, error) {
 	source := itemWithPreloads.Source
-	cmdErr, isCommandError := err.(*CommandError)
+	cmdErr, isCommandError := err.(*fsutil.CommandError)
 	if !isCommandError {
 		return nil, err
 	}

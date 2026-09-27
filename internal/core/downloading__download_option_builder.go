@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 // DownloadOptionBuilder builds options for yt-dlp based on media profile settings.
@@ -196,7 +198,7 @@ func (a *App) downloadOptionBuilderConfigFileOptions(ctx context.Context, mediaI
 	var configFilepaths []string
 	for _, filename := range filenames {
 		filepath := filepath.Join(baseDir, filename)
-		if FilesystemUtilsExistsAndNonempty(ctx, filepath) {
+		if fsutil.ExistsAndNonEmpty(filepath) {
 			configFilepaths = append(configFilepaths, filepath)
 		}
 	}

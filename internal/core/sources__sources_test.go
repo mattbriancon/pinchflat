@@ -11,6 +11,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 )
 
@@ -309,7 +310,7 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(func(_, _ string, _ core.KW, _ string, _ core.KW) (string, error) {
-			return "", &core.CommandError{Output: "some error", Status: 1}
+			return "", &fsutil.CommandError{Output: "some error", Status: 1}
 		})
 
 		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
@@ -1513,9 +1514,9 @@ func TestSources_DeleteSource(t *testing.T) {
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		filepath, err := ta.App.FilesystemUtilsGenerateMetadataTmpfile(ta.Ctx, "nfo")
+		filepath, err := fsutil.GenerateTmpfile(ta.Config.TmpfileDirectory, "nfo")
 		if err != nil {
-			t.Fatalf("FilesystemUtilsGenerateMetadataTmpfile: %v", err)
+			t.Fatalf("GenerateTmpfile: %v", err)
 		}
 		src := coretest.SourceFixture(t, ta, core.Attrs{"nfo_filepath": filepath})
 
@@ -1572,9 +1573,9 @@ func TestSources_DeleteSourceWhenDeletingFiles(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.UserScriptMock.Run.Stub(func(_ string, _ any) error { return nil })
 
-		filepath, err := ta.App.FilesystemUtilsGenerateMetadataTmpfile(ta.Ctx, "nfo")
+		filepath, err := fsutil.GenerateTmpfile(ta.Config.TmpfileDirectory, "nfo")
 		if err != nil {
-			t.Fatalf("FilesystemUtilsGenerateMetadataTmpfile: %v", err)
+			t.Fatalf("GenerateTmpfile: %v", err)
 		}
 		src := coretest.SourceFixture(t, ta, core.Attrs{"nfo_filepath": filepath})
 

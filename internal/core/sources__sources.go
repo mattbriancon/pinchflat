@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 )
 
@@ -142,7 +143,7 @@ func sourcesChangeSourceFromURL(ctx context.Context, a *App, source *Source, att
 	if err != nil {
 		var errMsg string
 		switch e := err.(type) {
-		case *CommandError:
+		case *fsutil.CommandError:
 			errMsg = e.Output
 		default:
 			errMsg = err.Error()
@@ -345,7 +346,7 @@ func sourcesDeleteSourceFiles(ctx context.Context, source *Source) {
 		}
 
 		if filePath != nil && *filePath != "" {
-			_ = FilesystemUtilsDeleteFileAndRemoveEmptyDirectories(ctx, *filePath)
+			_ = fsutil.DeleteFileAndRemoveEmptyDirs(*filePath)
 		}
 	}
 }
@@ -379,7 +380,7 @@ func sourcesDeleteInternalMetadataFiles(ctx context.Context, a *App, source *Sou
 		}
 
 		if filePath != "" {
-			_ = FilesystemUtilsDeleteFileAndRemoveEmptyDirectories(ctx, filePath)
+			_ = fsutil.DeleteFileAndRemoveEmptyDirs(filePath)
 		}
 	}
 }

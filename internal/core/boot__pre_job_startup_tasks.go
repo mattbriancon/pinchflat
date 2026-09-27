@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 // PreJobStartupTasks runs before the job runner starts. The GenServer
@@ -89,7 +90,7 @@ func createBlankYtDlpFiles(ctx context.Context, a *App) error {
 			if os.IsNotExist(err) {
 				slog.Info("Creating blank file: " + filepath)
 
-				if err := FilesystemUtilsWriteP(ctx, filepath, "", []string{}); err != nil {
+				if err := fsutil.WriteFileAll(filepath, ""); err != nil {
 					return err
 				}
 			} else {
@@ -110,7 +111,7 @@ func createBlankUserScriptFile(ctx context.Context, a *App) error {
 		if os.IsNotExist(err) {
 			slog.Info("Creating blank file and making it executable: " + filepath)
 
-			if err := FilesystemUtilsWriteP(ctx, filepath, "", []string{}); err != nil {
+			if err := fsutil.WriteFileAll(filepath, ""); err != nil {
 				return err
 			}
 
@@ -143,7 +144,7 @@ func applyDefaultSettings(ctx context.Context, a *App) error {
 // Elixir ignores the script's exit code, so a non-zero exit must not stop boot.
 func runAppInitScript(ctx context.Context, a *App) error {
 	err := a.UserScripts.Run(ctx, "app_init", Attrs{})
-	var cmdErr *CommandError
+	var cmdErr *fsutil.CommandError
 	if errors.As(err, &cmdErr) {
 		slog.Warn("app_init user script exited non-zero", "status", cmdErr.Status)
 		return nil

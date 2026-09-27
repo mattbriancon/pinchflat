@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 // MetadataFileHelpersMetadataDirectoryFor/1
@@ -70,7 +71,7 @@ func (a *App) MetadataFileHelpersCompressAndStoreMetadataFor(ctx context.Context
 	}
 
 	// Write compressed file
-	if err := FilesystemUtilsWriteP(ctx, filepath, string(compressedBuf.Bytes()), []string{}); err != nil {
+	if err := fsutil.WriteFileAll(filepath, string(compressedBuf.Bytes())); err != nil {
 		return "", err
 	}
 

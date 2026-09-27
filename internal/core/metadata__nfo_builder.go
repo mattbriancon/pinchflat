@@ -1,17 +1,17 @@
 package core
 
 import (
-	"context"
 	"fmt"
 	"time"
+
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 // NfoBuilderBuildAndStoreForMediaItem/2
 func NfoBuilderBuildAndStoreForMediaItem(nfoFilepath string, metadata map[string]any) (string, error) {
 	nfo := buildForMediaItem(nfoFilepath, metadata)
 
-	ctx := context.Background()
-	if err := FilesystemUtilsWriteP(ctx, nfoFilepath, nfo, []string{}); err != nil {
+	if err := fsutil.WriteFileAll(nfoFilepath, nfo); err != nil {
 		return "", err
 	}
 
@@ -22,8 +22,7 @@ func NfoBuilderBuildAndStoreForMediaItem(nfoFilepath string, metadata map[string
 func NfoBuilderBuildAndStoreForSource(filepath string, metadata map[string]any) (string, error) {
 	nfo := buildForSource(metadata)
 
-	ctx := context.Background()
-	if err := FilesystemUtilsWriteP(ctx, filepath, nfo, []string{}); err != nil {
+	if err := fsutil.WriteFileAll(filepath, nfo); err != nil {
 		return "", err
 	}
 
@@ -67,7 +66,7 @@ func buildForMediaItem(nfoFilepath string, metadata map[string]any) string {
   <episode>%s</episode>
   <genre>YouTube</genre>
 </episodedetails>
-`, XmlUtilsSafe(title), XmlUtilsSafe(uploader), XmlUtilsSafe(id), XmlUtilsSafe(description), XmlUtilsSafe(aired), XmlUtilsSafe(season), XmlUtilsSafe(episode))
+`, fsutil.XMLSafe(title), fsutil.XMLSafe(uploader), fsutil.XMLSafe(id), fsutil.XMLSafe(description), fsutil.XMLSafe(aired), fsutil.XMLSafe(season), fsutil.XMLSafe(episode))
 }
 
 func buildForSource(metadata map[string]any) string {
@@ -82,7 +81,7 @@ func buildForSource(metadata map[string]any) string {
   <uniqueid type="youtube" default="true">%s</uniqueid>
   <genre>YouTube</genre>
 </tvshow>
-`, XmlUtilsSafe(title), XmlUtilsSafe(description), XmlUtilsSafe(id))
+`, fsutil.XMLSafe(title), fsutil.XMLSafe(description), fsutil.XMLSafe(id))
 }
 
 func getStringFromMetadata(metadata map[string]any, key string) string {

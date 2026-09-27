@@ -8,6 +8,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 )
 
@@ -418,7 +419,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
-			return "", &core.CommandError{Output: "error message", Status: 1}
+			return "", &fsutil.CommandError{Output: "error message", Status: 1}
 		})
 
 		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
@@ -600,7 +601,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads_WhenTestingBackends(t *tes
 			callCount++
 			if callCount == 1 && strings.Contains(url, "youtube.googleapis.com") {
 				// First call to API fails
-				return "", &core.CommandError{Output: "API failed", Status: 1}
+				return "", &fsutil.CommandError{Output: "API failed", Status: 1}
 			}
 			if strings.Contains(url, "youtube.com/feeds") {
 				return "<yt:videoId>test_1</yt:videoId>", nil

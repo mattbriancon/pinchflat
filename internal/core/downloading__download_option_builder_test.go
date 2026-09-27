@@ -7,6 +7,7 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 func TestDownloadOptionBuilder_Build_WhenTestingOutputOptions(t *testing.T) {
@@ -804,7 +805,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 		mediaItem := newConfigMediaItem(t, ta)
 		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
 		configPath := filepath.Join(baseDir, "base-config.txt")
-		if err := core.FilesystemUtilsWriteP(ta.Ctx, configPath, "base config", nil); err != nil {
+		if err := fsutil.WriteFileAll(configPath, "base config"); err != nil {
 			t.Fatalf("write config: %v", err)
 		}
 
@@ -827,7 +828,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 		mediaItem := newConfigMediaItem(t, ta)
 		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
 		configPath := filepath.Join(baseDir, fmt.Sprintf("media-profile-%d-config.txt", mediaItem.Source.MediaProfileID))
-		if err := core.FilesystemUtilsWriteP(ta.Ctx, configPath, "profile config", nil); err != nil {
+		if err := fsutil.WriteFileAll(configPath, "profile config"); err != nil {
 			t.Fatalf("write config: %v", err)
 		}
 
@@ -850,7 +851,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 		mediaItem := newConfigMediaItem(t, ta)
 		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
 		configPath := filepath.Join(baseDir, fmt.Sprintf("source-%d-config.txt", mediaItem.SourceID))
-		if err := core.FilesystemUtilsWriteP(ta.Ctx, configPath, "source config", nil); err != nil {
+		if err := fsutil.WriteFileAll(configPath, "source config"); err != nil {
 			t.Fatalf("write config: %v", err)
 		}
 
@@ -873,7 +874,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 		mediaItem := newConfigMediaItem(t, ta)
 		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
 		configPath := filepath.Join(baseDir, fmt.Sprintf("media-item-%d-config.txt", mediaItem.ID))
-		if err := core.FilesystemUtilsWriteP(ta.Ctx, configPath, "media item config", nil); err != nil {
+		if err := fsutil.WriteFileAll(configPath, "media item config"); err != nil {
 			t.Fatalf("write config: %v", err)
 		}
 
@@ -914,7 +915,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 		mediaItem := newConfigMediaItem(t, ta)
 		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
 		configPath := filepath.Join(baseDir, "base-config.txt")
-		if err := core.FilesystemUtilsWriteP(ta.Ctx, configPath, " \n \n ", nil); err != nil {
+		if err := fsutil.WriteFileAll(configPath, " \n \n "); err != nil {
 			t.Fatalf("write config: %v", err)
 		}
 
@@ -943,7 +944,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 		mediaProfileFilepath := filepath.Join(baseDir, fmt.Sprintf("media-profile-%d-config.txt", mediaItem.Source.MediaProfileID))
 
 		for _, p := range []string{baseFilepath, sourceFilepath, mediaItemFilepath, mediaProfileFilepath} {
-			if err := core.FilesystemUtilsWriteP(ta.Ctx, p, "config", nil); err != nil {
+			if err := fsutil.WriteFileAll(p, "config"); err != nil {
 				t.Fatalf("write config: %v", err)
 			}
 		}

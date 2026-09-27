@@ -1904,3 +1904,35 @@ func TestMediaItemJSONMatchesElixirGolden(t *testing.T) {
 		t.Errorf("MediaItem JSON does not match golden.\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
+
+func TestMedia_ComputeAndSaveMediaFilesize(t *testing.T) {
+	t.Run("updates the media item with the file size", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+
+		if mediaItem.MediaSizeBytes != nil && *mediaItem.MediaSizeBytes != 0 {
+			t.Error("media_size_bytes should initially be nil or 0")
+		}
+
+		result, err := ta.App.ComputeAndSaveMediaFilesize(ta.Ctx, mediaItem)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if result.MediaSizeBytes == nil || *result.MediaSizeBytes == 0 {
+			t.Error("media_size_bytes should be set and non-zero")
+		}
+	})
+
+	t.Run("returns the error if operation fails", func(t *testing.T) {
+		ta := coretest.NewApp(t)
+		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{
+			"media_filepath": "/nonexistent/file.mkv",
+		})
+
+		_, err := ta.App.ComputeAndSaveMediaFilesize(ta.Ctx, mediaItem)
+		if err == nil {
+			t.Error("expected error for nonexistent file")
+		}
+	})
+}

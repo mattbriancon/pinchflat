@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 // RssFeedBuilder builds RSS feeds for sources and their media items.
@@ -91,10 +93,10 @@ func rssFeedBuilderBuildSourceXml(ctx context.Context, a *App, source *Source, m
 
   </channel>
 </rss>
-`, XmlUtilsSafe(source.CustomName), XmlUtilsSafe(source.OriginalURL), XmlUtilsSafe(description),
-		lastBuildDate, pubDate, XmlUtilsSafe(selfLink), uuid, XmlUtilsSafe(feedImagePath),
-		XmlUtilsSafe(source.CustomName), XmlUtilsSafe(source.OriginalURL),
-		XmlUtilsSafe(source.CustomName), XmlUtilsSafe(source.CustomName), XmlUtilsSafe(feedImagePath),
+`, fsutil.XMLSafe(source.CustomName), fsutil.XMLSafe(source.OriginalURL), fsutil.XMLSafe(description),
+		lastBuildDate, pubDate, fsutil.XMLSafe(selfLink), uuid, fsutil.XMLSafe(feedImagePath),
+		fsutil.XMLSafe(source.CustomName), fsutil.XMLSafe(source.OriginalURL),
+		fsutil.XMLSafe(source.CustomName), fsutil.XMLSafe(source.CustomName), fsutil.XMLSafe(feedImagePath),
 		itemsJoined)
 
 	return xml
@@ -131,7 +133,7 @@ func rssFeedBuilderBuildMediaItemXml(ctx context.Context, a *App, source *Source
 	itemImageLines := ""
 	if itemImagePath != nil && *itemImagePath != "" {
 		itemImageLines = fmt.Sprintf(`      <itunes:image href="%s"></itunes:image>
-      <podcast:images srcset="%s" />`, XmlUtilsSafe(*itemImagePath), XmlUtilsSafe(*itemImagePath))
+      <podcast:images srcset="%s" />`, fsutil.XMLSafe(*itemImagePath), fsutil.XMLSafe(*itemImagePath))
 	}
 
 	uuid := ""
@@ -158,10 +160,10 @@ func rssFeedBuilderBuildMediaItemXml(ctx context.Context, a *App, source *Source
       %s
 
       <itunes:explicit>false</itunes:explicit>
-    </item>`, uuid, XmlUtilsSafe(title), XmlUtilsSafe(mediaItem.OriginalURL),
-		XmlUtilsSafe(description), uploadedAt, durationSeconds,
-		XmlUtilsSafe(mediaStreamPath), mediaSizeBytes, mediaType,
-		XmlUtilsSafe(source.CustomName), XmlUtilsSafe(title),
+    </item>`, uuid, fsutil.XMLSafe(title), fsutil.XMLSafe(mediaItem.OriginalURL),
+		fsutil.XMLSafe(description), uploadedAt, durationSeconds,
+		fsutil.XMLSafe(mediaStreamPath), mediaSizeBytes, mediaType,
+		fsutil.XMLSafe(source.CustomName), fsutil.XMLSafe(title),
 		description, itemImageLines)
 
 	return xml

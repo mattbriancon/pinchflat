@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 // UserScriptsCommandRunner is Pinchflat.Lifecycle.UserScripts.CommandRunner,
@@ -67,7 +68,7 @@ func (r *UserScriptsCommandRunner) RunWithResult(ctx context.Context, eventType 
 	}
 
 	// Run the command
-	output, exitCode, err := r.App.CliUtilsWrapCmd(ctx, executablePath, []string{eventType, encodedData}, nil, KW{Opt("logging_arg_override", "[suppressed]")})
+	output, exitCode, err := fsutil.RunCommand(ctx, r.App.Config.TmpfileDirectory, executablePath, []string{eventType, encodedData}, fsutil.RunOptions{LoggingArgOverride: "[suppressed]"})
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +85,7 @@ func (r *UserScriptsCommandRunner) backendExecutable(ctx context.Context) (strin
 	baseDir := r.App.Config.ExtrasDirectory
 	lifecycleFilepath := filepath.Join(baseDir, "user-scripts", "lifecycle")
 
-	exists := FilesystemUtilsExistsAndNonempty(ctx, lifecycleFilepath)
+	exists := fsutil.ExistsAndNonEmpty(lifecycleFilepath)
 	if !exists {
 		slog.Info("User scripts lifecyle file either not present or is empty. Skipping.")
 		return "", nil
@@ -103,7 +104,7 @@ func (r *UserScriptsCommandRunner) Run(ctx context.Context, eventType string, da
 		return err
 	}
 	if !result.NoExecutable && result.ExitCode != 0 {
-		return &CommandError{Output: result.Output, Status: result.ExitCode}
+		return &fsutil.CommandError{Output: result.Output, Status: result.ExitCode}
 	}
 	return nil
 }

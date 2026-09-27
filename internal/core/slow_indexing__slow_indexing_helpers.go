@@ -11,6 +11,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 )
 
@@ -252,7 +253,7 @@ func slowIndexingHelpersBuildDownloadArchiveOptions(ctx context.Context, a *App,
 }
 
 func slowIndexingHelpersCreateDownloadArchiveFile(ctx context.Context, a *App, source *Source) (string, error) {
-	tmpfile, err := a.FilesystemUtilsGenerateMetadataTmpfile(ctx, "txt")
+	tmpfile, err := fsutil.GenerateTmpfile(a.Config.TmpfileDirectory, "txt")
 	if err != nil {
 		return "", err
 	}

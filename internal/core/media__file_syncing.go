@@ -3,6 +3,8 @@ package core
 import (
 	"context"
 	"os"
+
+	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 // DeleteOutdatedFiles/2
@@ -94,8 +96,8 @@ func fileSyncingHandleFileDeletion(ctx context.Context, oldAttributes, newAttrib
 		filesHaveChanged := oldFilepath != nil && newFilepath != nil && *oldFilepath != *newFilepath
 		filesExistOnDisk := filesHaveChanged && fileExists(*oldFilepath) && fileExists(*newFilepath)
 
-		if filesExistOnDisk && !FilesystemUtilsFilepathsReferenceSameFile(ctx, *oldFilepath, *newFilepath) {
-			FilesystemUtilsDeleteFileAndRemoveEmptyDirectories(ctx, *oldFilepath)
+		if filesExistOnDisk && !fsutil.SameFile(*oldFilepath, *newFilepath) {
+			fsutil.DeleteFileAndRemoveEmptyDirs(*oldFilepath)
 		}
 	}
 }
