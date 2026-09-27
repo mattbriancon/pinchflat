@@ -228,11 +228,6 @@ func SourceFilepathAttributes() []string {
 	return []string{"nfo_filepath", "fanart_filepath", "poster_filepath", "banner_filepath"}
 }
 
-// json_exluded_fields/0
-func SourceJsonExcludedFields() []string {
-	return []string{"__meta__", "__struct__", "metadata", "tasks", "media_items"}
-}
-
 // youtube_channel_or_playlist_regex/0
 func sourceYoutubeChannelOrPlaylistRegex() string {
 	// Validate that the original URL is not a video URL

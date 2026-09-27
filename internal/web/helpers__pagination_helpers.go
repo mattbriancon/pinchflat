@@ -41,15 +41,3 @@ func (s *Server) GetPaginationAttributes(ctx context.Context, query sq.SelectBui
 		Offset:           (clampedPage - 1) * recordsPerPage,
 	}, nil
 }
-
-// UpdatePageNumber returns the updated page number given the current page, direction ("inc" or "dec"),
-// and total number of pages. The result is clamped to [1, totalPages].
-func UpdatePageNumber(currentPage int, direction string, totalPages int) int {
-	updated := currentPage
-	if direction == "inc" {
-		updated = currentPage + 1
-	} else if direction == "dec" {
-		updated = currentPage - 1
-	}
-	return core.NumberUtilsClamp(updated, 1, totalPages)
-}

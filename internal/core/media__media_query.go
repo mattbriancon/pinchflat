@@ -155,15 +155,6 @@ func MediaQueryUpgradeable() sq.Sqlizer {
 	return sq.And{MediaQueryDownloaded(), Not(MediaQueryDownloadPrevented()), Not(MediaQueryRedownloaded()), MediaQueryPastRedownloadDelay()}
 }
 
-// matches_search_term/1 (needs the media_items_search_index binding unless
-// the term is blank).
-func MediaQueryMatchesSearchTerm(term *string) sq.Sqlizer {
-	if term == nil || strings.TrimSpace(*term) == "" {
-		return sq.Expr("1 = 1")
-	}
-	return sq.Expr("media_items_search_index MATCH ?", mediaQueryCleanSearchTerm(*term))
-}
-
 // require_assoc/2: joins the named binding unless already present.
 // identifier is "source", "media_profile" or "media_items_search_index".
 func (q *MediaQ) RequireAssoc(identifier string) *MediaQ {

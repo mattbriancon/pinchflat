@@ -2,8 +2,6 @@ package obanlite
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"math"
 	"math/rand/v2"
 )
@@ -82,31 +80,6 @@ func (o WorkerOpts) withDefaults() WorkerOpts {
 	}
 	return o
 }
-
-// Result types a worker can return.
-
-type cancelResult struct{ reason error }
-type snoozeResult struct{ seconds int }
-type discardResult struct{ reason error }
-
-func (c *cancelResult) Error() string  { return "cancelled: " + c.reason.Error() }
-func (s *snoozeResult) Error() string  { return fmt.Sprintf("snoozed for %ds", s.seconds) }
-func (d *discardResult) Error() string { return "discarded: " + d.reason.Error() }
-
-// Cancel stops the job without retrying ({:cancel, reason}).
-func Cancel(reason error) error { return &cancelResult{reason} }
-
-// Snooze reschedules the job without using an attempt ({:snooze, seconds}).
-func Snooze(seconds int) error { return &snoozeResult{seconds} }
-
-// Discard stops the job and marks it discarded ({:discard, reason}).
-func Discard(reason error) error { return &discardResult{reason} }
-
-// IsCancel reports whether err is a Cancel result.
-func IsCancel(err error) bool { var c *cancelResult; return errors.As(err, &c) }
-
-// IsSnooze reports whether err is a Snooze result.
-func IsSnooze(err error) bool { var s *snoozeResult; return errors.As(err, &s) }
 
 // Backoff is Oban.Worker.backoff/1: 15 + 2^attempt seconds (attempt clamped
 // to 20 relative to max_attempts), plus up to 10% jitter.

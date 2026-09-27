@@ -147,11 +147,6 @@ func MediaItemFilepathAttributeDefaults() Attrs {
 	return out
 }
 
-// MediaItem.json_exluded_fields/0
-func MediaItemJSONExcludedFields() []string {
-	return []string{"__meta__", "__struct__", "metadata", "tasks", "media_items_search_index"}
-}
-
 // update_upload_date_index/1. Run it on new records no matter what. The
 // method we delegate to will handle the case where `uploaded_at` is `nil`.
 func mediaItemUpdateUploadDateIndex(ctx context.Context, a *App, cs *Changeset) *Changeset {

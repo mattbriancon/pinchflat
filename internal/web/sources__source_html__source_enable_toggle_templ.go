@@ -5,16 +5,18 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import "github.com/a-h/templ"
-import templruntime "github.com/a-h/templ/runtime"
+import (
+	"fmt"
+
+	"github.com/a-h/templ"
+	templruntime "github.com/a-h/templ/runtime"
+)
 
 // Port of lib/pinchflat_web/controllers/sources/source_live/source_enable_toggle.ex's
 // render/1 (an inline ~H template, so there's no separate .heex source). The
 // toggle is a plain form POST to /sources/{id}/enabled that redirects back
 // (STRATEGY.md decision 4: no htmx); Alpine still auto-submits the form on
 // the hidden input's "change" event, which the toggle already dispatches.
-
-import "fmt"
 
 // SourceEnableToggleRender is render/1 (update/2's assigns.form is
 // Sources.change_source(%Source{}, source), whose only visible effect here

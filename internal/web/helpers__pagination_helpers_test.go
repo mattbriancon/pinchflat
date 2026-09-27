@@ -5,7 +5,6 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
-	"github.com/mattbriancon/pinchflat/internal/web"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
 
@@ -90,36 +89,6 @@ func TestGetPaginationAttributes(t *testing.T) {
 		}
 		if attrs.Offset != 1 {
 			t.Errorf("expected offset 1, got %d", attrs.Offset)
-		}
-	})
-}
-
-func TestUpdatePageNumber(t *testing.T) {
-	t.Run("increments the page number", func(t *testing.T) {
-		updated := web.UpdatePageNumber(1, "inc", 2)
-		if updated != 2 {
-			t.Errorf("expected 2, got %d", updated)
-		}
-	})
-
-	t.Run("decrements the page number", func(t *testing.T) {
-		updated := web.UpdatePageNumber(2, "dec", 2)
-		if updated != 1 {
-			t.Errorf("expected 1, got %d", updated)
-		}
-	})
-
-	t.Run("doesn't overflow the page number", func(t *testing.T) {
-		updated := web.UpdatePageNumber(2, "inc", 2)
-		if updated != 2 {
-			t.Errorf("expected 2, got %d", updated)
-		}
-	})
-
-	t.Run("doesn't underflow the page number", func(t *testing.T) {
-		updated := web.UpdatePageNumber(1, "dec", 2)
-		if updated != 1 {
-			t.Errorf("expected 1, got %d", updated)
 		}
 	})
 }

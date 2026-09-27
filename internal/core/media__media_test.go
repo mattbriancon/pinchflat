@@ -1106,7 +1106,8 @@ func TestMedia_CreateMediaItemFromBackendAttrs(t *testing.T) {
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
-		attrsMap, err := core.DecodeJSONMap([]byte(coretest.MediaAttributesReturnFixture()))
+		var attrsMap map[string]any
+		err := core.DecodeJSON([]byte(coretest.MediaAttributesReturnFixture()), &attrsMap)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1138,7 +1139,8 @@ func TestMedia_CreateMediaItemFromBackendAttrs(t *testing.T) {
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
-		attrsMap, err := core.DecodeJSONMap([]byte(coretest.MediaAttributesReturnFixture()))
+		var attrsMap map[string]any
+		err := core.DecodeJSON([]byte(coretest.MediaAttributesReturnFixture()), &attrsMap)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1171,7 +1173,8 @@ func TestMedia_CreateMediaItemFromBackendAttrs(t *testing.T) {
 		ta := coretest.NewApp(t)
 		source := coretest.SourceFixture(t, ta, core.Attrs{})
 
-		attrsMap, err := core.DecodeJSONMap([]byte(coretest.MediaAttributesReturnFixture()))
+		var attrsMap map[string]any
+		err := core.DecodeJSON([]byte(coretest.MediaAttributesReturnFixture()), &attrsMap)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -2,7 +2,6 @@ package obanlite
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"runtime/debug"
@@ -39,16 +38,14 @@ func (o *Oban) Start(ctx context.Context, cfg Config) error {
 	if cfg.PollInterval == 0 {
 		cfg.PollInterval = time.Second
 	}
-	var crons []parsedCron
-	for _, c := range cfg.Crontab {
-		sched, err := cron.ParseStandard(c.Expr)
-		if err != nil {
-			return fmt.Errorf("cron %q: %w", c.Expr, err)
-		}
+	crons, err := ParseCrontab(cfg.Crontab)
+	if err != nil {
+		return err
+	}
+	for _, c := range crons {
 		if _, ok := o.workers[c.Worker]; !ok {
 			return fmt.Errorf("cron %q: unknown worker %s", c.Expr, c.Worker)
 		}
-		crons = append(crons, parsedCron{CronEntry: c, sched: sched})
 	}
 
 	var wg sync.WaitGroup
@@ -234,29 +231,11 @@ func (o *Oban) Execute(parent context.Context, job *Job) {
 	}
 
 	bg := context.WithoutCancel(parent)
-	var (
-		cancelR  *cancelResult
-		snoozeR  *snoozeResult
-		discardR *discardResult
-	)
 	switch {
 	case err == nil:
 		_, err2 := o.db.ExecContext(bg, `UPDATE oban_jobs SET state = 'completed', completed_at = ? WHERE id = ?`, nowUsec(), job.ID)
 		logIf(err2)
 		o.emit("stop", job, nil, dur)
-	case errors.As(err, &snoozeR):
-		_, err2 := o.db.ExecContext(bg, `UPDATE oban_jobs SET state = 'scheduled', scheduled_at = ?, max_attempts = max_attempts + 1 WHERE id = ?`,
-			secondsFromNow(snoozeR.seconds), job.ID)
-		logIf(err2)
-		o.emit("stop", job, nil, dur)
-	case errors.As(err, &cancelR):
-		_, err2 := o.db.ExecContext(bg, `UPDATE oban_jobs SET state = 'cancelled', cancelled_at = ?, errors = json_insert(errors, '$[#]', ?) WHERE id = ?`,
-			nowUsec(), formatAttempt(job, cancelR.reason), job.ID)
-		logIf(err2)
-		o.emit("stop", job, err, dur)
-	case errors.As(err, &discardR):
-		o.recordError(job, discardR.reason, true)
-		o.emit("exception", job, err, dur)
 	default:
 		o.recordError(job, err, job.Attempt >= job.MaxAttempts)
 		o.emit("exception", job, err, dur)
@@ -309,6 +288,19 @@ func logIf(err error) {
 	}
 }
 
+// ParseCrontab parses each entry's standard 5-field cron expression.
+func ParseCrontab(entries []CronEntry) ([]parsedCron, error) {
+	var out []parsedCron
+	for _, c := range entries {
+		s, err := cron.ParseStandard(c.Expr)
+		if err != nil {
+			return nil, fmt.Errorf("cron %q: %w", c.Expr, err)
+		}
+		out = append(out, parsedCron{CronEntry: c, sched: s})
+	}
+	return out, nil
+}
+
 type parsedCron struct {
 	CronEntry
 	sched cron.Schedule
@@ -339,17 +331,4 @@ func (o *Oban) InsertCronJobs(ctx context.Context, crons []parsedCron, minute ti
 			slog.Error("oban cron insert", "worker", c.Worker, "err", err)
 		}
 	}
-}
-
-// ParseCrontab validates and parses entries (exposed for tests).
-func ParseCrontab(entries []CronEntry) ([]parsedCron, error) {
-	var out []parsedCron
-	for _, c := range entries {
-		s, err := cron.ParseStandard(c.Expr)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, parsedCron{CronEntry: c, sched: s})
-	}
-	return out, nil
 }

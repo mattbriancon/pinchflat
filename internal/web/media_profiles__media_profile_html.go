@@ -6,15 +6,8 @@ package web
 // controllers' files in this flat package.
 
 import (
-	"fmt"
-
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
-
-// formatInt64 formats an int64 as a string.
-func formatInt64(v int64) string {
-	return fmt.Sprint(v)
-}
 
 // mpKV is one entry of media_center_custom_output_template_options/0 and
 // other_custom_output_template_options/0 (an alias key plus optional help,

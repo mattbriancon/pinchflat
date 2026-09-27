@@ -5,12 +5,13 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import "github.com/a-h/templ"
-import templruntime "github.com/a-h/templ/runtime"
+import (
+	"github.com/a-h/templ"
+	templruntime "github.com/a-h/templ/runtime"
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
 
 // Port of lib/pinchflat_web/controllers/sources/source_html/edit.html.heex.
-
-import "github.com/mattbriancon/pinchflat/internal/core"
 
 func SourceHTMLEdit(source *core.Source, changeset *core.Changeset, mediaProfiles []*core.MediaProfile) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {

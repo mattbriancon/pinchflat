@@ -198,20 +198,6 @@ func TestOutcomes(t *testing.T) {
 			t.Fatalf("%+v", job)
 		}
 	})
-	t.Run("snooze reschedules without using an attempt", func(t *testing.T) {
-		o, _ := setup(t, obanlite.WorkerFunc(func(context.Context, *obanlite.Job) error { return obanlite.Snooze(60) }))
-		job := insertAndRun(t, o, downloadWorker)
-		if job.State != "scheduled" || job.MaxAttempts != 21 {
-			t.Fatalf("%+v", job)
-		}
-	})
-	t.Run("cancel result", func(t *testing.T) {
-		o, _ := setup(t, obanlite.WorkerFunc(func(context.Context, *obanlite.Job) error { return obanlite.Cancel(errors.New("nope")) }))
-		job := insertAndRun(t, o, downloadWorker)
-		if job.State != "cancelled" || job.CancelledAt == nil {
-			t.Fatalf("%+v", job)
-		}
-	})
 }
 
 func TestCancelJobStopsRunningWorker(t *testing.T) {

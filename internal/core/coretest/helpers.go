@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db/dbtest"
 )
 
@@ -133,19 +132,4 @@ func RenderParsedMetadata(metadataName string) (map[string]interface{}, error) {
 	}
 
 	return result, nil
-}
-
-// CreatePlatformDirectories creates all the media, metadata, extras and tmpfile directories.
-func CreatePlatformDirectories(a *core.App) error {
-	for _, dir := range []string{
-		a.Config.MediaDirectory,
-		a.Config.MetadataDirectory,
-		a.Config.ExtrasDirectory,
-		a.Config.TmpfileDirectory,
-	} {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return err
-		}
-	}
-	return nil
 }

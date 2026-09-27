@@ -44,13 +44,3 @@ func StringUtilsRandomString(length int) string {
 func StringUtilsDoubleBrace(str string) string {
 	return fmt.Sprintf("{{ %s }}", str)
 }
-
-// StringUtilsWrapString(message)
-// Wraps a string in quotes if it's not already a string.
-// Useful for working with error messages whose types can vary.
-func StringUtilsWrapString(message interface{}) string {
-	if s, ok := message.(string); ok {
-		return s
-	}
-	return fmt.Sprintf("%v", message)
-}

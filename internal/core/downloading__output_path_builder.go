@@ -16,23 +16,14 @@ func OutputPathBuilderBuild(templateString string, additionalTemplateOptions map
 	// Recursively expand variables (one level deep)
 	expandedOptions := make(map[string]string)
 	for key, value := range combinedOptions {
-		// Parse each option value using the custom identifier function
-		parsed, err := outputPathParseDoParse(value)
+		expanded, err := OutputPathParserParse(value, combinedOptions, outputPathBuilderIdentifierFn)
 		if err != nil {
 			return "", err
 		}
-		expandedValue := outputPathParserBuildString(parsed, combinedOptions, outputPathBuilderIdentifierFn)
-		expandedOptions[key] = expandedValue
+		expandedOptions[key] = expanded
 	}
 
-	// Now parse the template string
-	parsed, err := outputPathParseDoParse(templateString)
-	if err != nil {
-		return "", err
-	}
-
-	result := outputPathParserBuildString(parsed, expandedOptions, outputPathBuilderIdentifierFn)
-	return result, nil
+	return OutputPathParserParse(templateString, expandedOptions, outputPathBuilderIdentifierFn)
 }
 
 // outputPathBuilderIdentifierFn is the custom fetcher for template variables.

@@ -8,6 +8,16 @@ import (
 
 // OutputPathParser parses liquid-ish-style strings into rendered strings.
 
+// OutputPathParserParse renders s, looking each {{ identifier }} up with
+// valueFetchFn.
+func OutputPathParserParse(s string, variables map[string]string, valueFetchFn OutputPathParserFetcher) (string, error) {
+	parsed, err := outputPathParseDoParse(s)
+	if err != nil {
+		return "", err
+	}
+	return outputPathParserBuildString(parsed, variables, valueFetchFn), nil
+}
+
 // OutputPathParserFetcher is a function type for custom value fetching in parse templates.
 type OutputPathParserFetcher func(identifier string, variables map[string]string) string
 
@@ -17,27 +27,18 @@ type parsedElement struct {
 	value string // the actual value or identifier
 }
 
-// OutputPathParserParse/3
-func OutputPathParserParse(s string, variables map[string]string, valueFetchFn OutputPathParserFetcher) (string, error) {
-	parsed, err := outputPathParseDoParse(s)
-	if err != nil {
-		return "", err
-	}
-
-	return outputPathParserBuildString(parsed, variables, valueFetchFn), nil
-}
+// outputPathInterpolation matches {{ identifier }}, allowing spaces inside
+// the braces.
+var outputPathInterpolation = regexp.MustCompile(`\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}`)
 
 // doParse is the internal parser function that extracts elements
 func outputPathParseDoParse(s string) ([]parsedElement, error) {
-	// Pattern: {{ optional_whitespace identifier optional_whitespace }}
-	// identifier: [a-zA-Z_][a-zA-Z0-9_]*
-	pattern := `\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}`
-	re := regexp.MustCompile(pattern)
 
 	var result []parsedElement
 	lastPos := 0
 
-	for _, match := range re.FindAllStringSubmatchIndex(s, -1) {
+	matches := outputPathInterpolation.FindAllStringSubmatchIndex(s, -1)
+	for _, match := range matches {
 		// match[0:2] is the full match, match[2:4] is the first capture group (identifier)
 		fullStart := match[0]
 		fullEnd := match[1]
@@ -62,28 +63,13 @@ func outputPathParseDoParse(s string) ([]parsedElement, error) {
 		result = append(result, parsedElement{typ: "text", value: s[lastPos:]})
 	}
 
-	// Check if we have any interpolations that failed to parse
-	// (i.e., {{ but not properly closed, or invalid identifiers)
-	if hasUnparsedInterpolations(s, re) {
+	// Every {{ must have been part of a valid interpolation (not left
+	// unclosed or wrapping an invalid identifier).
+	if strings.Count(s, "{{") != len(matches) {
 		return nil, fmt.Errorf("expected end of string")
 	}
 
 	return result, nil
-}
-
-// hasUnparsedInterpolations checks if there are any unparsed {{ ... }} patterns
-func hasUnparsedInterpolations(s string, validPattern *regexp.Regexp) bool {
-	// Check if there are any {{ that weren't matched by the valid pattern
-	bracePattern := regexp.MustCompile(`\{\{`)
-	allMatches := bracePattern.FindAllStringIndex(s, -1)
-	validMatches := validPattern.FindAllStringIndex(s, -1)
-
-	// Count {{ occurrences
-	openCount := len(allMatches)
-	// Count valid interpolations
-	validCount := len(validMatches)
-
-	return openCount != validCount
 }
 
 // outputPathParserBuildString builds the final string from parsed elements
@@ -101,12 +87,4 @@ func outputPathParserBuildString(parsed []parsedElement, variables map[string]st
 	}
 
 	return result.String()
-}
-
-// OutputPathParserDefaultFetcher/2
-func OutputPathParserDefaultFetcher(identifier string, variables map[string]string) string {
-	if value, ok := variables[identifier]; ok {
-		return value
-	}
-	return ""
 }

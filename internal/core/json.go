@@ -14,10 +14,3 @@ func DecodeJSON(data []byte, v any) error {
 	dec.UseNumber()
 	return dec.Decode(v)
 }
-
-// DecodeJSONMap decodes a JSON object into a map.
-func DecodeJSONMap(data []byte) (map[string]any, error) {
-	m := map[string]any{}
-	err := DecodeJSON(data, &m)
-	return m, err
-}

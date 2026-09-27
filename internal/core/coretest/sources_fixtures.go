@@ -78,23 +78,6 @@ func SourceFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.Source {
 	return source
 }
 
-// SourceWithMetadataFixture creates a Source with metadata.
-func SourceWithMetadataFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.Source {
-	t.Helper()
-	defaults := core.Attrs{
-		"metadata": map[string]string{
-			"metadata_filepath": filepath.Join(ta.Config.MetadataDirectory, "metadata.json.gz"),
-		},
-	}
-
-	// Merge attrs into defaults
-	for k, v := range attrs {
-		defaults[k] = v
-	}
-
-	return SourceFixture(t, ta, defaults)
-}
-
 // SourceWithMetadataAttachmentsFixture creates a Source with metadata attachments.
 func SourceWithMetadataAttachmentsFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.Source {
 	t.Helper()

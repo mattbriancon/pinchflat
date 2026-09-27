@@ -5,17 +5,17 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import "github.com/a-h/templ"
-import templruntime "github.com/a-h/templ/runtime"
+import (
+	"fmt"
+	"time"
+
+	"github.com/a-h/templ"
+	templruntime "github.com/a-h/templ/runtime"
+)
 
 // Port of lib/pinchflat_web/components/custom_components/text_components.ex
 // (the renderable half; custom_components__text_components.go has the
 // plain-Go logic).
-
-import (
-	"fmt"
-	"time"
-)
 
 // TextInlineCode is inline_code/1.
 func TextInlineCode(content templ.Component) templ.Component {

@@ -11,7 +11,3 @@ type MediaItemsSearchIndex struct {
 }
 
 func (MediaItemsSearchIndex) TableName() string { return "media_items_search_index" }
-
-func NewMediaItemsSearchIndex() *MediaItemsSearchIndex {
-	return &MediaItemsSearchIndex{}
-}

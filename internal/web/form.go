@@ -52,11 +52,6 @@ func (f *Form) Field(name string) FormField {
 	return ff
 }
 
-// Nested is inputs_for for a has_one assoc (f[:metadata]).
-func (f *Form) Nested(name string, cs *core.Changeset) *Form {
-	return &Form{As: f.As + "[" + name + "]", Changeset: cs}
-}
-
 // HasErrors reports whether the error banner should show (@changeset.action).
 func (f *Form) HasErrors() bool {
 	return f.Changeset != nil && f.Changeset.Action != "" && !f.Changeset.Valid()

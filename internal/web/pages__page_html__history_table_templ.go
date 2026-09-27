@@ -5,22 +5,21 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import "github.com/a-h/templ"
-import templruntime "github.com/a-h/templ/runtime"
+import (
+	"context"
+	"fmt"
+
+	"github.com/a-h/templ"
+	templruntime "github.com/a-h/templ/runtime"
+	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/db"
+)
 
 // Port of lib/pinchflat_web/controllers/pages/page_html/history_table_live.ex.
 // Rendered inline on the home page's first load; paging uses its own query
 // param per table (<media_state>_page) so paging one history table doesn't
 // reset the other, and carries ?tab= so the right tab stays selected on
 // reload (STRATEGY.md decision 4: no htmx, no fragment endpoint).
-
-import (
-	"context"
-	"fmt"
-
-	"github.com/mattbriancon/pinchflat/internal/core"
-	"github.com/mattbriancon/pinchflat/internal/db"
-)
 
 // PagesPageHTMLHistoryTableContent renders the content of the history table.
 func PagesPageHTMLHistoryTableContent(ctx context.Context, mediaState string, page, totalPages int, records []*core.MediaItem, totalRecordCount int) templ.Component {

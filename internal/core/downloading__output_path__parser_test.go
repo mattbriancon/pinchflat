@@ -8,7 +8,7 @@ import (
 
 func TestOutputPathParser_Parse(t *testing.T) {
 	t.Run("it returns the rendered string when the string is valid", func(t *testing.T) {
-		result, err := core.OutputPathParserParse("{{ foo }}", map[string]string{"foo": "bar"}, core.OutputPathParserDefaultFetcher)
+		result, err := core.OutputPathParserParse("{{ foo }}", map[string]string{"foo": "bar"}, defaultFetcher)
 		if err != nil {
 			t.Errorf("got error: %v", err)
 		}
@@ -18,7 +18,7 @@ func TestOutputPathParser_Parse(t *testing.T) {
 	})
 
 	t.Run("it works with filepath-like strings", func(t *testing.T) {
-		result, err := core.OutputPathParserParse("{{ foo }}/{{ bar }}", map[string]string{"foo": "bar", "bar": "baz"}, core.OutputPathParserDefaultFetcher)
+		result, err := core.OutputPathParserParse("{{ foo }}/{{ bar }}", map[string]string{"foo": "bar", "bar": "baz"}, defaultFetcher)
 		if err != nil {
 			t.Errorf("got error: %v", err)
 		}
@@ -28,7 +28,7 @@ func TestOutputPathParser_Parse(t *testing.T) {
 	})
 
 	t.Run("it works when mixing text and variables", func(t *testing.T) {
-		result, err := core.OutputPathParserParse("{{ foo }} text {{ bar }}", map[string]string{"foo": "bar", "bar": "baz"}, core.OutputPathParserDefaultFetcher)
+		result, err := core.OutputPathParserParse("{{ foo }} text {{ bar }}", map[string]string{"foo": "bar", "bar": "baz"}, defaultFetcher)
 		if err != nil {
 			t.Errorf("got error: %v", err)
 		}
@@ -38,7 +38,7 @@ func TestOutputPathParser_Parse(t *testing.T) {
 	})
 
 	t.Run("it removes the placeholder but doesn't blow up when the variable isn't provided", func(t *testing.T) {
-		result, err := core.OutputPathParserParse("{{ foo }}", map[string]string{}, core.OutputPathParserDefaultFetcher)
+		result, err := core.OutputPathParserParse("{{ foo }}", map[string]string{}, defaultFetcher)
 		if err != nil {
 			t.Errorf("got error: %v", err)
 		}
@@ -60,7 +60,7 @@ func TestOutputPathParser_Parse(t *testing.T) {
 		variables := map[string]string{"foo": "bar"}
 
 		for _, tc := range testCases {
-			result, err := core.OutputPathParserParse(tc.input, variables, core.OutputPathParserDefaultFetcher)
+			result, err := core.OutputPathParserParse(tc.input, variables, defaultFetcher)
 			if err != nil {
 				t.Errorf("got error for '%s': %v", tc.input, err)
 			}
@@ -71,7 +71,7 @@ func TestOutputPathParser_Parse(t *testing.T) {
 	})
 
 	t.Run("it doesn't interpret single braces as variables", func(t *testing.T) {
-		result, err := core.OutputPathParserParse("{foo}", map[string]string{}, core.OutputPathParserDefaultFetcher)
+		result, err := core.OutputPathParserParse("{foo}", map[string]string{}, defaultFetcher)
 		if err != nil {
 			t.Errorf("got error: %v", err)
 		}
@@ -81,7 +81,7 @@ func TestOutputPathParser_Parse(t *testing.T) {
 	})
 
 	t.Run("it returns an error when the string is invalid", func(t *testing.T) {
-		result, err := core.OutputPathParserParse("{{ 1-1 }", map[string]string{}, core.OutputPathParserDefaultFetcher)
+		result, err := core.OutputPathParserParse("{{ 1-1 }", map[string]string{}, defaultFetcher)
 		if err == nil {
 			t.Errorf("expected error, got nil")
 		}
@@ -106,4 +106,10 @@ func TestOutputPathParser_Parse(t *testing.T) {
 			t.Errorf("expected 'quux', got '%s'", result)
 		}
 	})
+}
+
+// defaultFetcher looks identifiers up in variables, rendering missing ones
+// as "".
+func defaultFetcher(identifier string, variables map[string]string) string {
+	return variables[identifier]
 }

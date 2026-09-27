@@ -5,12 +5,14 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import "github.com/a-h/templ"
-import templruntime "github.com/a-h/templ/runtime"
+import (
+	"context"
+
+	"github.com/a-h/templ"
+	templruntime "github.com/a-h/templ/runtime"
+)
 
 // Port of lib/pinchflat_web/controllers/pages/page_html/onboarding_checklist.html.heex.
-
-import "context"
 
 func PagesPageHTMLOnboardingChecklist(ctx context.Context, mediaProfilesExist, sourcesExist bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {

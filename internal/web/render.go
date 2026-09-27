@@ -47,11 +47,6 @@ func (s *Server) Render(w http.ResponseWriter, r *http.Request, status int, layo
 	s.write(w, r, status, page)
 }
 
-// RenderFragment writes a component with no layout (htmx swaps).
-func (s *Server) RenderFragment(w http.ResponseWriter, r *http.Request, status int, c templ.Component) {
-	s.write(w, r, status, c)
-}
-
 func (s *Server) write(w http.ResponseWriter, r *http.Request, status int, c templ.Component) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)

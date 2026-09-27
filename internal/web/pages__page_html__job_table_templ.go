@@ -5,21 +5,20 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import "github.com/a-h/templ"
-import templruntime "github.com/a-h/templ/runtime"
+import (
+	"context"
+	"fmt"
+
+	"github.com/a-h/templ"
+	templruntime "github.com/a-h/templ/runtime"
+	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/db"
+)
 
 // Port of lib/pinchflat_web/controllers/pages/page_html/job_table_live.ex.
 // Rendered inline on the home page's first load (STRATEGY.md decision 4: no
 // htmx, no fragment endpoint); there's nothing to page or sort here, so no
 // query params are needed.
-
-import (
-	"context"
-	"fmt"
-
-	"github.com/mattbriancon/pinchflat/internal/core"
-	"github.com/mattbriancon/pinchflat/internal/db"
-)
 
 // PagesPageHTMLJobTableContent renders the content of the job table.
 func PagesPageHTMLJobTableContent(ctx context.Context, tasks []*core.Task) templ.Component {

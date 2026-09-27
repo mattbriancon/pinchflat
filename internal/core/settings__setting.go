@@ -15,17 +15,6 @@ type Setting struct {
 
 func (Setting) TableName() string { return "settings" }
 
-func NewSetting() *Setting {
-	return &Setting{
-		Onboarding:                    true,
-		VideoCodecPreference:          "avc",
-		AudioCodecPreference:          "m4a",
-		RouteToken:                    "tmp-token",
-		ExtractorSleepIntervalSeconds: 0,
-		RestrictFilenames:             Ptr(false),
-	}
-}
-
 var settingAllowedFields = []string{
 	"onboarding",
 	"yt_dlp_version",

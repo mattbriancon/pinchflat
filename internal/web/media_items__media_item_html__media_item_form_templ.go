@@ -5,8 +5,10 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import "github.com/a-h/templ"
-import templruntime "github.com/a-h/templ/runtime"
+import (
+	"github.com/a-h/templ"
+	templruntime "github.com/a-h/templ/runtime"
+)
 
 // Port of lib/pinchflat_web/controllers/media_items/media_item_html/media_item_form.html.heex
 func MediaItemsMediaItemHTMLMediaItemForm(f *Form, action string) templ.Component {

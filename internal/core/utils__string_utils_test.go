@@ -60,22 +60,6 @@ func TestStringUtils_DoubleBrace(t *testing.T) {
 	})
 }
 
-func TestStringUtils_WrapString(t *testing.T) {
-	t.Run("returns strings as-is", func(t *testing.T) {
-		result := core.StringUtilsWrapString("hello")
-		if result != "hello" {
-			t.Errorf("got %q, want %q", result, "hello")
-		}
-	})
-
-	t.Run("returns other values as inspected strings", func(t *testing.T) {
-		result := core.StringUtilsWrapString(1)
-		if result != "1" {
-			t.Errorf("got %q, want %q", result, "1")
-		}
-	})
-}
-
 // Helper function to check if a string is valid hexadecimal
 func isValidHex(s string) bool {
 	for _, c := range s {

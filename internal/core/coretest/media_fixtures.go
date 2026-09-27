@@ -45,24 +45,6 @@ func MediaItemFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.MediaIt
 	return mediaItem
 }
 
-// MediaItemWithMetadataFixture creates a MediaItem with metadata.
-func MediaItemWithMetadataFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.MediaItem {
-	t.Helper()
-	defaults := core.Attrs{
-		"metadata": map[string]string{
-			"metadata_filepath":  filepath.Join(ta.Config.MetadataDirectory, "metadata.json.gz"),
-			"thumbnail_filepath": filepath.Join(ta.Config.MetadataDirectory, "thumbnail.jpg"),
-		},
-	}
-
-	// Merge attrs into defaults
-	for k, v := range attrs {
-		defaults[k] = v
-	}
-
-	return MediaItemFixture(t, ta, defaults)
-}
-
 // MediaItemWithMetadataAttachmentsFixture creates a MediaItem with metadata attachments.
 func MediaItemWithMetadataAttachmentsFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.MediaItem {
 	t.Helper()
@@ -154,49 +136,5 @@ func MediaFilePathFixture() string {
 		"support",
 		"files",
 		"media.mkv",
-	)
-}
-
-// ThumbnailFilePathFixture returns the path to the test thumbnail file.
-func ThumbnailFilePathFixture() string {
-	return filepath.Join(
-		RepoPath(""),
-		"testdata",
-		"support",
-		"files",
-		"thumbnail.jpg",
-	)
-}
-
-// SubtitleFilePathFixture returns the path to the test subtitle file.
-func SubtitleFilePathFixture() string {
-	return filepath.Join(
-		RepoPath(""),
-		"testdata",
-		"support",
-		"files",
-		"subtitle.srt",
-	)
-}
-
-// InfoJsonFilePathFixture returns the path to the test info.json file.
-func InfoJsonFilePathFixture() string {
-	return filepath.Join(
-		RepoPath(""),
-		"testdata",
-		"support",
-		"files",
-		"example.info.json",
-	)
-}
-
-// MediaMetadataFilePathFixture returns the path to the test media metadata file.
-func MediaMetadataFilePathFixture() string {
-	return filepath.Join(
-		RepoPath(""),
-		"testdata",
-		"support",
-		"files",
-		"media_metadata.json",
 	)
 }

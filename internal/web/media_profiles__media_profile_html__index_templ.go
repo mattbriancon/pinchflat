@@ -5,8 +5,10 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import "github.com/a-h/templ"
-import templruntime "github.com/a-h/templ/runtime"
+import (
+	"github.com/a-h/templ"
+	templruntime "github.com/a-h/templ/runtime"
+)
 
 // Port of lib/pinchflat_web/controllers/media_profiles/media_profile_html/index.html.heex.
 func MediaProfilesHTMLIndex(profiles []MediaProfileWithCount) templ.Component {

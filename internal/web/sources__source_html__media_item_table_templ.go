@@ -5,8 +5,11 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import "github.com/a-h/templ"
-import templruntime "github.com/a-h/templ/runtime"
+import (
+	"github.com/a-h/templ"
+	templruntime "github.com/a-h/templ/runtime"
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
 
 // Port of lib/pinchflat_web/controllers/sources/source_html/media_item_table_live.ex
 // (the render/1 clauses; fetching lives in the .go file). Rendered inline for
@@ -16,10 +19,6 @@ import templruntime "github.com/a-h/templ/runtime"
 // ?tab= so a reload lands back on the right tab (STRATEGY.md decision 4: no
 // htmx, no fragment endpoint, no PubSub "reload_page" -- a browser reload
 // replaces it).
-
-import (
-	"github.com/mattbriancon/pinchflat/internal/core"
-)
 
 // SourceHTMLMediaItemTable is render/1.
 func SourceHTMLMediaItemTable(data *mediaItemTableData) templ.Component {

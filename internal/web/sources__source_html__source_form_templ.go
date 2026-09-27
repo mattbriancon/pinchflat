@@ -5,14 +5,13 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import "github.com/a-h/templ"
-import templruntime "github.com/a-h/templ/runtime"
-
-// Port of lib/pinchflat_web/controllers/sources/source_html/source_form.html.heex.
-
 import (
+	"github.com/a-h/templ"
+	templruntime "github.com/a-h/templ/runtime"
 	"github.com/mattbriancon/pinchflat/internal/core"
 )
+
+// Port of lib/pinchflat_web/controllers/sources/source_html/source_form.html.heex.
 
 // SourceFormProps is source_form/1's assigns.
 type SourceFormProps struct {

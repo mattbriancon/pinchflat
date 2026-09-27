@@ -20,10 +20,6 @@ type SourceMetadata struct {
 
 func (SourceMetadata) TableName() string { return "source_metadata" }
 
-func NewSourceMetadata() *SourceMetadata {
-	return &SourceMetadata{}
-}
-
 var sourceMetadataAllowedFields = []string{
 	"metadata_filepath",
 	"fanart_filepath",

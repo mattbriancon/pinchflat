@@ -5,12 +5,13 @@ package web
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import "github.com/a-h/templ"
-import templruntime "github.com/a-h/templ/runtime"
+import (
+	"github.com/a-h/templ"
+	templruntime "github.com/a-h/templ/runtime"
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
 
 // Port of lib/pinchflat_web/controllers/media_profiles/media_profile_html/actions_dropdown.html.heex.
-
-import "github.com/mattbriancon/pinchflat/internal/core"
 
 // MediaProfilesHTMLActionsDropdown is actions_dropdown/1.
 func MediaProfilesHTMLActionsDropdown(mediaProfile *core.MediaProfile) templ.Component {

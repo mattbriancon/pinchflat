@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"slices"
 	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/core"
@@ -160,26 +159,6 @@ func OutputPathTemplateOverrideHelp() string {
 func computeDateOffset(t time.Time, days int) string {
 	offset := t.AddDate(0, 0, -days)
 	return offset.Format("2006-01-02")
-}
-
-// Friendly frequency value: convert minutes to display text.
-func friendlyFrequencyValue(minutes int64) string {
-	freqs := FriendlyIndexFrequencies()
-	for _, pair := range freqs {
-		if pair[1].(int64) == minutes {
-			return pair[0].(string)
-		}
-	}
-	return fmt.Sprintf("%d minutes", minutes)
-}
-
-// FindProfileByID finds a media profile by ID in the list.
-func FindProfileByID(profiles []*core.MediaProfile, id int64) *core.MediaProfile {
-	idx := slices.IndexFunc(profiles, func(p *core.MediaProfile) bool { return p.ID == id })
-	if idx >= 0 {
-		return profiles[idx]
-	}
-	return nil
 }
 
 // sourcesJSONLiteral is String.raw`#{Jason.Formatter.pretty_print(Jason.encode!(@source))}`
