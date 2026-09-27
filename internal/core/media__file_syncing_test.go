@@ -9,7 +9,8 @@ import (
 )
 
 func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
-	t.Run("deletes outdated non-subtitle files", func(t *testing.T) {
+	t.Run("deletes outdated files", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -28,7 +29,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		}
 	})
 
-	t.Run("doesn't delete non-subtitle files if the new file is the same", func(t *testing.T) {
+	t.Run("keeps files if new matches old", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -47,7 +49,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		}
 	})
 
-	t.Run("doesn't delete the old file if the new file is missing that key", func(t *testing.T) {
+	t.Run("keeps old file if new is missing", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -63,7 +66,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		}
 	})
 
-	t.Run("deletes outdated subtitle files", func(t *testing.T) {
+	t.Run("handles subtitle files", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -85,7 +89,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		}
 	})
 
-	t.Run("keeps old subtitle files if the new file is the same", func(t *testing.T) {
+	t.Run("keeps subtitles if new matches old", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -107,7 +112,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		}
 	})
 
-	t.Run("doesn't delete old subtitle files if the new file is missing that key", func(t *testing.T) {
+	t.Run("keeps old subtitles if new is missing", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -126,7 +132,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 }
 
 func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
-	t.Run("removes attributes whose files are missing", func(t *testing.T) {
+	t.Run("removes missing file attributes", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -150,7 +157,8 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		}
 	})
 
-	t.Run("doesn't remove attributes where the files still exist", func(t *testing.T) {
+	t.Run("keeps existing file attributes", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -166,7 +174,7 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		}
 
 		if len(updatedItems) != 1 {
-			t.Fatalf("expected 1 updated item, got %d", len(updatedItems))
+			t.Fatalf("expected 1 updated item")
 		}
 
 		if updatedItems[0].MediaFilepath == nil {
@@ -174,13 +182,13 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		}
 	})
 
-	t.Run("doesn't touch other attributes if some are missing and some aren't", func(t *testing.T) {
+	t.Run("touches only missing attributes", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
 		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
 
-		// Delete the media file
 		if mediaItem.MediaFilepath != nil {
 			os.Remove(*mediaItem.MediaFilepath)
 		}
@@ -189,7 +197,7 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 			t.Fatal("thumbnail_filepath should be set")
 		}
 		if mediaItem.MediaFilepath == nil {
-			t.Fatal("media_filepath should be set (before check)")
+			t.Fatal("media_filepath should be set")
 		}
 
 		updatedItems, err := ta.FileSyncingSyncFilePresenceOnDisk(ctx, []*core.MediaItem{mediaItem})
@@ -198,7 +206,7 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		}
 
 		if len(updatedItems) != 1 {
-			t.Fatalf("expected 1 updated item, got %d", len(updatedItems))
+			t.Fatalf("expected 1 updated item")
 		}
 
 		if updatedItems[0].ThumbnailFilepath == nil {
@@ -209,7 +217,8 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		}
 	})
 
-	t.Run("removes subtitle files that are missing", func(t *testing.T) {
+	t.Run("handles missing subtitle files", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -227,7 +236,7 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		}
 
 		if len(updatedItems) != 1 {
-			t.Fatalf("expected 1 updated item, got %d", len(updatedItems))
+			t.Fatalf("expected 1 updated item")
 		}
 
 		updatedSubtitle := getSubtitleFilepath(updatedItems[0], "en")
@@ -236,7 +245,8 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		}
 	})
 
-	t.Run("doesn't remove subtitle files that still exist", func(t *testing.T) {
+	t.Run("keeps existing subtitle files", func(t *testing.T) {
+		t.Parallel()
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
@@ -252,7 +262,7 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		}
 
 		if len(updatedItems) != 1 {
-			t.Fatalf("expected 1 updated item, got %d", len(updatedItems))
+			t.Fatalf("expected 1 updated item")
 		}
 
 		updatedSubtitle := getSubtitleFilepath(updatedItems[0], "en")
@@ -261,8 +271,6 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		}
 	})
 }
-
-// Helper functions
 
 func getSubtitleFilepath(mediaItem *core.MediaItem, language string) string {
 	for _, pair := range mediaItem.SubtitleFilepaths {
