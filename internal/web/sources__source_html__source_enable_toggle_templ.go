@@ -9,9 +9,10 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 // Port of lib/pinchflat_web/controllers/sources/source_live/source_enable_toggle.ex's
-// render/1 (an inline ~H template, so there's no separate .heex source).
-// phx-change + phx-target become an hx-post on the toggle's hidden input,
-// fired on the "change" event the toggle's Alpine dispatches.
+// render/1 (an inline ~H template, so there's no separate .heex source). The
+// toggle is a plain form POST to /sources/{id}/enabled that redirects back
+// (STRATEGY.md decision 4: no htmx); Alpine still auto-submits the form on
+// the hidden input's "change" event, which the toggle already dispatches.
 
 import "fmt"
 
@@ -39,7 +40,20 @@ func SourceEnableToggleRender(sourceID int64, enabled bool) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div><form class=\"enabled_toggle_form\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div><form class=\"enabled_toggle_form\" method=\"post\" action=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var2 templ.SafeURL
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/sources/%v/enabled", sourceID)))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_enable_toggle.templ`, Line: 19, Col: 62}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -49,15 +63,13 @@ func SourceEnableToggleRender(sourceID int64, enabled bool) templ.Component {
 			Type:  "toggle",
 			Value: enabled,
 			Rest: templ.Attributes{
-				"hx-post":    P(ctx, "/_live/sources/%v/enabled", sourceID),
-				"hx-trigger": "change",
-				"hx-swap":    "none",
+				"x-on:change": "$el.form.requestSubmit()",
 			},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</form></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

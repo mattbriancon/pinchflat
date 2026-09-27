@@ -12,12 +12,12 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
 
-func TestSourceLiveIndexTableLive_InitialRendering(t *testing.T) {
+func TestSourceIndexTable_InitialRendering(t *testing.T) {
 	t.Run("lists all sources", func(t *testing.T) {
 		c := webtest.New(t)
 		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
 
-		res := c.Get("/_live/sources")
+		res := c.Get("/sources")
 
 		if !strings.Contains(res.HTML(t, 200), source.CustomName) {
 			t.Errorf("expected %q in response", source.CustomName)
@@ -28,7 +28,7 @@ func TestSourceLiveIndexTableLive_InitialRendering(t *testing.T) {
 		c := webtest.New(t)
 		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{"marked_for_deletion_at": coretest.Now()})
 
-		res := c.Get("/_live/sources")
+		res := c.Get("/sources")
 
 		if strings.Contains(res.HTML(t, 200), source.CustomName) {
 			t.Errorf("did not expect %q in response", source.CustomName)
@@ -40,7 +40,7 @@ func TestSourceLiveIndexTableLive_InitialRendering(t *testing.T) {
 		mediaProfile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{"marked_for_deletion_at": coretest.Now()})
 		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{"media_profile_id": mediaProfile.ID})
 
-		res := c.Get("/_live/sources")
+		res := c.Get("/sources")
 
 		if strings.Contains(res.HTML(t, 200), source.CustomName) {
 			t.Errorf("did not expect %q in response", source.CustomName)
@@ -51,7 +51,7 @@ func TestSourceLiveIndexTableLive_InitialRendering(t *testing.T) {
 		c := webtest.New(t)
 		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
 
-		req := httptest.NewRequest("GET", "/_live/sources", nil)
+		req := httptest.NewRequest("GET", "/sources", nil)
 		req.Host = "pinchflat.local"
 		html := c.Do(req).HTML(t, 200)
 
@@ -67,7 +67,7 @@ func TestSourceLiveIndexTableLive_InitialRendering(t *testing.T) {
 		c := webtest.New(t)
 		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
 
-		html := c.Get("/_live/sources").HTML(t, 200)
+		html := c.Get("/sources").HTML(t, 200)
 
 		if !strings.Contains(html, "podcast://") {
 			t.Errorf("expected 'podcast://' in response")
@@ -78,13 +78,13 @@ func TestSourceLiveIndexTableLive_InitialRendering(t *testing.T) {
 	})
 }
 
-func TestSourceLiveIndexTableLive_WhenTestingSorting(t *testing.T) {
+func TestSourceIndexTable_WhenTestingSorting(t *testing.T) {
 	t.Run("sorts by the custom_name by default", func(t *testing.T) {
 		c := webtest.New(t)
 		source1 := coretest.SourceFixture(t, c.TestApp, core.Attrs{"custom_name": "Source_B"})
 		source2 := coretest.SourceFixture(t, c.TestApp, core.Attrs{"custom_name": "Source_A"})
 
-		html := c.Get("/_live/sources").HTML(t, 200)
+		html := c.Get("/sources").HTML(t, 200)
 
 		AssertBefore(t, html, source2.CustomName, source1.CustomName)
 	})
@@ -95,7 +95,7 @@ func TestSourceLiveIndexTableLive_WhenTestingSorting(t *testing.T) {
 		source2 := coretest.SourceFixture(t, c.TestApp, core.Attrs{"custom_name": "Source_A"})
 
 		// Clicking the "Name" header toggles custom_name asc -> desc.
-		html := c.Get("/_live/sources", map[string]string{"sort_key": "custom_name", "sort_direction": "desc"}).HTML(t, 200)
+		html := c.Get("/sources", map[string]string{"sort_key": "custom_name", "sort_direction": "desc"}).HTML(t, 200)
 
 		AssertBefore(t, html, source1.CustomName, source2.CustomName)
 	})
@@ -106,11 +106,11 @@ func TestSourceLiveIndexTableLive_WhenTestingSorting(t *testing.T) {
 		source2 := coretest.SourceFixture(t, c.TestApp, core.Attrs{"custom_name": "Source_A", "enabled": false})
 
 		// Clicking the "Enabled?" header: false sorts before true ascending.
-		html := c.Get("/_live/sources", map[string]string{"sort_key": "enabled", "sort_direction": "asc"}).HTML(t, 200)
+		html := c.Get("/sources", map[string]string{"sort_key": "enabled", "sort_direction": "asc"}).HTML(t, 200)
 		AssertBefore(t, html, sourceRowMarker(source2.ID), sourceRowMarker(source1.ID))
 
 		// Clicking it again toggles the direction.
-		html = c.Get("/_live/sources", map[string]string{"sort_key": "enabled", "sort_direction": "desc"}).HTML(t, 200)
+		html = c.Get("/sources", map[string]string{"sort_key": "enabled", "sort_direction": "desc"}).HTML(t, 200)
 		AssertBefore(t, html, sourceRowMarker(source1.ID), sourceRowMarker(source2.ID))
 	})
 
@@ -119,13 +119,13 @@ func TestSourceLiveIndexTableLive_WhenTestingSorting(t *testing.T) {
 		source1 := coretest.SourceFixture(t, c.TestApp, core.Attrs{"custom_name": "Source_B"})
 		source2 := coretest.SourceFixture(t, c.TestApp, core.Attrs{"custom_name": "source_a"})
 
-		html := c.Get("/_live/sources").HTML(t, 200)
+		html := c.Get("/sources").HTML(t, 200)
 
 		AssertBefore(t, html, source2.CustomName, source1.CustomName)
 	})
 }
 
-func TestSourceLiveIndexTableLive_WhenTestingPagination(t *testing.T) {
+func TestSourceIndexTable_WhenTestingPagination(t *testing.T) {
 	t.Run("moving to the next page loads new records", func(t *testing.T) {
 		c := webtest.New(t)
 		// The Go port hardcodes the LiveView's `results_per_page: 10` (there's
@@ -139,7 +139,7 @@ func TestSourceLiveIndexTableLive_WhenTestingPagination(t *testing.T) {
 		}
 		first, last := sources[0], sources[10]
 
-		html := c.Get("/_live/sources").HTML(t, 200)
+		html := c.Get("/sources").HTML(t, 200)
 		if !strings.Contains(html, first.CustomName) {
 			t.Errorf("expected first page to contain %q", first.CustomName)
 		}
@@ -147,7 +147,7 @@ func TestSourceLiveIndexTableLive_WhenTestingPagination(t *testing.T) {
 			t.Errorf("did not expect first page to contain %q", last.CustomName)
 		}
 
-		html = c.Get("/_live/sources", map[string]string{"page": "2"}).HTML(t, 200)
+		html = c.Get("/sources", map[string]string{"page": "2"}).HTML(t, 200)
 		if strings.Contains(html, first.CustomName) {
 			t.Errorf("did not expect second page to contain %q", first.CustomName)
 		}
@@ -157,22 +157,9 @@ func TestSourceLiveIndexTableLive_WhenTestingPagination(t *testing.T) {
 	})
 }
 
-func TestSourceLiveIndexTableLive_WhenTestingTheEnableToggle(t *testing.T) {
-	t.Run("updates the source's enabled status", func(t *testing.T) {
-		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{"enabled": true})
-
-		c.Post(fmt.Sprintf("/_live/sources/%d/enabled", source.ID), "source", core.Attrs{"enabled": false})
-
-		reloaded, err := c.App.SourcesGetSource(c.Ctx, source.ID)
-		if err != nil {
-			t.Fatalf("reload failed: %v", err)
-		}
-		if reloaded.Enabled {
-			t.Errorf("expected source to be disabled")
-		}
-	})
-}
+// TestSourceIndexTable_WhenTestingTheEnableToggle moved to
+// sources__source_html__source_enable_toggle_test.go: enabling/disabling a
+// source is now its own POST /sources/{id}/enabled route (see router.go).
 
 func AssertBefore(t *testing.T, html, first, second string) {
 	t.Helper()

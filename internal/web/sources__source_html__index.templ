@@ -2,7 +2,7 @@ package web
 
 // Port of lib/pinchflat_web/controllers/sources/source_html/index.html.heex.
 
-templ SourceHTMLIndex() {
+templ SourceHTMLIndex(state *sourceIndexTableState) {
 	<div class="page-header">
 		<h2 class="page-title">Sources</h2>
 		<nav class="flex items-center justify-between gap-6">
@@ -24,7 +24,7 @@ templ SourceHTMLIndex() {
 
 	<div class="card overflow-hidden">
 		<div class="max-w-full overflow-x-auto">
-			<div id="source-table" hx-get={ P(ctx, "/_live/sources") } hx-trigger="load" hx-swap="outerHTML"></div>
+			@SourceHTMLIndexTable(state)
 		</div>
 	</div>
 }

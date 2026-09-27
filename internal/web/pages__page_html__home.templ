@@ -2,9 +2,19 @@ package web
 
 // Port of lib/pinchflat_web/controllers/pages/page_html/home.html.heex.
 
-import "context"
+import (
+	"context"
 
-templ PagesPageHTMLHome(ctx context.Context, mediaProfileCount, sourceCount, mediaItemCount, mediaItemSize int64) {
+	"github.com/mattbriancon/pinchflat/internal/core"
+)
+
+templ PagesPageHTMLHome(
+	ctx context.Context,
+	mediaProfileCount, sourceCount, mediaItemCount, mediaItemSize int64,
+	downloadedRecords []*core.MediaItem, downloadedPage, downloadedTotalPages, downloadedTotalCount int,
+	pendingRecords []*core.MediaItem, pendingPage, pendingTotalPages, pendingTotalCount int,
+	tasks []*core.Task,
+) {
 	<div class="grid grid-cols-2 gap-3 md:grid-cols-4">
 		<div class="card flex flex-col justify-center px-3 py-2.5 sm:px-4 sm:py-3">
 			<a href={ templ.URL(P(ctx, "/media_profiles")) } class="flex flex-col">
@@ -51,17 +61,17 @@ templ PagesPageHTMLHome(ctx context.Context, mediaProfileCount, sourceCount, med
 			{
 				Title: "Downloaded",
 				ID: "downloaded",
-				Content: PagesPageHTMLHistoryTableLiveWrapper(ctx, "downloaded"),
+				Content: PagesPageHTMLHistoryTableContent(ctx, "downloaded", downloadedPage, downloadedTotalPages, downloadedRecords, downloadedTotalCount),
 			},
 			{
 				Title: "Pending",
 				ID: "pending",
-				Content: PagesPageHTMLHistoryTableLiveWrapper(ctx, "pending"),
+				Content: PagesPageHTMLHistoryTableContent(ctx, "pending", pendingPage, pendingTotalPages, pendingRecords, pendingTotalCount),
 			},
 			{
 				Title: "Active Tasks",
 				ID: "active-tasks",
-				Content: PagesPageHTMLJobTableLiveWrapper(ctx),
+				Content: PagesPageHTMLJobTableContent(ctx, tasks),
 			},
 		}, nil)
 	</div>

@@ -1,7 +1,9 @@
 package web
 
-// Port of lib/pinchflat_web/router.ex. Every public URL is unchanged;
-// /_live/* are new internal endpoints that replace LiveView events (htmx).
+// Port of lib/pinchflat_web/router.ex. Every public URL is unchanged.
+// There are no htmx fragment routes (STRATEGY.md decision 4: every page
+// renders everything on first load); the two mutations that used to be
+// LiveView events are plain form POSTs that redirect back.
 // Hand-written W4 infrastructure.
 
 import (
@@ -72,6 +74,7 @@ func (s *Server) Router() http.Handler {
 		r.Post("/sources/{source_id}/force_index", s.SourceControllerForceIndex)
 		r.Post("/sources/{source_id}/force_metadata_refresh", s.SourceControllerForceMetadataRefresh)
 		r.Post("/sources/{source_id}/sync_files_on_disk", s.SourceControllerSyncFilesOnDisk)
+		r.Post("/sources/{id}/enabled", s.SourceEnableToggleUpdate)
 
 		// resources "/media", only: [:show, :edit, :update, :delete], nested under sources
 		r.Get("/sources/{source_id}/media/{id}", s.MediaItemControllerShow)
@@ -81,13 +84,8 @@ func (s *Server) Router() http.Handler {
 		r.Delete("/sources/{source_id}/media/{id}", s.MediaItemControllerDelete)
 		r.Post("/sources/{source_id}/media/{media_item_id}/force_download", s.MediaItemControllerForceDownload)
 
-		// LiveView replacements (htmx fragments and actions)
-		r.Get("/_live/jobs", s.JobTableLiveRender)
-		r.Get("/_live/history", s.HistoryTableLiveRender)
-		r.Get("/_live/sources", s.SourceLiveIndexTableLiveRender)
-		r.Post("/_live/sources/{id}/enabled", s.SourceEnableToggleUpdate)
-		r.Get("/_live/sources/{id}/media", s.MediaItemTableLiveRender)
-		r.Post("/_live/upgrade", s.UpgradeButtonLiveCheckMatchingText)
+		// The pro upgrade modal's "Unlock Pro" form.
+		r.Post("/settings/pro", s.SettingControllerUnlockPro)
 	})
 
 	return r

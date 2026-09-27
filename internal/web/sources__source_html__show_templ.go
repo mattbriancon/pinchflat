@@ -12,7 +12,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import "github.com/mattbriancon/pinchflat/internal/core"
 
-func SourceHTMLShow(source *core.Source, pendingTasks []*core.Task) templ.Component {
+func SourceHTMLShow(source *core.Source, pendingTasks []*core.Task, pending, downloaded, other *mediaItemTableData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -92,7 +92,7 @@ func SourceHTMLShow(source *core.Source, pendingTasks []*core.Task) templ.Compon
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = TabTabbedLayout(sourceHTMLShowTabs(source, pendingTasks), sourceHTMLShowTabAppend(source)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = TabTabbedLayout(sourceHTMLShowTabs(source, pendingTasks, pending, downloaded, other), sourceHTMLShowTabAppend(source)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -166,12 +166,12 @@ func sourceHTMLShowTabAppend(source *core.Source) templ.Component {
 	})
 }
 
-func sourceHTMLShowTabs(source *core.Source, pendingTasks []*core.Task) []TabTab {
+func sourceHTMLShowTabs(source *core.Source, pendingTasks []*core.Task, pending, downloaded, other *mediaItemTableData) []TabTab {
 	return []TabTab{
 		{ID: "source", Title: "Source", Content: sourceHTMLShowSourceTab(source)},
-		{ID: "pending", Title: "Pending", Content: SourceHTMLMediaItemTableLiveWrapper(source.ID, "pending")},
-		{ID: "downloaded", Title: "Downloaded", Content: SourceHTMLMediaItemTableLiveWrapper(source.ID, "downloaded")},
-		{ID: "other", Title: "Other", Content: SourceHTMLMediaItemTableLiveWrapper(source.ID, "other")},
+		{ID: "pending", Title: "Pending", Content: SourceHTMLMediaItemTable(pending)},
+		{ID: "downloaded", Title: "Downloaded", Content: SourceHTMLMediaItemTable(downloaded)},
+		{ID: "other", Title: "Other", Content: SourceHTMLMediaItemTable(other)},
 		{ID: "tasks", Title: "Tasks", Content: sourceHTMLShowTasksTab(pendingTasks)},
 	}
 }

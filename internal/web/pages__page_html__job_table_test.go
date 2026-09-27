@@ -11,7 +11,9 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
 
-// Port of test/pinchflat_web/controllers/pages/job_table_live_test.exs.
+// Port of test/pinchflat_web/controllers/pages/job_table_live_test.exs. The
+// job table is now rendered inline on the home page ("/") instead of the
+// old /_live/jobs fragment (STRATEGY.md decision 4: no htmx).
 
 // createMediaItemJob is create_media_item_job/1.
 func createMediaItemJob(t testing.TB, c *webtest.Client, jobState string) (*core.Source, *core.MediaItem, *core.Task) {
@@ -48,10 +50,20 @@ func createSourceJob(t testing.TB, c *webtest.Client, jobState string) (*core.So
 	return source, task
 }
 
+// homeClient is a client past onboarding, ready to render the home page.
+func homeClient(t testing.TB) *webtest.Client {
+	t.Helper()
+	c := webtest.New(t)
+	if _, err := c.App.SettingsSet(c.Ctx, core.KW{core.Opt("onboarding", false)}); err != nil {
+		t.Fatalf("SettingsSet: %v", err)
+	}
+	return c
+}
+
 func TestJobTableLive_InitialRendering(t *testing.T) {
 	t.Run("shows message when no records", func(t *testing.T) {
-		c := webtest.New(t)
-		res := c.Get("/_live/jobs")
+		c := homeClient(t)
+		res := c.Get("/")
 		html := res.HTML(t, 200)
 
 		if !strings.Contains(html, "Nothing Here!") {
@@ -63,10 +75,10 @@ func TestJobTableLive_InitialRendering(t *testing.T) {
 	})
 
 	t.Run("shows records when present", func(t *testing.T) {
-		c := webtest.New(t)
+		c := homeClient(t)
 		createMediaItemJob(t, c, "executing")
 
-		res := c.Get("/_live/jobs")
+		res := c.Get("/")
 		html := res.HTML(t, 200)
 
 		if !strings.Contains(html, "Subject") {
@@ -75,11 +87,11 @@ func TestJobTableLive_InitialRendering(t *testing.T) {
 	})
 
 	t.Run("doesn't show records when not in executing state", func(t *testing.T) {
-		c := webtest.New(t)
+		c := homeClient(t)
 		createMediaItemJob(t, c, "scheduled")
 		createMediaItemJob(t, c, "completed")
 
-		res := c.Get("/_live/jobs")
+		res := c.Get("/")
 		html := res.HTML(t, 200)
 
 		if !strings.Contains(html, "Nothing Here!") {
@@ -93,10 +105,10 @@ func TestJobTableLive_InitialRendering(t *testing.T) {
 
 func TestJobTableLive_JobRendering(t *testing.T) {
 	t.Run("shows worker name", func(t *testing.T) {
-		c := webtest.New(t)
+		c := homeClient(t)
 		createMediaItemJob(t, c, "executing")
 
-		res := c.Get("/_live/jobs")
+		res := c.Get("/")
 		html := res.HTML(t, 200)
 
 		if !strings.Contains(html, "Downloading Media") {
@@ -105,10 +117,10 @@ func TestJobTableLive_JobRendering(t *testing.T) {
 	})
 
 	t.Run("shows the media item title", func(t *testing.T) {
-		c := webtest.New(t)
+		c := homeClient(t)
 		_, mediaItem, _ := createMediaItemJob(t, c, "executing")
 
-		res := c.Get("/_live/jobs")
+		res := c.Get("/")
 		html := res.HTML(t, 200)
 
 		if !strings.Contains(html, *mediaItem.Title) {
@@ -117,10 +129,10 @@ func TestJobTableLive_JobRendering(t *testing.T) {
 	})
 
 	t.Run("shows a media item link", func(t *testing.T) {
-		c := webtest.New(t)
+		c := homeClient(t)
 		_, mediaItem, _ := createMediaItemJob(t, c, "executing")
 
-		res := c.Get("/_live/jobs")
+		res := c.Get("/")
 		html := res.HTML(t, 200)
 
 		want := "/sources/" + strconv.FormatInt(mediaItem.SourceID, 10) + "/media/" + strconv.FormatInt(mediaItem.ID, 10)
@@ -130,10 +142,10 @@ func TestJobTableLive_JobRendering(t *testing.T) {
 	})
 
 	t.Run("shows the source custom name", func(t *testing.T) {
-		c := webtest.New(t)
+		c := homeClient(t)
 		source, _ := createSourceJob(t, c, "executing")
 
-		res := c.Get("/_live/jobs")
+		res := c.Get("/")
 		html := res.HTML(t, 200)
 
 		if !strings.Contains(html, source.CustomName) {
@@ -142,10 +154,10 @@ func TestJobTableLive_JobRendering(t *testing.T) {
 	})
 
 	t.Run("shows a source link", func(t *testing.T) {
-		c := webtest.New(t)
+		c := homeClient(t)
 		source, _ := createSourceJob(t, c, "executing")
 
-		res := c.Get("/_live/jobs")
+		res := c.Get("/")
 		html := res.HTML(t, 200)
 
 		want := "/sources/" + strconv.FormatInt(source.ID, 10)
@@ -155,9 +167,10 @@ func TestJobTableLive_JobRendering(t *testing.T) {
 	})
 
 	t.Run("listens for job:state change events", func(t *testing.T) {
-		// PubSub broadcast -> re-render has no Go equivalent: there is no server
-		// push in the htmx port (STRATEGY.md); the Reload button re-fetches
-		// /_live/jobs, which the other tests here exercise.
-		t.Skip("DROPPED: no server push; replaced by the Reload button")
+		// PubSub broadcast -> re-render has no Go equivalent, and there is no
+		// server push or refresh button in the no-htmx port (STRATEGY.md): a
+		// plain browser reload of "/" is the replacement, which the other
+		// tests here exercise.
+		t.Skip("DROPPED: no server push; a reload of the page replaces it")
 	})
 }

@@ -10,6 +10,12 @@ import templruntime "github.com/a-h/templ/runtime"
 
 // Port of lib/pinchflat_web/components/custom_components/tab_components.ex.
 // tabs.js (web/assets/js/tabs.js) provides getTabFromHash/setTabByName.
+//
+// Tabs are still switched client-side (no reload), but since paging/search
+// inside a tab now reloads the whole page (STRATEGY.md decision 4), the
+// selected tab is also carried as the ?tab= query param so a reload lands
+// back on it; tabInitialID reads it, falling back to the URL hash, then the
+// first tab.
 
 // TabTabbedLayout is tabbed_layout/1: tabs is required and non-empty, like
 // the Elixir version (hd(assigns.tab)).
@@ -34,14 +40,15 @@ func TabTabbedLayout(tabs []TabTab, tabAppend templ.Component) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
+		initialTab := tabInitialID(ctx, tabs)
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div x-data=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ openTab: getTabFromHash('" + tabFirstID(tabs) + "', '" + tabFirstID(tabs) + "'), activeClasses: 'text-white border-meta-5', inactiveClasses: 'border-transparent' }")
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ openTab: getTabFromHash('" + initialTab + "', '" + initialTab + "'), activeClasses: 'text-white border-meta-5', inactiveClasses: 'border-transparent' }")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__tab_components.templ`, Line: 10, Col: 178}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__tab_components.templ`, Line: 17, Col: 166}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
@@ -52,9 +59,9 @@ func TabTabbedLayout(tabs []TabTab, tabAppend templ.Component) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue("openTab = getTabFromHash(openTab, '" + tabFirstID(tabs) + "')")
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue("openTab = getTabFromHash(openTab, '" + initialTab + "')")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__tab_components.templ`, Line: 11, Col: 90}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__tab_components.templ`, Line: 18, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 		if templ_7745c5c3_Err != nil {
@@ -72,7 +79,7 @@ func TabTabbedLayout(tabs []TabTab, tabAppend templ.Component) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue("openTab = setTabByName('" + tab.ID + "')")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__tab_components.templ`, Line: 19, Col: 69}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__tab_components.templ`, Line: 26, Col: 69}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 			if templ_7745c5c3_Err != nil {
@@ -85,7 +92,7 @@ func TabTabbedLayout(tabs []TabTab, tabAppend templ.Component) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue("openTab === '" + tab.ID + "' ? activeClasses : inactiveClasses")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__tab_components.templ`, Line: 20, Col: 85}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__tab_components.templ`, Line: 27, Col: 85}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 			if templ_7745c5c3_Err != nil {
@@ -98,7 +105,7 @@ func TabTabbedLayout(tabs []TabTab, tabAppend templ.Component) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(tab.Title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__tab_components.templ`, Line: 23, Col: 17}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__tab_components.templ`, Line: 30, Col: 17}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -131,7 +138,7 @@ func TabTabbedLayout(tabs []TabTab, tabAppend templ.Component) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue("openTab === '" + tab.ID + "'")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__tab_components.templ`, Line: 35, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__tab_components.templ`, Line: 42, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 			if templ_7745c5c3_Err != nil {

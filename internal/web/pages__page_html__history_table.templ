@@ -1,6 +1,10 @@
 package web
 
 // Port of lib/pinchflat_web/controllers/pages/page_html/history_table_live.ex.
+// Rendered inline on the home page's first load; paging uses its own query
+// param per table (<media_state>_page) so paging one history table doesn't
+// reset the other, and carries ?tab= so the right tab stays selected on
+// reload (STRATEGY.md decision 4: no htmx, no fragment endpoint).
 
 import (
 	"context"
@@ -10,40 +14,20 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/db"
 )
 
-// PagesPageHTMLHistoryTableLiveWrapper wraps the history table with htmx.
-templ PagesPageHTMLHistoryTableLiveWrapper(ctx context.Context, mediaState string) {
-	<div
-		id={ fmt.Sprintf("history-table-%s", mediaState) }
-		hx-get={ fmt.Sprintf("/_live/history?media_state=%s&page=1", mediaState) }
-		hx-trigger="load"
-		hx-swap="outerHTML"
-	>
-		Loading...
-	</div>
-}
-
-// PagesPageHTMLHistoryTableLiveContent renders the content of the history table.
-templ PagesPageHTMLHistoryTableLiveContent(ctx context.Context, mediaState string, page, totalPages int, records []*core.MediaItem, totalRecordCount int) {
+// PagesPageHTMLHistoryTableContent renders the content of the history table.
+templ PagesPageHTMLHistoryTableContent(ctx context.Context, mediaState string, page, totalPages int, records []*core.MediaItem, totalRecordCount int) {
 	if len(records) == 0 {
 		<div class="mb-4 flex items-center">
-			<button hx-get={ historyTableReloadURL(mediaState, page) } hx-target="closest div" hx-swap="outerHTML" class="h-8 w-8">
-				@CoreIcon("hero-arrow-path", "", nil)
-			</button>
-			<p class="ml-2">Nothing Here!</p>
+			<p>Nothing Here!</p>
 		</div>
 	} else {
 		<div>
 			<span class="mb-4 flex items-center">
-				<button hx-get={ historyTableReloadURL(mediaState, page) } hx-target="closest div" hx-swap="outerHTML" class="h-8 w-8" title="Refresh">
-					@CoreIcon("hero-arrow-path", "", nil)
-				</button>
-				<span class="ml-2">
-					Showing @TextLocalizedNumber(len(records)) of @TextLocalizedNumber(totalRecordCount)
-				</span>
+				Showing @TextLocalizedNumber(len(records)) of @TextLocalizedNumber(totalRecordCount)
 			</span>
 			@historyTableContentTable(ctx, records)
 			<section class="flex justify-center mt-5">
-				@TableLivePaginationControls(page, totalPages, historyTablePrevAttrs(mediaState, page), historyTableNextAttrs(mediaState, page, totalPages))
+				@TableLivePaginationControls(page, totalPages, historyTablePageURL(ctx, mediaState, page, totalPages, -1), historyTablePageURL(ctx, mediaState, page, totalPages, 1))
 			</section>
 		</div>
 	}
@@ -119,28 +103,24 @@ func derefString(s *string) string {
 	return *s
 }
 
-func historyTableReloadURL(mediaState string, page int) string {
-	return fmt.Sprintf("/_live/history?media_state=%s&page=%d", mediaState, page)
+// historyTablePageParam is the query param that carries this table's page
+// number (kept separate per media_state so paging one doesn't reset the
+// other's page).
+func historyTablePageParam(mediaState string) string {
+	return mediaState + "_page"
 }
 
-func historyTablePrevAttrs(mediaState string, page int) templ.Attributes {
-	if page <= 1 {
-		return nil
+// historyTablePageURL builds the link for the prev ("delta" -1) or next
+// ("delta" 1) page, "" when that direction isn't available.
+func historyTablePageURL(ctx context.Context, mediaState string, page, totalPages, delta int) string {
+	if delta < 0 && page <= 1 {
+		return ""
 	}
-	return templ.Attributes{
-		"hx-get":    historyTableReloadURL(mediaState, page-1),
-		"hx-target": "closest div",
-		"hx-swap":   "outerHTML",
+	if delta > 0 && page >= totalPages {
+		return ""
 	}
-}
-
-func historyTableNextAttrs(mediaState string, page, totalPages int) templ.Attributes {
-	if page >= totalPages {
-		return nil
-	}
-	return templ.Attributes{
-		"hx-get":    historyTableReloadURL(mediaState, page+1),
-		"hx-target": "closest div",
-		"hx-swap":   "outerHTML",
-	}
+	return withQuery(ctx, P(ctx, "/"), map[string]string{
+		historyTablePageParam(mediaState): fmt.Sprint(page + delta),
+		"tab":                             mediaState,
+	})
 }

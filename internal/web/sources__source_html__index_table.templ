@@ -2,22 +2,22 @@ package web
 
 // Port of lib/pinchflat_web/controllers/sources/source_live/index_table_live.html.heex.
 
-templ SourceLiveIndexTableLiveRenderComponent(state *sourceLiveIndexTableLiveState) {
-	<div id="source-table" class="flex flex-col">
+templ SourceHTMLIndexTable(state *sourceIndexTableState) {
+	<div class="flex flex-col">
 		@TableTable(TableProps{
 			Rows:          sourceLiveIndexRows(state.Sources),
 			TableClass:    "text-white",
 			SortKey:       state.SortKey,
 			SortDirection: state.SortDirection,
 			Columns:       sourceLiveIndexColumns(state),
-			HeaderAttrs:   sourceLiveIndexHeaderAttrs(ctx, state),
+			HeaderURL:     sourceIndexHeaderURL(ctx, state),
 		})
 		<section class="flex justify-center my-3">
 			@TableLivePaginationControls(
 				state.Page,
 				state.TotalPages,
-				sourceLiveIndexPageAttrs(ctx, state, "dec"),
-				sourceLiveIndexPageAttrs(ctx, state, "inc"),
+				sourceIndexPageURL(ctx, state, -1),
+				sourceIndexPageURL(ctx, state, 1),
 			)
 		</section>
 	</div>
@@ -31,7 +31,7 @@ func sourceLiveIndexRows(sources []*sourceLiveIndexRow) []any {
 	return out
 }
 
-func sourceLiveIndexColumns(state *sourceLiveIndexTableLiveState) []TableColumn {
+func sourceLiveIndexColumns(state *sourceIndexTableState) []TableColumn {
 	return []TableColumn{
 		{
 			Label: "Name", Class: "cell-wrap", SortKey: "custom_name",
@@ -78,7 +78,7 @@ templ sourceLiveIndexCustomName(row *sourceLiveIndexRow) {
 	{ row.CustomName }
 }
 
-templ sourceLiveIndexRSSCell(state *sourceLiveIndexTableLiveState, row *sourceLiveIndexRow) {
+templ sourceLiveIndexRSSCell(state *sourceIndexTableState, row *sourceLiveIndexRow) {
 	{{ feedURL := sourceLiveIndexRSSFeedURL(state.FeedBaseURL, row) }}
 	<div class="flex items-center gap-1">
 		<a

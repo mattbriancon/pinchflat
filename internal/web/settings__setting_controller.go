@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/core"
@@ -99,4 +100,28 @@ func (s *Server) SettingControllerDownloadLogs(w http.ResponseWriter, r *http.Re
 
 	// Serve the file
 	http.ServeContent(w, r, filename, stat.ModTime(), file)
+}
+
+// settingControllerUnlockProPhrase is `normalized_text == "got it"`.
+const settingControllerUnlockProPhrase = "got it"
+
+// SettingControllerUnlockPro is POST /settings/pro: the upgrade modal's
+// "Unlock Pro" form. It sets pro_enabled once the typed phrase matches and
+// redirects back to the page it came from either way (STRATEGY.md decision
+// 4: a plain form POST, not an htmx fragment update; port of
+// lib/pinchflat_web/components/layouts/partials/upgrade_button_live.ex's
+// handle_event("check_matching_text", ...)).
+func (s *Server) SettingControllerUnlockPro(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	text := strings.ToLower(strings.TrimSpace(r.PostForm.Get("unlock-pro-textbox")))
+	if text == settingControllerUnlockProPhrase {
+		if _, err := s.App.SettingsSet(r.Context(), core.KW{core.Opt("pro_enabled", true)}); err != nil {
+			s.Fail(w, r, err)
+			return
+		}
+	}
+	s.redirectBack(w, r, P(r.Context(), "/"))
 }

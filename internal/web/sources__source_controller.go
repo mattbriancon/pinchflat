@@ -13,7 +13,13 @@ import (
 
 // SourceControllerIndex renders the sources index page.
 func (s *Server) SourceControllerIndex(w http.ResponseWriter, r *http.Request) {
-	s.Render(w, r, http.StatusOK, LayoutApp, SourceHTMLIndex())
+	ctx := r.Context()
+	state, err := s.sourceIndexTableFetch(ctx, r)
+	if err != nil {
+		s.Fail(w, r, err)
+		return
+	}
+	s.Render(w, r, http.StatusOK, LayoutApp, SourceHTMLIndex(state))
 }
 
 // SourceControllerNew renders the new source form.
@@ -103,7 +109,23 @@ func (s *Server) SourceControllerShow(w http.ResponseWriter, r *http.Request) {
 		pendingTasks[i], _ = s.App.PreloadTaskJob(ctx, task)
 	}
 
-	s.Render(w, r, http.StatusOK, LayoutApp, SourceHTMLShow(source, pendingTasks))
+	pending, err := s.mediaItemTableFetch(ctx, r, source, "pending")
+	if err != nil {
+		s.Fail(w, r, err)
+		return
+	}
+	downloaded, err := s.mediaItemTableFetch(ctx, r, source, "downloaded")
+	if err != nil {
+		s.Fail(w, r, err)
+		return
+	}
+	other, err := s.mediaItemTableFetch(ctx, r, source, "other")
+	if err != nil {
+		s.Fail(w, r, err)
+		return
+	}
+
+	s.Render(w, r, http.StatusOK, LayoutApp, SourceHTMLShow(source, pendingTasks, pending, downloaded, other))
 }
 
 // SourceControllerEdit renders the source edit form.
