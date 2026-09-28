@@ -22,6 +22,17 @@ type Form struct {
 	// Params, when set, are the raw submitted params; Phoenix shows
 	// those back to the user after a failed submit.
 	Params store.Attrs
+
+	// Values and Errors back a changeset-free form (NewForm): field name ->
+	// value to display, and field name -> validation messages.
+	Values map[string]any
+	Errors map[string][]string
+}
+
+// NewForm builds a form from plain values and validation errors (used by
+// typed params instead of a changeset).
+func NewForm(as string, values map[string]any, errs map[string][]string) *Form {
+	return &Form{As: as, Values: values, Errors: errs}
 }
 
 // FormFor is to_form(changeset, as: as).
@@ -48,13 +59,19 @@ func (f *Form) Field(name string) FormField {
 		if f.Changeset.Action != "" {
 			ff.Errors = f.Changeset.ErrorsOn(name)
 		}
+		return ff
 	}
+	ff.Value = f.Values[name]
+	ff.Errors = f.Errors[name]
 	return ff
 }
 
 // HasErrors reports whether the error banner should show (@changeset.action).
 func (f *Form) HasErrors() bool {
-	return f.Changeset != nil && f.Changeset.Action != "" && !f.Changeset.Valid()
+	if f.Changeset == nil {
+		return len(f.Errors) > 0
+	}
+	return f.Changeset.Action != "" && !f.Changeset.Valid()
 }
 
 // InputValue renders a value like Phoenix.HTML.Form.normalize_value/2.
