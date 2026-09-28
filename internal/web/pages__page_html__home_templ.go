@@ -11,15 +11,15 @@ import templruntime "github.com/a-h/templ/runtime"
 import (
 	"context"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func PagesPageHTMLHome(
 	ctx context.Context,
 	mediaProfileCount, sourceCount, mediaItemCount, mediaItemSize int64,
-	downloadedRecords []*core.MediaItem, downloadedPage, downloadedTotalPages, downloadedTotalCount int,
-	pendingRecords []*core.MediaItem, pendingPage, pendingTotalPages, pendingTotalCount int,
-	tasks []*core.Task,
+	downloadedRecords []*store.MediaItem, downloadedPage, downloadedTotalPages, downloadedTotalCount int,
+	pendingRecords []*store.MediaItem, pendingPage, pendingTotalPages, pendingTotalCount int,
+	tasks []*store.Task,
 ) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

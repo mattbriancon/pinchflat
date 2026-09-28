@@ -16,12 +16,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // PagesPageHTMLJobTableContent renders the content of the job table.
-func PagesPageHTMLJobTableContent(ctx context.Context, tasks []*core.Task) templ.Component {
+func PagesPageHTMLJobTableContent(ctx context.Context, tasks []*store.Task) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {

@@ -3,7 +3,7 @@
 package web
 
 import (
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/app"
 )
 
 // Options are the web-only settings (PinchflatWeb.Endpoint config).
@@ -19,12 +19,12 @@ type Options struct {
 // Server holds what handlers need. Handlers are methods on *Server named
 // after the Elixir controller and action, e.g. SourceControllerIndex.
 type Server struct {
-	App  *core.App
+	App  *app.App
 	Opts Options
 }
 
 // New builds a Server.
-func New(app *core.App, opts Options) *Server {
+func New(app *app.App, opts Options) *Server {
 	if opts.SecretKeyBase == "" {
 		opts.SecretKeyBase = "development-only-secret-key-base"
 	}

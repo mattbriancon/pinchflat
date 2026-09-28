@@ -7,7 +7,8 @@ import (
 	"path/filepath"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/app"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // PodcastControllerOpmlFeed: opml_feed(conn, _params)
@@ -23,7 +24,7 @@ func (s *Server) PodcastControllerOpmlFeed(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Build OPML XML
-	xml := core.OpmlFeedBuilderBuild(urlBase, sources)
+	xml := app.OpmlFeedBuilderBuild(urlBase, sources)
 
 	w.Header().Set("Content-Type", "application/opml+xml; charset=utf-8")
 	w.Header().Set("Content-Disposition", "inline")
@@ -37,8 +38,8 @@ func (s *Server) PodcastControllerRssFeed(w http.ResponseWriter, r *http.Request
 	uuid := URLParam(r, "uuid")
 
 	// Fetch source by UUID: Repo.get_by!(Source, uuid: uuid)
-	q := core.SourcesQueryNew().Where(sq.Eq{"s.uuid": uuid})
-	source, err := core.One[core.Source](ctx, s.App.Q(ctx), q)
+	q := store.SourcesQueryNew().Where(sq.Eq{"s.uuid": uuid})
+	source, err := store.One[store.Source](ctx, s.App.Q(ctx), q)
 	if err != nil {
 		s.Fail(w, r, err)
 		return
@@ -47,9 +48,9 @@ func (s *Server) PodcastControllerRssFeed(w http.ResponseWriter, r *http.Request
 	urlBase := PageOf(ctx).BaseURL
 
 	// Build RSS XML
-	xml, err := s.App.RssFeedBuilderBuild(ctx, source, core.KW{
-		core.Opt("limit", 2000),
-		core.Opt("url_base", urlBase),
+	xml, err := s.App.RssFeedBuilderBuild(ctx, source, store.KW{
+		store.Opt("limit", 2000),
+		store.Opt("url_base", urlBase),
 	})
 	if err != nil {
 		s.Fail(w, r, err)
@@ -68,8 +69,8 @@ func (s *Server) PodcastControllerFeedImage(w http.ResponseWriter, r *http.Reque
 	uuid := URLParam(r, "uuid")
 
 	// Fetch source by UUID: Repo.get_by!(Source, uuid: uuid)
-	q := core.SourcesQueryNew().Where(sq.Eq{"s.uuid": uuid})
-	source, err := core.One[core.Source](ctx, s.App.Q(ctx), q)
+	q := store.SourcesQueryNew().Where(sq.Eq{"s.uuid": uuid})
+	source, err := store.One[store.Source](ctx, s.App.Q(ctx), q)
 	if err != nil {
 		s.Fail(w, r, err)
 		return
@@ -77,14 +78,14 @@ func (s *Server) PodcastControllerFeedImage(w http.ResponseWriter, r *http.Reque
 
 	// Fetch media items for the source (used to find a fallback cover image):
 	// MediaQuery.new() |> where(^dynamic(^MediaQuery.for_source(source) and ^MediaQuery.downloaded())) |> Repo.maybe_limit(1) |> Repo.all()
-	mediaQuery := core.MediaQueryNew().
-		Where(core.MediaQueryForSource(source.ID)).
-		Where(core.MediaQueryDownloaded()).
+	mediaQuery := store.MediaQueryNew().
+		Where(store.MediaQueryForSource(source.ID)).
+		Where(store.MediaQueryDownloaded()).
 		Map(func(b sq.SelectBuilder) sq.SelectBuilder {
 			return b.Limit(1)
 		})
 
-	mediaItems, err := core.All[core.MediaItem](ctx, s.App.Q(ctx), mediaQuery)
+	mediaItems, err := store.All[store.MediaItem](ctx, s.App.Q(ctx), mediaQuery)
 	if err != nil {
 		s.Fail(w, r, err)
 		return
@@ -107,8 +108,8 @@ func (s *Server) PodcastControllerEpisodeImage(w http.ResponseWriter, r *http.Re
 	uuid := URLParam(r, "uuid")
 
 	// Fetch media item by UUID: Repo.get_by!(MediaItem, uuid: uuid)
-	q := core.MediaQueryNew().Where(sq.Eq{"mi.uuid": uuid})
-	mediaItem, err := core.One[core.MediaItem](ctx, s.App.Q(ctx), q)
+	q := store.MediaQueryNew().Where(sq.Eq{"mi.uuid": uuid})
+	mediaItem, err := store.One[store.MediaItem](ctx, s.App.Q(ctx), q)
 	if err != nil {
 		s.Fail(w, r, err)
 		return

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
 
@@ -26,7 +26,7 @@ func TestSettingController_UpdateSettings(t *testing.T) {
 	t.Run("saves and redirects when data is valid", func(t *testing.T) {
 		c := webtest.New(t)
 
-		updateAttrs := core.Attrs{"download_throughput_limit": "4.2M"}
+		updateAttrs := store.Attrs{"download_throughput_limit": "4.2M"}
 		res := c.Patch("/settings", "setting", updateAttrs)
 
 		if res.RedirectedTo(t) != "/settings" {

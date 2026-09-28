@@ -9,12 +9,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/db"
 )
 
 // PagesPageHTMLHistoryTableContent renders the content of the history table.
-templ PagesPageHTMLHistoryTableContent(ctx context.Context, mediaState string, page, totalPages int, records []*core.MediaItem, totalRecordCount int) {
+templ PagesPageHTMLHistoryTableContent(ctx context.Context, mediaState string, page, totalPages int, records []*store.MediaItem, totalRecordCount int) {
 	if len(records) == 0 {
 		<div class="mb-4 flex items-center">
 			<p>Nothing Here!</p>
@@ -36,7 +36,7 @@ templ PagesPageHTMLHistoryTableContent(ctx context.Context, mediaState string, p
 }
 
 // historyTableContentTable renders the table rows for the history table.
-templ historyTableContentTable(ctx context.Context, records []*core.MediaItem) {
+templ historyTableContentTable(ctx context.Context, records []*store.MediaItem) {
 	<div class="max-w-full overflow-x-auto">
 		<table class="w-full table-auto bg-boxdark text-sm text-white">
 			<thead>

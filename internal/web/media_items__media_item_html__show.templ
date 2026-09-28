@@ -3,10 +3,10 @@ package web
 import (
 	"strings"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-templ MediaItemsMediaItemHTMLShow(mediaItem *core.MediaItem) {
+templ MediaItemsMediaItemHTMLShow(mediaItem *store.MediaItem) {
 	<div class="page-header">
 		<div class="flex gap-3 items-center min-w-0">
 			<a href={ templ.URL(P(ctx, "/sources/%v", mediaItem.SourceID)) }>
@@ -35,14 +35,14 @@ templ mediaItemsEditButtonContent() {
 	Edit
 }
 
-func mediaItemsShowTabs(mediaItem *core.MediaItem) []TabTab {
+func mediaItemsShowTabs(mediaItem *store.MediaItem) []TabTab {
 	return []TabTab{
 		{ID: "media", Title: "Media", Content: mediaItemsShowMediaTab(mediaItem)},
 		{ID: "tasks", Title: "Tasks", Content: mediaItemsShowTasksTab(mediaItem)},
 	}
 }
 
-templ mediaItemsShowMediaTab(mediaItem *core.MediaItem) {
+templ mediaItemsShowMediaTab(mediaItem *store.MediaItem) {
 	<div class="flex flex-col gap-6 text-white">
 		if mediaItem.LastError != nil && *mediaItem.LastError != "" {
 			<section class="mt-2">
@@ -93,7 +93,7 @@ templ mediaItemsShowMediaTab(mediaItem *core.MediaItem) {
 	</div>
 }
 
-templ mediaItemsShowTasksTab(mediaItem *core.MediaItem) {
+templ mediaItemsShowTasksTab(mediaItem *store.MediaItem) {
 	if len(mediaItem.Tasks) > 0 {
 		@TableTable(TableProps{
 			Rows:       mediaItemsTaskRows(mediaItem.Tasks),
@@ -109,7 +109,7 @@ templ mediaItemsShowTasksTab(mediaItem *core.MediaItem) {
 	}
 }
 
-func mediaItemsTaskRows(tasks []*core.Task) []any {
+func mediaItemsTaskRows(tasks []*store.Task) []any {
 	rows := make([]any, len(tasks))
 	for i, t := range tasks {
 		rows[i] = t
@@ -118,19 +118,19 @@ func mediaItemsTaskRows(tasks []*core.Task) []any {
 }
 
 templ mediaItemsTaskWorkerCell(row any) {
-	if task, ok := row.(*core.Task); ok && task.Job != nil {
+	if task, ok := row.(*store.Task); ok && task.Job != nil {
 		{ task.Job.Worker }
 	}
 }
 
 templ mediaItemsTaskStateCell(row any) {
-	if task, ok := row.(*core.Task); ok && task.Job != nil {
+	if task, ok := row.(*store.Task); ok && task.Job != nil {
 		{ task.Job.State }
 	}
 }
 
 templ mediaItemsTaskScheduledAtCell(row any) {
-	if task, ok := row.(*core.Task); ok && task.Job != nil {
+	if task, ok := row.(*store.Task); ok && task.Job != nil {
 		@TextDatetimeInZone(task.Job.ScheduledAt.Time, "", "")
 	}
 }

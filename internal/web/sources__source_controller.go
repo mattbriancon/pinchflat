@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // SourceControllerIndex renders the sources index page.
@@ -26,18 +26,18 @@ func (s *Server) SourceControllerNew(w http.ResponseWriter, r *http.Request) {
 	templateIDStr := r.URL.Query().Get("template_id")
 
 	// Get the template source if provided
-	var cs *core.Source
+	var cs *store.Source
 	if templateID, err := strconv.ParseInt(templateIDStr, 10, 64); err == nil && templateID > 0 {
-		if source, err := s.App.SourcesGetSource(ctx, templateID); err == nil {
+		if source, err := s.App.GetSource(ctx, templateID); err == nil {
 			cs = source
 		}
 	}
 	if cs == nil {
-		cs = &core.Source{}
+		cs = &store.Source{}
 	}
 
 	// Create a blank source with nullified fields from the template
-	source := &core.Source{
+	source := &store.Source{
 		IndexFrequencyMinutes:      cs.IndexFrequencyMinutes,
 		DownloadCutoffDate:         cs.DownloadCutoffDate,
 		TitleFilterRegex:           cs.TitleFilterRegex,
@@ -46,8 +46,8 @@ func (s *Server) SourceControllerNew(w http.ResponseWriter, r *http.Request) {
 		MediaProfileID:             cs.MediaProfileID,
 	}
 
-	mediaProfiles, _ := s.App.ProfilesListMediaProfiles(ctx)
-	changeset := s.App.SourcesChangeSource(ctx, source, core.Attrs{}, "")
+	mediaProfiles, _ := s.App.ListMediaProfiles(ctx)
+	changeset := s.App.SourcesChangeSource(ctx, source, store.Attrs{}, "")
 
 	layout := OnboardingLayout(ctx)
 	s.Render(w, r, http.StatusOK, layout, SourceHTMLNew(changeset, mediaProfiles))
@@ -58,10 +58,10 @@ func (s *Server) SourceControllerCreate(w http.ResponseWriter, r *http.Request) 
 	ctx := r.Context()
 	sourceParams := ParseForm(r, "source")
 
-	source, err := s.App.SourcesCreateSource(ctx, sourceParams, core.KW{})
+	source, err := s.App.SourcesCreateSource(ctx, sourceParams, store.KW{})
 	if err != nil {
-		if cs, ok := core.AsChangesetError(err); ok {
-			mediaProfiles, _ := s.App.ProfilesListMediaProfiles(ctx)
+		if cs, ok := store.AsChangesetError(err); ok {
+			mediaProfiles, _ := s.App.ListMediaProfiles(ctx)
 			layout := OnboardingLayout(ctx)
 			s.Render(w, r, http.StatusOK, layout, SourceHTMLNew(cs, mediaProfiles))
 			return
@@ -71,7 +71,7 @@ func (s *Server) SourceControllerCreate(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Determine redirect location
-	onboarding, _ := s.App.SettingsGet(ctx, "onboarding")
+	onboarding, _ := s.App.GetSetting(ctx, "onboarding")
 	redirectPath := P(ctx, "/sources/%v", source.ID)
 	if onboarding == true {
 		redirectPath = P(ctx, "/?onboarding=1")
@@ -84,14 +84,14 @@ func (s *Server) SourceControllerCreate(w http.ResponseWriter, r *http.Request) 
 // SourceControllerShow displays a source.
 func (s *Server) SourceControllerShow(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	source, ok := loadOrFail(s, w, r, "id", s.App.SourcesGetSource)
+	source, ok := loadOrFail(s, w, r, "id", s.App.GetSource)
 	if !ok {
 		return
 	}
 
 	source, _ = s.App.PreloadSourceMediaProfile(ctx, source)
 
-	pendingTasks, _ := s.App.TasksListTasksFor(ctx, source, nil, []string{"executing", "available", "scheduled", "retryable"})
+	pendingTasks, _ := s.App.ListTasksFor(ctx, source, nil, []string{"executing", "available", "scheduled", "retryable"})
 	for i, task := range pendingTasks {
 		pendingTasks[i], _ = s.App.PreloadTaskJob(ctx, task)
 	}
@@ -118,13 +118,13 @@ func (s *Server) SourceControllerShow(w http.ResponseWriter, r *http.Request) {
 // SourceControllerEdit renders the source edit form.
 func (s *Server) SourceControllerEdit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	source, ok := loadOrFail(s, w, r, "id", s.App.SourcesGetSource)
+	source, ok := loadOrFail(s, w, r, "id", s.App.GetSource)
 	if !ok {
 		return
 	}
 
-	mediaProfiles, _ := s.App.ProfilesListMediaProfiles(ctx)
-	changeset := s.App.SourcesChangeSource(ctx, source, core.Attrs{}, "")
+	mediaProfiles, _ := s.App.ListMediaProfiles(ctx)
+	changeset := s.App.SourcesChangeSource(ctx, source, store.Attrs{}, "")
 
 	s.Render(w, r, http.StatusOK, LayoutApp, SourceHTMLEdit(source, changeset, mediaProfiles))
 }
@@ -132,17 +132,17 @@ func (s *Server) SourceControllerEdit(w http.ResponseWriter, r *http.Request) {
 // SourceControllerUpdate updates a source.
 func (s *Server) SourceControllerUpdate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	source, ok := loadOrFail(s, w, r, "id", s.App.SourcesGetSource)
+	source, ok := loadOrFail(s, w, r, "id", s.App.GetSource)
 	if !ok {
 		return
 	}
 	sourceParams := ParseForm(r, "source")
 
-	updated, err := s.App.SourcesUpdateSource(ctx, source, sourceParams, core.KW{})
+	updated, err := s.App.SourcesUpdateSource(ctx, source, sourceParams, store.KW{})
 	if err != nil {
-		if cs, ok := core.AsChangesetError(err); ok {
+		if cs, ok := store.AsChangesetError(err); ok {
 			// Re-render form with errors, passing the original loaded source
-			mediaProfiles, _ := s.App.ProfilesListMediaProfiles(ctx)
+			mediaProfiles, _ := s.App.ListMediaProfiles(ctx)
 			s.Render(w, r, http.StatusOK, LayoutApp, SourceHTMLEdit(source, cs, mediaProfiles))
 			return
 		}
@@ -157,25 +157,25 @@ func (s *Server) SourceControllerUpdate(w http.ResponseWriter, r *http.Request) 
 // SourceControllerDelete marks a source for deletion.
 func (s *Server) SourceControllerDelete(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	source, ok := loadOrFail(s, w, r, "id", s.App.SourcesGetSource)
+	source, ok := loadOrFail(s, w, r, "id", s.App.GetSource)
 	if !ok {
 		return
 	}
 	deleteFiles := r.URL.Query().Get("delete_files") == "true"
 
 	// Mark for deletion
-	_, err := s.App.SourcesUpdateSource(ctx, source, core.Attrs{
+	_, err := s.App.SourcesUpdateSource(ctx, source, store.Attrs{
 		"marked_for_deletion_at": time.Now().UTC(),
-	}, core.KW{})
+	}, store.KW{})
 	if err != nil {
 		s.Fail(w, r, err)
 		return
 	}
 
 	// Kickoff deletion worker
-	_, _ = s.App.SourceDeletionWorkerKickoff(ctx, source, core.Attrs{
+	_, _ = s.App.SourceDeletionWorkerKickoff(ctx, source, store.Attrs{
 		"delete_files": deleteFiles,
-	}, core.KW{})
+	}, store.KW{})
 
 	s.PutFlash(w, r, "info", "Source deletion started. This may take a while to complete.")
 	s.Redirect(w, r, P(ctx, "/sources"))
@@ -184,8 +184,8 @@ func (s *Server) SourceControllerDelete(w http.ResponseWriter, r *http.Request) 
 // sourceForceAction loads the source named by the route's {source_id}, runs
 // do against it, then flashes msg and redirects to the source's page. It
 // factors out the shared shape of the "force X" actions below.
-func (s *Server) sourceForceAction(w http.ResponseWriter, r *http.Request, msg string, do func(ctx context.Context, source *core.Source) error) {
-	source, ok := loadOrFail(s, w, r, "source_id", s.App.SourcesGetSource)
+func (s *Server) sourceForceAction(w http.ResponseWriter, r *http.Request, msg string, do func(ctx context.Context, source *store.Source) error) {
+	source, ok := loadOrFail(s, w, r, "source_id", s.App.GetSource)
 	if !ok {
 		return
 	}
@@ -199,14 +199,14 @@ func (s *Server) sourceForceAction(w http.ResponseWriter, r *http.Request, msg s
 
 // SourceControllerForceDownloadPending forces pending media downloads.
 func (s *Server) SourceControllerForceDownloadPending(w http.ResponseWriter, r *http.Request) {
-	s.sourceForceAction(w, r, "Forcing download of pending media items.", func(ctx context.Context, source *core.Source) error {
-		return s.App.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, core.KW{})
+	s.sourceForceAction(w, r, "Forcing download of pending media items.", func(ctx context.Context, source *store.Source) error {
+		return s.App.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{})
 	})
 }
 
 // SourceControllerForceRedownload forces redownload of existing media.
 func (s *Server) SourceControllerForceRedownload(w http.ResponseWriter, r *http.Request) {
-	s.sourceForceAction(w, r, "Forcing re-download of downloaded media items.", func(ctx context.Context, source *core.Source) error {
+	s.sourceForceAction(w, r, "Forcing re-download of downloaded media items.", func(ctx context.Context, source *store.Source) error {
 		_, err := s.App.DownloadingHelpersKickoffRedownloadForExistingMedia(ctx, source)
 		return err
 	})
@@ -214,24 +214,24 @@ func (s *Server) SourceControllerForceRedownload(w http.ResponseWriter, r *http.
 
 // SourceControllerForceIndex forces an indexing task.
 func (s *Server) SourceControllerForceIndex(w http.ResponseWriter, r *http.Request) {
-	s.sourceForceAction(w, r, "Index enqueued.", func(ctx context.Context, source *core.Source) error {
-		_, err := s.App.SlowIndexingHelpersKickoffIndexingTask(ctx, source, core.Attrs{"force": true}, core.KW{})
+	s.sourceForceAction(w, r, "Index enqueued.", func(ctx context.Context, source *store.Source) error {
+		_, err := s.App.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{"force": true}, store.KW{})
 		return err
 	})
 }
 
 // SourceControllerForceMetadataRefresh forces a metadata refresh.
 func (s *Server) SourceControllerForceMetadataRefresh(w http.ResponseWriter, r *http.Request) {
-	s.sourceForceAction(w, r, "Metadata refresh enqueued.", func(ctx context.Context, source *core.Source) error {
-		_, err := s.App.SourceMetadataStorageWorkerKickoffWithTask(ctx, source, core.KW{})
+	s.sourceForceAction(w, r, "Metadata refresh enqueued.", func(ctx context.Context, source *store.Source) error {
+		_, err := s.App.SourceMetadataStorageWorkerKickoffWithTask(ctx, source, store.KW{})
 		return err
 	})
 }
 
 // SourceControllerSyncFilesOnDisk forces a file sync.
 func (s *Server) SourceControllerSyncFilesOnDisk(w http.ResponseWriter, r *http.Request) {
-	s.sourceForceAction(w, r, "File sync enqueued.", func(ctx context.Context, source *core.Source) error {
-		_, err := s.App.FileSyncingWorkerKickoffWithTask(ctx, source, core.KW{})
+	s.sourceForceAction(w, r, "File sync enqueued.", func(ctx context.Context, source *store.Source) error {
+		_, err := s.App.FileSyncingWorkerKickoffWithTask(ctx, source, store.KW{})
 		return err
 	})
 }

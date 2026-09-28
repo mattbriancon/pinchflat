@@ -17,12 +17,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // PagesPageHTMLHistoryTableContent renders the content of the history table.
-func PagesPageHTMLHistoryTableContent(ctx context.Context, mediaState string, page, totalPages int, records []*core.MediaItem, totalRecordCount int) templ.Component {
+func PagesPageHTMLHistoryTableContent(ctx context.Context, mediaState string, page, totalPages int, records []*store.MediaItem, totalRecordCount int) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -105,7 +105,7 @@ func PagesPageHTMLHistoryTableContent(ctx context.Context, mediaState string, pa
 }
 
 // historyTableContentTable renders the table rows for the history table.
-func historyTableContentTable(ctx context.Context, records []*core.MediaItem) templ.Component {
+func historyTableContentTable(ctx context.Context, records []*store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {

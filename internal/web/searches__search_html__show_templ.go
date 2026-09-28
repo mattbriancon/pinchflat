@@ -13,10 +13,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-func SearchHTMLShow(searchTerm string, searchResults []*core.MediaItem) templ.Component {
+func SearchHTMLShow(searchTerm string, searchResults []*store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -63,7 +63,7 @@ func SearchHTMLShow(searchTerm string, searchResults []*core.MediaItem) templ.Co
 						Label: "Title",
 						Class: "cell-wrap",
 						Render: func(row any) templ.Component {
-							result := row.(*core.MediaItem)
+							result := row.(*store.MediaItem)
 							return TextSubtleLink(
 								fmt.Sprintf("/sources/%v/media/%v", result.SourceID, result.ID),
 								"",
@@ -75,7 +75,7 @@ func SearchHTMLShow(searchTerm string, searchResults []*core.MediaItem) templ.Co
 						Label: "Excerpt",
 						Class: "!whitespace-normal min-w-64",
 						Render: func(row any) templ.Component {
-							result := row.(*core.MediaItem)
+							result := row.(*store.MediaItem)
 							excerptText := ""
 							if result.MatchingSearchTerm != nil {
 								excerptText = *result.MatchingSearchTerm
@@ -102,8 +102,8 @@ func SearchHTMLShow(searchTerm string, searchResults []*core.MediaItem) templ.Co
 	})
 }
 
-// Helper function to convert []*core.MediaItem to []any
-func toAny(items []*core.MediaItem) []any {
+// Helper function to convert []*store.MediaItem to []any
+func toAny(items []*store.MediaItem) []any {
 	result := make([]any, len(items))
 	for i, item := range items {
 		result[i] = item

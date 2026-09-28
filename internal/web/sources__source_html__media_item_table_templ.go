@@ -15,7 +15,7 @@ import templruntime "github.com/a-h/templ/runtime"
 // right tab. Fetching lives in the sibling .go file.
 
 import (
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // SourceHTMLMediaItemTable is render/1.
@@ -255,7 +255,7 @@ func mediaItemTableHiddenParams(data *mediaItemTableData) templ.Component {
 	})
 }
 
-func mediaItemTableTitleCell(data *mediaItemTableData, item *core.MediaItem) templ.Component {
+func mediaItemTableTitleCell(data *mediaItemTableData, item *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -331,7 +331,7 @@ func mediaItemTableErrorIcon() templ.Component {
 	})
 }
 
-func mediaItemTableTitle(item *core.MediaItem) templ.Component {
+func mediaItemTableTitle(item *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -353,9 +353,9 @@ func mediaItemTableTitle(item *core.MediaItem) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		var templ_7745c5c3_Var14 string
-		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(core.Deref(item.Title))
+		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(store.Deref(item.Title))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__media_item_table.templ`, Line: 90, Col: 25}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__media_item_table.templ`, Line: 90, Col: 26}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 		if templ_7745c5c3_Err != nil {
@@ -365,7 +365,7 @@ func mediaItemTableTitle(item *core.MediaItem) templ.Component {
 	})
 }
 
-func mediaItemTableIgnoredCell(item *core.MediaItem) templ.Component {
+func mediaItemTableIgnoredCell(item *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -401,7 +401,7 @@ func mediaItemTableIgnoredCell(item *core.MediaItem) templ.Component {
 	})
 }
 
-func mediaItemTableUploadDateCell(item *core.MediaItem) templ.Component {
+func mediaItemTableUploadDateCell(item *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -435,7 +435,7 @@ func mediaItemTableUploadDateCell(item *core.MediaItem) templ.Component {
 	})
 }
 
-func mediaItemTableEditCell(data *mediaItemTableData, item *core.MediaItem) templ.Component {
+func mediaItemTableEditCell(data *mediaItemTableData, item *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {

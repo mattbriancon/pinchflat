@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/app"
 )
 
 // Page is available to every template via PageOf(ctx).
@@ -27,7 +27,7 @@ type Page struct {
 	Onboarding bool
 	// App and Version are the serving Server's, for layouts and components
 	// that read Settings/Config (templ only hands them ctx).
-	App     *core.App
+	App     *app.App
 	Version string
 }
 

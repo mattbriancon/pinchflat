@@ -3,14 +3,14 @@ package web
 import (
 	"fmt"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-templ SourceHTMLActionsDropdown(source *core.Source) {
+templ SourceHTMLActionsDropdown(source *store.Source) {
 	@ButtonButtonDropdown("Actions", "justify-center w-full sm:w-50", sourcesActionsDropdownOptions(source))
 }
 
-func sourcesActionsDropdownOptions(source *core.Source) []ButtonButtonOption {
+func sourcesActionsDropdownOptions(source *store.Source) []ButtonButtonOption {
 	opts := []ButtonButtonOption{
 		{Content: sourcesActionsCopyRSS(source)},
 		{Content: sourcesActionsCopyJSON(source)},
@@ -32,7 +32,7 @@ func sourcesActionsDropdownOptions(source *core.Source) []ButtonButtonOption {
 	return opts
 }
 
-templ sourcesActionsCopyRSS(source *core.Source) {
+templ sourcesActionsCopyRSS(source *store.Source) {
 	<a
 		href={ templ.URL(RssFeedURL(ctx, source)) }
 		x-data="{ copied: false }"
@@ -45,7 +45,7 @@ templ sourcesActionsCopyRSS(source *core.Source) {
 	</a>
 }
 
-templ sourcesActionsCopyJSON(source *core.Source) {
+templ sourcesActionsCopyJSON(source *store.Source) {
 	<span
 		x-data="{ copied: false }"
 		x-on:click={ "copyWithCallbacks(" + sourcesJSONLiteral(source) + ", () => copied = true, () => copied = false)" }
@@ -57,7 +57,7 @@ templ sourcesActionsCopyJSON(source *core.Source) {
 	</span>
 }
 
-templ sourcesActionsUseAsTemplate(source *core.Source) {
+templ sourcesActionsUseAsTemplate(source *store.Source) {
 	<a href={ templ.URL(P(ctx, "/sources/new") + "?template_id=" + fmt.Sprint(source.ID)) }>
 		Use as Template
 	</a>
@@ -67,7 +67,7 @@ templ sourcesActionsSeparator() {
 	<div class="my-1 h-px w-full bg-strokedark"></div>
 }
 
-templ sourcesActionsDownloadPending(source *core.Source) {
+templ sourcesActionsDownloadPending(source *store.Source) {
 	@CoreLinkButton(
 		P(ctx, "/sources/%v/force_download_pending", source.ID),
 		"post",
@@ -77,7 +77,7 @@ templ sourcesActionsDownloadPending(source *core.Source) {
 	)
 }
 
-templ sourcesActionsRedownload(source *core.Source) {
+templ sourcesActionsRedownload(source *store.Source) {
 	@CoreLinkButton(
 		P(ctx, "/sources/%v/force_redownload", source.ID),
 		"post",
@@ -87,7 +87,7 @@ templ sourcesActionsRedownload(source *core.Source) {
 	)
 }
 
-templ sourcesActionsForceIndex(source *core.Source) {
+templ sourcesActionsForceIndex(source *store.Source) {
 	@CoreLinkButton(
 		P(ctx, "/sources/%v/force_index", source.ID),
 		"post",
@@ -97,7 +97,7 @@ templ sourcesActionsForceIndex(source *core.Source) {
 	)
 }
 
-templ sourcesActionsRefreshMetadata(source *core.Source) {
+templ sourcesActionsRefreshMetadata(source *store.Source) {
 	@CoreLinkButton(
 		P(ctx, "/sources/%v/force_metadata_refresh", source.ID),
 		"post",
@@ -107,7 +107,7 @@ templ sourcesActionsRefreshMetadata(source *core.Source) {
 	)
 }
 
-templ sourcesActionsSyncFiles(source *core.Source) {
+templ sourcesActionsSyncFiles(source *store.Source) {
 	@CoreLinkButton(
 		P(ctx, "/sources/%v/sync_files_on_disk", source.ID),
 		"post",
@@ -117,7 +117,7 @@ templ sourcesActionsSyncFiles(source *core.Source) {
 	)
 }
 
-templ sourcesActionsDeleteSource(source *core.Source) {
+templ sourcesActionsDeleteSource(source *store.Source) {
 	@CoreLinkButton(
 		P(ctx, "/sources/%v", source.ID),
 		"delete",
@@ -127,7 +127,7 @@ templ sourcesActionsDeleteSource(source *core.Source) {
 	)
 }
 
-templ sourcesActionsDeleteSourceAndFiles(source *core.Source) {
+templ sourcesActionsDeleteSourceAndFiles(source *store.Source) {
 	@CoreLinkButton(
 		P(ctx, "/sources/%v", source.ID)+"?delete_files=true",
 		"delete",

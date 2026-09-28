@@ -4,16 +4,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
-	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/app/apptest"
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
 
 func TestPodcastController_OpmlFeed(t *testing.T) {
 	t.Run("renders the XML document", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		routeToken, err := c.App.SettingsGet(c.Ctx, "route_token")
+		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+		routeToken, err := c.App.GetSetting(c.Ctx, "route_token")
 		if err != nil {
 			t.Fatalf("get route_token: %v", err)
 		}
@@ -67,7 +67,7 @@ func TestPodcastController_OpmlFeed(t *testing.T) {
 func TestPodcastController_RssFeed(t *testing.T) {
 	t.Run("renders the XML document", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
 
 		res := c.Get("/sources/" + *source.UUID + "/feed.xml")
 
@@ -86,7 +86,7 @@ func TestPodcastController_RssFeed(t *testing.T) {
 func TestPodcastController_FeedImage(t *testing.T) {
 	t.Run("returns a feed image if one can be found", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceWithMetadataAttachmentsFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceWithMetadataAttachmentsFixture(t, c.TestApp, store.Attrs{})
 
 		res := c.Get("/sources/" + *source.UUID + "/feed_image.jpg")
 
@@ -105,7 +105,7 @@ func TestPodcastController_FeedImage(t *testing.T) {
 
 	t.Run("returns 404 if an image cannot be found", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
 
 		res := c.Get("/sources/" + *source.UUID + "/feed_image.jpg")
 
@@ -121,7 +121,7 @@ func TestPodcastController_FeedImage(t *testing.T) {
 func TestPodcastController_EpisodeImage(t *testing.T) {
 	t.Run("returns an episode image if one can be found", func(t *testing.T) {
 		c := webtest.New(t)
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, c.TestApp, core.Attrs{})
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.Attrs{})
 
 		res := c.Get("/media/" + *mediaItem.UUID + "/episode_image.jpg")
 
@@ -140,7 +140,7 @@ func TestPodcastController_EpisodeImage(t *testing.T) {
 
 	t.Run("returns 404 if an image cannot be found", func(t *testing.T) {
 		c := webtest.New(t)
-		mediaItem := coretest.MediaItemFixture(t, c.TestApp, core.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{})
 
 		res := c.Get("/media/" + *mediaItem.UUID + "/episode_image.jpg")
 

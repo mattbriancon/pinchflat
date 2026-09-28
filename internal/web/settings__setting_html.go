@@ -18,7 +18,7 @@ func YoutubeAPIHelp() string {
 func DiagnosticInfoString(ctx context.Context, appVersion string) string {
 	page := PageOf(ctx)
 
-	ytDlpVersion, _ := page.App.SettingsGetBang(ctx, "yt_dlp_version")
+	ytDlpVersion, _ := page.App.GetSettingBang(ctx, "yt_dlp_version")
 	systemArch := runtime.GOOS + "-" + runtime.GOARCH
 
 	return fmt.Sprintf(

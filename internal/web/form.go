@@ -1,6 +1,6 @@
 package web
 
-// A small port of Phoenix.HTML.Form over core.Changeset, so templates can do
+// A small port of Phoenix.HTML.Form over store.Changeset, so templates can do
 // what `to_form(changeset)` + `<.input field={f[:name]} />` did.
 
 import (
@@ -11,21 +11,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // Form wraps a changeset under a param name ("source", "media_profile").
 type Form struct {
 	As        string
-	Changeset *core.Changeset
+	Changeset *store.Changeset
 	// Params, when set, are the raw submitted params; Phoenix shows
 	// those back to the user after a failed submit.
-	Params core.Attrs
+	Params store.Attrs
 }
 
 // FormFor is to_form(changeset, as: as).
-func FormFor(cs *core.Changeset, as string) *Form { return &Form{As: as, Changeset: cs} }
+func FormFor(cs *store.Changeset, as string) *Form { return &Form{As: as, Changeset: cs} }
 
 // FormField is Phoenix.HTML.FormField.
 type FormField struct {
@@ -95,9 +95,9 @@ func Checked(v any) bool { s := InputValue(v); return s == "true" || s == "on" |
 // ParseForm is Phoenix's %{"source" => params}: it returns the params nested
 // under `as` as Attrs. Nested maps (source[metadata][x]) become Attrs too;
 // repeated keys (x[]) become []string.
-func ParseForm(r *http.Request, as string) core.Attrs {
+func ParseForm(r *http.Request, as string) store.Attrs {
 	_ = r.ParseForm()
-	out := core.Attrs{}
+	out := store.Attrs{}
 	prefix := as + "["
 	keys := make([]string, 0, len(r.PostForm))
 	for k := range r.PostForm {
@@ -134,7 +134,7 @@ func parseBracketPath(s string) []string {
 	return out
 }
 
-func setNested(m core.Attrs, path []string, vals []string) {
+func setNested(m store.Attrs, path []string, vals []string) {
 	if len(path) == 0 {
 		return
 	}
@@ -146,9 +146,9 @@ func setNested(m core.Attrs, path []string, vals []string) {
 		}
 		return
 	}
-	child, ok := m[path[0]].(core.Attrs)
+	child, ok := m[path[0]].(store.Attrs)
 	if !ok {
-		child = core.Attrs{}
+		child = store.Attrs{}
 		m[path[0]] = child
 	}
 	setNested(child, path[1:], vals)

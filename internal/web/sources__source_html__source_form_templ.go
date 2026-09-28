@@ -9,13 +9,13 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // SourceFormProps is source_form/1's assigns.
 type SourceFormProps struct {
-	Changeset     *core.Changeset
-	MediaProfiles []*core.MediaProfile
+	Changeset     *store.Changeset
+	MediaProfiles []*store.MediaProfile
 	Action        string
 	Method        string
 }

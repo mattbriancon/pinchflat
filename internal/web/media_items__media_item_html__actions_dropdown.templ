@@ -2,10 +2,10 @@ package web
 
 import (
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-templ MediaItemsMediaItemHTMLActionsDropdown(mediaItem *core.MediaItem) {
+templ MediaItemsMediaItemHTMLActionsDropdown(mediaItem *store.MediaItem) {
 	@ButtonButtonDropdown("Actions", "justify-center w-full sm:w-50", []ButtonButtonOption{
 		{Content: mediaItemsCopyJSONOption(mediaItem)},
 		{Content: mediaItemsDividerOption()},
@@ -22,7 +22,7 @@ templ mediaItemsDividerOption() {
 
 // mediaItemsCopyJSONOption is the <:option> that copies
 // Jason.Formatter.pretty_print(Jason.encode!(@media_item)) to the clipboard.
-templ mediaItemsCopyJSONOption(mediaItem *core.MediaItem) {
+templ mediaItemsCopyJSONOption(mediaItem *store.MediaItem) {
 	<span x-data="{ copied: false }" x-on:click={ mediaItemsCopyJSONScript(mediaItem) }>
 		Copy JSON
 		<span x-show="copied" x-transition.duration.150ms>
@@ -31,7 +31,7 @@ templ mediaItemsCopyJSONOption(mediaItem *core.MediaItem) {
 	</span>
 }
 
-templ mediaItemsForceDownloadOption(mediaItem *core.MediaItem) {
+templ mediaItemsForceDownloadOption(mediaItem *store.MediaItem) {
 	@CoreLinkButton(
 		P(ctx, "/sources/%v/media/%v/force_download", mediaItem.SourceID, mediaItem.ID),
 		"post",
@@ -45,7 +45,7 @@ templ mediaItemsForceDownloadText() {
 	Force Download
 }
 
-templ mediaItemsDeleteFilesOption(mediaItem *core.MediaItem) {
+templ mediaItemsDeleteFilesOption(mediaItem *store.MediaItem) {
 	@CoreLinkButton(
 		P(ctx, "/sources/%v/media/%v", mediaItem.SourceID, mediaItem.ID),
 		"delete",
@@ -59,7 +59,7 @@ templ mediaItemsDeleteFilesText() {
 	Delete Files
 }
 
-templ mediaItemsDeleteAndIgnoreOption(mediaItem *core.MediaItem) {
+templ mediaItemsDeleteAndIgnoreOption(mediaItem *store.MediaItem) {
 	@CoreLinkButton(
 		P(ctx, "/sources/%v/media/%v?prevent_download=true", mediaItem.SourceID, mediaItem.ID),
 		"delete",
@@ -75,7 +75,7 @@ templ mediaItemsDeleteAndIgnoreText() {
 
 // mediaItemsCopyJSONScript builds the Alpine click handler that copies
 // Jason.Formatter.pretty_print(Jason.encode!(@media_item)) to the clipboard.
-func mediaItemsCopyJSONScript(mediaItem *core.MediaItem) string {
+func mediaItemsCopyJSONScript(mediaItem *store.MediaItem) string {
 	return "copyWithCallbacks(" +
 		"String.raw`" + prettyJSON(mediaItem) + "`, " +
 		"() => copied = true, " +

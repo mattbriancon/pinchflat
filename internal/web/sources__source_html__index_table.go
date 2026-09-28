@@ -13,14 +13,14 @@ import (
 	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 const sourceIndexTableLimit = 10
 
 // sourceLiveIndexRow is the map(s, ^Source.__schema__(:fields)) |> select_merge
 // shape from sources_query/0: a fixed, known result shape, so it's its own
-// small struct rather than *core.Source (see CONVENTIONS "Types").
+// small struct rather than *store.Source (see CONVENTIONS "Types").
 type sourceLiveIndexRow struct {
 	ID               int64   `db:"id"`
 	CustomName       string  `db:"custom_name"`
@@ -61,7 +61,7 @@ func (s *Server) sourceIndexTableFetch(ctx context.Context, r *http.Request) (*s
 
 	ordered := query.OrderBy(sourceLiveIndexOrderBy(sortKey, sortDirection)).
 		Limit(uint64(pag.Limit)).Offset(uint64(pag.Offset))
-	sources, err := core.All[sourceLiveIndexRow](ctx, s.App.Q(ctx), ordered)
+	sources, err := store.All[sourceLiveIndexRow](ctx, s.App.Q(ctx), ordered)
 	if err != nil {
 		return nil, err
 	}
@@ -79,22 +79,22 @@ func (s *Server) sourceIndexTableFetch(ctx context.Context, r *http.Request) (*s
 // sources_query/0: sources joined to their (non-deleted) media profile, with
 // downloaded/pending counts and downloaded media size from subqueries.
 func sourceLiveIndexTableLiveQuery() sq.SelectBuilder {
-	downloadedSQL, downloadedArgs, _ := core.SQ.Select(
+	downloadedSQL, downloadedArgs, _ := store.SQ.Select(
 		"COUNT(mi.id) AS downloaded_count",
 		"mi.source_id AS source_id",
 		"SUM(mi.media_size_bytes) AS media_size_bytes",
-	).From("media_items mi").Where(core.MediaQueryDownloaded()).GroupBy("mi.source_id").ToSql()
+	).From("media_items mi").Where(store.MediaQueryDownloaded()).GroupBy("mi.source_id").ToSql()
 
-	pendingSQL, pendingArgs, _ := core.SQ.Select(
+	pendingSQL, pendingArgs, _ := store.SQ.Select(
 		"COUNT(mi.id) AS pending_count",
 		"mi.source_id AS source_id",
 	).From("media_items mi").
 		Join("sources AS source ON source.id = mi.source_id").
 		Join("media_profiles AS media_profile ON media_profile.id = source.media_profile_id").
-		Where(core.MediaQueryPending()).
+		Where(store.MediaQueryPending()).
 		GroupBy("mi.source_id").ToSql()
 
-	q := core.SQ.Select(
+	q := store.SQ.Select(
 		"s.id",
 		"s.custom_name",
 		"s.uuid",
@@ -160,7 +160,7 @@ func sourceLiveIndexSortDirection(v string) string {
 
 // rss_feed_url/2.
 func sourceLiveIndexRSSFeedURL(feedBaseURL string, row *sourceLiveIndexRow) string {
-	return feedBaseURL + "/" + core.Deref(row.UUID) + "/feed.xml"
+	return feedBaseURL + "/" + store.Deref(row.UUID) + "/feed.xml"
 }
 
 // sourceIndexURL builds the /sources link for the given sort/page (a plain

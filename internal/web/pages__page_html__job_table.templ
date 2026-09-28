@@ -8,12 +8,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/db"
 )
 
 // PagesPageHTMLJobTableContent renders the content of the job table.
-templ PagesPageHTMLJobTableContent(ctx context.Context, tasks []*core.Task) {
+templ PagesPageHTMLJobTableContent(ctx context.Context, tasks []*store.Task) {
 	if len(tasks) == 0 {
 		<div class="mb-4 flex items-center">
 			<p>Nothing Here!</p>

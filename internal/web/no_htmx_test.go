@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
-	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/app/apptest"
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
 
@@ -22,12 +22,12 @@ var literalComponent = regexp.MustCompile(`@[A-Z][A-Za-z]+\(`)
 // there's nothing left for htmx to fetch.
 func TestNoHTMX(t *testing.T) {
 	c := webtest.New(t)
-	if _, err := c.App.SettingsSet(c.Ctx, core.KW{core.Opt("onboarding", false)}); err != nil {
+	if _, err := c.App.SetSetting(c.Ctx, store.KW{store.Opt("onboarding", false)}); err != nil {
 		t.Fatalf("SettingsSet: %v", err)
 	}
-	source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-	coretest.MediaItemFixture(t, c.TestApp, core.Attrs{"source_id": source.ID})
-	coretest.MediaItemFixture(t, c.TestApp, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+	source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+	apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID})
+	apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
 	pages := map[string]string{
 		"home":          "/",

@@ -1,8 +1,8 @@
 package web
 
-import "github.com/mattbriancon/pinchflat/internal/core"
+import "github.com/mattbriancon/pinchflat/internal/store"
 
-templ MediaProfilesHTMLEdit(profile *core.MediaProfile, changeset *core.Changeset) {
+templ MediaProfilesHTMLEdit(profile *store.MediaProfile, changeset *store.Changeset) {
 	<div class="page-header justify-start">
 		<a href={ templ.SafeURL(P(ctx, "/media_profiles")) }>
 			@CoreIcon("hero-arrow-left", "back-link", nil)

@@ -5,19 +5,19 @@ import (
 	"os"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // SettingControllerShow renders the settings page.
 func (s *Server) SettingControllerShow(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	setting, err := s.App.SettingsRecord(ctx)
+	setting, err := s.App.GetSettingsRecord(ctx)
 	if err != nil {
 		s.Fail(w, r, err)
 		return
 	}
 
-	changeset := s.App.SettingsChangeSetting(ctx, setting, core.Attrs{})
+	changeset := s.App.ChangeSetting(ctx, setting, store.Attrs{})
 	s.Render(w, r, http.StatusOK, LayoutApp, SettingHTMLShow(changeset))
 }
 
@@ -25,7 +25,7 @@ func (s *Server) SettingControllerShow(w http.ResponseWriter, r *http.Request) {
 func (s *Server) SettingControllerUpdate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	setting, err := s.App.SettingsRecord(ctx)
+	setting, err := s.App.GetSettingsRecord(ctx)
 	if err != nil {
 		s.Fail(w, r, err)
 		return
@@ -33,10 +33,10 @@ func (s *Server) SettingControllerUpdate(w http.ResponseWriter, r *http.Request)
 
 	settingParams := ParseForm(r, "setting")
 
-	_, err = s.App.SettingsUpdateSetting(ctx, setting, settingParams)
+	_, err = s.App.UpdateSetting(ctx, setting, settingParams)
 	if err != nil {
 		// Failed changeset re-renders with status 200
-		cs, ok := core.AsChangesetError(err)
+		cs, ok := store.AsChangesetError(err)
 		if ok && cs != nil {
 			s.Render(w, r, http.StatusOK, LayoutApp, SettingHTMLShow(cs))
 			return
