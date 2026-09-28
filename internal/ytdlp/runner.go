@@ -82,8 +82,11 @@ func (r *Runner) Run(ctx context.Context, url string, action string, args []stri
 
 	allArgs := append([]string{}, args...)
 	allArgs = append(allArgs, r.cookieFileArgs(opts.UseCookies)...)
-	allArgs = append(allArgs, r.rateLimitArgs(ctx, opts.SkipSleepInterval)...)
-	allArgs = append(allArgs, r.miscArgs(ctx)...)
+	settings := r.settings(ctx)
+	allArgs = append(allArgs, rateLimitArgs(settings, opts.SkipSleepInterval)...)
+	if settings.RestrictFilenames {
+		allArgs = append(allArgs, "--restrict-filenames")
+	}
 	allArgs = append(allArgs, r.globalArgs()...)
 	allArgs = append(allArgs, "--print-to-file", outputTemplate, outputFilepath)
 
@@ -140,9 +143,7 @@ func (r *Runner) cookieFileArgs(useCookies bool) []string {
 	return []string{"--cookies", cookiesPath}
 }
 
-func (r *Runner) rateLimitArgs(ctx context.Context, skipSleepInterval bool) []string {
-	settings := r.settings(ctx)
-
+func rateLimitArgs(settings Settings, skipSleepInterval bool) []string {
 	var args []string
 	if settings.ThroughputLimit != "" {
 		args = append(args, "--limit-rate", settings.ThroughputLimit)
@@ -159,13 +160,6 @@ func (r *Runner) rateLimitArgs(ctx context.Context, skipSleepInterval bool) []st
 		"--sleep-subtitles", strconv.Itoa(fsutil.AddJitter(settings.SleepIntervalSeconds, 0.5)),
 	)
 	return args
-}
-
-func (r *Runner) miscArgs(ctx context.Context) []string {
-	if r.settings(ctx).RestrictFilenames {
-		return []string{"--restrict-filenames"}
-	}
-	return nil
 }
 
 func (r *Runner) globalArgs() []string {
