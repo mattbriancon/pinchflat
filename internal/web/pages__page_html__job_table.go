@@ -4,12 +4,12 @@ import (
 	"context"
 	"strings"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/app"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // getJobTableTasks fetches all executing tasks with show_in_dashboard tag.
-func getJobTableTasks(ctx context.Context, app *core.App) ([]*store.Task, error) {
+func getJobTableTasks(ctx context.Context, app *app.App) ([]*store.Task, error) {
 	q := store.TasksQueryJoinJob(store.TasksQueryNew()).
 		Where(store.TasksQueryInState([]string{"executing"})).
 		Where(store.TasksQueryHasTag("show_in_dashboard")).

@@ -11,10 +11,10 @@ import templruntime "github.com/a-h/templ/runtime"
 import (
 	"fmt"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-func SourceHTMLActionsDropdown(source *core.Source) templ.Component {
+func SourceHTMLActionsDropdown(source *store.Source) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -43,7 +43,7 @@ func SourceHTMLActionsDropdown(source *core.Source) templ.Component {
 	})
 }
 
-func sourcesActionsDropdownOptions(source *core.Source) []ButtonButtonOption {
+func sourcesActionsDropdownOptions(source *store.Source) []ButtonButtonOption {
 	opts := []ButtonButtonOption{
 		{Content: sourcesActionsCopyRSS(source)},
 		{Content: sourcesActionsCopyJSON(source)},
@@ -65,7 +65,7 @@ func sourcesActionsDropdownOptions(source *core.Source) []ButtonButtonOption {
 	return opts
 }
 
-func sourcesActionsCopyRSS(source *core.Source) templ.Component {
+func sourcesActionsCopyRSS(source *store.Source) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -128,7 +128,7 @@ func sourcesActionsCopyRSS(source *core.Source) templ.Component {
 	})
 }
 
-func sourcesActionsCopyJSON(source *core.Source) templ.Component {
+func sourcesActionsCopyJSON(source *store.Source) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -178,7 +178,7 @@ func sourcesActionsCopyJSON(source *core.Source) templ.Component {
 	})
 }
 
-func sourcesActionsUseAsTemplate(source *core.Source) templ.Component {
+func sourcesActionsUseAsTemplate(source *store.Source) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -249,7 +249,7 @@ func sourcesActionsSeparator() templ.Component {
 	})
 }
 
-func sourcesActionsDownloadPending(source *core.Source) templ.Component {
+func sourcesActionsDownloadPending(source *store.Source) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -284,7 +284,7 @@ func sourcesActionsDownloadPending(source *core.Source) templ.Component {
 	})
 }
 
-func sourcesActionsRedownload(source *core.Source) templ.Component {
+func sourcesActionsRedownload(source *store.Source) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -319,7 +319,7 @@ func sourcesActionsRedownload(source *core.Source) templ.Component {
 	})
 }
 
-func sourcesActionsForceIndex(source *core.Source) templ.Component {
+func sourcesActionsForceIndex(source *store.Source) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -354,7 +354,7 @@ func sourcesActionsForceIndex(source *core.Source) templ.Component {
 	})
 }
 
-func sourcesActionsRefreshMetadata(source *core.Source) templ.Component {
+func sourcesActionsRefreshMetadata(source *store.Source) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -389,7 +389,7 @@ func sourcesActionsRefreshMetadata(source *core.Source) templ.Component {
 	})
 }
 
-func sourcesActionsSyncFiles(source *core.Source) templ.Component {
+func sourcesActionsSyncFiles(source *store.Source) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -424,7 +424,7 @@ func sourcesActionsSyncFiles(source *core.Source) templ.Component {
 	})
 }
 
-func sourcesActionsDeleteSource(source *core.Source) templ.Component {
+func sourcesActionsDeleteSource(source *store.Source) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -459,7 +459,7 @@ func sourcesActionsDeleteSource(source *core.Source) templ.Component {
 	})
 }
 
-func sourcesActionsDeleteSourceAndFiles(source *core.Source) templ.Component {
+func sourcesActionsDeleteSourceAndFiles(source *store.Source) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {

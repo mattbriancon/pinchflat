@@ -8,12 +8,12 @@ import (
 	"context"
 	"strings"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/app"
 )
 
 // layoutsApp is the serving App (nil outside a request, e.g. in component
 // tests), carried on the Page.
-func layoutsApp(ctx context.Context) *core.App { return PageOf(ctx).App }
+func layoutsApp(ctx context.Context) *app.App { return PageOf(ctx).App }
 
 // layoutsYtDlpVersion is Settings.get!(:yt_dlp_version), shown in the footer.
 func layoutsYtDlpVersion(ctx context.Context) string {

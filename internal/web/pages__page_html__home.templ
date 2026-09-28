@@ -3,15 +3,15 @@ package web
 import (
 	"context"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 templ PagesPageHTMLHome(
 	ctx context.Context,
 	mediaProfileCount, sourceCount, mediaItemCount, mediaItemSize int64,
-	downloadedRecords []*core.MediaItem, downloadedPage, downloadedTotalPages, downloadedTotalCount int,
-	pendingRecords []*core.MediaItem, pendingPage, pendingTotalPages, pendingTotalCount int,
-	tasks []*core.Task,
+	downloadedRecords []*store.MediaItem, downloadedPage, downloadedTotalPages, downloadedTotalCount int,
+	pendingRecords []*store.MediaItem, pendingPage, pendingTotalPages, pendingTotalCount int,
+	tasks []*store.Task,
 ) {
 	<div class="grid grid-cols-2 gap-3 md:grid-cols-4">
 		<div class="card flex flex-col justify-center px-3 py-2.5 sm:px-4 sm:py-3">

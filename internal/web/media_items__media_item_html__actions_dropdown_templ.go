@@ -9,10 +9,10 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-func MediaItemsMediaItemHTMLActionsDropdown(mediaItem *core.MediaItem) templ.Component {
+func MediaItemsMediaItemHTMLActionsDropdown(mediaItem *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -79,7 +79,7 @@ func mediaItemsDividerOption() templ.Component {
 
 // mediaItemsCopyJSONOption is the <:option> that copies
 // Jason.Formatter.pretty_print(Jason.encode!(@media_item)) to the clipboard.
-func mediaItemsCopyJSONOption(mediaItem *core.MediaItem) templ.Component {
+func mediaItemsCopyJSONOption(mediaItem *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -129,7 +129,7 @@ func mediaItemsCopyJSONOption(mediaItem *core.MediaItem) templ.Component {
 	})
 }
 
-func mediaItemsForceDownloadOption(mediaItem *core.MediaItem) templ.Component {
+func mediaItemsForceDownloadOption(mediaItem *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -193,7 +193,7 @@ func mediaItemsForceDownloadText() templ.Component {
 	})
 }
 
-func mediaItemsDeleteFilesOption(mediaItem *core.MediaItem) templ.Component {
+func mediaItemsDeleteFilesOption(mediaItem *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -257,7 +257,7 @@ func mediaItemsDeleteFilesText() templ.Component {
 	})
 }
 
-func mediaItemsDeleteAndIgnoreOption(mediaItem *core.MediaItem) templ.Component {
+func mediaItemsDeleteAndIgnoreOption(mediaItem *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -323,7 +323,7 @@ func mediaItemsDeleteAndIgnoreText() templ.Component {
 
 // mediaItemsCopyJSONScript builds the Alpine click handler that copies
 // Jason.Formatter.pretty_print(Jason.encode!(@media_item)) to the clipboard.
-func mediaItemsCopyJSONScript(mediaItem *core.MediaItem) string {
+func mediaItemsCopyJSONScript(mediaItem *store.MediaItem) string {
 	return "copyWithCallbacks(" +
 		"String.raw`" + prettyJSON(mediaItem) + "`, " +
 		"() => copied = true, " +

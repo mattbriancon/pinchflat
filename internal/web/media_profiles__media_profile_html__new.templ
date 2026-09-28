@@ -1,8 +1,8 @@
 package web
 
-import "github.com/mattbriancon/pinchflat/internal/core"
+import "github.com/mattbriancon/pinchflat/internal/store"
 
-templ MediaProfilesHTMLNew(changeset *core.Changeset) {
+templ MediaProfilesHTMLNew(changeset *store.Changeset) {
 	<div class="page-header justify-start">
 		if !PageOf(ctx).Onboarding {
 			<a href={ templ.SafeURL(P(ctx, "/media_profiles")) }>

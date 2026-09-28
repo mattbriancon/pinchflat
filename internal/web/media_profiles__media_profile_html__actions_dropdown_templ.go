@@ -8,10 +8,10 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/mattbriancon/pinchflat/internal/core"
+import "github.com/mattbriancon/pinchflat/internal/store"
 
 // MediaProfilesHTMLActionsDropdown is actions_dropdown/1.
-func MediaProfilesHTMLActionsDropdown(mediaProfile *core.MediaProfile) templ.Component {
+func MediaProfilesHTMLActionsDropdown(mediaProfile *store.MediaProfile) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -46,7 +46,7 @@ func MediaProfilesHTMLActionsDropdown(mediaProfile *core.MediaProfile) templ.Com
 	})
 }
 
-func mediaProfilesCopyJSONOption(mediaProfile *core.MediaProfile) templ.Component {
+func mediaProfilesCopyJSONOption(mediaProfile *store.MediaProfile) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -96,7 +96,7 @@ func mediaProfilesCopyJSONOption(mediaProfile *core.MediaProfile) templ.Componen
 	})
 }
 
-func mediaProfilesUseAsTemplateOption(mediaProfile *core.MediaProfile) templ.Component {
+func mediaProfilesUseAsTemplateOption(mediaProfile *store.MediaProfile) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -167,7 +167,7 @@ func mediaProfilesDividerOption() templ.Component {
 	})
 }
 
-func mediaProfilesDeleteOption(mediaProfile *core.MediaProfile) templ.Component {
+func mediaProfilesDeleteOption(mediaProfile *store.MediaProfile) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -231,7 +231,7 @@ func mediaProfilesDeleteProfileLabel() templ.Component {
 	})
 }
 
-func mediaProfilesDeleteWithFilesOption(mediaProfile *core.MediaProfile) templ.Component {
+func mediaProfilesDeleteWithFilesOption(mediaProfile *store.MediaProfile) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {

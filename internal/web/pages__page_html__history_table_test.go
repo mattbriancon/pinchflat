@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
@@ -16,14 +16,14 @@ import (
 
 func downloadedMediaItem(t testing.TB, c *webtest.Client, customName string) *store.MediaItem {
 	t.Helper()
-	source := coretest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": customName})
-	return coretest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "title": customName})
+	source := apptest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": customName})
+	return apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "title": customName})
 }
 
 func pendingMediaItem(t testing.TB, c *webtest.Client, customName string) *store.MediaItem {
 	t.Helper()
-	source := coretest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": customName})
-	return coretest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "title": customName, "media_filepath": nil})
+	source := apptest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": customName})
+	return apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "title": customName, "media_filepath": nil})
 }
 
 func TestHistoryTableLive_InitialRendering(t *testing.T) {

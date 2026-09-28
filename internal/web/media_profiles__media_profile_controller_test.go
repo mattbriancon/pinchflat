@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
-	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/app"
+	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
@@ -18,7 +18,7 @@ func TestMediaProfileController_Index(t *testing.T) {
 	t.Run("lists all media_profiles", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
 
 		res := c.Get("/media_profiles")
 		html := res.HTML(t, http.StatusOK)
@@ -34,7 +34,7 @@ func TestMediaProfileController_Index(t *testing.T) {
 	t.Run("omits profiles that have marked_for_deletion_at set", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, store.Attrs{
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.Attrs{
 			"marked_for_deletion_at": time.Now().UTC(),
 		})
 
@@ -73,7 +73,7 @@ func TestMediaProfileController_New(t *testing.T) {
 
 	t.Run("preloads some attributes when using a template", func(t *testing.T) {
 		c := webtest.New(t)
-		profile := coretest.MediaProfileFixture(t, c.TestApp, store.Attrs{
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.Attrs{
 			"name":      "My first profile",
 			"sub_langs": "de",
 		})
@@ -181,7 +181,7 @@ func TestMediaProfileController_Edit(t *testing.T) {
 	t.Run("renders form for editing chosen media_profile", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
 
 		res := c.Get("/media_profiles/" + fmt.Sprint(profile.ID) + "/edit")
 		html := res.HTML(t, http.StatusOK)
@@ -196,7 +196,7 @@ func TestMediaProfileController_Update(t *testing.T) {
 	t.Run("redirects when data is valid", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
 
 		attrs := store.Attrs{
 			"name":                 "updated name",
@@ -215,7 +215,7 @@ func TestMediaProfileController_Update(t *testing.T) {
 	t.Run("renders errors when data is invalid", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
 
 		attrs := store.Attrs{
 			"name":                 nil,
@@ -235,7 +235,7 @@ func TestMediaProfileController_Delete(t *testing.T) {
 	t.Run("redirects to the media_profiles page", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
 
 		res := c.Delete("/media_profiles/" + fmt.Sprint(profile.ID))
 		redirectTo := res.RedirectedTo(t)
@@ -248,7 +248,7 @@ func TestMediaProfileController_Delete(t *testing.T) {
 	t.Run("sets marked_for_deletion_at", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
 
 		c.Delete("/media_profiles/" + fmt.Sprint(profile.ID))
 
@@ -265,12 +265,12 @@ func TestMediaProfileController_Delete(t *testing.T) {
 	t.Run("enqueues a job without the delete_files arg", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
 
 		c.Delete("/media_profiles/" + fmt.Sprint(profile.ID))
 
 		job := c.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: core.MediaProfileDeletionWorkerName,
+			Worker: app.MediaProfileDeletionWorkerName,
 			Args:   map[string]any{"delete_files": false},
 		})
 
@@ -282,12 +282,12 @@ func TestMediaProfileController_Delete(t *testing.T) {
 	t.Run("enqueues a job with the delete_files arg", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.Attrs{})
 
 		c.Delete("/media_profiles/" + fmt.Sprint(profile.ID) + "?delete_files=true")
 
 		job := c.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: core.MediaProfileDeletionWorkerName,
+			Worker: app.MediaProfileDeletionWorkerName,
 			Args:   map[string]any{"delete_files": true},
 		})
 

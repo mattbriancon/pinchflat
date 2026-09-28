@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
@@ -15,7 +15,7 @@ import (
 func TestSourceIndexTable_InitialRendering(t *testing.T) {
 	t.Run("lists all sources", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, store.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
 
 		res := c.Get("/sources")
 
@@ -26,7 +26,7 @@ func TestSourceIndexTable_InitialRendering(t *testing.T) {
 
 	t.Run("omits sources that have marked_for_deletion_at set", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, store.Attrs{"marked_for_deletion_at": coretest.Now()})
+		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{"marked_for_deletion_at": apptest.Now()})
 
 		res := c.Get("/sources")
 
@@ -37,8 +37,8 @@ func TestSourceIndexTable_InitialRendering(t *testing.T) {
 
 	t.Run("omits sources who's media profile has marked_for_deletion_at set", func(t *testing.T) {
 		c := webtest.New(t)
-		mediaProfile := coretest.MediaProfileFixture(t, c.TestApp, store.Attrs{"marked_for_deletion_at": coretest.Now()})
-		source := coretest.SourceFixture(t, c.TestApp, store.Attrs{"media_profile_id": mediaProfile.ID})
+		mediaProfile := apptest.MediaProfileFixture(t, c.TestApp, store.Attrs{"marked_for_deletion_at": apptest.Now()})
+		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{"media_profile_id": mediaProfile.ID})
 
 		res := c.Get("/sources")
 
@@ -49,7 +49,7 @@ func TestSourceIndexTable_InitialRendering(t *testing.T) {
 
 	t.Run("links each source's RSS feed", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, store.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
 
 		req := httptest.NewRequest("GET", "/sources", nil)
 		req.Host = "pinchflat.example.com"
@@ -67,7 +67,7 @@ func TestSourceIndexTable_InitialRendering(t *testing.T) {
 
 	t.Run("falls back to the endpoint URL for RSS feeds", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, store.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
 
 		html := c.Get("/sources").HTML(t, 200)
 
@@ -80,8 +80,8 @@ func TestSourceIndexTable_InitialRendering(t *testing.T) {
 func TestSourceIndexTable_WhenTestingSorting(t *testing.T) {
 	t.Run("sorts by the custom_name by default", func(t *testing.T) {
 		c := webtest.New(t)
-		source1 := coretest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "Source_B"})
-		source2 := coretest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "Source_A"})
+		source1 := apptest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "Source_B"})
+		source2 := apptest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "Source_A"})
 
 		html := c.Get("/sources").HTML(t, 200)
 
@@ -90,8 +90,8 @@ func TestSourceIndexTable_WhenTestingSorting(t *testing.T) {
 
 	t.Run("clicking the row will change the sort direction", func(t *testing.T) {
 		c := webtest.New(t)
-		source1 := coretest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "Source_B"})
-		source2 := coretest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "Source_A"})
+		source1 := apptest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "Source_B"})
+		source2 := apptest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "Source_A"})
 
 		// Clicking the "Name" header toggles custom_name asc -> desc.
 		html := c.Get("/sources", map[string]string{"sort_key": "custom_name", "sort_direction": "desc"}).HTML(t, 200)
@@ -101,8 +101,8 @@ func TestSourceIndexTable_WhenTestingSorting(t *testing.T) {
 
 	t.Run("clicking a different row will sort by that attribute", func(t *testing.T) {
 		c := webtest.New(t)
-		source1 := coretest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "Source_A", "enabled": true})
-		source2 := coretest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "Source_A", "enabled": false})
+		source1 := apptest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "Source_A", "enabled": true})
+		source2 := apptest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "Source_A", "enabled": false})
 
 		// Clicking the "Enabled?" header: false sorts before true ascending.
 		html := c.Get("/sources", map[string]string{"sort_key": "enabled", "sort_direction": "asc"}).HTML(t, 200)
@@ -115,8 +115,8 @@ func TestSourceIndexTable_WhenTestingSorting(t *testing.T) {
 
 	t.Run("name is sorted without case sensitivity", func(t *testing.T) {
 		c := webtest.New(t)
-		source1 := coretest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "Source_B"})
-		source2 := coretest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "source_a"})
+		source1 := apptest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "Source_B"})
+		source2 := apptest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": "source_a"})
 
 		html := c.Get("/sources").HTML(t, 200)
 
@@ -132,7 +132,7 @@ func TestSourceIndexTable_WhenTestingPagination(t *testing.T) {
 		// used here instead of the Elixir test's results_per_page: 1 override.
 		var sources []*store.Source
 		for i := 0; i < 11; i++ {
-			sources = append(sources, coretest.SourceFixture(t, c.TestApp, store.Attrs{
+			sources = append(sources, apptest.SourceFixture(t, c.TestApp, store.Attrs{
 				"custom_name": fmt.Sprintf("Source_%02d", i),
 			}))
 		}

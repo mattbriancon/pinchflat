@@ -1,12 +1,12 @@
 package web
 
-import "github.com/mattbriancon/pinchflat/internal/core"
+import "github.com/mattbriancon/pinchflat/internal/store"
 
-templ mediaProfilesShowSourceNameCell(source *core.Source) {
+templ mediaProfilesShowSourceNameCell(source *store.Source) {
 	@TextSubtleLink(P(ctx, "/sources/%v", source.ID), "_self", mediaProfilesShowSourceNameLabel(source))
 }
 
-templ mediaProfilesShowSourceNameLabel(source *core.Source) {
+templ mediaProfilesShowSourceNameLabel(source *store.Source) {
 	if source.CustomName != "" {
 		{ source.CustomName }
 	} else {
@@ -14,11 +14,11 @@ templ mediaProfilesShowSourceNameLabel(source *core.Source) {
 	}
 }
 
-templ mediaProfilesShowSourceTypeCell(source *core.Source) {
+templ mediaProfilesShowSourceTypeCell(source *store.Source) {
 	{ string(source.CollectionType) }
 }
 
-templ mediaProfilesShowSourceDownloadCell(source *core.Source) {
+templ mediaProfilesShowSourceDownloadCell(source *store.Source) {
 	if source.DownloadMedia {
 		@CoreIcon("hero-check", "", nil)
 	} else {
@@ -26,6 +26,6 @@ templ mediaProfilesShowSourceDownloadCell(source *core.Source) {
 	}
 }
 
-templ mediaProfilesShowSourceEditCell(source *core.Source) {
+templ mediaProfilesShowSourceEditCell(source *store.Source) {
 	@TextIconLink(P(ctx, "/sources/%v/edit", source.ID), "hero-pencil-square", "mr-4")
 }

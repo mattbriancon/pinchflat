@@ -13,23 +13,23 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web"
 )
 
 // Client is ConnCase's conn: an app with mocks plus a cookie-keeping client.
 type Client struct {
-	*coretest.TestApp
+	*apptest.TestApp
 	Server  *web.Server
 	handler http.Handler
 	cookies map[string]*http.Cookie
 	t       testing.TB
 }
 
-// New builds a fresh app (coretest.NewApp) and web server.
+// New builds a fresh app (apptest.NewApp) and web server.
 func New(t testing.TB) *Client {
-	ta := coretest.NewApp(t)
+	ta := apptest.NewApp(t)
 	srv := web.New(ta.App, web.Options{SecretKeyBase: "test-secret", Version: "test"})
 	return &Client{TestApp: ta, Server: srv, handler: srv.Handler(), cookies: map[string]*http.Cookie{}, t: t}
 }

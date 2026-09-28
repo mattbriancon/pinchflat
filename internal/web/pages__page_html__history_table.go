@@ -5,7 +5,7 @@ import (
 	"math"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/app"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
@@ -14,7 +14,7 @@ const historyTableLimit = 5
 
 // historyTableFetch fetches one media_state's page of history for the home
 // page (mount/3 + handle_params in the old LiveView).
-func historyTableFetch(ctx context.Context, app *core.App, mediaState string, page int) (records []*store.MediaItem, clampedPage, totalPages, totalRecordCount int, err error) {
+func historyTableFetch(ctx context.Context, app *app.App, mediaState string, page int) (records []*store.MediaItem, clampedPage, totalPages, totalRecordCount int, err error) {
 	baseQuery := generateHistoryTableBaseQuery(mediaState)
 	totalRecordCount, err = store.Scalar[int](ctx, app.Q(ctx),
 		store.SQ.Select("COUNT(*)").FromSelect(baseQuery.B, "mi"))

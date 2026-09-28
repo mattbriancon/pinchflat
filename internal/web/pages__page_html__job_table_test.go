@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
@@ -18,8 +18,8 @@ import (
 // createMediaItemJob is create_media_item_job/1.
 func createMediaItemJob(t testing.TB, c *webtest.Client, jobState string) (*store.Source, *store.MediaItem, *store.Task) {
 	t.Helper()
-	source := coretest.SourceFixture(t, c.TestApp, store.Attrs{})
-	mediaItem := coretest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID})
+	source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+	mediaItem := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID})
 	task, err := c.App.MediaDownloadWorkerKickoffWithTask(c.Ctx, mediaItem, store.Attrs{}, store.KW{})
 	if err != nil {
 		t.Fatalf("MediaDownloadWorkerKickoffWithTask: %v", err)
@@ -36,7 +36,7 @@ func createMediaItemJob(t testing.TB, c *webtest.Client, jobState string) (*stor
 // createSourceJob is create_source_job/1.
 func createSourceJob(t testing.TB, c *webtest.Client, jobState string) (*store.Source, *store.Task) {
 	t.Helper()
-	source := coretest.SourceFixture(t, c.TestApp, store.Attrs{})
+	source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
 	task, err := c.App.FastIndexingWorkerKickoffWithTask(c.Ctx, source, store.KW{})
 	if err != nil {
 		t.Fatalf("FastIndexingWorkerKickoffWithTask: %v", err)

@@ -6,15 +6,15 @@ import (
 	"testing"
 
 	"github.com/a-h/templ"
-	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web"
 )
 
 func TestCoreListItemsFromMap(t *testing.T) {
 	t.Run("renders schema fields but not associations", func(t *testing.T) {
-		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, store.Attrs{"original_url": "https://www.youtube.com/@x"})
+		ta := apptest.NewApp(t)
+		source := apptest.SourceFixture(t, ta, store.Attrs{"original_url": "https://www.youtube.com/@x"})
 		source, _ = ta.App.PreloadSourceMediaProfile(ta.Ctx, source)
 
 		html, err := templ.ToGoHTML(context.Background(), web.CoreListItemsFromMap(source))

@@ -11,10 +11,10 @@ import templruntime "github.com/a-h/templ/runtime"
 import (
 	"strings"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-func MediaItemsMediaItemHTMLShow(mediaItem *core.MediaItem) templ.Component {
+func MediaItemsMediaItemHTMLShow(mediaItem *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -139,14 +139,14 @@ func mediaItemsEditButtonContent() templ.Component {
 	})
 }
 
-func mediaItemsShowTabs(mediaItem *core.MediaItem) []TabTab {
+func mediaItemsShowTabs(mediaItem *store.MediaItem) []TabTab {
 	return []TabTab{
 		{ID: "media", Title: "Media", Content: mediaItemsShowMediaTab(mediaItem)},
 		{ID: "tasks", Title: "Tasks", Content: mediaItemsShowTasksTab(mediaItem)},
 	}
 }
 
-func mediaItemsShowMediaTab(mediaItem *core.MediaItem) templ.Component {
+func mediaItemsShowMediaTab(mediaItem *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -304,7 +304,7 @@ func mediaItemsShowMediaTab(mediaItem *core.MediaItem) templ.Component {
 	})
 }
 
-func mediaItemsShowTasksTab(mediaItem *core.MediaItem) templ.Component {
+func mediaItemsShowTasksTab(mediaItem *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -348,7 +348,7 @@ func mediaItemsShowTasksTab(mediaItem *core.MediaItem) templ.Component {
 	})
 }
 
-func mediaItemsTaskRows(tasks []*core.Task) []any {
+func mediaItemsTaskRows(tasks []*store.Task) []any {
 	rows := make([]any, len(tasks))
 	for i, t := range tasks {
 		rows[i] = t
@@ -377,7 +377,7 @@ func mediaItemsTaskWorkerCell(row any) templ.Component {
 			templ_7745c5c3_Var11 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		if task, ok := row.(*core.Task); ok && task.Job != nil {
+		if task, ok := row.(*store.Task); ok && task.Job != nil {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(task.Job.Worker)
 			if templ_7745c5c3_Err != nil {
@@ -413,7 +413,7 @@ func mediaItemsTaskStateCell(row any) templ.Component {
 			templ_7745c5c3_Var13 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		if task, ok := row.(*core.Task); ok && task.Job != nil {
+		if task, ok := row.(*store.Task); ok && task.Job != nil {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(task.Job.State)
 			if templ_7745c5c3_Err != nil {
@@ -449,7 +449,7 @@ func mediaItemsTaskScheduledAtCell(row any) templ.Component {
 			templ_7745c5c3_Var15 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		if task, ok := row.(*core.Task); ok && task.Job != nil {
+		if task, ok := row.(*store.Task); ok && task.Job != nil {
 			templ_7745c5c3_Err = TextDatetimeInZone(task.Job.ScheduledAt.Time, "", "").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err

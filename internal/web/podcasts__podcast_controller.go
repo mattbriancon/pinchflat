@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/app"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
@@ -24,7 +24,7 @@ func (s *Server) PodcastControllerOpmlFeed(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Build OPML XML
-	xml := core.OpmlFeedBuilderBuild(urlBase, sources)
+	xml := app.OpmlFeedBuilderBuild(urlBase, sources)
 
 	w.Header().Set("Content-Type", "application/opml+xml; charset=utf-8")
 	w.Header().Set("Content-Disposition", "inline")
