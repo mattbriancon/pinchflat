@@ -27,6 +27,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -95,7 +96,7 @@ func start(s Settings) error {
 		return err
 	}
 
-	app := &core.App{DB: d, Oban: obanlite.New(d), Config: s.Core}
+	app := &core.App{Store: &store.Store{DB: d, Oban: obanlite.New(d)}, Config: s.Core}
 	app.YtDlp = core.NewYtDlpCommandRunner(app)
 	app.UserScripts = &core.UserScriptsCommandRunner{App: app}
 	app.HTTP = &core.HTTPClientImpl{}

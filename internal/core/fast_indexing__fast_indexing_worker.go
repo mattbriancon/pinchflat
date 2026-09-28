@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 const FastIndexingWorkerName = "Pinchflat.FastIndexing.FastIndexingWorker"
@@ -20,7 +21,7 @@ var fastIndexingWorkerOpts = obanlite.WorkerOpts{
 }
 
 // FastIndexingWorkerKickoffWithTask/2
-func (a *App) FastIndexingWorkerKickoffWithTask(ctx context.Context, source *Source, opts KW) (*Task, error) {
+func (a *App) FastIndexingWorkerKickoffWithTask(ctx context.Context, source *store.Source, opts store.KW) (*store.Task, error) {
 	jobSpec := obanlite.JobSpec{
 		Worker: FastIndexingWorkerName,
 		Args:   map[string]any{"id": source.ID},
@@ -30,7 +31,7 @@ func (a *App) FastIndexingWorkerKickoffWithTask(ctx context.Context, source *Sou
 		jobSpec.ScheduleIn = scheduleIn.(int)
 	}
 
-	return a.TasksCreateJobWithTask(ctx, jobSpec, source)
+	return a.CreateJobWithTask(ctx, jobSpec, source)
 }
 
 // FastIndexingWorkerPerform/1
@@ -44,9 +45,9 @@ func (a *App) FastIndexingWorkerPerform(ctx context.Context, job *obanlite.Job) 
 		return err
 	}
 
-	source, err := a.SourcesGetSource(ctx, args.ID)
+	source, err := a.GetSource(ctx, args.ID)
 	if err != nil {
-		if err == ErrNotFound {
+		if err == store.ErrNotFound {
 			slog.Info("FastIndexingWorker discarded: source not found", "source_id", args.ID)
 			return nil
 		}
@@ -61,16 +62,16 @@ func (a *App) FastIndexingWorkerPerform(ctx context.Context, job *obanlite.Job) 
 	return fastIndexingWorkerRescheduleIndexing(ctx, a, source)
 }
 
-func fastIndexingWorkerPerformIndexing(ctx context.Context, a *App, source *Source) {
+func fastIndexingWorkerPerformIndexing(ctx context.Context, a *App, source *store.Source) {
 	if _, err := a.FastIndexingHelpersIndexAndKickoffDownloads(ctx, source); err != nil {
 		slog.Error("Error indexing media", "source_id", source.ID, "error", err)
 	}
 }
 
-func fastIndexingWorkerRescheduleIndexing(ctx context.Context, a *App, source *Source) error {
-	nextRunInSeconds := SourceFastIndexFrequency() * 60
+func fastIndexingWorkerRescheduleIndexing(ctx context.Context, a *App, source *store.Source) error {
+	nextRunInSeconds := store.SourceFastIndexFrequency() * 60
 
-	_, err := a.FastIndexingWorkerKickoffWithTask(ctx, source, KW{Opt("schedule_in", nextRunInSeconds)})
+	_, err := a.FastIndexingWorkerKickoffWithTask(ctx, source, store.KW{store.Opt("schedule_in", nextRunInSeconds)})
 	if err != nil {
 		if err.Error() == "duplicate_job" {
 			return nil

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // MediaQualityUpgradeWorker handles redownloading media for quality upgrades.
@@ -23,7 +24,7 @@ var mediaQualityUpgradeWorkerOpts = obanlite.WorkerOpts{
 
 // MediaQualityUpgradeWorkerPerform/1
 func (a *App) MediaQualityUpgradeWorkerPerform(ctx context.Context, job *obanlite.Job) error {
-	upgradableMedia, err := a.MediaListUpgradeableMediaItems(ctx)
+	upgradableMedia, err := a.ListUpgradeableMediaItems(ctx)
 	if err != nil {
 		return err
 	}
@@ -31,7 +32,7 @@ func (a *App) MediaQualityUpgradeWorkerPerform(ctx context.Context, job *obanlit
 	slog.Info(fmt.Sprintf("Redownloading %d media items", len(upgradableMedia)))
 
 	for _, mediaItem := range upgradableMedia {
-		_, err := a.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, Attrs{"quality_upgrade?": true}, KW{})
+		_, err := a.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{"quality_upgrade?": true}, store.KW{})
 		if err != nil {
 			return err
 		}

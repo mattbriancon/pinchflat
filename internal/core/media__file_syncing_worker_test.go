@@ -6,6 +6,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestFileSyncingWorker_KickoffWithTask(t *testing.T) {
@@ -16,8 +17,8 @@ func TestFileSyncingWorker_KickoffWithTask(t *testing.T) {
 		t.Fatalf("expected 0 enqueued jobs initially")
 	}
 
-	source := coretest.SourceFixture(t, ta, core.Attrs{})
-	task, err := ta.FileSyncingWorkerKickoffWithTask(ta.Ctx, source, core.KW{})
+	source := coretest.SourceFixture(t, ta, store.Attrs{})
+	task, err := ta.FileSyncingWorkerKickoffWithTask(ta.Ctx, source, store.KW{})
 	if err != nil {
 		t.Fatalf("KickoffWithTask failed: %v", err)
 	}
@@ -35,8 +36,8 @@ func TestFileSyncingWorker_Perform(t *testing.T) {
 	t.Parallel()
 	ta := coretest.NewApp(t)
 
-	source := coretest.SourceFixture(t, ta, core.Attrs{})
-	mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{
+	source := coretest.SourceFixture(t, ta, store.Attrs{})
+	mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{
 		"media_filepath": "/tmp/missing.mp4",
 		"source_id":      source.ID,
 	})
@@ -45,7 +46,7 @@ func TestFileSyncingWorker_Perform(t *testing.T) {
 		t.Fatalf("PerformJob failed: %v", err)
 	}
 
-	updatedMediaItem, err := ta.MediaGetMediaItem(ta.Ctx, mediaItem.ID)
+	updatedMediaItem, err := ta.GetMediaItem(ta.Ctx, mediaItem.ID)
 	if err != nil {
 		t.Fatalf("reload media item failed: %v", err)
 	}

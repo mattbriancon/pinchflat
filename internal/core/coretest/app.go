@@ -16,6 +16,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/db/dbtest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // TestApp is what a ported test gets from DataCase: the App plus its mocks.
@@ -111,8 +112,7 @@ func NewApp(t testing.TB) *TestApp {
 		Ctx:            context.Background(),
 	}
 	ta.App = &core.App{
-		DB:          d,
-		Oban:        obanlite.New(d),
+		Store:       &store.Store{DB: d, Oban: obanlite.New(d)},
 		Config:      cfg,
 		YtDlp:       ytDlpRunner{ta.YtDlpMock},
 		UserScripts: userScriptRunner{ta.UserScriptMock},

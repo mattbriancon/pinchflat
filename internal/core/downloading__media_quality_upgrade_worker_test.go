@@ -6,6 +6,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestMediaQualityUpgradeWorker_Perform(t *testing.T) {
@@ -33,13 +34,13 @@ func TestMediaQualityUpgradeWorker_Perform(t *testing.T) {
 			ta := coretest.NewApp(t)
 			ctx := ta.Ctx
 
-			mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"redownload_delay_days": 4})
-			source := coretest.SourceFixture(t, ta, core.Attrs{
+			mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{"redownload_delay_days": 4})
+			source := coretest.SourceFixture(t, ta, store.Attrs{
 				"media_profile_id": mediaProfile.ID,
 				"inserted_at":      coretest.NowMinus(10, "days"),
 			})
 
-			mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{
+			mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{
 				"source_id":           source.ID,
 				"uploaded_at":         coretest.NowMinus(6, "days"),
 				"media_downloaded_at": coretest.NowMinus(tt.downloadedDays, "days"),

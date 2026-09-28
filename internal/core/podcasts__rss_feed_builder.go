@@ -10,12 +10,13 @@ import (
 	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // RssFeedBuilder builds RSS feeds for sources and their media items.
 
 // RssFeedBuilderBuild/2
-func (a *App) RssFeedBuilderBuild(ctx context.Context, source *Source, opts KW) (string, error) {
+func (a *App) RssFeedBuilderBuild(ctx context.Context, source *store.Source, opts store.KW) (string, error) {
 	limit := opts.GetOr("limit", 2000).(int)
 	urlBase := opts.GetOr("url_base", "").(string)
 	if urlBase == "" {
@@ -23,7 +24,7 @@ func (a *App) RssFeedBuilderBuild(ctx context.Context, source *Source, opts KW) 
 	}
 
 	// Get persisted media items
-	mediaItems, err := a.PodcastHelpersPersistedMediaItemsFor(ctx, source, KW{Opt("limit", limit)})
+	mediaItems, err := a.PodcastHelpersPersistedMediaItemsFor(ctx, source, store.KW{store.Opt("limit", limit)})
 	if err != nil {
 		return "", err
 	}
@@ -33,7 +34,7 @@ func (a *App) RssFeedBuilderBuild(ctx context.Context, source *Source, opts KW) 
 }
 
 // rssFeedBuilderBuildSourceXml builds the RSS channel XML
-func rssFeedBuilderBuildSourceXml(ctx context.Context, a *App, source *Source, mediaItems []*MediaItem, urlBase string) string {
+func rssFeedBuilderBuildSourceXml(ctx context.Context, a *App, source *store.Source, mediaItems []*store.MediaItem, urlBase string) string {
 	// Build media item XML
 	var mediaItemXML []string
 	for _, mediaItem := range mediaItems {
@@ -103,7 +104,7 @@ func rssFeedBuilderBuildSourceXml(ctx context.Context, a *App, source *Source, m
 }
 
 // rssFeedBuilderBuildMediaItemXml builds a single media item entry
-func rssFeedBuilderBuildMediaItemXml(ctx context.Context, a *App, source *Source, mediaItem *MediaItem, urlBase string) string {
+func rssFeedBuilderBuildMediaItemXml(ctx context.Context, a *App, source *store.Source, mediaItem *store.MediaItem, urlBase string) string {
 	itemImagePath := RssFeedBuilderItemImagePath(urlBase, mediaItem)
 
 	title := ""
@@ -170,7 +171,7 @@ func rssFeedBuilderBuildMediaItemXml(ctx context.Context, a *App, source *Source
 }
 
 // rssFeedBuilderGenerateSelfLink builds the self-link for the RSS feed
-func rssFeedBuilderGenerateSelfLink(urlBase string, source *Source) string {
+func rssFeedBuilderGenerateSelfLink(urlBase string, source *store.Source) string {
 	uuid := ""
 	if source.UUID != nil {
 		uuid = *source.UUID
@@ -182,7 +183,7 @@ func rssFeedBuilderGenerateSelfLink(urlBase string, source *Source) string {
 }
 
 // rssFeedBuilderMediaStreamPath builds the media stream URL
-func rssFeedBuilderMediaStreamPath(urlBase string, mediaItem *MediaItem) string {
+func rssFeedBuilderMediaStreamPath(urlBase string, mediaItem *store.MediaItem) string {
 	ext := ""
 	if mediaItem.MediaFilepath != nil {
 		ext = filepath.Ext(*mediaItem.MediaFilepath)
@@ -198,7 +199,7 @@ func rssFeedBuilderMediaStreamPath(urlBase string, mediaItem *MediaItem) string 
 }
 
 // rssFeedBuilderFeedImagePath gets the feed image path, checking for existence
-func rssFeedBuilderFeedImagePath(ctx context.Context, a *App, urlBase string, source *Source, mediaItems []*MediaItem) string {
+func rssFeedBuilderFeedImagePath(ctx context.Context, a *App, urlBase string, source *store.Source, mediaItems []*store.MediaItem) string {
 	imagePath, err := a.PodcastHelpersSelectCoverImage(ctx, source, mediaItems)
 	if err != nil || imagePath == "" {
 		return ""
@@ -216,7 +217,7 @@ func rssFeedBuilderFeedImagePath(ctx context.Context, a *App, urlBase string, so
 }
 
 // RssFeedBuilderItemImagePath checks if media item has a thumbnail and returns the path
-func RssFeedBuilderItemImagePath(urlBase string, mediaItem *MediaItem) *string {
+func RssFeedBuilderItemImagePath(urlBase string, mediaItem *store.MediaItem) *string {
 	if mediaItem.ThumbnailFilepath == nil || *mediaItem.ThumbnailFilepath == "" {
 		return nil
 	}

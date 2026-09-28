@@ -15,6 +15,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db/dbtest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 var channelDates = regexp.MustCompile(`<(lastBuildDate|pubDate)>[^<]*</(lastBuildDate|pubDate)>`)
@@ -34,7 +35,7 @@ func normalizeBuildTime(s string) string {
 
 func goldenApp(t *testing.T) (*core.App, context.Context) {
 	d := dbtest.CopyOf(t, dbtest.ElixirFixture("populated.db"))
-	app := &core.App{DB: d, Oban: obanlite.New(d), Config: core.Config{Env: "test"}}
+	app := &core.App{Store: &store.Store{DB: d, Oban: obanlite.New(d)}, Config: core.Config{Env: "test"}}
 	app.RegisterWorkers()
 	return app, context.Background()
 }
@@ -50,11 +51,11 @@ func TestPodcastsGoldenOutput(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			source, err := core.MustOne[core.Source](ctx, app.DB, core.From[core.Source]().Where(sq.Eq{"id": c.id}))
+			source, err := store.MustOne[store.Source](ctx, app.DB, store.From[store.Source]().Where(sq.Eq{"id": c.id}))
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, err := app.RssFeedBuilderBuild(ctx, source, core.KW{core.Opt("url_base", "http://pinchflat.test:8945")})
+			got, err := app.RssFeedBuilderBuild(ctx, source, store.KW{store.Opt("url_base", "http://pinchflat.test:8945")})
 			if err != nil {
 				t.Fatal(err)
 			}

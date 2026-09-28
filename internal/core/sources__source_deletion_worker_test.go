@@ -7,6 +7,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestSourceDeletionWorker_Kickoff(t *testing.T) {
@@ -17,13 +18,13 @@ func TestSourceDeletionWorker_Kickoff(t *testing.T) {
 			return nil
 		})
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
 		if len(ta.Oban.Enqueued(t, obanlite.Match{Worker: core.SourceDeletionWorkerName})) != 0 {
 			t.Errorf("expected 0 enqueued initially")
 		}
 
-		job, err := ta.App.SourceDeletionWorkerKickoff(ta.Ctx, source, core.Attrs{}, core.KW{})
+		job, err := ta.App.SourceDeletionWorkerKickoff(ta.Ctx, source, store.Attrs{}, store.KW{})
 		if err != nil {
 			t.Errorf("kickoff failed: %v", err)
 		}
@@ -43,10 +44,10 @@ func TestSourceDeletionWorker_Kickoff(t *testing.T) {
 			return nil
 		})
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		jobArgs := core.Attrs{"delete_files": true}
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		jobArgs := store.Attrs{"delete_files": true}
 
-		job, err := ta.App.SourceDeletionWorkerKickoff(ta.Ctx, source, jobArgs, core.KW{})
+		job, err := ta.App.SourceDeletionWorkerKickoff(ta.Ctx, source, jobArgs, store.KW{})
 		if err != nil {
 			t.Errorf("kickoff failed: %v", err)
 		}
@@ -72,8 +73,8 @@ func TestSourceDeletionWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
 			"source_id": source.ID,
 		})
 
@@ -82,13 +83,13 @@ func TestSourceDeletionWorker_Perform(t *testing.T) {
 			t.Errorf("perform job failed: %v", err)
 		}
 
-		_, err = ta.App.SourcesGetSource(ta.Ctx, source.ID)
-		if err != core.ErrNotFound {
+		_, err = ta.App.GetSource(ta.Ctx, source.ID)
+		if err != store.ErrNotFound {
 			t.Errorf("source should be deleted")
 		}
 
-		_, err = ta.App.MediaGetMediaItem(ta.Ctx, mediaItem.ID)
-		if err != core.ErrNotFound {
+		_, err = ta.App.GetMediaItem(ta.Ctx, mediaItem.ID)
+		if err != store.ErrNotFound {
 			t.Errorf("media_item should be deleted")
 		}
 
@@ -104,8 +105,8 @@ func TestSourceDeletionWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
 			"source_id": source.ID,
 		})
 
@@ -119,13 +120,13 @@ func TestSourceDeletionWorker_Perform(t *testing.T) {
 			t.Errorf("perform job failed: %v", err)
 		}
 
-		_, err = ta.App.SourcesGetSource(ta.Ctx, source.ID)
-		if err != core.ErrNotFound {
+		_, err = ta.App.GetSource(ta.Ctx, source.ID)
+		if err != store.ErrNotFound {
 			t.Errorf("source should be deleted")
 		}
 
-		_, err = ta.App.MediaGetMediaItem(ta.Ctx, mediaItem.ID)
-		if err != core.ErrNotFound {
+		_, err = ta.App.GetMediaItem(ta.Ctx, mediaItem.ID)
+		if err != store.ErrNotFound {
 			t.Errorf("media_item should be deleted")
 		}
 

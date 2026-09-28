@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 const (
@@ -50,9 +50,9 @@ func fileCopy(src, dst string) error {
 }
 
 // SourceFixture creates a Source with sensible defaults, merging in attrs.
-func SourceFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.Source {
+func SourceFixture(t testing.TB, ta *TestApp, attrs store.Attrs) *store.Source {
 	t.Helper()
-	defaults := core.Attrs{
+	defaults := store.Attrs{
 		"enabled":                 true,
 		"collection_name":         "Source #" + strconv.Itoa(randInt(1000000)+1),
 		"collection_id":           randBase64(12),
@@ -60,7 +60,7 @@ func SourceFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.Source {
 		"custom_name":             "Cool and good internal name!",
 		"description":             "This is a description",
 		"original_url":            "https://www.youtube.com/@" + randBase64(12),
-		"media_profile_id":        MediaProfileFixture(t, ta, core.Attrs{}).ID,
+		"media_profile_id":        MediaProfileFixture(t, ta, store.Attrs{}).ID,
 		"index_frequency_minutes": 60,
 	}
 
@@ -71,7 +71,7 @@ func SourceFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.Source {
 
 	// Like Elixir: Source.changeset(:pre_insert) |> Repo.insert(), not
 	// Sources.create_source (which would kick off indexing jobs).
-	source, err := core.Insert[core.Source](ta.Ctx, ta.Q(ta.Ctx), core.SourceChangeset(core.NewSource(), defaults, "pre_insert"))
+	source, err := store.Insert[store.Source](ta.Ctx, ta.Q(ta.Ctx), store.SourceChangeset(store.NewSource(), defaults, "pre_insert"))
 	if err != nil {
 		t.Fatalf("SourceFixture: %v", err)
 	}
@@ -79,7 +79,7 @@ func SourceFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.Source {
 }
 
 // SourceWithMetadataAttachmentsFixture creates a Source with metadata attachments.
-func SourceWithMetadataAttachmentsFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.Source {
+func SourceWithMetadataAttachmentsFixture(t testing.TB, ta *TestApp, attrs store.Attrs) *store.Source {
 	t.Helper()
 
 	metadataDir := filepath.Join(ta.Config.MetadataDirectory, strconv.Itoa(randInt(1000000)+1))
@@ -99,7 +99,7 @@ func SourceWithMetadataAttachmentsFixture(t testing.TB, ta *TestApp, attrs core.
 		t.Fatalf("copy fanart: %v", err)
 	}
 
-	defaults := core.Attrs{
+	defaults := store.Attrs{
 		"metadata": map[string]string{
 			"metadata_filepath": jsonGzFilepath,
 			"poster_filepath":   posterFilepath,
@@ -162,7 +162,7 @@ func SourceAttributesReturnFixture() string {
 }
 
 // SourceDetailsReturnFixture returns the JSON string for source details.
-func SourceDetailsReturnFixture(attrs core.Attrs) string {
+func SourceDetailsReturnFixture(attrs store.Attrs) string {
 	channelID := randBase64(12)
 
 	defaults := map[string]any{

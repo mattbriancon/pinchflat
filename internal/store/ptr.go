@@ -1,4 +1,4 @@
-package core
+package store
 
 // Hand-written W0 infrastructure.
 

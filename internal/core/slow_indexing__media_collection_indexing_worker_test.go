@@ -7,19 +7,20 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestMediaCollectionIndexingWorker_KickoffWithTask(t *testing.T) {
 	t.Run("starts the worker", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaCollectionIndexingWorkerName})
 		if len(jobs) != 0 {
 			t.Fatalf("expected 0 jobs initially, got %d", len(jobs))
 		}
 
-		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, core.Attrs{}, core.KW{})
+		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, store.Attrs{}, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -35,9 +36,9 @@ func TestMediaCollectionIndexingWorker_KickoffWithTask(t *testing.T) {
 
 	t.Run("attaches a task", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 
-		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, core.Attrs{}, core.KW{})
+		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, store.Attrs{}, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -49,10 +50,10 @@ func TestMediaCollectionIndexingWorker_KickoffWithTask(t *testing.T) {
 
 	t.Run("can be called with additional job arguments", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
-		jobArgs := core.Attrs{"force": true}
+		source := coretest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
+		jobArgs := store.Attrs{"force": true}
 
-		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, jobArgs, core.KW{})
+		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, jobArgs, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -68,10 +69,10 @@ func TestMediaCollectionIndexingWorker_KickoffWithTask(t *testing.T) {
 
 	t.Run("can be called with additional job options", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
-		jobOpts := core.KW{core.Opt("max_attempts", 5)}
+		source := coretest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
+		jobOpts := store.KW{store.Opt("max_attempts", 5)}
 
-		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, core.Attrs{}, jobOpts)
+		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, store.Attrs{}, jobOpts)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -92,9 +93,9 @@ func TestMediaCollectionIndexingWorker_KickoffWithTask(t *testing.T) {
 func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 	t.Run("indexes the source if it should be indexed", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", nil
 		})
 
@@ -114,12 +115,12 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 	t.Run("indexes the source no matter what if the source has never been indexed before", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{
+		source := coretest.SourceFixture(t, ta, store.Attrs{
 			"index_frequency_minutes": 0,
 			"last_indexed_at":         nil,
 		})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", nil
 		})
 
@@ -139,12 +140,12 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 	t.Run("indexes the source no matter what if the 'force' arg is passed", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{
+		source := coretest.SourceFixture(t, ta, store.Attrs{
 			"index_frequency_minutes": 0,
 			"last_indexed_at":         coretest.Now(),
 		})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", nil
 		})
 
@@ -164,13 +165,13 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 	t.Run("doesn't use a download archive if the index has been forced", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{
+		source := coretest.SourceFixture(t, ta, store.Attrs{
 			"collection_type":         "channel",
 			"index_frequency_minutes": 0,
 			"last_indexed_at":         coretest.Now(),
 		})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			for _, opt := range opts {
 				if opt.Key == "break_on_existing" {
 					t.Error("expected no break_on_existing in opts")
@@ -198,7 +199,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 	t.Run("does not do any indexing if the source has been indexed and shouldn't be rescheduled", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{
+		source := coretest.SourceFixture(t, ta, store.Attrs{
 			"index_frequency_minutes": -1,
 			"last_indexed_at":         coretest.Now(),
 		})
@@ -222,9 +223,9 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 	t.Run("does not reschedule if the source shouldn't be indexed", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": -1})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": -1})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", nil
 		})
 		err := ta.Oban.PerformJob(ta.Ctx, core.MediaCollectionIndexingWorkerName, map[string]any{"id": source.ID})
@@ -240,9 +241,9 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 	t.Run("kicks off a download job for each pending media item", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return coretest.SourceAttributesReturnFixture(), nil
 		})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
@@ -266,10 +267,10 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 	t.Run("starts a job for any pending media item even if it's from another run", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return coretest.SourceAttributesReturnFixture(), nil
 		})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
@@ -293,10 +294,10 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 	t.Run("does not kick off a job for media items that could not be saved", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "media_id": "video1"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "media_id": "video1"})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return coretest.SourceAttributesReturnFixture(), nil
 		})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
@@ -321,9 +322,9 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 	t.Run("reschedules the job based on the index frequency", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", nil
 		})
 		beforeTime := coretest.Now()
@@ -346,12 +347,12 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 	t.Run("creates a task for the rescheduled job", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", nil
 		})
-		before, err := ta.App.TasksListTasksFor(ta.Ctx, source, core.Ptr("MediaCollectionIndexingWorker"), nil)
+		before, err := ta.App.ListTasksFor(ta.Ctx, source, store.Ptr("MediaCollectionIndexingWorker"), nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -364,7 +365,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		after, err := ta.App.TasksListTasksFor(ta.Ctx, source, core.Ptr("MediaCollectionIndexingWorker"), nil)
+		after, err := ta.App.ListTasksFor(ta.Ctx, source, store.Ptr("MediaCollectionIndexingWorker"), nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -375,9 +376,9 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 	t.Run("creates a future task for fast indexing if appropriate", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10, "fast_index": true})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10, "fast_index": true})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", nil
 		})
 		beforeTime := coretest.Now()
@@ -400,7 +401,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			t.Fatalf("expected 1 fast indexing job, got %d", len(jobs))
 		}
 
-		expected := beforeTime.Add(time.Duration(core.SourceFastIndexFrequency()) * time.Minute)
+		expected := beforeTime.Add(time.Duration(store.SourceFastIndexFrequency()) * time.Minute)
 		diff := jobs[0].ScheduledAt.Sub(expected)
 		if diff < -5*time.Second || diff > 5*time.Second {
 			t.Errorf("expected scheduled at ~%v, got %v", expected, jobs[0].ScheduledAt)
@@ -409,9 +410,9 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 	t.Run("deletes existing fast indexing tasks if a new one is created", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10, "fast_index": true})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10, "fast_index": true})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", nil
 		})
 		existingJob, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
@@ -421,7 +422,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to insert job: %v", err)
 		}
-		task := coretest.TaskFixture(t, ta, core.Attrs{"source_id": source.ID, "job_id": existingJob.ID})
+		task := coretest.TaskFixture(t, ta, store.Attrs{"source_id": source.ID, "job_id": existingJob.ID})
 
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
 			Worker: core.MediaCollectionIndexingWorkerName,
@@ -436,7 +437,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		_, err = ta.App.TasksGetTaskBang(ta.Ctx, task.ID)
+		_, err = ta.App.GetTaskBang(ta.Ctx, task.ID)
 		if err == nil {
 			t.Fatal("expected error reloading task, but got nil")
 		}
@@ -444,9 +445,9 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 	t.Run("does not create a task for fast indexing otherwise", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10, "fast_index": false})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10, "fast_index": false})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", nil
 		})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
@@ -470,13 +471,13 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 
 	t.Run("creates the basic media_item records", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"index_frequency_minutes": 10})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return coretest.SourceAttributesReturnFixture(), nil
 		})
 		mediaItemMediaIDs := func() []string {
-			mediaItems, err := core.All[core.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), core.From[core.MediaItem]("mi").Where(map[string]interface{}{"mi.source_id": source.ID}))
+			mediaItems, err := store.All[store.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), store.From[store.MediaItem]("mi").Where(map[string]interface{}{"mi.source_id": source.ID}))
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

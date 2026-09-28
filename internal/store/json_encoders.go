@@ -1,4 +1,4 @@
-package core
+package store
 
 // Ports of the custom Jason.Encoder impls for Source and MediaProfile. Their
 // JSON is the payload handed to user lifecycle scripts, so field names and

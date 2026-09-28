@@ -4,13 +4,13 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // MediaProfileFixture creates a MediaProfile with sensible defaults, merging in attrs.
-func MediaProfileFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.MediaProfile {
+func MediaProfileFixture(t testing.TB, ta *TestApp, attrs store.Attrs) *store.MediaProfile {
 	t.Helper()
-	defaults := core.Attrs{
+	defaults := store.Attrs{
 		"name":                 "Media Profile #" + strconv.Itoa(randInt(1000000)+1),
 		"output_path_template": "{{title}}.{{ext}}",
 	}
@@ -20,7 +20,7 @@ func MediaProfileFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.Medi
 		defaults[k] = v
 	}
 
-	mediaProfile, err := ta.ProfilesCreateMediaProfile(ta.Ctx, defaults)
+	mediaProfile, err := ta.CreateMediaProfile(ta.Ctx, defaults)
 	if err != nil {
 		t.Fatalf("MediaProfileFixture: %v", err)
 	}

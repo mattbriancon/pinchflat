@@ -7,8 +7,8 @@ import (
 	"math"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // PaginationAttributes holds the pagination state returned by GetPaginationAttributes.
@@ -24,8 +24,8 @@ type PaginationAttributes struct {
 // and number of records per page.
 func (s *Server) GetPaginationAttributes(ctx context.Context, query sq.SelectBuilder, page, recordsPerPage int) (*PaginationAttributes, error) {
 	// Count using a subquery, similar to Repo.aggregate in Elixir
-	countQuery := core.SQ.Select("COUNT(*)").FromSelect(query, "sq")
-	totalRecordCount, err := core.Scalar[int](ctx, s.App.Q(ctx), countQuery)
+	countQuery := store.SQ.Select("COUNT(*)").FromSelect(query, "sq")
+	totalRecordCount, err := store.Scalar[int](ctx, s.App.Q(ctx), countQuery)
 	if err != nil {
 		return nil, err
 	}

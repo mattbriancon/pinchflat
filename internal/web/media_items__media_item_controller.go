@@ -11,37 +11,37 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // MediaItemControllerShow shows a media item with details and associated tasks.
 func (s *Server) MediaItemControllerShow(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	mediaItem, ok := loadOrFail(s, w, r, "id", s.App.MediaGetMediaItem)
+	mediaItem, ok := loadOrFail(s, w, r, "id", s.App.GetMediaItem)
 	if !ok {
 		return
 	}
 
 	// Preload source and tasks with jobs
 	if mediaItem.Source == nil {
-		source, err := s.App.SourcesGetSource(ctx, mediaItem.SourceID)
+		source, err := s.App.GetSource(ctx, mediaItem.SourceID)
 		if err != nil {
-			s.Fail(w, r, core.ErrNotFound)
+			s.Fail(w, r, store.ErrNotFound)
 			return
 		}
 		mediaItem.Source = source
 	}
 
 	// Load tasks with jobs
-	taskQuery := core.SQ.Select("*").From("tasks").Where(sq.Eq{"media_item_id": mediaItem.ID}).OrderBy("id DESC")
-	tasks, err := core.All[core.Task](ctx, s.App.Q(ctx), taskQuery)
+	taskQuery := store.SQ.Select("*").From("tasks").Where(sq.Eq{"media_item_id": mediaItem.ID}).OrderBy("id DESC")
+	tasks, err := store.All[store.Task](ctx, s.App.Q(ctx), taskQuery)
 	if err == nil {
 		mediaItem.Tasks = tasks
 		// Load jobs for each task
 		for _, task := range tasks {
 			if task != nil && task.Job == nil {
-				job, _ := core.One[obanlite.Job](ctx, s.App.Q(ctx), core.SQ.Select("*").From("oban_jobs").Where(sq.Eq{"id": task.JobID}))
+				job, _ := store.One[obanlite.Job](ctx, s.App.Q(ctx), store.SQ.Select("*").From("oban_jobs").Where(sq.Eq{"id": task.JobID}))
 				task.Job = job
 			}
 		}
@@ -53,28 +53,28 @@ func (s *Server) MediaItemControllerShow(w http.ResponseWriter, r *http.Request)
 // MediaItemControllerEdit renders the edit form for a media item.
 func (s *Server) MediaItemControllerEdit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	mediaItem, ok := loadOrFail(s, w, r, "id", s.App.MediaGetMediaItem)
+	mediaItem, ok := loadOrFail(s, w, r, "id", s.App.GetMediaItem)
 	if !ok {
 		return
 	}
 
-	cs := s.App.MediaChangeMediaItem(ctx, mediaItem, core.Attrs{})
+	cs := s.App.ChangeMediaItem(ctx, mediaItem, store.Attrs{})
 	s.Render(w, r, http.StatusOK, LayoutApp, MediaItemsMediaItemHTMLEdit(mediaItem, cs))
 }
 
 // MediaItemControllerUpdate updates a media item.
 func (s *Server) MediaItemControllerUpdate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	mediaItem, ok := loadOrFail(s, w, r, "id", s.App.MediaGetMediaItem)
+	mediaItem, ok := loadOrFail(s, w, r, "id", s.App.GetMediaItem)
 	if !ok {
 		return
 	}
 
 	params := ParseForm(r, "media_item")
-	updated, err := s.App.MediaUpdateMediaItem(ctx, mediaItem, params)
+	updated, err := s.App.UpdateMediaItem(ctx, mediaItem, params)
 	if err != nil {
 		// Handle changeset errors
-		if csErr, ok := core.AsChangesetError(err); ok {
+		if csErr, ok := store.AsChangesetError(err); ok {
 			csErr.Action = "update"
 			s.Render(w, r, http.StatusOK, LayoutApp, MediaItemsMediaItemHTMLEdit(mediaItem, csErr))
 			return
@@ -90,13 +90,13 @@ func (s *Server) MediaItemControllerUpdate(w http.ResponseWriter, r *http.Reques
 // MediaItemControllerDelete deletes the files associated with a media item.
 func (s *Server) MediaItemControllerDelete(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	mediaItem, ok := loadOrFail(s, w, r, "id", s.App.MediaGetMediaItem)
+	mediaItem, ok := loadOrFail(s, w, r, "id", s.App.GetMediaItem)
 	if !ok {
 		return
 	}
 
 	prevent := r.URL.Query().Get("prevent_download") == "true"
-	addlAttrs := core.Attrs{}
+	addlAttrs := store.Attrs{}
 	if prevent {
 		addlAttrs["prevent_download"] = true
 	}
@@ -114,12 +114,12 @@ func (s *Server) MediaItemControllerDelete(w http.ResponseWriter, r *http.Reques
 // MediaItemControllerForceDownload enqueues a download task for a media item.
 func (s *Server) MediaItemControllerForceDownload(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	mediaItem, ok := loadOrFail(s, w, r, "media_item_id", s.App.MediaGetMediaItem)
+	mediaItem, ok := loadOrFail(s, w, r, "media_item_id", s.App.GetMediaItem)
 	if !ok {
 		return
 	}
 
-	_, err := s.App.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, core.Attrs{"force": true}, core.KW{})
+	_, err := s.App.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{"force": true}, store.KW{})
 	if err != nil {
 		// Allow duplicate job errors to pass through silently
 		if !strings.Contains(err.Error(), "duplicate") {
@@ -138,7 +138,7 @@ func (s *Server) MediaItemControllerStream(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context()
 	uuid := URLParam(r, "uuid")
 
-	mediaItem, err := core.One[core.MediaItem](ctx, s.App.Q(ctx), core.SQ.Select("*").From("media_items").Where(sq.Eq{"uuid": uuid}))
+	mediaItem, err := store.One[store.MediaItem](ctx, s.App.Q(ctx), store.SQ.Select("*").From("media_items").Where(sq.Eq{"uuid": uuid}))
 	if err != nil || mediaItem == nil {
 		http.Error(w, "File not found", http.StatusNotFound)
 		return

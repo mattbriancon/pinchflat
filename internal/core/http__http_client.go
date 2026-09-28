@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // HTTPClientImpl is Pinchflat.HTTP.HTTPClient, the real HTTP client. It
@@ -14,13 +16,13 @@ type HTTPClientImpl struct{}
 var _ HTTPClient = (*HTTPClientImpl)(nil)
 
 // get/3 — {:ok, body} | {:error, message}
-func (c *HTTPClientImpl) Get(ctx context.Context, url string, headers KW, opts KW) (string, error) {
+func (c *HTTPClientImpl) Get(ctx context.Context, url string, headers store.KW, opts store.KW) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return "", fmt.Errorf("HTTP request failed: %v", err)
 	}
 
-	// Parse headers from KW format
+	// Parse headers from store.KW format
 	for _, kv := range headers {
 		if !kv.Flag {
 			req.Header.Add(kv.Key, fmt.Sprintf("%v", kv.Value))

@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestPreJobStartupTasks_EnsureTmpfileDirectory(t *testing.T) {
@@ -52,7 +52,7 @@ func TestPreJobStartupTasks_ResetExecutingJobs(t *testing.T) {
 
 	job := coretest.JobFixture(t, ta)
 
-	core.Exec(ta.Ctx, ta.Q(ta.Ctx), core.SQ.Update("oban_jobs").Set("state", "executing").Where(sq.Eq{"id": job.ID}))
+	store.Exec(ta.Ctx, ta.Q(ta.Ctx), store.SQ.Update("oban_jobs").Set("state", "executing").Where(sq.Eq{"id": job.ID}))
 
 	var reloadedJob obanlite.Job
 	ta.Q(ta.Ctx).GetContext(ta.Ctx, &reloadedJob, "SELECT * FROM oban_jobs WHERE id = ?", job.ID)
@@ -188,9 +188,9 @@ func TestPreJobStartupTasks_ApplyDefaultSettings(t *testing.T) {
 	ta := coretest.NewApp(t)
 
 	os.RemoveAll(ta.Config.TmpfileDirectory)
-	ta.SettingsSet(ta.Ctx, core.KW{core.Opt("yt_dlp_version", nil)})
+	ta.SetSetting(ta.Ctx, store.KW{store.Opt("yt_dlp_version", nil)})
 
-	val, _ := ta.SettingsGet(ta.Ctx, "yt_dlp_version")
+	val, _ := ta.GetSetting(ta.Ctx, "yt_dlp_version")
 	if val != nil {
 		t.Errorf("expected yt_dlp_version nil, got %v", val)
 	}
@@ -206,7 +206,7 @@ func TestPreJobStartupTasks_ApplyDefaultSettings(t *testing.T) {
 		t.Errorf("PreJobStartupTasksInit failed: %v", err)
 	}
 
-	val, _ = ta.SettingsGet(ta.Ctx, "yt_dlp_version")
+	val, _ = ta.GetSetting(ta.Ctx, "yt_dlp_version")
 	if val != "1" {
 		t.Errorf("expected yt_dlp_version '1', got %v", val)
 	}

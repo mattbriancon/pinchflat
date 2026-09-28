@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // MediaDownloadWorker handles media download jobs.
@@ -27,9 +28,9 @@ var mediaDownloadWorkerOpts = obanlite.WorkerOpts{
 }
 
 // MediaDownloadWorkerKickoffWithTask/3
-func (a *App) MediaDownloadWorkerKickoffWithTask(ctx context.Context, mediaItem *MediaItem, jobArgs Attrs, jobOpts KW) (*Task, error) {
+func (a *App) MediaDownloadWorkerKickoffWithTask(ctx context.Context, mediaItem *store.MediaItem, jobArgs store.Attrs, jobOpts store.KW) (*store.Task, error) {
 	// Build job args: start with {id: mediaItem.id} and merge jobArgs
-	args := Attrs{"id": mediaItem.ID}
+	args := store.Attrs{"id": mediaItem.ID}
 	for k, v := range jobArgs {
 		args[k] = v
 	}
@@ -55,7 +56,7 @@ func (a *App) MediaDownloadWorkerKickoffWithTask(ctx context.Context, mediaItem 
 	}
 
 	// Create the job with task
-	return a.TasksCreateJobWithTask(ctx, spec, mediaItem)
+	return a.CreateJobWithTask(ctx, spec, mediaItem)
 }
 
 // MediaDownloadWorkerPerform/1
@@ -91,8 +92,8 @@ func (a *App) MediaDownloadWorkerPerform(ctx context.Context, job *obanlite.Job)
 }
 
 // fetchAndRunPreventDownloadUserScript runs the media_pre_download user script and sets prevent_download if it fails
-func (a *App) fetchAndRunPreventDownloadUserScript(ctx context.Context, mediaItemID int64) (*MediaItem, error) {
-	mediaItem, err := a.MediaGetMediaItem(ctx, mediaItemID)
+func (a *App) fetchAndRunPreventDownloadUserScript(ctx context.Context, mediaItemID int64) (*store.MediaItem, error) {
+	mediaItem, err := a.GetMediaItem(ctx, mediaItemID)
 	if err != nil {
 		// Log and return nil for missing item (don't retry)
 		slog.Info(fmt.Sprintf("%s discarded: media item %d not found", MediaDownloadWorkerName, mediaItemID))
@@ -103,7 +104,7 @@ func (a *App) fetchAndRunPreventDownloadUserScript(ctx context.Context, mediaIte
 	// (Elixir: {:ok, _, exit_code} when exit_code != 0), which prevents this
 	// and all future downloads of the media item.
 	if userScriptErr := a.UserScripts.Run(ctx, "media_pre_download", mediaItem); userScriptErr != nil {
-		updatedMediaItem, updateErr := a.MediaUpdateMediaItem(ctx, mediaItem, Attrs{"prevent_download": true})
+		updatedMediaItem, updateErr := a.UpdateMediaItem(ctx, mediaItem, store.Attrs{"prevent_download": true})
 		if updateErr != nil {
 			return nil, updateErr
 		}
@@ -120,14 +121,14 @@ func (a *App) fetchAndRunPreventDownloadUserScript(ctx context.Context, mediaIte
 }
 
 // shouldDownloadMedia checks if we should download based on various conditions
-func (a *App) shouldDownloadMedia(ctx context.Context, mediaItem *MediaItem, shouldForce bool, isQualityUpgrade bool) bool {
+func (a *App) shouldDownloadMedia(ctx context.Context, mediaItem *store.MediaItem, shouldForce bool, isQualityUpgrade bool) bool {
 	if isQualityUpgrade {
 		// For quality upgrades, only check if source allows download and media isn't prevented
 		return (mediaItem.Source.DownloadMedia && !mediaItem.PreventDownload) || shouldForce
 	}
 
 	// For normal downloads, additionally check if media item is pending
-	isPending, err := a.MediaPendingDownload(ctx, mediaItem)
+	isPending, err := a.PendingDownload(ctx, mediaItem)
 	if err != nil {
 		return false
 	}
@@ -136,7 +137,7 @@ func (a *App) shouldDownloadMedia(ctx context.Context, mediaItem *MediaItem, sho
 }
 
 // downloadMediaAndScheduleJobs handles the actual download and subsequent tasks
-func (a *App) downloadMediaAndScheduleJobs(ctx context.Context, mediaItem *MediaItem, isQualityUpgrade bool, shouldForce bool) error {
+func (a *App) downloadMediaAndScheduleJobs(ctx context.Context, mediaItem *store.MediaItem, isQualityUpgrade bool, shouldForce bool) error {
 	// Determine overwrite behavior
 	var overwriteBehavior string
 	if shouldForce || isQualityUpgrade {
@@ -145,7 +146,7 @@ func (a *App) downloadMediaAndScheduleJobs(ctx context.Context, mediaItem *Media
 		overwriteBehavior = "no_force_overwrites"
 	}
 
-	overrideOpts := KW{Opt("overwrite_behaviour", overwriteBehavior)}
+	overrideOpts := store.KW{store.Opt("overwrite_behaviour", overwriteBehavior)}
 
 	// Download media
 	result, downloadErr := a.MediaDownloaderDownloadForMediaItem(ctx, mediaItem, overrideOpts)
@@ -156,7 +157,7 @@ func (a *App) downloadMediaAndScheduleJobs(ctx context.Context, mediaItem *Media
 		fileSize := a.computeMediaFilesize(result.MediaItem)
 		redownloadedAt := a.getRedownloadedAt(isQualityUpgrade)
 
-		attrs := Attrs{}
+		attrs := store.Attrs{}
 		if fileSize != nil {
 			attrs["media_size_bytes"] = *fileSize
 		}
@@ -164,7 +165,7 @@ func (a *App) downloadMediaAndScheduleJobs(ctx context.Context, mediaItem *Media
 			attrs["media_redownloaded_at"] = *redownloadedAt
 		}
 
-		updatedMediaItem, updateErr := a.MediaUpdateMediaItem(ctx, result.MediaItem, attrs)
+		updatedMediaItem, updateErr := a.UpdateMediaItem(ctx, result.MediaItem, attrs)
 		if updateErr != nil {
 			return updateErr
 		}
@@ -204,7 +205,7 @@ func (a *App) downloadMediaAndScheduleJobs(ctx context.Context, mediaItem *Media
 }
 
 // computeMediaFilesize gets the file size of the downloaded media
-func (a *App) computeMediaFilesize(mediaItem *MediaItem) *int64 {
+func (a *App) computeMediaFilesize(mediaItem *store.MediaItem) *int64 {
 	if mediaItem == nil || mediaItem.MediaFilepath == nil || *mediaItem.MediaFilepath == "" {
 		return nil
 	}

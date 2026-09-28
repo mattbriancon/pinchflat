@@ -1,4 +1,4 @@
-package core
+package store
 
 // A small port of Ecto.Changeset, enough for Pinchflat's schemas. Error
 // messages match Ecto's so ported tests and templates see identical text.

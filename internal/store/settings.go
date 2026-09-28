@@ -1,4 +1,4 @@
-package core
+package store
 
 import (
 	"context"
@@ -6,33 +6,33 @@ import (
 	"reflect"
 )
 
-// SettingsRecord/0
-func (a *App) SettingsRecord(ctx context.Context) (*Setting, error) {
-	return One[Setting](ctx, a.Q(ctx), From[Setting]().Limit(1))
+// GetSettingsRecord returns the (singleton) settings row.
+func (s *Store) GetSettingsRecord(ctx context.Context) (*Setting, error) {
+	return One[Setting](ctx, s.Q(ctx), From[Setting]().Limit(1))
 }
 
-// SettingsUpdateSetting/2
-func (a *App) SettingsUpdateSetting(ctx context.Context, setting *Setting, attrs Attrs) (*Setting, error) {
+// UpdateSetting updates setting with attrs.
+func (s *Store) UpdateSetting(ctx context.Context, setting *Setting, attrs Attrs) (*Setting, error) {
 	cs := SettingChangeset(setting, attrs)
-	return Update[Setting](ctx, a.Q(ctx), cs)
+	return Update[Setting](ctx, s.Q(ctx), cs)
 }
 
-// SettingsSet/1
-func (a *App) SettingsSet(ctx context.Context, kw KW) (any, error) {
+// SetSetting sets a single named setting (Settings.set/1).
+func (s *Store) SetSetting(ctx context.Context, kw KW) (any, error) {
 	if len(kw) != 1 {
-		return nil, fmt.Errorf("SettingsSet: expected exactly one keyword argument, got %d", len(kw))
+		return nil, fmt.Errorf("SetSetting: expected exactly one keyword argument, got %d", len(kw))
 	}
 
 	attr := kw[0].Key
 	value := kw[0].Value
 
-	setting, err := a.SettingsRecord(ctx)
+	setting, err := s.GetSettingsRecord(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// Try to update the setting
-	updated, err := a.SettingsUpdateSetting(ctx, setting, Attrs{attr: value})
+	updated, err := s.UpdateSetting(ctx, setting, Attrs{attr: value})
 	if err != nil {
 		return nil, err
 	}
@@ -46,9 +46,9 @@ func (a *App) SettingsSet(ctx context.Context, kw KW) (any, error) {
 	return value, nil
 }
 
-// SettingsGet/1
-func (a *App) SettingsGet(ctx context.Context, name string) (any, error) {
-	setting, err := a.SettingsRecord(ctx)
+// GetSetting returns a single named setting (Settings.get/1).
+func (s *Store) GetSetting(ctx context.Context, name string) (any, error) {
+	setting, err := s.GetSettingsRecord(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -61,17 +61,18 @@ func (a *App) SettingsGet(ctx context.Context, name string) (any, error) {
 	return val, nil
 }
 
-// SettingsGetBang/1
-func (a *App) SettingsGetBang(ctx context.Context, name string) (any, error) {
-	val, err := a.SettingsGet(ctx, name)
+// GetSettingBang returns a single named setting, erroring with a message
+// naming the setting when not found.
+func (s *Store) GetSettingBang(ctx context.Context, name string) (any, error) {
+	val, err := s.GetSetting(ctx, name)
 	if err != nil {
 		return nil, fmt.Errorf("Setting `%s` not found", name)
 	}
 	return val, nil
 }
 
-// SettingsChangeSetting/2
-func (a *App) SettingsChangeSetting(ctx context.Context, setting *Setting, attrs Attrs) *Changeset {
+// ChangeSetting builds a changeset for setting from attrs.
+func (s *Store) ChangeSetting(ctx context.Context, setting *Setting, attrs Attrs) *Changeset {
 	return SettingChangeset(setting, attrs)
 }
 

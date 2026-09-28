@@ -11,9 +11,9 @@ import (
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/db/dbtest"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func tableColumns(t *testing.T, d *db.DB, table string) []string {
@@ -70,7 +70,7 @@ outer:
 	return out
 }
 
-func checkSchema[T core.Schema](t *testing.T) {
+func checkSchema[T store.Schema](t *testing.T) {
 	var zero T
 	table := zero.TableName()
 	t.Run(table, func(t *testing.T) {
@@ -79,7 +79,7 @@ func checkSchema[T core.Schema](t *testing.T) {
 
 		dbCols := tableColumns(t, d, table)
 		want := withoutRetired(table, dbCols)
-		got := core.Columns[T]()
+		got := store.Columns[T]()
 		sort.Strings(got)
 		if strings.Join(got, ",") != strings.Join(want, ",") {
 			t.Fatalf("%T columns\n got: %v\nwant: %v", zero, got, want)
@@ -87,7 +87,7 @@ func checkSchema[T core.Schema](t *testing.T) {
 
 		// Compare every database column, so retired ones must survive too.
 		before := rawRows(t, d, table, dbCols)
-		recs, err := core.All[T](ctx, d, core.From[T]())
+		recs, err := store.All[T](ctx, d, store.From[T]())
 		if err != nil {
 			t.Fatalf("scan %s: %v", table, err)
 		}
@@ -99,7 +99,7 @@ func checkSchema[T core.Schema](t *testing.T) {
 		// except legacy uploaded_at values, which are rewritten in
 		// Ecto's current format.
 		for _, rec := range recs {
-			cs := core.Change(rec, nil)
+			cs := store.Change(rec, nil)
 			for _, c := range want {
 				cs.Changes[c] = cs.GetField(c)
 			}
@@ -108,7 +108,7 @@ func checkSchema[T core.Schema](t *testing.T) {
 				set[c] = v
 			}
 			id := cs.GetField("id")
-			if _, err := core.Exec(ctx, d, core.SQ.Update(table).SetMap(set).Where(sq.Eq{"id": id})); err != nil {
+			if _, err := store.Exec(ctx, d, store.SQ.Update(table).SetMap(set).Where(sq.Eq{"id": id})); err != nil {
 				t.Fatalf("write back %s %v: %v", table, id, err)
 			}
 		}
@@ -136,11 +136,11 @@ func legacyUploadedAtOnly(cols []string, before, after string) bool {
 }
 
 func TestSchemasMatchElixirTables(t *testing.T) {
-	checkSchema[core.MediaProfile](t)
-	checkSchema[core.Source](t)
-	checkSchema[core.MediaItem](t)
-	checkSchema[core.MediaMetadata](t)
-	checkSchema[core.SourceMetadata](t)
-	checkSchema[core.Setting](t)
-	checkSchema[core.Task](t)
+	checkSchema[store.MediaProfile](t)
+	checkSchema[store.Source](t)
+	checkSchema[store.MediaItem](t)
+	checkSchema[store.MediaMetadata](t)
+	checkSchema[store.SourceMetadata](t)
+	checkSchema[store.Setting](t)
+	checkSchema[store.Task](t)
 }

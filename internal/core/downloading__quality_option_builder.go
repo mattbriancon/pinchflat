@@ -3,20 +3,22 @@ package core
 import (
 	"context"
 	"strings"
+
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // QualityOptionBuilder builds quality-related options for yt-dlp.
 
 // QualityOptionBuilderBuild/1
-func (a *App) QualityOptionBuilderBuild(ctx context.Context, mediaProfile *MediaProfile) KW {
-	if mediaProfile.PreferredResolution == MediaProfilePreferredResolutionAudio {
+func (a *App) QualityOptionBuilderBuild(ctx context.Context, mediaProfile *store.MediaProfile) store.KW {
+	if mediaProfile.PreferredResolution == store.MediaProfilePreferredResolutionAudio {
 		return qualityOptionBuilderBuildAudio(ctx, a, mediaProfile)
 	}
 	return qualityOptionBuilderBuildVideo(ctx, a, mediaProfile)
 }
 
-func qualityOptionBuilderBuildAudio(ctx context.Context, a *App, mediaProfile *MediaProfile) KW {
-	audioCodec, _ := a.SettingsGet(ctx, "audio_codec_preference")
+func qualityOptionBuilderBuildAudio(ctx context.Context, a *App, mediaProfile *store.MediaProfile) store.KW {
+	audioCodec, _ := a.GetSetting(ctx, "audio_codec_preference")
 	audioCodecStr := audioCodec.(string)
 
 	container := "best"
@@ -24,17 +26,17 @@ func qualityOptionBuilderBuildAudio(ctx context.Context, a *App, mediaProfile *M
 		container = *mediaProfile.MediaContainer
 	}
 
-	return KW{
-		Flag("extract_audio"),
-		Opt("format_sort", "+acodec:"+audioCodecStr),
-		Opt("audio_format", container),
-		Opt("format", qualityOptionBuilderBuildFormatString(mediaProfile)),
+	return store.KW{
+		store.Flag("extract_audio"),
+		store.Opt("format_sort", "+acodec:"+audioCodecStr),
+		store.Opt("audio_format", container),
+		store.Opt("format", qualityOptionBuilderBuildFormatString(mediaProfile)),
 	}
 }
 
-func qualityOptionBuilderBuildVideo(ctx context.Context, a *App, mediaProfile *MediaProfile) KW {
-	videoCodec, _ := a.SettingsGet(ctx, "video_codec_preference")
-	audioCodec, _ := a.SettingsGet(ctx, "audio_codec_preference")
+func qualityOptionBuilderBuildVideo(ctx context.Context, a *App, mediaProfile *store.MediaProfile) store.KW {
+	videoCodec, _ := a.GetSetting(ctx, "video_codec_preference")
+	audioCodec, _ := a.GetSetting(ctx, "audio_codec_preference")
 	videoCodecStr := videoCodec.(string)
 	audioCodecStr := audioCodec.(string)
 
@@ -47,15 +49,15 @@ func qualityOptionBuilderBuildVideo(ctx context.Context, a *App, mediaProfile *M
 		container = *mediaProfile.MediaContainer
 	}
 
-	return KW{
-		Opt("remux_video", container),
-		Opt("format_sort", "res:"+resolutionDigits+",+codec:"+videoCodecStr+":"+audioCodecStr),
-		Opt("format", qualityOptionBuilderBuildFormatString(mediaProfile)),
+	return store.KW{
+		store.Opt("remux_video", container),
+		store.Opt("format_sort", "res:"+resolutionDigits+",+codec:"+videoCodecStr+":"+audioCodecStr),
+		store.Opt("format", qualityOptionBuilderBuildFormatString(mediaProfile)),
 	}
 }
 
-func qualityOptionBuilderBuildFormatString(mediaProfile *MediaProfile) string {
-	if mediaProfile.PreferredResolution == MediaProfilePreferredResolutionAudio {
+func qualityOptionBuilderBuildFormatString(mediaProfile *store.MediaProfile) string {
+	if mediaProfile.PreferredResolution == store.MediaProfilePreferredResolutionAudio {
 		if mediaProfile.AudioTrack != nil {
 			return "bestaudio[" + qualityOptionBuilderBuildFormatModifier(*mediaProfile.AudioTrack) + "]/bestaudio/best"
 		}

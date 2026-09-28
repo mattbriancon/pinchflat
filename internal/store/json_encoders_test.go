@@ -1,19 +1,22 @@
-package core_test
+package store_test
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"reflect"
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db/dbtest"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // The JSON given to user scripts must match what the Elixir encoders wrote.
 func TestSourceAndProfileJSONMatchElixirGolden(t *testing.T) {
-	app, ctx := goldenApp(t)
+	d := dbtest.CopyOf(t, dbtest.ElixirFixture("populated.db"))
+	s := &store.Store{DB: d}
+	ctx := context.Background()
 
 	decode := func(b []byte) map[string]any {
 		var m map[string]any
@@ -31,14 +34,14 @@ func TestSourceAndProfileJSONMatchElixirGolden(t *testing.T) {
 	}
 
 	t.Run("source", func(t *testing.T) {
-		s, err := core.MustOne[core.Source](ctx, app.DB, core.From[core.Source]().Where(sq.Eq{"id": 1}))
+		src, err := store.MustOne[store.Source](ctx, s.DB, store.From[store.Source]().Where(sq.Eq{"id": 1}))
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := app.PreloadSourceMediaProfile(ctx, s); err != nil {
+		if _, err := s.PreloadSourceMediaProfile(ctx, src); err != nil {
 			t.Fatal(err)
 		}
-		b, err := json.Marshal(s)
+		b, err := json.Marshal(src)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -48,7 +51,7 @@ func TestSourceAndProfileJSONMatchElixirGolden(t *testing.T) {
 	})
 
 	t.Run("media profile", func(t *testing.T) {
-		p, err := core.MustOne[core.MediaProfile](ctx, app.DB, core.From[core.MediaProfile]().Where(sq.Eq{"id": 2}))
+		p, err := store.MustOne[store.MediaProfile](ctx, s.DB, store.From[store.MediaProfile]().Where(sq.Eq{"id": 2}))
 		if err != nil {
 			t.Fatal(err)
 		}

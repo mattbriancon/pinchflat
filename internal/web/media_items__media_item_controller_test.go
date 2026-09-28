@@ -13,11 +13,12 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
 
-func createMediaItem(t testing.TB, c *webtest.Client) *core.MediaItem {
-	return coretest.MediaItemFixture(t, c.TestApp, core.Attrs{})
+func createMediaItem(t testing.TB, c *webtest.Client) *store.MediaItem {
+	return coretest.MediaItemFixture(t, c.TestApp, store.Attrs{})
 }
 
 func TestMediaItemController_Show(t *testing.T) {
@@ -40,7 +41,7 @@ func TestMediaItemController_Show(t *testing.T) {
 
 		t.Run("renders the page when the media item has no description", func(t *testing.T) {
 			c := webtest.New(t)
-			mediaItem := coretest.MediaItemWithAttachmentsFixture(t, c.TestApp, core.Attrs{"description": nil})
+			mediaItem := coretest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.Attrs{"description": nil})
 
 			res := c.Get(fmt.Sprintf("/sources/%d/media/%d", mediaItem.SourceID, mediaItem.ID))
 			html := res.HTML(t, 200)
@@ -78,7 +79,7 @@ func TestMediaItemController_Update(t *testing.T) {
 			c := webtest.New(t)
 			mediaItem := createMediaItem(t, c)
 
-			updateAttrs := core.Attrs{"title": "New Title"}
+			updateAttrs := store.Attrs{"title": "New Title"}
 			res := c.Patch(fmt.Sprintf("/sources/%d/media/%d", mediaItem.SourceID, mediaItem.ID), "media_item", updateAttrs)
 
 			expected := fmt.Sprintf("/sources/%d/media/%d", mediaItem.SourceID, mediaItem.ID)
@@ -98,7 +99,7 @@ func TestMediaItemController_Update(t *testing.T) {
 			c := webtest.New(t)
 			mediaItem := createMediaItem(t, c)
 
-			res := c.Patch(fmt.Sprintf("/sources/%d/media/%d", mediaItem.SourceID, mediaItem.ID), "media_item", core.Attrs{"title": nil})
+			res := c.Patch(fmt.Sprintf("/sources/%d/media/%d", mediaItem.SourceID, mediaItem.ID), "media_item", store.Attrs{"title": nil})
 			html := res.HTML(t, 200)
 
 			if !strings.Contains(html, "Editing") {
@@ -110,8 +111,8 @@ func TestMediaItemController_Update(t *testing.T) {
 
 func TestMediaItemController_Delete(t *testing.T) {
 	t.Run("delete media", func(t *testing.T) {
-		newFixture := func(t testing.TB, c *webtest.Client) *core.MediaItem {
-			mediaItem := coretest.MediaItemWithAttachmentsFixture(t, c.TestApp, core.Attrs{})
+		newFixture := func(t testing.TB, c *webtest.Client) *store.MediaItem {
+			mediaItem := coretest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.Attrs{})
 			c.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 			return mediaItem
 		}
@@ -122,7 +123,7 @@ func TestMediaItemController_Delete(t *testing.T) {
 
 			c.Delete(fmt.Sprintf("/sources/%d/media/%d", mediaItem.SourceID, mediaItem.ID))
 
-			reloaded, err := c.App.MediaGetMediaItem(c.Ctx, mediaItem.ID)
+			reloaded, err := c.App.GetMediaItem(c.Ctx, mediaItem.ID)
 			if err != nil || reloaded == nil {
 				t.Errorf("expected media item to still exist")
 			}
@@ -164,7 +165,7 @@ func TestMediaItemController_Delete(t *testing.T) {
 
 			c.Delete(fmt.Sprintf("/sources/%d/media/%d", mediaItem.SourceID, mediaItem.ID))
 
-			reloaded, _ := c.App.MediaGetMediaItem(c.Ctx, mediaItem.ID)
+			reloaded, _ := c.App.GetMediaItem(c.Ctx, mediaItem.ID)
 			if reloaded.PreventDownload {
 				t.Errorf("expected prevent_download to be false by default")
 			}
@@ -176,7 +177,7 @@ func TestMediaItemController_Delete(t *testing.T) {
 
 			c.Delete(fmt.Sprintf("/sources/%d/media/%d?prevent_download=true", mediaItem.SourceID, mediaItem.ID))
 
-			reloaded, _ := c.App.MediaGetMediaItem(c.Ctx, mediaItem.ID)
+			reloaded, _ := c.App.GetMediaItem(c.Ctx, mediaItem.ID)
 			if !reloaded.PreventDownload {
 				t.Errorf("expected prevent_download to be true")
 			}
@@ -194,7 +195,7 @@ func TestMediaItemController_ForceDownload(t *testing.T) {
 				t.Errorf("expected no jobs enqueued initially")
 			}
 
-			c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", core.Attrs{})
+			c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", store.Attrs{})
 
 			jobs := c.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaDownloadWorkerName})
 			if len(jobs) != 1 {
@@ -206,9 +207,9 @@ func TestMediaItemController_ForceDownload(t *testing.T) {
 			c := webtest.New(t)
 			mediaItem := createMediaItem(t, c)
 
-			c.App.MediaDownloadWorkerKickoffWithTask(c.Ctx, mediaItem, core.Attrs{"force": true}, core.KW{})
+			c.App.MediaDownloadWorkerKickoffWithTask(c.Ctx, mediaItem, store.Attrs{"force": true}, store.KW{})
 
-			c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", core.Attrs{})
+			c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", store.Attrs{})
 
 			jobs := c.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaDownloadWorkerName})
 			if len(jobs) != 1 {
@@ -218,9 +219,9 @@ func TestMediaItemController_ForceDownload(t *testing.T) {
 
 		t.Run("forces a download even if one wouldn't normally run", func(t *testing.T) {
 			c := webtest.New(t)
-			mediaItem := coretest.MediaItemFixture(t, c.TestApp, core.Attrs{"media_filepath": nil})
+			mediaItem := coretest.MediaItemFixture(t, c.TestApp, store.Attrs{"media_filepath": nil})
 
-			c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", core.Attrs{})
+			c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", store.Attrs{})
 
 			jobs := c.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID, "force": true}})
 			if len(jobs) != 1 {
@@ -232,7 +233,7 @@ func TestMediaItemController_ForceDownload(t *testing.T) {
 			c := webtest.New(t)
 			mediaItem := createMediaItem(t, c)
 
-			res := c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", core.Attrs{})
+			res := c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", store.Attrs{})
 
 			expected := fmt.Sprintf("/sources/%d/media/%d", mediaItem.SourceID, mediaItem.ID)
 			if redirected := res.RedirectedTo(t); redirected != expected {
@@ -262,7 +263,7 @@ func TestMediaItemController_Stream(t *testing.T) {
 
 		t.Run("automatically sets the content type", func(t *testing.T) {
 			c := webtest.New(t)
-			mediaItem := coretest.MediaItemWithAttachmentsFixture(t, c.TestApp, core.Attrs{})
+			mediaItem := coretest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.Attrs{})
 
 			uuid := ""
 			if mediaItem.UUID != nil {
@@ -278,7 +279,7 @@ func TestMediaItemController_Stream(t *testing.T) {
 
 		t.Run("sets the content length", func(t *testing.T) {
 			c := webtest.New(t)
-			mediaItem := coretest.MediaItemWithAttachmentsFixture(t, c.TestApp, core.Attrs{})
+			mediaItem := coretest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.Attrs{})
 
 			uuid := ""
 			if mediaItem.UUID != nil {
@@ -303,9 +304,9 @@ func TestMediaItemController_Stream(t *testing.T) {
 
 func TestMediaItemController_StreamRangeValid(t *testing.T) {
 	t.Run("streaming media when range is valid", func(t *testing.T) {
-		newFixture := func(t testing.TB) (*webtest.Client, *core.MediaItem) {
+		newFixture := func(t testing.TB) (*webtest.Client, *store.MediaItem) {
 			c := webtest.New(t)
-			mediaItem := coretest.MediaItemWithAttachmentsFixture(t, c.TestApp, core.Attrs{})
+			mediaItem := coretest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.Attrs{})
 			return c, mediaItem
 		}
 
@@ -438,9 +439,9 @@ func TestMediaItemController_StreamRangeValid(t *testing.T) {
 
 func TestMediaItemController_StreamRangeInvalid(t *testing.T) {
 	t.Run("streaming media when range is invalid or not present", func(t *testing.T) {
-		newFixture := func(t testing.TB) (*webtest.Client, *core.MediaItem) {
+		newFixture := func(t testing.TB) (*webtest.Client, *store.MediaItem) {
 			c := webtest.New(t)
-			mediaItem := coretest.MediaItemWithAttachmentsFixture(t, c.TestApp, core.Attrs{})
+			mediaItem := coretest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.Attrs{})
 			return c, mediaItem
 		}
 

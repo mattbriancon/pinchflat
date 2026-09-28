@@ -7,12 +7,14 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
+
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // YoutubeBehaviour defines the interface for YouTube indexing implementations.
 type YoutubeBehaviour interface {
 	Enabled(ctx context.Context) bool
-	GetRecentMediaIDs(ctx context.Context, source *Source) ([]string, error)
+	GetRecentMediaIDs(ctx context.Context, source *store.Source) ([]string, error)
 }
 
 // The Elixir implementation keeps this round-robin index in a single named
@@ -36,7 +38,7 @@ func (a *App) YoutubeApiEnabled(ctx context.Context) bool {
 
 // YoutubeApiGetRecentMediaIDs/1
 // Fetches the recent media IDs from the YouTube API for a given source.
-func (a *App) YoutubeApiGetRecentMediaIDs(ctx context.Context, source *Source) ([]string, error) {
+func (a *App) YoutubeApiGetRecentMediaIDs(ctx context.Context, source *store.Source) ([]string, error) {
 	playlistID := determinePlaylistID(source.CollectionID)
 	response, err := youtubeApiRequest(ctx, a, playlistID)
 	if err != nil {
@@ -61,7 +63,7 @@ func youtubeApiRequest(ctx context.Context, a *App, playlistID string) (map[stri
 	// Construct the URL with the API key
 	url := youtubeApiEndpointWithKey(playlistID, apiKey)
 
-	response, err := a.HTTP.Get(ctx, url, KW{Opt("accept", "application/json")}, nil)
+	response, err := a.HTTP.Get(ctx, url, store.KW{store.Opt("accept", "application/json")}, nil)
 	if err != nil {
 		slog.Error(fmt.Sprintf("Failed to fetch YouTube API: %v", err))
 		return nil, err
@@ -112,7 +114,7 @@ func youtubeApiMediaIDsFromResponse(parsed map[string]interface{}) ([]string, er
 
 // youtubeApiKeys retrieves the configured YouTube API keys
 func youtubeApiKeys(ctx context.Context, a *App) []string {
-	val, err := a.SettingsGet(ctx, "youtube_api_key")
+	val, err := a.GetSetting(ctx, "youtube_api_key")
 	if err != nil || val == nil {
 		return []string{}
 	}

@@ -1,4 +1,4 @@
-package core
+package store
 
 type MediaItemsSearchIndex struct {
 	// ID maps to rowid in the FTS5 table

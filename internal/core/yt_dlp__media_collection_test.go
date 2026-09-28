@@ -6,6 +6,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestYtDlpMediaCollection_GetMediaAttributesForCollection(t *testing.T) {
@@ -13,11 +14,11 @@ func TestYtDlpMediaCollection_GetMediaAttributesForCollection(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return sourceAttributesReturnFixture() + "\n\n", nil
 		})
 
-		result, err := ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, core.KW{}, core.KW{})
+		result, err := ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, store.KW{}, store.KW{})
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -34,11 +35,11 @@ func TestYtDlpMediaCollection_GetMediaAttributesForCollection(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			if !opts.Contains(core.Flag("simulate")) ||
-				!opts.Contains(core.Flag("skip_download")) ||
-				!opts.Contains(core.Flag("ignore_no_formats_error")) ||
-				!opts.Contains(core.Flag("no_warnings")) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+			if !opts.Contains(store.Flag("simulate")) ||
+				!opts.Contains(store.Flag("skip_download")) ||
+				!opts.Contains(store.Flag("ignore_no_formats_error")) ||
+				!opts.Contains(store.Flag("no_warnings")) {
 				t.Errorf("expected specific default opts, got %v", opts)
 			}
 			if ot != core.YtDlpMediaIndexingOutputTemplate() {
@@ -47,18 +48,18 @@ func TestYtDlpMediaCollection_GetMediaAttributesForCollection(t *testing.T) {
 			return "", nil
 		})
 
-		ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, core.KW{}, core.KW{})
+		ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, store.KW{}, store.KW{})
 	})
 
 	t.Run("returns the error straight through when the command fails", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", &fsutil.CommandError{Output: "Big issue", Status: 1}
 		})
 
-		_, err := ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, core.KW{}, core.KW{})
+		_, err := ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, store.KW{}, store.KW{})
 
 		if err == nil {
 			t.Fatal("expected an error")
@@ -69,33 +70,33 @@ func TestYtDlpMediaCollection_GetMediaAttributesForCollection(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			if !opts.Contains(core.Flag("foo")) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+			if !opts.Contains(store.Flag("foo")) {
 				t.Errorf("expected opts to contain :foo, got %v", opts)
 			}
 			return "", nil
 		})
 
-		ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, core.KW{core.Flag("foo")}, core.KW{})
+		ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, store.KW{store.Flag("foo")}, store.KW{})
 	})
 
 	t.Run("passes additional args to runner", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			// Check for output_filepath
 			if fp, ok := addl.Get("output_filepath"); !ok || fp == "" {
 				t.Errorf("expected output_filepath in addl, got %v", addl)
 			}
 			// Check for use_cookies
-			if !addl.Contains(core.Opt("use_cookies", false)) {
+			if !addl.Contains(store.Opt("use_cookies", false)) {
 				t.Errorf("expected use_cookies: false in addl, got %v", addl)
 			}
 			return "", nil
 		})
 
-		ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, core.KW{}, core.KW{})
+		ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, store.KW{}, store.KW{})
 	})
 
 	t.Run("supports an optional file_listener_handler that gets passed a filename", func(t *testing.T) {
@@ -110,11 +111,11 @@ func TestYtDlpMediaCollection_GetMediaAttributesForCollection(t *testing.T) {
 			handlerFilename = filename
 		}
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, core.KW{}, core.KW{core.Opt("file_listener_handler", handler)})
+		ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, store.KW{}, store.KW{store.Opt("file_listener_handler", handler)})
 
 		if !handlerCalled {
 			t.Fatal("expected handler to be called")
@@ -128,11 +129,11 @@ func TestYtDlpMediaCollection_GetMediaAttributesForCollection(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "INVALID\n\n" + sourceAttributesReturnFixture() + "\nINVALID\n", nil
 		})
 
-		result, err := ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, core.KW{}, core.KW{})
+		result, err := ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, store.KW{}, store.KW{})
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -148,7 +149,7 @@ func TestYtDlpMediaCollection_GetSourceDetails(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return `{
 				"channel": "PinchflatTestChannel",
 				"channel_id": "UCQH2",
@@ -158,7 +159,7 @@ func TestYtDlpMediaCollection_GetSourceDetails(t *testing.T) {
 			}`, nil
 		})
 
-		result, err := ta.MediaCollectionGetSourceDetails(ta.Ctx, channelURL, core.KW{}, core.KW{})
+		result, err := ta.MediaCollectionGetSourceDetails(ta.Ctx, channelURL, store.KW{}, store.KW{})
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -184,17 +185,17 @@ func TestYtDlpMediaCollection_GetSourceDetails(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			if url != channelURL {
 				t.Errorf("expected url %q, got %q", channelURL, url)
 			}
 			if action != "get_source_details" {
 				t.Errorf("expected action get_source_details, got %q", action)
 			}
-			if !opts.Contains(core.Flag("simulate")) ||
-				!opts.Contains(core.Flag("skip_download")) ||
-				!opts.Contains(core.Flag("ignore_no_formats_error")) ||
-				!opts.Contains(core.Opt("playlist_end", 1)) {
+			if !opts.Contains(store.Flag("simulate")) ||
+				!opts.Contains(store.Flag("skip_download")) ||
+				!opts.Contains(store.Flag("ignore_no_formats_error")) ||
+				!opts.Contains(store.Opt("playlist_end", 1)) {
 				t.Errorf("expected specific opts, got %v", opts)
 			}
 			if ot != "%(.{channel,channel_id,playlist_id,playlist_title,filename})j" {
@@ -203,46 +204,46 @@ func TestYtDlpMediaCollection_GetSourceDetails(t *testing.T) {
 			return "{}", nil
 		})
 
-		ta.MediaCollectionGetSourceDetails(ta.Ctx, channelURL, core.KW{}, core.KW{})
+		ta.MediaCollectionGetSourceDetails(ta.Ctx, channelURL, store.KW{}, store.KW{})
 	})
 
 	t.Run("passes custom args to the runner", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			if !opts.Contains(core.Opt("foo", core.Flag("bar"))) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+			if !opts.Contains(store.Opt("foo", store.Flag("bar"))) {
 				t.Errorf("expected opts to contain foo: bar, got %v", opts)
 			}
 			return "{}", nil
 		})
 
-		ta.MediaCollectionGetSourceDetails(ta.Ctx, channelURL, core.KW{core.Opt("foo", core.Flag("bar"))}, core.KW{})
+		ta.MediaCollectionGetSourceDetails(ta.Ctx, channelURL, store.KW{store.Opt("foo", store.Flag("bar"))}, store.KW{})
 	})
 
 	t.Run("passes additional args to the runner", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			if !addl.Contains(core.Opt("use_cookies", true)) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+			if !addl.Contains(store.Opt("use_cookies", true)) {
 				t.Errorf("expected addl to contain use_cookies: true, got %v", addl)
 			}
 			return "{}", nil
 		})
 
-		ta.MediaCollectionGetSourceDetails(ta.Ctx, channelURL, core.KW{}, core.KW{core.Opt("use_cookies", true)})
+		ta.MediaCollectionGetSourceDetails(ta.Ctx, channelURL, store.KW{}, store.KW{store.Opt("use_cookies", true)})
 	})
 
 	t.Run("returns an error if the runner returns an error", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", &fsutil.CommandError{Output: "Big issue", Status: 1}
 		})
 
-		_, err := ta.MediaCollectionGetSourceDetails(ta.Ctx, channelURL, core.KW{}, core.KW{})
+		_, err := ta.MediaCollectionGetSourceDetails(ta.Ctx, channelURL, store.KW{}, store.KW{})
 
 		if err == nil {
 			t.Fatal("expected an error")
@@ -253,11 +254,11 @@ func TestYtDlpMediaCollection_GetSourceDetails(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			return "Not JSON", nil
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+			return "store.Not JSON", nil
 		})
 
-		_, err := ta.MediaCollectionGetSourceDetails(ta.Ctx, channelURL, core.KW{}, core.KW{})
+		_, err := ta.MediaCollectionGetSourceDetails(ta.Ctx, channelURL, store.KW{}, store.KW{})
 
 		if err == nil {
 			t.Fatal("expected an error")
@@ -273,11 +274,11 @@ func TestYtDlpMediaCollection_GetSourceMetadata(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return `{"channel": "PinchflatTestChannel"}`, nil
 		})
 
-		result, err := ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, core.KW{core.Opt("playlist_items", 0)}, core.KW{})
+		result, err := ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, store.KW{store.Opt("playlist_items", 0)}, store.KW{})
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -294,9 +295,9 @@ func TestYtDlpMediaCollection_GetSourceMetadata(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			if !opts.Contains(core.Flag("skip_download")) ||
-				!opts.Contains(core.Opt("playlist_items", 0)) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+			if !opts.Contains(store.Flag("skip_download")) ||
+				!opts.Contains(store.Opt("playlist_items", 0)) {
 				t.Errorf("expected specific opts, got %v", opts)
 			}
 			if ot != "playlist:%()j" {
@@ -305,28 +306,28 @@ func TestYtDlpMediaCollection_GetSourceMetadata(t *testing.T) {
 			return "{}", nil
 		})
 
-		ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, core.KW{core.Opt("playlist_items", 0)}, core.KW{})
+		ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, store.KW{store.Opt("playlist_items", 0)}, store.KW{})
 	})
 
 	t.Run("passes additional args to the runner", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			if !addl.Contains(core.Opt("use_cookies", true)) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+			if !addl.Contains(store.Opt("use_cookies", true)) {
 				t.Errorf("expected addl to contain use_cookies: true, got %v", addl)
 			}
 			return "{}", nil
 		})
 
-		ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, core.KW{core.Opt("playlist_items", 0)}, core.KW{core.Opt("use_cookies", true)})
+		ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, store.KW{store.Opt("playlist_items", 0)}, store.KW{store.Opt("use_cookies", true)})
 	})
 
 	t.Run("passes custom args to the runner", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			if opts[0].Key != "skip_download" ||
 				opts[1].Key != "playlist_items" ||
 				opts[2].Key != "real_opt" {
@@ -335,14 +336,14 @@ func TestYtDlpMediaCollection_GetSourceMetadata(t *testing.T) {
 			return "{}", nil
 		})
 
-		ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, core.KW{core.Opt("playlist_items", 1), core.Opt("real_opt", "yup")}, core.KW{})
+		ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, store.KW{store.Opt("playlist_items", 1), store.Opt("real_opt", "yup")}, store.KW{})
 	})
 
 	t.Run("blows up if you pass addl opts but don't pass playlist items", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		_, err := ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, core.KW{core.Opt("real_opt", "yup")}, core.KW{})
+		_, err := ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, store.KW{store.Opt("real_opt", "yup")}, store.KW{})
 
 		if err == nil {
 			t.Fatal("expected an error when playlist_items is missing")
@@ -353,11 +354,11 @@ func TestYtDlpMediaCollection_GetSourceMetadata(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", &fsutil.CommandError{Output: "Big issue", Status: 1}
 		})
 
-		_, err := ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, core.KW{core.Opt("playlist_items", 0)}, core.KW{})
+		_, err := ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, store.KW{store.Opt("playlist_items", 0)}, store.KW{})
 
 		if err == nil {
 			t.Fatal("expected an error")
@@ -368,11 +369,11 @@ func TestYtDlpMediaCollection_GetSourceMetadata(t *testing.T) {
 		ta := coretest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
-			return "Not JSON", nil
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+			return "store.Not JSON", nil
 		})
 
-		_, err := ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, core.KW{core.Opt("playlist_items", 0)}, core.KW{})
+		_, err := ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, store.KW{store.Opt("playlist_items", 0)}, store.KW{})
 
 		if err == nil {
 			t.Fatal("expected an error")

@@ -1,4 +1,4 @@
-package core
+package store
 
 // Port of lib/pinchflat/repo.ex (the helpers on Pinchflat.Repo).
 // Hand-written W0 infrastructure.
@@ -13,8 +13,8 @@ import (
 // InsertUniqueJob inserts a job, reporting whether it was a duplicate of an
 // existing unique job (Repo.insert_unique_job/1: {:ok, job} | {:duplicate,
 // job} | {:error, _}).
-func (a *App) InsertUniqueJob(ctx context.Context, spec obanlite.JobSpec) (*obanlite.Job, bool, error) {
-	job, err := a.Oban.Insert(ctx, a.Q(ctx), spec)
+func (s *Store) InsertUniqueJob(ctx context.Context, spec obanlite.JobSpec) (*obanlite.Job, bool, error) {
+	job, err := s.Oban.Insert(ctx, s.Q(ctx), spec)
 	if err != nil {
 		return nil, false, err
 	}

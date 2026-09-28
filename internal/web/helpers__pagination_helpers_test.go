@@ -3,17 +3,17 @@ package web_test
 import (
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
 
 func TestGetPaginationAttributes(t *testing.T) {
 	t.Run("returns the correct pagination attributes", func(t *testing.T) {
 		c := webtest.New(t)
-		coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		coretest.SourceFixture(t, c.TestApp, store.Attrs{})
 
-		query := core.From[core.Source]("s")
+		query := store.From[store.Source]("s")
 		attrs, err := c.Server.GetPaginationAttributes(c.Ctx, query, 1, 10)
 		if err != nil {
 			t.Fatalf("GetPaginationAttributes failed: %v", err)
@@ -38,10 +38,10 @@ func TestGetPaginationAttributes(t *testing.T) {
 
 	t.Run("returns the correct pagination attributes when there are multiple pages", func(t *testing.T) {
 		c := webtest.New(t)
-		coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		coretest.SourceFixture(t, c.TestApp, store.Attrs{})
+		coretest.SourceFixture(t, c.TestApp, store.Attrs{})
 
-		query := core.From[core.Source]("s")
+		query := store.From[store.Source]("s")
 		attrs, err := c.Server.GetPaginationAttributes(c.Ctx, query, 1, 1)
 		if err != nil {
 			t.Fatalf("GetPaginationAttributes failed: %v", err)
@@ -66,10 +66,10 @@ func TestGetPaginationAttributes(t *testing.T) {
 
 	t.Run("returns the correct attributes when on a page other than the first", func(t *testing.T) {
 		c := webtest.New(t)
-		coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		coretest.SourceFixture(t, c.TestApp, store.Attrs{})
+		coretest.SourceFixture(t, c.TestApp, store.Attrs{})
 
-		query := core.From[core.Source]("s")
+		query := store.From[store.Source]("s")
 		attrs, err := c.Server.GetPaginationAttributes(c.Ctx, query, 2, 1)
 		if err != nil {
 			t.Fatalf("GetPaginationAttributes failed: %v", err)

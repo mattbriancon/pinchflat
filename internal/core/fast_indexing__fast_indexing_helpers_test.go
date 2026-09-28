@@ -10,6 +10,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // parseWorkerID extracts an int64 ID from a worker arg value that may be json.Number, int64, or float64.
@@ -34,10 +35,10 @@ func TestFastIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 	t.Run("deletes existing tasks", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
 		existingJob := coretest.JobFixture(t, ta)
-		existingTask := coretest.TaskFixture(t, ta, core.Attrs{
+		existingTask := coretest.TaskFixture(t, ta, store.Attrs{
 			"source_id": source.ID,
 			"job_id":    existingJob.ID,
 		})
@@ -55,7 +56,7 @@ func TestFastIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 	t.Run("creates task with source ID", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
 		task, err := ta.FastIndexingHelpersKickoffIndexingTask(ta.Ctx, source)
 		if err != nil {
@@ -85,10 +86,10 @@ func TestFastIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 // Helper to set up standard mocks for IndexAndKickoffDownloads tests.
 func setupDownloadIndexMocks(t *testing.T, ta *coretest.TestApp, rssResp string) {
 	t.Helper()
-	ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+	ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 		return coretest.MediaAttributesReturnFixture(), nil
 	})
-	ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+	ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 		return rssResp, nil
 	})
 }
@@ -98,7 +99,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 	t.Run("enqueues worker for new media", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 		setupDownloadIndexMocks(t, ta, "<yt:videoId>test_1</yt:videoId>")
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
@@ -131,13 +132,13 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 	t.Run("skips existing media", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		coretest.MediaItemFixture(t, ta, core.Attrs{
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		coretest.MediaItemFixture(t, ta, store.Attrs{
 			"source_id": source.ID,
 			"media_id":  "test_1",
 		})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			return "<yt:videoId>test_1</yt:videoId>", nil
 		})
 
@@ -155,8 +156,8 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 	t.Run("enqueues pending media at lower priority", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		pendingItem := coretest.MediaItemFixture(t, ta, core.Attrs{
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		pendingItem := coretest.MediaItemFixture(t, ta, store.Attrs{
 			"source_id":      source.ID,
 			"media_filepath": nil,
 		})
@@ -193,7 +194,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 	t.Run("returns found media items", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 		setupDownloadIndexMocks(t, ta, "<yt:videoId>test_1</yt:videoId>")
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
@@ -212,7 +213,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 	t.Run("respects download_media flag", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"download_media": false})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"download_media": false})
 		setupDownloadIndexMocks(t, ta, "<yt:videoId>test_1</yt:videoId>")
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
@@ -229,12 +230,12 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 	t.Run("tolerates invalid media attributes", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			return "{}", nil
 		})
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			return "<yt:videoId>test_1</yt:videoId>", nil
 		})
 
@@ -251,12 +252,12 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 	t.Run("tolerates yt-dlp errors", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			return "", &fsutil.CommandError{Output: "error", Status: 1}
 		})
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			return "<yt:videoId>test_1</yt:videoId>", nil
 		})
 
@@ -273,10 +274,10 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 	t.Run("passes download options to yt-dlp", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
 		optionsChecked := false
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if val, ok := opts.Get("output"); !ok || val == nil {
 				t.Error("missing output option")
 			}
@@ -293,7 +294,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 			optionsChecked = true
 			return coretest.MediaAttributesReturnFixture(), nil
 		})
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			return "<yt:videoId>test_1</yt:videoId>", nil
 		})
 
@@ -310,10 +311,10 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 	t.Run("filters by media profile rules", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "exclude"})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "exclude"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			output := map[string]any{
 				"id":           "video2",
 				"title":        "Video 2",
@@ -328,7 +329,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 			jsonStr, _ := db.EncodeJSON(output)
 			return jsonStr, nil
 		})
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			return "<yt:videoId>test_1</yt:videoId>", nil
 		})
 
@@ -359,10 +360,10 @@ func TestFastIndexingHelpers_CookieBehavior(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			ta := coretest.NewApp(t)
-			source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": tt.behavior})
+			source := coretest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": tt.behavior})
 
 			cookieChecked := false
-			ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+			ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 				val, ok := addlOpts.Get("use_cookies")
 				if !ok || val != tt.expectedCook {
 					t.Errorf("use_cookies=%v, want %v", val, tt.expectedCook)
@@ -371,7 +372,7 @@ func TestFastIndexingHelpers_CookieBehavior(t *testing.T) {
 				return coretest.MediaAttributesReturnFixture(), nil
 			})
 
-			ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+			ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 				return "<yt:videoId>test_1</yt:videoId>", nil
 			})
 
@@ -392,11 +393,11 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 	t.Run("uses API when enabled", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "test_key")})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", "test_key")})
 
 		apiUsed := false
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			if strings.Contains(url, "youtube.googleapis.com/youtube/v3/playlistItems") {
 				apiUsed = true
 			}
@@ -416,14 +417,14 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 	t.Run("API creates records correctly", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "test_key")})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", "test_key")})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			return coretest.MediaAttributesReturnFixture(), nil
 		})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			if strings.Contains(url, "youtube.googleapis.com") {
 				response := map[string]any{
 					"items": []map[string]any{
@@ -449,15 +450,15 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 	t.Run("falls back to RSS if API fails", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", "test_key")})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", "test_key")})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			return coretest.MediaAttributesReturnFixture(), nil
 		})
 
 		callCount := 0
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			callCount++
 			if callCount == 1 && strings.Contains(url, "youtube.googleapis.com") {
 				return "", &fsutil.CommandError{Output: "API failed", Status: 1}
@@ -481,15 +482,15 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 	t.Run("uses RSS when API disabled", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		ta.SettingsSet(ta.Ctx, core.KW{core.Opt("youtube_api_key", nil)})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", nil)})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			return coretest.MediaAttributesReturnFixture(), nil
 		})
 
 		rssUsed := false
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			if strings.Contains(url, "youtube.com/feeds/videos.xml") {
 				rssUsed = true
 			}

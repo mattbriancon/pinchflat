@@ -4,15 +4,15 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestProfiles_Schema(t *testing.T) {
 	t.Parallel()
 	ta := coretest.NewApp(t)
-	profile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
+	profile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
 
 	_, err := db.EncodeJSON(profile)
 	if err != nil {
@@ -23,9 +23,9 @@ func TestProfiles_Schema(t *testing.T) {
 func TestProfiles_ListMediaProfiles(t *testing.T) {
 	t.Parallel()
 	ta := coretest.NewApp(t)
-	mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
+	mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
 
-	profiles, err := ta.ProfilesListMediaProfiles(ta.Ctx)
+	profiles, err := ta.ListMediaProfiles(ta.Ctx)
 	if err != nil {
 		t.Fatalf("ProfilesListMediaProfiles failed: %v", err)
 	}
@@ -41,9 +41,9 @@ func TestProfiles_ListMediaProfiles(t *testing.T) {
 func TestProfiles_GetMediaProfile(t *testing.T) {
 	t.Parallel()
 	ta := coretest.NewApp(t)
-	mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
+	mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
 
-	retrieved, err := ta.ProfilesGetMediaProfile(ta.Ctx, mediaProfile.ID)
+	retrieved, err := ta.GetMediaProfile(ta.Ctx, mediaProfile.ID)
 	if err != nil {
 		t.Fatalf("ProfilesGetMediaProfile failed: %v", err)
 	}
@@ -60,12 +60,12 @@ func TestProfiles_CreateMediaProfile(t *testing.T) {
 	t.Run("valid data", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		validAttrs := core.Attrs{
+		validAttrs := store.Attrs{
 			"name":                 "some name",
 			"output_path_template": "output_template.{{ ext }}",
 		}
 
-		profile, err := ta.ProfilesCreateMediaProfile(ta.Ctx, validAttrs)
+		profile, err := ta.CreateMediaProfile(ta.Ctx, validAttrs)
 		if err != nil {
 			t.Fatalf("ProfilesCreateMediaProfile failed: %v", err)
 		}
@@ -81,19 +81,19 @@ func TestProfiles_CreateMediaProfile(t *testing.T) {
 	t.Run("invalid data", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		invalidAttrs := core.Attrs{
+		invalidAttrs := store.Attrs{
 			"name":                 nil,
 			"output_path_template": nil,
 		}
 
-		_, err := ta.ProfilesCreateMediaProfile(ta.Ctx, invalidAttrs)
+		_, err := ta.CreateMediaProfile(ta.Ctx, invalidAttrs)
 		if err == nil {
 			t.Error("expected error for invalid attrs")
 		}
 
-		csErr, ok := core.AsChangesetError(err)
+		csErr, ok := store.AsChangesetError(err)
 		if !ok || csErr == nil {
-			t.Errorf("expected ChangesetError, got %T", err)
+			t.Errorf("expected store.ChangesetError, got %T", err)
 		}
 	})
 }
@@ -102,14 +102,14 @@ func TestProfiles_UpdateMediaProfile(t *testing.T) {
 	t.Run("valid data", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
 
-		updateAttrs := core.Attrs{
+		updateAttrs := store.Attrs{
 			"name":                 "updated name",
 			"output_path_template": "new_output_template.{{ ext }}",
 		}
 
-		updated, err := ta.ProfilesUpdateMediaProfile(ta.Ctx, mediaProfile, updateAttrs)
+		updated, err := ta.UpdateMediaProfile(ta.Ctx, mediaProfile, updateAttrs)
 		if err != nil {
 			t.Fatalf("ProfilesUpdateMediaProfile failed: %v", err)
 		}
@@ -125,19 +125,19 @@ func TestProfiles_UpdateMediaProfile(t *testing.T) {
 	t.Run("invalid data", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
 
-		invalidAttrs := core.Attrs{
+		invalidAttrs := store.Attrs{
 			"name":                 nil,
 			"output_path_template": nil,
 		}
 
-		_, err := ta.ProfilesUpdateMediaProfile(ta.Ctx, mediaProfile, invalidAttrs)
+		_, err := ta.UpdateMediaProfile(ta.Ctx, mediaProfile, invalidAttrs)
 		if err == nil {
 			t.Error("expected error for invalid attrs")
 		}
 
-		retrieved, err := ta.ProfilesGetMediaProfile(ta.Ctx, mediaProfile.ID)
+		retrieved, err := ta.GetMediaProfile(ta.Ctx, mediaProfile.ID)
 		if err != nil {
 			t.Fatalf("ProfilesGetMediaProfile failed: %v", err)
 		}
@@ -152,72 +152,72 @@ func TestProfiles_DeleteMediaProfile(t *testing.T) {
 	t.Run("deletes profile", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
 
-		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, core.KW{})
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, store.KW{})
 		if err != nil {
 			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
 		}
 
-		_, err = ta.ProfilesGetMediaProfile(ta.Ctx, mediaProfile.ID)
-		if err != core.ErrNotFound {
-			t.Errorf("expected ErrNotFound for deleted profile")
+		_, err = ta.GetMediaProfile(ta.Ctx, mediaProfile.ID)
+		if err != store.ErrNotFound {
+			t.Errorf("expected store.ErrNotFound for deleted profile")
 		}
 	})
 
 	t.Run("deletes sources", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
-		source := coretest.SourceFixture(t, ta, core.Attrs{
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 		})
 
-		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, core.KW{})
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, store.KW{})
 		if err != nil {
 			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
 		}
 
-		_, err = ta.SourcesGetSource(ta.Ctx, source.ID)
-		if err != core.ErrNotFound {
-			t.Errorf("expected ErrNotFound for deleted source")
+		_, err = ta.GetSource(ta.Ctx, source.ID)
+		if err != store.ErrNotFound {
+			t.Errorf("expected store.ErrNotFound for deleted source")
 		}
 	})
 
 	t.Run("deletes media items", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
-		source := coretest.SourceFixture(t, ta, core.Attrs{
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 		})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{
 			"source_id": source.ID,
 		})
 
-		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, core.KW{})
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, store.KW{})
 		if err != nil {
 			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
 		}
 
-		_, err = ta.MediaGetMediaItem(ta.Ctx, mediaItem.ID)
-		if err != core.ErrNotFound {
-			t.Errorf("expected ErrNotFound for deleted media_item")
+		_, err = ta.GetMediaItem(ta.Ctx, mediaItem.ID)
+		if err != store.ErrNotFound {
+			t.Errorf("expected store.ErrNotFound for deleted media_item")
 		}
 	})
 
 	t.Run("preserves files by default", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
-		source := coretest.SourceFixture(t, ta, core.Attrs{
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 		})
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
 			"source_id": source.ID,
 		})
 
-		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, core.KW{})
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, store.KW{})
 		if err != nil {
 			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
 		}
@@ -236,32 +236,32 @@ func TestProfiles_DeleteMediaProfile_WhenDeletingFiles(t *testing.T) {
 			return nil
 		})
 
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
-		source := coretest.SourceFixture(t, ta, core.Attrs{
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 		})
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
 			"source_id": source.ID,
 		})
 
-		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, core.KW{core.Opt("delete_files", true)})
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, store.KW{store.Opt("delete_files", true)})
 		if err != nil {
 			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
 		}
 
-		_, err = ta.ProfilesGetMediaProfile(ta.Ctx, mediaProfile.ID)
-		if err != core.ErrNotFound {
-			t.Errorf("expected ErrNotFound for deleted profile")
+		_, err = ta.GetMediaProfile(ta.Ctx, mediaProfile.ID)
+		if err != store.ErrNotFound {
+			t.Errorf("expected store.ErrNotFound for deleted profile")
 		}
 
-		_, err = ta.SourcesGetSource(ta.Ctx, source.ID)
-		if err != core.ErrNotFound {
-			t.Errorf("expected ErrNotFound for deleted source")
+		_, err = ta.GetSource(ta.Ctx, source.ID)
+		if err != store.ErrNotFound {
+			t.Errorf("expected store.ErrNotFound for deleted source")
 		}
 
-		_, err = ta.MediaGetMediaItem(ta.Ctx, mediaItem.ID)
-		if err != core.ErrNotFound {
-			t.Errorf("expected ErrNotFound for deleted media_item")
+		_, err = ta.GetMediaItem(ta.Ctx, mediaItem.ID)
+		if err != store.ErrNotFound {
+			t.Errorf("expected store.ErrNotFound for deleted media_item")
 		}
 	})
 
@@ -272,17 +272,17 @@ func TestProfiles_DeleteMediaProfile_WhenDeletingFiles(t *testing.T) {
 			return nil
 		})
 
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
-		source := coretest.SourceFixture(t, ta, core.Attrs{
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 		})
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
 			"source_id": source.ID,
 		})
 
 		mediaFilepath := *mediaItem.MediaFilepath
 
-		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, core.KW{core.Opt("delete_files", true)})
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, store.KW{store.Opt("delete_files", true)})
 		if err != nil {
 			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
 		}
@@ -299,8 +299,8 @@ func TestProfiles_ChangeMediaProfile(t *testing.T) {
 
 	t.Run("returns changeset", func(t *testing.T) {
 		t.Parallel()
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
-		cs := ta.ProfilesChangeMediaProfile(ta.Ctx, mediaProfile, core.Attrs{})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
+		cs := ta.ChangeMediaProfile(ta.Ctx, mediaProfile, store.Attrs{})
 		if cs == nil {
 			t.Error("expected changeset, got nil")
 		}
@@ -318,7 +318,7 @@ func TestProfiles_ChangeMediaProfile(t *testing.T) {
 		}
 
 		for _, template := range validTemplates {
-			cs := ta.ProfilesChangeMediaProfile(ta.Ctx, &core.MediaProfile{}, core.Attrs{
+			cs := ta.ChangeMediaProfile(ta.Ctx, &store.MediaProfile{}, store.Attrs{
 				"name":                 "a",
 				"output_path_template": template,
 			})
@@ -342,7 +342,7 @@ func TestProfiles_ChangeMediaProfile(t *testing.T) {
 		}
 
 		for _, template := range invalidTemplates {
-			cs := ta.ProfilesChangeMediaProfile(ta.Ctx, &core.MediaProfile{}, core.Attrs{
+			cs := ta.ChangeMediaProfile(ta.Ctx, &store.MediaProfile{}, store.Attrs{
 				"name":                 "a",
 				"output_path_template": template,
 			})

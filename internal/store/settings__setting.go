@@ -1,4 +1,4 @@
-package core
+package store
 
 type Setting struct {
 	ID                            int64   `db:"id"`

@@ -13,12 +13,13 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // SlowIndexingHelpers provides methods for performing slow indexing tasks.
 
 // SlowIndexingHelpersKickoffIndexingTask/3
-func (a *App) SlowIndexingHelpersKickoffIndexingTask(ctx context.Context, source *Source, jobArgs Attrs, jobOpts KW) (*Task, error) {
+func (a *App) SlowIndexingHelpersKickoffIndexingTask(ctx context.Context, source *store.Source, jobArgs store.Attrs, jobOpts store.KW) (*store.Task, error) {
 	jobOffsetSeconds := 0
 	force := false
 	if jobArgs != nil {
@@ -32,12 +33,12 @@ func (a *App) SlowIndexingHelpersKickoffIndexingTask(ctx context.Context, source
 	}
 
 	// Delete pending tasks for the source
-	if err := a.TasksDeletePendingTasksFor(ctx, source, stringPtr("MediaCollectionIndexingWorker"), KW{Opt("include_executing", true)}); err != nil {
+	if err := a.DeletePendingTasksFor(ctx, source, stringPtr("MediaCollectionIndexingWorker"), store.KW{store.Opt("include_executing", true)}); err != nil {
 		return nil, err
 	}
 
 	// Prepare job arguments
-	args := Attrs{"id": source.ID}
+	args := store.Attrs{"id": source.ID}
 	if jobArgs != nil {
 		for k, v := range jobArgs {
 			args[k] = v
@@ -56,27 +57,27 @@ func (a *App) SlowIndexingHelpersKickoffIndexingTask(ctx context.Context, source
 		spec.MaxAttempts = maxAttempts.(int)
 	}
 
-	return a.TasksCreateJobWithTask(ctx, spec, source)
+	return a.CreateJobWithTask(ctx, spec, source)
 }
 
 // SlowIndexingHelpersDeleteIndexingTasks/2
-func (a *App) SlowIndexingHelpersDeleteIndexingTasks(ctx context.Context, source *Source, opts KW) error {
+func (a *App) SlowIndexingHelpersDeleteIndexingTasks(ctx context.Context, source *store.Source, opts store.KW) error {
 	includeExecuting := opts.Bool("include_executing")
 
-	kw := KW{}
+	kw := store.KW{}
 	if includeExecuting {
-		kw = append(kw, Opt("include_executing", true))
+		kw = append(kw, store.Opt("include_executing", true))
 	}
 
-	if err := a.TasksDeletePendingTasksFor(ctx, source, stringPtr("FastIndexingWorker"), kw); err != nil {
+	if err := a.DeletePendingTasksFor(ctx, source, stringPtr("FastIndexingWorker"), kw); err != nil {
 		return err
 	}
 
-	return a.TasksDeletePendingTasksFor(ctx, source, stringPtr("MediaCollectionIndexingWorker"), kw)
+	return a.DeletePendingTasksFor(ctx, source, stringPtr("MediaCollectionIndexingWorker"), kw)
 }
 
 // SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems/2
-func (a *App) SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx context.Context, source *Source, opts KW) ([]any, error) {
+func (a *App) SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx context.Context, source *store.Source, opts store.KW) ([]any, error) {
 	// source = Repo.preload(source, [:media_profile])
 	source, err := a.PreloadSourceMediaProfile(ctx, source)
 	if err != nil {
@@ -89,8 +90,8 @@ func (a *App) SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx contex
 		return nil, err
 	}
 
-	// Reload source because it may have been updated during indexing
-	source, err = a.SourcesGetSource(ctx, source.ID)
+	// store.Reload source because it may have been updated during indexing
+	source, err = a.GetSource(ctx, source.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -98,10 +99,10 @@ func (a *App) SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx contex
 	// Create media items
 	result := make([]any, 0, len(mediaAttributes))
 	for _, mediaAttrs := range mediaAttributes {
-		mediaItem, err := a.MediaCreateMediaItemFromBackendAttrs(ctx, source, mediaAttrs)
+		mediaItem, err := a.CreateMediaItemFromBackendAttrs(ctx, source, mediaAttrs)
 		if err != nil {
 			// Return changeset errors
-			if csErr, ok := err.(*ChangesetError); ok {
+			if csErr, ok := err.(*store.ChangesetError); ok {
 				result = append(result, csErr.Changeset)
 			} else {
 				result = append(result, err)
@@ -112,14 +113,14 @@ func (a *App) SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx contex
 	}
 
 	// Update source's last_indexed_at
-	if _, err := a.SourcesUpdateSource(ctx, source, Attrs{
+	if _, err := a.SourcesUpdateSource(ctx, source, store.Attrs{
 		"last_indexed_at": db.Now(),
-	}, KW{}); err != nil {
+	}, store.KW{}); err != nil {
 		return nil, err
 	}
 
 	// Enqueue pending download tasks
-	if err := a.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, KW{}); err != nil {
+	if err := a.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
 		return nil, err
 	}
 
@@ -128,7 +129,7 @@ func (a *App) SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx contex
 
 // Private helpers
 
-func slowIndexingHelpersCalculateJobOffsetSeconds(source *Source) int {
+func slowIndexingHelpersCalculateJobOffsetSeconds(source *store.Source) int {
 	if source.LastIndexedAt == nil {
 		return 0
 	}
@@ -142,7 +143,7 @@ func slowIndexingHelpersCalculateJobOffsetSeconds(source *Source) int {
 	return indexFrequencySeconds - offsetSeconds
 }
 
-func slowIndexingHelpersSetupFileWatcherAndKickoffIndexing(ctx context.Context, a *App, source *Source, opts KW) ([]*YtDlpMedia, error) {
+func slowIndexingHelpersSetupFileWatcherAndKickoffIndexing(ctx context.Context, a *App, source *store.Source, opts store.KW) ([]*YtDlpMedia, error) {
 	wasForced := opts.Bool("was_forced")
 
 	// Start file follower
@@ -156,19 +157,19 @@ func slowIndexingHelpersSetupFileWatcherAndKickoffIndexing(ctx context.Context, 
 		slowIndexingHelpersSetupFileFollowerWatcher(ctx, a, fileFollower, filepath, source)
 	}
 
-	shouldUseCookies := SourcesUseCookies(source, "indexing")
+	shouldUseCookies := store.UseCookies(source, "indexing")
 
 	// Build command options
-	commandOpts := KW{
-		Opt("output", a.DownloadOptionBuilderBuildOutputPathForSource(ctx, source)),
+	commandOpts := store.KW{
+		store.Opt("output", a.DownloadOptionBuilderBuildOutputPathForSource(ctx, source)),
 	}
 	commandOpts = append(commandOpts, a.DownloadOptionBuilderBuildQualityOptionsForSource(ctx, source)...)
 	commandOpts = append(commandOpts, slowIndexingHelpersBuildDownloadArchiveOptions(ctx, a, source, wasForced)...)
 
 	// Build runner options
-	runnerOpts := KW{
-		Opt("file_listener_handler", handler),
-		Opt("use_cookies", shouldUseCookies),
+	runnerOpts := store.KW{
+		store.Opt("file_listener_handler", handler),
+		store.Opt("use_cookies", shouldUseCookies),
 	}
 
 	// Get media attributes
@@ -184,7 +185,7 @@ func slowIndexingHelpersSetupFileWatcherAndKickoffIndexing(ctx context.Context, 
 	return result, nil
 }
 
-func slowIndexingHelpersSetupFileFollowerWatcher(ctx context.Context, a *App, fileFollower *FileFollowerServer, filepath string, source *Source) {
+func slowIndexingHelpersSetupFileFollowerWatcher(ctx context.Context, a *App, fileFollower *FileFollowerServer, filepath string, source *store.Source) {
 	handler := func(line string) {
 		// Decode JSON line
 		var mediaAttrs map[string]any
@@ -204,55 +205,55 @@ func slowIndexingHelpersSetupFileFollowerWatcher(ctx context.Context, a *App, fi
 	fileFollower.WatchFile(filepath, handler)
 }
 
-func slowIndexingHelpersCreateMediaItemAndEnqueueDownload(ctx context.Context, a *App, source *Source, mediaAttrs *YtDlpMedia) {
-	// Reload source in case it was updated during indexing
-	reloadedSource, err := a.SourcesGetSource(ctx, source.ID)
+func slowIndexingHelpersCreateMediaItemAndEnqueueDownload(ctx context.Context, a *App, source *store.Source, mediaAttrs *YtDlpMedia) {
+	// store.Reload source in case it was updated during indexing
+	reloadedSource, err := a.GetSource(ctx, source.ID)
 	if err != nil {
 		slog.Debug("FileFollowerServer Handler: Error reloading source", "error", err)
 		return
 	}
 
 	// Create media item
-	mediaItem, err := a.MediaCreateMediaItemFromBackendAttrs(ctx, reloadedSource, mediaAttrs)
+	mediaItem, err := a.CreateMediaItemFromBackendAttrs(ctx, reloadedSource, mediaAttrs)
 	if err != nil {
 		slog.Debug("FileFollowerServer Handler: Error creating media item", "error", err)
 		return
 	}
 
 	// Kickoff download if pending
-	_, _ = a.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, KW{})
+	_, _ = a.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.KW{})
 }
 
-func slowIndexingHelpersBuildDownloadArchiveOptions(ctx context.Context, a *App, source *Source, wasForced bool) KW {
+func slowIndexingHelpersBuildDownloadArchiveOptions(ctx context.Context, a *App, source *store.Source, wasForced bool) store.KW {
 	// Don't use archive for playlists
-	if source.CollectionType == SourceCollectionTypePlaylist {
-		return KW{}
+	if source.CollectionType == store.SourceCollectionTypePlaylist {
+		return store.KW{}
 	}
 
 	// Don't use archive if never indexed before
 	if source.LastIndexedAt == nil {
-		return KW{}
+		return store.KW{}
 	}
 
 	// Don't use archive if forced
 	if wasForced {
-		return KW{}
+		return store.KW{}
 	}
 
 	// Create archive file
 	archiveFile, err := slowIndexingHelpersCreateDownloadArchiveFile(ctx, a, source)
 	if err != nil {
 		slog.Error("Error creating download archive file", "error", err)
-		return KW{}
+		return store.KW{}
 	}
 
-	return KW{
-		Flag("break_on_existing"),
-		Opt("download_archive", archiveFile),
+	return store.KW{
+		store.Flag("break_on_existing"),
+		store.Opt("download_archive", archiveFile),
 	}
 }
 
-func slowIndexingHelpersCreateDownloadArchiveFile(ctx context.Context, a *App, source *Source) (string, error) {
+func slowIndexingHelpersCreateDownloadArchiveFile(ctx context.Context, a *App, source *store.Source) (string, error) {
 	tmpfile, err := fsutil.GenerateTmpfile(a.Config.TmpfileDirectory, "txt")
 	if err != nil {
 		return "", err
@@ -279,15 +280,15 @@ func slowIndexingHelpersCreateDownloadArchiveFile(ctx context.Context, a *App, s
 	return tmpfile, nil
 }
 
-func slowIndexingHelpersGetMediaItemsForDownloadArchive(ctx context.Context, a *App, source *Source) ([]*MediaItem, error) {
-	q := MediaQueryNew().
+func slowIndexingHelpersGetMediaItemsForDownloadArchive(ctx context.Context, a *App, source *store.Source) ([]*store.MediaItem, error) {
+	q := store.MediaQueryNew().
 		RequireAssoc("source").
-		Where(MediaQueryForSource(source.ID)).
+		Where(store.MediaQueryForSource(source.ID)).
 		Map(func(b squirrel.SelectBuilder) squirrel.SelectBuilder {
 			return b.OrderBy("uploaded_at DESC").Limit(50).Offset(20)
 		})
 
-	return All[MediaItem](ctx, a.Q(ctx), q)
+	return store.All[store.MediaItem](ctx, a.Q(ctx), q)
 }
 
 func stringPtr(s string) *string {

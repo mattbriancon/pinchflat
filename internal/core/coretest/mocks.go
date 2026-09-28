@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // YtDlpRunFunc is the signature of YtDlpRunner.Run without ctx.
-type YtDlpRunFunc func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error)
+type YtDlpRunFunc func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error)
 
 // YtDlpMock replaces YtDlpRunnerMock.
 type YtDlpMock struct {
@@ -27,7 +27,7 @@ func NewYtDlpMock(t testing.TB) *YtDlpMock {
 
 type ytDlpRunner struct{ m *YtDlpMock }
 
-func (r ytDlpRunner) Run(_ context.Context, url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+func (r ytDlpRunner) Run(_ context.Context, url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 	return r.m.Run.next()(url, action, opts, ot, addl)
 }
 func (r ytDlpRunner) Version(context.Context) (string, error) { return r.m.Version.next()() }
@@ -50,15 +50,15 @@ func (r userScriptRunner) Run(_ context.Context, event string, data any) error {
 
 // HTTPMock replaces HTTPClientMock.
 type HTTPMock struct {
-	Get *Mock[func(url string, headers, opts core.KW) (string, error)]
+	Get *Mock[func(url string, headers, opts store.KW) (string, error)]
 }
 
 func NewHTTPMock(t testing.TB) *HTTPMock {
-	return &HTTPMock{Get: newMock[func(string, core.KW, core.KW) (string, error)](t, "HTTPClientMock.get")}
+	return &HTTPMock{Get: newMock[func(string, store.KW, store.KW) (string, error)](t, "HTTPClientMock.get")}
 }
 
 type httpClient struct{ m *HTTPMock }
 
-func (c httpClient) Get(_ context.Context, url string, headers, opts core.KW) (string, error) {
+func (c httpClient) Get(_ context.Context, url string, headers, opts store.KW) (string, error) {
 	return c.m.Get.next()(url, headers, opts)
 }

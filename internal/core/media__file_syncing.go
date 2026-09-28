@@ -5,10 +5,11 @@ import (
 	"os"
 
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // DeleteOutdatedFiles/2
-func FileSyncingDeleteOutdatedFiles(ctx context.Context, oldMediaItem, newMediaItem *MediaItem) error {
+func FileSyncingDeleteOutdatedFiles(ctx context.Context, oldMediaItem, newMediaItem *store.MediaItem) error {
 	nonSubtitleKeys := fileSyncingNonSubtitleFilepathAttributes()
 
 	oldNonSubtitles := fileSyncingExtractFilepaths(oldMediaItem, nonSubtitleKeys)
@@ -23,14 +24,14 @@ func FileSyncingDeleteOutdatedFiles(ctx context.Context, oldMediaItem, newMediaI
 }
 
 // SyncFilePresenceOnDisk/1
-func (a *App) FileSyncingSyncFilePresenceOnDisk(ctx context.Context, mediaItems []*MediaItem) ([]*MediaItem, error) {
-	result := make([]*MediaItem, len(mediaItems))
+func (a *App) FileSyncingSyncFilePresenceOnDisk(ctx context.Context, mediaItems []*store.MediaItem) ([]*store.MediaItem, error) {
+	result := make([]*store.MediaItem, len(mediaItems))
 
 	for i, mediaItem := range mediaItems {
 		newAttributes := fileSyncingSyncMediaItemFiles(mediaItem)
 		// Doing this one-by-one instead of batching since this process
-		// can take time and a batch could let MediaItem state get out of sync
-		updatedMediaItem, err := a.MediaUpdateMediaItem(ctx, mediaItem, newAttributes)
+		// can take time and a batch could let store.MediaItem state get out of sync
+		updatedMediaItem, err := a.UpdateMediaItem(ctx, mediaItem, newAttributes)
 		if err != nil {
 			return nil, err
 		}
@@ -53,7 +54,7 @@ func fileSyncingNonSubtitleFilepathAttributes() []string {
 	return attrs
 }
 
-func fileSyncingExtractFilepaths(mediaItem *MediaItem, keys []string) map[string]*string {
+func fileSyncingExtractFilepaths(mediaItem *store.MediaItem, keys []string) map[string]*string {
 	result := make(map[string]*string)
 
 	for _, key := range keys {
@@ -102,13 +103,13 @@ func fileSyncingHandleFileDeletion(ctx context.Context, oldAttributes, newAttrib
 	}
 }
 
-func fileSyncingSyncMediaItemFiles(mediaItem *MediaItem) Attrs {
+func fileSyncingSyncMediaItemFiles(mediaItem *store.MediaItem) store.Attrs {
 	nonSubtitleKeys := fileSyncingNonSubtitleFilepathAttributes()
 	subtitleKeys := fileSyncingFromNestedList(mediaItem.SubtitleFilepaths)
 	nonSubtitles := fileSyncingExtractFilepaths(mediaItem, nonSubtitleKeys)
 
 	// This one is checking for the negative (ie: only update if the file doesn't exist)
-	newNonSubtitleAttrs := make(Attrs)
+	newNonSubtitleAttrs := make(store.Attrs)
 	for key, filepath := range nonSubtitles {
 		if filepath == nil || !fileExists(*filepath) {
 			newNonSubtitleAttrs[key] = nil

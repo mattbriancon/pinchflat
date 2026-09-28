@@ -239,7 +239,7 @@ func TestUserScriptsCommandRunner_Run(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// Try to pass a non-JSON-encodable value (a Changeset, but we'll use a channel which can't be JSON encoded)
+		// Try to pass a non-JSON-encodable value (a store.Changeset, but we'll use a channel which can't be JSON encoded)
 		_, err := runner.RunWithResult(ta.Ctx, "media_downloaded", make(chan int))
 		if err == nil {
 			t.Error("expected an error when trying to encode a non-JSON-encodable value")

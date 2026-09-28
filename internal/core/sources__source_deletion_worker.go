@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 const SourceDeletionWorkerName = "Pinchflat.Sources.SourceDeletionWorker"
@@ -14,7 +15,7 @@ var sourceDeletionWorkerOpts = obanlite.WorkerOpts{
 }
 
 // SourceDeletionWorker.kickoff/1, kickoff/2, kickoff/3
-func (a *App) SourceDeletionWorkerKickoff(ctx context.Context, source *Source, jobArgs Attrs, jobOpts KW) (*obanlite.Job, error) {
+func (a *App) SourceDeletionWorkerKickoff(ctx context.Context, source *store.Source, jobArgs store.Attrs, jobOpts store.KW) (*obanlite.Job, error) {
 	// Build args: {id: source.id} merged with jobArgs
 	args := make(map[string]any)
 	args["id"] = source.ID
@@ -72,11 +73,11 @@ func (a *App) SourceDeletionWorkerPerform(ctx context.Context, job *obanlite.Job
 		deleteFiles = *args.DeleteFiles
 	}
 
-	source, err := a.SourcesGetSource(ctx, args.ID)
+	source, err := a.GetSource(ctx, args.ID)
 	if err != nil {
 		return err
 	}
 
-	_, err = a.SourcesDeleteSource(ctx, source, KW{Opt("delete_files", deleteFiles)})
+	_, err = a.SourcesDeleteSource(ctx, source, store.KW{store.Opt("delete_files", deleteFiles)})
 	return err
 }

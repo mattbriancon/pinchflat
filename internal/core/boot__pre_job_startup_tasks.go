@@ -10,6 +10,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // PreJobStartupTasks runs before the job runner starts. The GenServer
@@ -64,11 +65,11 @@ func ensureTmpfileDirectory(ctx context.Context, a *App) error {
 
 // resetExecutingJobs/0
 func resetExecutingJobs(ctx context.Context, a *App) error {
-	query := SQ.Update("oban_jobs").
+	query := store.SQ.Update("oban_jobs").
 		Set("state", "retryable").
 		Where(sq.Eq{"state": "executing"})
 
-	count, err := Exec(ctx, a.Q(ctx), query)
+	count, err := store.Exec(ctx, a.Q(ctx), query)
 	if err != nil {
 		return err
 	}
@@ -133,7 +134,7 @@ func applyDefaultSettings(ctx context.Context, a *App) error {
 		return err
 	}
 
-	if _, err := a.SettingsSet(ctx, KW{Opt("yt_dlp_version", ytDlpVersion)}); err != nil {
+	if _, err := a.SetSetting(ctx, store.KW{store.Opt("yt_dlp_version", ytDlpVersion)}); err != nil {
 		return err
 	}
 
@@ -143,7 +144,7 @@ func applyDefaultSettings(ctx context.Context, a *App) error {
 // runAppInitScript/0
 // Elixir ignores the script's exit code, so a non-zero exit must not stop boot.
 func runAppInitScript(ctx context.Context, a *App) error {
-	err := a.UserScripts.Run(ctx, "app_init", Attrs{})
+	err := a.UserScripts.Run(ctx, "app_init", store.Attrs{})
 	var cmdErr *fsutil.CommandError
 	if errors.As(err, &cmdErr) {
 		slog.Warn("app_init user script exited non-zero", "status", cmdErr.Status)

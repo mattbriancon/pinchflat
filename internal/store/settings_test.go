@@ -1,40 +1,40 @@
-package core_test
+package store_test
 
 import (
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
-	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/store/storetest"
 )
 
 func TestSettingsRecord(t *testing.T) {
 	t.Parallel()
-	ta := coretest.NewApp(t)
+	ts := storetest.NewStore(t)
 
-	setting, err := ta.SettingsRecord(ta.Ctx)
+	setting, err := ts.GetSettingsRecord(ts.Ctx)
 	if err != nil {
 		t.Fatalf("SettingsRecord failed: %v", err)
 	}
 	if setting == nil {
-		t.Fatalf("expected Setting")
+		t.Fatalf("expected store.Setting")
 	}
 }
 
 func TestSettingsUpdateSetting(t *testing.T) {
 	t.Parallel()
-	ta := coretest.NewApp(t)
+	ts := storetest.NewStore(t)
 
-	_, err := ta.SettingsSet(ta.Ctx, core.KW{core.Opt("onboarding", false)})
+	_, err := ts.SetSetting(ts.Ctx, store.KW{store.Opt("onboarding", false)})
 	if err != nil {
 		t.Fatalf("setup: set onboarding to false failed: %v", err)
 	}
 
-	setting, err := ta.SettingsRecord(ta.Ctx)
+	setting, err := ts.GetSettingsRecord(ts.Ctx)
 	if err != nil {
 		t.Fatalf("SettingsRecord failed: %v", err)
 	}
 
-	val, err := ta.SettingsGet(ta.Ctx, "onboarding")
+	val, err := ts.GetSetting(ts.Ctx, "onboarding")
 	if err != nil {
 		t.Fatalf("SettingsGet failed: %v", err)
 	}
@@ -42,15 +42,15 @@ func TestSettingsUpdateSetting(t *testing.T) {
 		t.Errorf("expected onboarding=false")
 	}
 
-	updated, err := ta.SettingsUpdateSetting(ta.Ctx, setting, core.Attrs{"onboarding": true})
+	updated, err := ts.UpdateSetting(ts.Ctx, setting, store.Attrs{"onboarding": true})
 	if err != nil {
 		t.Fatalf("SettingsUpdateSetting failed: %v", err)
 	}
 	if updated == nil {
-		t.Fatalf("expected Setting")
+		t.Fatalf("expected store.Setting")
 	}
 
-	val, err = ta.SettingsGet(ta.Ctx, "onboarding")
+	val, err = ts.GetSetting(ts.Ctx, "onboarding")
 	if err != nil {
 		t.Fatalf("SettingsGet failed: %v", err)
 	}
@@ -60,11 +60,11 @@ func TestSettingsUpdateSetting(t *testing.T) {
 }
 
 func TestSettingsSet(t *testing.T) {
-	ta := coretest.NewApp(t)
+	ts := storetest.NewStore(t)
 
 	t.Run("updates setting", func(t *testing.T) {
 		t.Parallel()
-		val, err := ta.SettingsSet(ta.Ctx, core.KW{core.Opt("onboarding", true)})
+		val, err := ts.SetSetting(ts.Ctx, store.KW{store.Opt("onboarding", true)})
 		if err != nil {
 			t.Fatalf("SettingsSet failed: %v", err)
 		}
@@ -72,7 +72,7 @@ func TestSettingsSet(t *testing.T) {
 			t.Errorf("expected true")
 		}
 
-		val, err = ta.SettingsGet(ta.Ctx, "onboarding")
+		val, err = ts.GetSetting(ts.Ctx, "onboarding")
 		if err != nil {
 			t.Fatalf("SettingsGet failed: %v", err)
 		}
@@ -83,7 +83,7 @@ func TestSettingsSet(t *testing.T) {
 
 	t.Run("errors on invalid key", func(t *testing.T) {
 		t.Parallel()
-		_, err := ta.SettingsSet(ta.Ctx, core.KW{core.Opt("foo", "bar")})
+		_, err := ts.SetSetting(ts.Ctx, store.KW{store.Opt("foo", "bar")})
 		if err == nil {
 			t.Fatalf("expected error")
 		}
@@ -94,27 +94,27 @@ func TestSettingsSet(t *testing.T) {
 
 	t.Run("errors on invalid value", func(t *testing.T) {
 		t.Parallel()
-		_, err := ta.SettingsSet(ta.Ctx, core.KW{core.Opt("onboarding", "bar")})
+		_, err := ts.SetSetting(ts.Ctx, store.KW{store.Opt("onboarding", "bar")})
 		if err == nil {
 			t.Fatalf("expected error")
 		}
-		if _, ok := core.AsChangesetError(err); !ok {
-			t.Errorf("expected ChangesetError, got %T", err)
+		if _, ok := store.AsChangesetError(err); !ok {
+			t.Errorf("expected store.ChangesetError, got %T", err)
 		}
 	})
 }
 
 func TestSettingsGet(t *testing.T) {
-	ta := coretest.NewApp(t)
+	ts := storetest.NewStore(t)
 
 	t.Run("returns value", func(t *testing.T) {
 		t.Parallel()
-		_, err := ta.SettingsSet(ta.Ctx, core.KW{core.Opt("onboarding", false)})
+		_, err := ts.SetSetting(ts.Ctx, store.KW{store.Opt("onboarding", false)})
 		if err != nil {
 			t.Fatalf("setup failed: %v", err)
 		}
 
-		val, err := ta.SettingsGet(ta.Ctx, "onboarding")
+		val, err := ts.GetSetting(ts.Ctx, "onboarding")
 		if err != nil {
 			t.Fatalf("SettingsGet failed: %v", err)
 		}
@@ -125,7 +125,7 @@ func TestSettingsGet(t *testing.T) {
 
 	t.Run("errors on invalid key", func(t *testing.T) {
 		t.Parallel()
-		_, err := ta.SettingsGet(ta.Ctx, "foo")
+		_, err := ts.GetSetting(ts.Ctx, "foo")
 		if err == nil {
 			t.Fatalf("expected error")
 		}
@@ -136,16 +136,16 @@ func TestSettingsGet(t *testing.T) {
 }
 
 func TestSettingsGetBang(t *testing.T) {
-	ta := coretest.NewApp(t)
+	ts := storetest.NewStore(t)
 
 	t.Run("returns value", func(t *testing.T) {
 		t.Parallel()
-		_, err := ta.SettingsSet(ta.Ctx, core.KW{core.Opt("onboarding", false)})
+		_, err := ts.SetSetting(ts.Ctx, store.KW{store.Opt("onboarding", false)})
 		if err != nil {
 			t.Fatalf("setup failed: %v", err)
 		}
 
-		val, err := ta.SettingsGetBang(ta.Ctx, "onboarding")
+		val, err := ts.GetSettingBang(ts.Ctx, "onboarding")
 		if err != nil {
 			t.Fatalf("SettingsGetBang failed: %v", err)
 		}
@@ -156,7 +156,7 @@ func TestSettingsGetBang(t *testing.T) {
 
 	t.Run("raises on invalid key", func(t *testing.T) {
 		t.Parallel()
-		_, err := ta.SettingsGetBang(ta.Ctx, "foo")
+		_, err := ts.GetSettingBang(ts.Ctx, "foo")
 		if err == nil {
 			t.Fatalf("expected error")
 		}
@@ -167,24 +167,24 @@ func TestSettingsGetBang(t *testing.T) {
 }
 
 func TestSettingsChangeSetting(t *testing.T) {
-	ta := coretest.NewApp(t)
+	ts := storetest.NewStore(t)
 
 	t.Run("returns changeset", func(t *testing.T) {
 		t.Parallel()
-		setting, err := ta.SettingsRecord(ta.Ctx)
+		setting, err := ts.GetSettingsRecord(ts.Ctx)
 		if err != nil {
 			t.Fatalf("SettingsRecord failed: %v", err)
 		}
 
-		cs := ta.SettingsChangeSetting(ta.Ctx, setting, core.Attrs{"onboarding": true})
+		cs := ts.ChangeSetting(ts.Ctx, setting, store.Attrs{"onboarding": true})
 		if cs == nil {
-			t.Fatalf("expected Changeset")
+			t.Fatalf("expected store.Changeset")
 		}
 	})
 
 	t.Run("validates extractor sleep interval", func(t *testing.T) {
 		t.Parallel()
-		setting, err := ta.SettingsRecord(ta.Ctx)
+		setting, err := ts.GetSettingsRecord(ts.Ctx)
 		if err != nil {
 			t.Fatalf("SettingsRecord failed: %v", err)
 		}
@@ -199,7 +199,7 @@ func TestSettingsChangeSetting(t *testing.T) {
 		}
 
 		for _, tt := range tests {
-			cs := ta.SettingsChangeSetting(ta.Ctx, setting, core.Attrs{"extractor_sleep_interval_seconds": tt.value})
+			cs := ts.ChangeSetting(ts.Ctx, setting, store.Attrs{"extractor_sleep_interval_seconds": tt.value})
 			if cs.Valid() != tt.isValid {
 				t.Errorf("value %d: expected valid=%v, got %v", tt.value, tt.isValid, cs.Valid())
 			}
@@ -208,17 +208,17 @@ func TestSettingsChangeSetting(t *testing.T) {
 
 	t.Run("allows resetting sleep interval", func(t *testing.T) {
 		t.Parallel()
-		setting, err := ta.SettingsRecord(ta.Ctx)
+		setting, err := ts.GetSettingsRecord(ts.Ctx)
 		if err != nil {
 			t.Fatalf("SettingsRecord failed: %v", err)
 		}
 
-		updated, err := ta.SettingsUpdateSetting(ta.Ctx, setting, core.Attrs{"extractor_sleep_interval_seconds": 1})
+		updated, err := ts.UpdateSetting(ts.Ctx, setting, store.Attrs{"extractor_sleep_interval_seconds": 1})
 		if err != nil {
 			t.Fatalf("SettingsUpdateSetting failed: %v", err)
 		}
 
-		cs := ta.SettingsChangeSetting(ta.Ctx, updated, core.Attrs{"extractor_sleep_interval_seconds": 0})
+		cs := ts.ChangeSetting(ts.Ctx, updated, store.Attrs{"extractor_sleep_interval_seconds": 0})
 		if !cs.Valid() {
 			t.Errorf("resetting to 0 should be valid, got errors: %v", cs.Errors)
 		}

@@ -3,8 +3,8 @@ package core_test
 import (
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestQualityOptionBuilder_Build(t *testing.T) {
@@ -35,7 +35,7 @@ func TestQualityOptionBuilder_Build(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ta := coretest.NewApp(t)
-			mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"audio_track": tt.audioTrack})
+			mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{"audio_track": tt.audioTrack})
 			res := ta.App.QualityOptionBuilderBuild(ta.Ctx, mediaProfile)
 
 			found := findOption(res, "format", tt.wantFormat)
@@ -51,7 +51,7 @@ func TestQualityOptionBuilder_BuildAudio(t *testing.T) {
 
 	t.Run("includes quality options for audio only", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"preferred_resolution": "audio"})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{"preferred_resolution": "audio"})
 		res := ta.App.QualityOptionBuilderBuild(ta.Ctx, mediaProfile)
 
 		if !hasFlag(res, "extract_audio") {
@@ -67,8 +67,8 @@ func TestQualityOptionBuilder_BuildAudio(t *testing.T) {
 
 	t.Run("includes custom format target for audio if specified", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"preferred_resolution": "audio"})
-		updatedProfile, err := ta.App.ProfilesUpdateMediaProfile(ta.Ctx, mediaProfile, core.Attrs{"media_container": "flac", "preferred_resolution": "audio"})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{"preferred_resolution": "audio"})
+		updatedProfile, err := ta.App.UpdateMediaProfile(ta.Ctx, mediaProfile, store.Attrs{"media_container": "flac", "preferred_resolution": "audio"})
 		if err != nil {
 			t.Fatalf("failed to update media profile: %v", err)
 		}
@@ -81,7 +81,7 @@ func TestQualityOptionBuilder_BuildAudio(t *testing.T) {
 
 	t.Run("includes custom format options", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"preferred_resolution": "audio"})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{"preferred_resolution": "audio"})
 		res := ta.App.QualityOptionBuilderBuild(ta.Ctx, mediaProfile)
 
 		if !findOption(res, "format", "bestaudio/best") {
@@ -110,7 +110,7 @@ func TestQualityOptionBuilder_BuildNonAudio(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				ta := coretest.NewApp(t)
-				mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"preferred_resolution": tt.name})
+				mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{"preferred_resolution": tt.name})
 				res := ta.App.QualityOptionBuilderBuild(ta.Ctx, mediaProfile)
 
 				wantFormatSort := "res:" + tt.resolution + ",+codec:avc:m4a"
@@ -126,16 +126,16 @@ func TestQualityOptionBuilder_BuildNonAudio(t *testing.T) {
 
 	t.Run("includes custom quality options if specified", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		_, err := ta.App.SettingsSet(ta.Ctx, core.KW{core.Opt("video_codec_preference", "av01")})
+		_, err := ta.App.SetSetting(ta.Ctx, store.KW{store.Opt("video_codec_preference", "av01")})
 		if err != nil {
 			t.Fatalf("failed to set video_codec_preference: %v", err)
 		}
-		_, err = ta.App.SettingsSet(ta.Ctx, core.KW{core.Opt("audio_codec_preference", "aac")})
+		_, err = ta.App.SetSetting(ta.Ctx, store.KW{store.Opt("audio_codec_preference", "aac")})
 		if err != nil {
 			t.Fatalf("failed to set audio_codec_preference: %v", err)
 		}
 
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"preferred_resolution": "1080p"})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{"preferred_resolution": "1080p"})
 		res := ta.App.QualityOptionBuilderBuild(ta.Ctx, mediaProfile)
 
 		if !findOption(res, "format_sort", "res:1080,+codec:av01:aac") {
@@ -145,8 +145,8 @@ func TestQualityOptionBuilder_BuildNonAudio(t *testing.T) {
 
 	t.Run("includes custom remux target for videos if specified", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"preferred_resolution": "480p"})
-		updatedProfile, err := ta.App.ProfilesUpdateMediaProfile(ta.Ctx, mediaProfile, core.Attrs{"media_container": "mkv"})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{"preferred_resolution": "480p"})
+		updatedProfile, err := ta.App.UpdateMediaProfile(ta.Ctx, mediaProfile, store.Attrs{"media_container": "mkv"})
 		if err != nil {
 			t.Fatalf("failed to update media profile: %v", err)
 		}
@@ -159,7 +159,7 @@ func TestQualityOptionBuilder_BuildNonAudio(t *testing.T) {
 
 	t.Run("includes custom format options", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"preferred_resolution": "480p"})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{"preferred_resolution": "480p"})
 		res := ta.App.QualityOptionBuilderBuild(ta.Ctx, mediaProfile)
 
 		if !findOption(res, "format", "bestvideo*+bestaudio/best") {
@@ -169,7 +169,7 @@ func TestQualityOptionBuilder_BuildNonAudio(t *testing.T) {
 }
 
 // findOption searches for an option with a specific key and value.
-func findOption(options core.KW, key, value string) bool {
+func findOption(options store.KW, key, value string) bool {
 	for _, opt := range options {
 		if opt.Key == key && opt.Value == value {
 			return true
@@ -178,8 +178,8 @@ func findOption(options core.KW, key, value string) bool {
 	return false
 }
 
-// hasFlag checks if an option with a specific key and Flag set to true exists.
-func hasFlag(options core.KW, key string) bool {
+// hasFlag checks if an option with a specific key and store.Flag set to true exists.
+func hasFlag(options store.KW, key string) bool {
 	for _, opt := range options {
 		if opt.Key == key && opt.Flag {
 			return true
@@ -189,7 +189,7 @@ func hasFlag(options core.KW, key string) bool {
 }
 
 // hasKey checks if any option with a specific key exists.
-func hasKey(options core.KW, key string) bool {
+func hasKey(options store.KW, key string) bool {
 	for _, opt := range options {
 		if opt.Key == key {
 			return true

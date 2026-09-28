@@ -13,13 +13,14 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/db/dbtest"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestMedia_Schema(t *testing.T) {
 	t.Run("media_metadata is deleted when media_item is deleted", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{
 			"metadata": map[string]string{
 				"metadata_filepath":  "/metadata.json.gz",
 				"thumbnail_filepath": "/thumbnail.jpg",
@@ -31,18 +32,18 @@ func TestMedia_Schema(t *testing.T) {
 		metadata := mediaItem.Metadata
 
 		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, nil); err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
 
-		if _, err := core.Reload[core.MediaMetadata](ta.Ctx, ta.Q(ta.Ctx), metadata); err != core.ErrNotFound {
-			t.Errorf("expected ErrNotFound reloading metadata, got %v", err)
+		if _, err := store.Reload[store.MediaMetadata](ta.Ctx, ta.Q(ta.Ctx), metadata); err != store.ErrNotFound {
+			t.Errorf("expected store.ErrNotFound reloading metadata, got %v", err)
 		}
 	})
 
 	t.Run("can be JSON encoded without error", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 		if _, err := ta.PreloadMediaItemSourceAndProfile(ta.Ctx, mediaItem); err != nil {
 			t.Fatal(err)
 		}
@@ -59,24 +60,24 @@ func TestMedia_ListMediaItems(t *testing.T) {
 		// removed skip
 		ta := coretest.NewApp(t)
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 
-		got, err := ta.MediaListMediaItems(ta.Ctx)
+		got, err := ta.ListMediaItems(ta.Ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{mediaItem}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{mediaItem}) {
 			t.Errorf("got %+v, want [%+v]", got, mediaItem)
 		}
 	})
 }
 
 func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
-	setup := func(t *testing.T) (*coretest.TestApp, *core.MediaProfile, *core.Source) {
+	setup := func(t *testing.T) (*coretest.TestApp, *store.MediaProfile, *store.Source) {
 		t.Helper()
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"redownload_delay_days": 4})
-		source := coretest.SourceFixture(t, ta, core.Attrs{
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{"redownload_delay_days": 4})
+		source := coretest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"inserted_at":      coretest.NowMinus(10, "days"),
 		})
@@ -86,17 +87,17 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 	t.Run("returns media eligible for redownload", func(t *testing.T) {
 		ta, _, source := setup(t)
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{
 			"source_id":           source.ID,
 			"uploaded_at":         coretest.NowMinus(6, "days"),
 			"media_downloaded_at": coretest.NowMinus(5, "days"),
 		})
 
-		got, err := ta.MediaListUpgradeableMediaItems(ta.Ctx)
+		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{mediaItem}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{mediaItem}) {
 			t.Errorf("got %+v, want [%+v]", got, mediaItem)
 		}
 	})
@@ -104,17 +105,17 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 	t.Run("returns media items that were downloaded in past but still meet redownload delay", func(t *testing.T) {
 		ta, _, source := setup(t)
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{
 			"source_id":           source.ID,
 			"uploaded_at":         coretest.NowMinus(20, "days"),
 			"media_downloaded_at": coretest.NowMinus(19, "days"),
 		})
 
-		got, err := ta.MediaListUpgradeableMediaItems(ta.Ctx)
+		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{mediaItem}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{mediaItem}) {
 			t.Errorf("got %+v, want [%+v]", got, mediaItem)
 		}
 	})
@@ -122,13 +123,13 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 	t.Run("does not return media items without a media_downloaded_at", func(t *testing.T) {
 		ta, _, source := setup(t)
 
-		coretest.MediaItemFixture(t, ta, core.Attrs{
+		coretest.MediaItemFixture(t, ta, store.Attrs{
 			"source_id":           source.ID,
 			"uploaded_at":         coretest.NowMinus(5, "days"),
 			"media_downloaded_at": nil,
 		})
 
-		got, err := ta.MediaListUpgradeableMediaItems(ta.Ctx)
+		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -140,14 +141,14 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 	t.Run("does not return media items that are set to prevent download", func(t *testing.T) {
 		ta, _, source := setup(t)
 
-		coretest.MediaItemFixture(t, ta, core.Attrs{
+		coretest.MediaItemFixture(t, ta, store.Attrs{
 			"source_id":           source.ID,
 			"uploaded_at":         coretest.NowMinus(5, "days"),
 			"media_downloaded_at": coretest.Now(),
 			"prevent_download":    true,
 		})
 
-		got, err := ta.MediaListUpgradeableMediaItems(ta.Ctx)
+		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -159,14 +160,14 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 	t.Run("does not return media items that have been culled", func(t *testing.T) {
 		ta, _, source := setup(t)
 
-		coretest.MediaItemFixture(t, ta, core.Attrs{
+		coretest.MediaItemFixture(t, ta, store.Attrs{
 			"source_id":           source.ID,
 			"uploaded_at":         coretest.NowMinus(5, "days"),
 			"media_downloaded_at": coretest.Now(),
 			"culled_at":           coretest.Now(),
 		})
 
-		got, err := ta.MediaListUpgradeableMediaItems(ta.Ctx)
+		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -178,13 +179,13 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 	t.Run("does not return media items before the download delay", func(t *testing.T) {
 		ta, _, source := setup(t)
 
-		coretest.MediaItemFixture(t, ta, core.Attrs{
+		coretest.MediaItemFixture(t, ta, store.Attrs{
 			"source_id":           source.ID,
 			"uploaded_at":         coretest.NowMinus(3, "days"),
 			"media_downloaded_at": coretest.NowMinus(3, "days"),
 		})
 
-		got, err := ta.MediaListUpgradeableMediaItems(ta.Ctx)
+		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -196,14 +197,14 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 	t.Run("does not return media items that have already been redownloaded", func(t *testing.T) {
 		ta, _, source := setup(t)
 
-		coretest.MediaItemFixture(t, ta, core.Attrs{
+		coretest.MediaItemFixture(t, ta, store.Attrs{
 			"source_id":             source.ID,
 			"uploaded_at":           coretest.NowMinus(5, "days"),
 			"media_downloaded_at":   coretest.Now(),
 			"media_redownloaded_at": coretest.Now(),
 		})
 
-		got, err := ta.MediaListUpgradeableMediaItems(ta.Ctx)
+		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -215,13 +216,13 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 	t.Run("does not return media items that were first downloaded well after the uploaded_at", func(t *testing.T) {
 		ta, _, source := setup(t)
 
-		coretest.MediaItemFixture(t, ta, core.Attrs{
+		coretest.MediaItemFixture(t, ta, store.Attrs{
 			"source_id":           source.ID,
 			"media_downloaded_at": coretest.Now(),
 			"uploaded_at":         coretest.NowMinus(20, "days"),
 		})
 
-		got, err := ta.MediaListUpgradeableMediaItems(ta.Ctx)
+		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -233,13 +234,13 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 	t.Run("does not return media items that were recently uploaded", func(t *testing.T) {
 		ta, _, source := setup(t)
 
-		coretest.MediaItemFixture(t, ta, core.Attrs{
+		coretest.MediaItemFixture(t, ta, store.Attrs{
 			"source_id":           source.ID,
 			"media_downloaded_at": coretest.Now(),
 			"uploaded_at":         coretest.NowMinus(2, "days"),
 		})
 
-		got, err := ta.MediaListUpgradeableMediaItems(ta.Ctx)
+		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -250,16 +251,16 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 
 	t.Run("does not return media items without a redownload delay", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"redownload_delay_days": nil})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": mediaProfile.ID})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{"redownload_delay_days": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
 
-		coretest.MediaItemFixture(t, ta, core.Attrs{
+		coretest.MediaItemFixture(t, ta, store.Attrs{
 			"source_id":           source.ID,
 			"uploaded_at":         coretest.NowMinus(6, "days"),
 			"media_downloaded_at": coretest.NowMinus(5, "days"),
 		})
 
-		got, err := ta.MediaListUpgradeableMediaItems(ta.Ctx)
+		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -272,30 +273,30 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 func TestMedia_ListPendingMediaItemsFor(t *testing.T) {
 	t.Run("it returns pending without a filepath for a given source", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		otherSource := coretest.SourceFixture(t, ta, core.Attrs{})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": otherSource.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		otherSource := coretest.SourceFixture(t, ta, store.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": otherSource.ID, "media_filepath": nil})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{mediaItem}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{mediaItem}) {
 			t.Errorf("got %+v, want [%+v]", got, mediaItem)
 		}
 	})
 
 	t.Run("it does not return media_items with media_filepath", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
-		coretest.MediaItemFixture(t, ta, core.Attrs{
+		coretest.MediaItemFixture(t, ta, store.Attrs{
 			"source_id":      source.ID,
 			"media_filepath": "/video/" + coretest.Now().Format("20060102150405") + ".mp4",
 		})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -308,48 +309,48 @@ func TestMedia_ListPendingMediaItemsFor(t *testing.T) {
 func TestMedia_ListPendingMediaItemsFor_Shorts(t *testing.T) {
 	t.Run("returns shorts and normal media when shorts_behaviour is :include", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "include"})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
-		normal := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
-		short := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "include"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
+		normal := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		short := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{normal, short}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{normal, short}) {
 			t.Errorf("got %+v, want [%+v %+v]", got, normal, short)
 		}
 	})
 
 	t.Run("returns only shorts when shorts_behaviour is :only", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "only"})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
-		short := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "only"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		short := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{short}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{short}) {
 			t.Errorf("got %+v, want [%+v]", got, short)
 		}
 	})
 
 	t.Run("returns only normal media when shorts_behaviour is :exclude", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "exclude"})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
-		normal := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "exclude"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
+		normal := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{normal}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{normal}) {
 			t.Errorf("got %+v, want [%+v]", got, normal)
 		}
 	})
@@ -358,48 +359,48 @@ func TestMedia_ListPendingMediaItemsFor_Shorts(t *testing.T) {
 func TestMedia_ListPendingMediaItemsFor_Livestreams(t *testing.T) {
 	t.Run("returns livestreams and normal media when livestream_behaviour is :include", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"livestream_behaviour": "include"})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
-		normal := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
-		livestream := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{"livestream_behaviour": "include"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
+		normal := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		livestream := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{normal, livestream}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{normal, livestream}) {
 			t.Errorf("got %+v, want [%+v %+v]", got, normal, livestream)
 		}
 	})
 
 	t.Run("returns only livestreams when livestream_behaviour is :only", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"livestream_behaviour": "only"})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
-		livestream := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{"livestream_behaviour": "only"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		livestream := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{livestream}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{livestream}) {
 			t.Errorf("got %+v, want [%+v]", got, livestream)
 		}
 	})
 
 	t.Run("returns only normal media when livestream_behaviour is :exclude", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"livestream_behaviour": "exclude"})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
-		normal := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{"livestream_behaviour": "exclude"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
+		normal := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{normal}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{normal}) {
 			t.Errorf("got %+v, want [%+v]", got, normal)
 		}
 	})
@@ -408,72 +409,72 @@ func TestMedia_ListPendingMediaItemsFor_Livestreams(t *testing.T) {
 func TestMedia_ListPendingMediaItemsFor_AllFormatOptions(t *testing.T) {
 	t.Run("returns livestreams, shorts, and normal media when behaviour is :include", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "include", "livestream_behaviour": "include"})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "include", "livestream_behaviour": "include"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 
-		normal := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
-		livestream := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
-		short := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
+		normal := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		livestream := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
+		short := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{normal, livestream, short}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{normal, livestream, short}) {
 			t.Errorf("got %+v, want [%+v %+v %+v]", got, normal, livestream, short)
 		}
 	})
 
 	t.Run("returns only livestreams and shorts when behaviour is :only", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "only", "livestream_behaviour": "only"})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "only", "livestream_behaviour": "only"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
-		livestream := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
-		short := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		livestream := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
+		short := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{livestream, short}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{livestream, short}) {
 			t.Errorf("got %+v, want [%+v %+v]", got, livestream, short)
 		}
 	})
 
 	t.Run("returns only normal media when behaviour is :exclude", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "exclude", "livestream_behaviour": "exclude"})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "exclude", "livestream_behaviour": "exclude"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 
-		normal := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
+		normal := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{normal}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{normal}) {
 			t.Errorf("got %+v, want [%+v]", got, normal)
 		}
 	})
 
 	t.Run(":only and :exclude return the expected results", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "only", "livestream_behaviour": "exclude"})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "only", "livestream_behaviour": "exclude"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
-		short := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
+		short := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{short}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{short}) {
 			t.Errorf("got %+v, want [%+v]", got, short)
 		}
 	})
@@ -482,32 +483,32 @@ func TestMedia_ListPendingMediaItemsFor_AllFormatOptions(t *testing.T) {
 func TestMedia_ListPendingMediaItemsFor_CutoffDates(t *testing.T) {
 	t.Run("does not return media items with an upload date before the cutoff date", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"download_cutoff_date": coretest.NowMinus(1, "day")})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"download_cutoff_date": coretest.NowMinus(1, "day")})
 
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.NowMinus(2, "days")})
-		newMediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.Now()})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.NowMinus(2, "days")})
+		newMediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.Now()})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{newMediaItem}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{newMediaItem}) {
 			t.Errorf("got %+v, want [%+v]", got, newMediaItem)
 		}
 	})
 
 	t.Run("does not apply a cutoff if there is no cutoff date", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"download_cutoff_date": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"download_cutoff_date": nil})
 
-		oldMediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.NowMinus(2, "days")})
-		newMediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.Now()})
+		oldMediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.NowMinus(2, "days")})
+		newMediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.Now()})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{oldMediaItem, newMediaItem}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{oldMediaItem, newMediaItem}) {
 			t.Errorf("got %+v, want [%+v %+v]", got, oldMediaItem, newMediaItem)
 		}
 	})
@@ -516,32 +517,32 @@ func TestMedia_ListPendingMediaItemsFor_CutoffDates(t *testing.T) {
 func TestMedia_ListPendingMediaItemsFor_TitleRegex(t *testing.T) {
 	t.Run("returns only media items that match the title regex", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"title_filter_regex": "(?i)^FOO$"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"title_filter_regex": "(?i)^FOO$"})
 
-		matching := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "foo"})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "bar"})
+		matching := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "foo"})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "bar"})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{matching}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{matching}) {
 			t.Errorf("got %+v, want [%+v]", got, matching)
 		}
 	})
 
 	t.Run("does not apply a regex if none is specified", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"title_filter_regex": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"title_filter_regex": nil})
 
-		one := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "foo"})
-		two := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "bar"})
+		one := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "foo"})
+		two := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "bar"})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{one, two}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{one, two}) {
 			t.Errorf("got %+v, want [%+v %+v]", got, one, two)
 		}
 	})
@@ -550,68 +551,68 @@ func TestMedia_ListPendingMediaItemsFor_TitleRegex(t *testing.T) {
 func TestMedia_ListPendingMediaItemsFor_MinAndMaxDurations(t *testing.T) {
 	t.Run("returns media items that meet the min and max duration", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"min_duration_seconds": 10, "max_duration_seconds": 20})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"min_duration_seconds": 10, "max_duration_seconds": 20})
 
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 5})
-		normal := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 15})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 25})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 5})
+		normal := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 15})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 25})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{normal}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{normal}) {
 			t.Errorf("got %+v, want [%+v]", got, normal)
 		}
 	})
 
 	t.Run("does not apply a min duration if none is specified", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"min_duration_seconds": nil, "max_duration_seconds": 20})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"min_duration_seconds": nil, "max_duration_seconds": 20})
 
-		short := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 5})
-		normal := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 15})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 25})
+		short := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 5})
+		normal := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 15})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 25})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{short, normal}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{short, normal}) {
 			t.Errorf("got %+v, want [%+v %+v]", got, short, normal)
 		}
 	})
 
 	t.Run("does not apply a max duration if none is specified", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"min_duration_seconds": 10, "max_duration_seconds": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"min_duration_seconds": 10, "max_duration_seconds": nil})
 
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 5})
-		normal := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 15})
-		long := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 25})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 5})
+		normal := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 15})
+		long := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 25})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{normal, long}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{normal, long}) {
 			t.Errorf("got %+v, want [%+v %+v]", got, normal, long)
 		}
 	})
 
 	t.Run("does not apply a min or max duration if none are specified", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"min_duration_seconds": nil, "max_duration_seconds": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"min_duration_seconds": nil, "max_duration_seconds": nil})
 
-		short := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 5})
-		normal := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 15})
-		long := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 25})
+		short := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 5})
+		normal := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 15})
+		long := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 25})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{short, normal, long}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{short, normal, long}) {
 			t.Errorf("got %+v, want [%+v %+v %+v]", got, short, normal, long)
 		}
 	})
@@ -620,15 +621,15 @@ func TestMedia_ListPendingMediaItemsFor_MinAndMaxDurations(t *testing.T) {
 func TestMedia_ListPendingMediaItemsFor_DownloadPrevention(t *testing.T) {
 	t.Run("returns only media items that are not prevented from downloading", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "prevent_download": true})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "prevent_download": false})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "prevent_download": true})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "prevent_download": false})
 
-		got, err := ta.MediaListPendingMediaItemsFor(ta.Ctx, source)
+		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*core.MediaItem{mediaItem}) {
+		if !reflect.DeepEqual(got, []*store.MediaItem{mediaItem}) {
 			t.Errorf("got %+v, want [%+v]", got, mediaItem)
 		}
 	})
@@ -637,9 +638,9 @@ func TestMedia_ListPendingMediaItemsFor_DownloadPrevention(t *testing.T) {
 func TestMedia_PendingDownload(t *testing.T) {
 	t.Run("returns true when the media hasn't been downloaded", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -650,9 +651,9 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns false if the media has been downloaded", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": "/video/downloaded.mp4"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": "/video/downloaded.mp4"})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -663,11 +664,11 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns false if the media hasn't been downloaded but the profile doesn't DL shorts", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"shorts_behaviour": "exclude"})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "exclude"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -678,11 +679,11 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns false if the media hasn't been downloaded but the profile doesn't DL livestreams", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"livestream_behaviour": "exclude"})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{"livestream_behaviour": "exclude"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -693,10 +694,10 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns true if there is a cutoff date before the media's upload date", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"download_cutoff_date": coretest.NowMinus(2, "days")})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.NowMinus(1, "day")})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"download_cutoff_date": coretest.NowMinus(2, "days")})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.NowMinus(1, "day")})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -707,10 +708,10 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns true if the cutoff date is equal to the upload date", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"download_cutoff_date": coretest.NowMinus(2, "days")})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.NowMinus(2, "days")})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"download_cutoff_date": coretest.NowMinus(2, "days")})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.NowMinus(2, "days")})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -721,10 +722,10 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns false if there is a cutoff date after the media's upload date", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"download_cutoff_date": coretest.NowMinus(1, "day")})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.NowMinus(2, "days")})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"download_cutoff_date": coretest.NowMinus(1, "day")})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.NowMinus(2, "days")})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -735,10 +736,10 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns true if there is no cutoff date", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"download_cutoff_date": nil})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.NowMinus(1, "day")})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"download_cutoff_date": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "uploaded_at": coretest.NowMinus(1, "day")})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -749,10 +750,10 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns true if the content matches the title regex", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"title_filter_regex": "(?i)^FOO$"})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "foo"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"title_filter_regex": "(?i)^FOO$"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "foo"})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -763,10 +764,10 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns false if the content doesn't match the title regex", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"title_filter_regex": "(?i)^FOO$"})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "bar"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"title_filter_regex": "(?i)^FOO$"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "bar"})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -777,10 +778,10 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("return true if there is no title regex", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"title_filter_regex": nil})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "foo"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"title_filter_regex": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "foo"})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -791,10 +792,10 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns true if the duration is between the min and max", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"min_duration_seconds": 10, "max_duration_seconds": 20})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 15})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"min_duration_seconds": 10, "max_duration_seconds": 20})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 15})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -805,10 +806,10 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns false if the duration is below the min", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"min_duration_seconds": 10, "max_duration_seconds": 20})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 5})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"min_duration_seconds": 10, "max_duration_seconds": 20})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 5})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -819,10 +820,10 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns false if the duration is above the max", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"min_duration_seconds": 10, "max_duration_seconds": 20})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 25})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"min_duration_seconds": 10, "max_duration_seconds": 20})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 25})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -833,10 +834,10 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns true if there is no min or max duration", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"min_duration_seconds": nil, "max_duration_seconds": nil})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 15})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"min_duration_seconds": nil, "max_duration_seconds": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "duration_seconds": 15})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -847,9 +848,9 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns true if the media item is not prevented from downloading", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil, "prevent_download": false})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil, "prevent_download": false})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -860,9 +861,9 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns false if the media item is prevented from downloading", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil, "prevent_download": true})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil, "prevent_download": true})
 
-		got, err := ta.MediaPendingDownload(ta.Ctx, mediaItem)
+		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -876,7 +877,7 @@ func TestMedia_Search(t *testing.T) {
 	setup := func(t *testing.T) (*coretest.TestApp, int64) {
 		t.Helper()
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{
 			"title":       "The quick brown fox",
 			"description": "jumps over the lazy dog",
 		})
@@ -886,7 +887,7 @@ func TestMedia_Search(t *testing.T) {
 	t.Run("searches based on title", func(t *testing.T) {
 		ta, mediaItemID := setup(t)
 
-		got, err := ta.MediaSearch(ta.Ctx, "quick", nil)
+		got, err := ta.Search(ta.Ctx, "quick", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -898,7 +899,7 @@ func TestMedia_Search(t *testing.T) {
 	t.Run("searches based on description", func(t *testing.T) {
 		ta, mediaItemID := setup(t)
 
-		got, err := ta.MediaSearch(ta.Ctx, "lazy", nil)
+		got, err := ta.Search(ta.Ctx, "lazy", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -910,7 +911,7 @@ func TestMedia_Search(t *testing.T) {
 	t.Run("adds a matching_search_term attribute with the relevant text", func(t *testing.T) {
 		ta, _ := setup(t)
 
-		got, err := ta.MediaSearch(ta.Ctx, "quick", nil)
+		got, err := ta.Search(ta.Ctx, "quick", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -925,9 +926,9 @@ func TestMedia_Search(t *testing.T) {
 
 	t.Run("doesn't set matching_search_term to nil if one of the attributes we search on is null", func(t *testing.T) {
 		ta, _ := setup(t)
-		coretest.MediaItemFixture(t, ta, core.Attrs{"title": "foobar baz", "description": nil})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"title": "foobar baz", "description": nil})
 
-		got, err := ta.MediaSearch(ta.Ctx, "baz", nil)
+		got, err := ta.Search(ta.Ctx, "baz", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -941,9 +942,9 @@ func TestMedia_Search(t *testing.T) {
 
 	t.Run("optionally lets you specify a limit", func(t *testing.T) {
 		ta, _ := setup(t)
-		coretest.MediaItemFixture(t, ta, core.Attrs{"title": "The small gray dog"})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"title": "The small gray dog"})
 
-		got, err := ta.MediaSearch(ta.Ctx, "dog", core.KW{core.Opt("limit", 1)})
+		got, err := ta.Search(ta.Ctx, "dog", store.KW{store.Opt("limit", 1)})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -955,7 +956,7 @@ func TestMedia_Search(t *testing.T) {
 	t.Run("returns an empty list when the search term is blank", func(t *testing.T) {
 		ta, _ := setup(t)
 
-		got, err := ta.MediaSearch(ta.Ctx, "", nil)
+		got, err := ta.Search(ta.Ctx, "", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -968,7 +969,7 @@ func TestMedia_Search(t *testing.T) {
 		ta, _ := setup(t)
 
 		// Go has no nil string; the "" case above covers Media.search(nil, _opts).
-		got, err := ta.MediaSearch(ta.Ctx, "", nil)
+		got, err := ta.Search(ta.Ctx, "", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -980,13 +981,13 @@ func TestMedia_Search(t *testing.T) {
 	t.Run("doesn't blow up if there's an apostrophe or quotes in the search term", func(t *testing.T) {
 		ta, _ := setup(t)
 
-		if got, err := ta.MediaSearch(ta.Ctx, "don't expl'ode", nil); err != nil || len(got) != 0 {
+		if got, err := ta.Search(ta.Ctx, "don't expl'ode", nil); err != nil || len(got) != 0 {
 			t.Errorf("got %+v, err %v", got, err)
 		}
-		if got, err := ta.MediaSearch(ta.Ctx, `dont expl"o"de`, nil); err != nil || len(got) != 0 {
+		if got, err := ta.Search(ta.Ctx, `dont expl"o"de`, nil); err != nil || len(got) != 0 {
 			t.Errorf("got %+v, err %v", got, err)
 		}
-		if got, err := ta.MediaSearch(ta.Ctx, `dont explo"de`, nil); err != nil || len(got) != 0 {
+		if got, err := ta.Search(ta.Ctx, `dont explo"de`, nil); err != nil || len(got) != 0 {
 			t.Errorf("got %+v, err %v", got, err)
 		}
 	})
@@ -994,10 +995,10 @@ func TestMedia_Search(t *testing.T) {
 	t.Run("doesn't blow up if there is a trailing operand", func(t *testing.T) {
 		ta, _ := setup(t)
 
-		if got, err := ta.MediaSearch(ta.Ctx, "foo OR", nil); err != nil || len(got) != 0 {
+		if got, err := ta.Search(ta.Ctx, "foo OR", nil); err != nil || len(got) != 0 {
 			t.Errorf("got %+v, err %v", got, err)
 		}
-		if got, err := ta.MediaSearch(ta.Ctx, "foo AND", nil); err != nil || len(got) != 0 {
+		if got, err := ta.Search(ta.Ctx, "foo AND", nil); err != nil || len(got) != 0 {
 			t.Errorf("got %+v, err %v", got, err)
 		}
 	})
@@ -1006,9 +1007,9 @@ func TestMedia_Search(t *testing.T) {
 func TestMedia_GetMediaItem(t *testing.T) {
 	t.Run("it returns the media_item with given id", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 
-		got, err := ta.MediaGetMediaItem(ta.Ctx, mediaItem.ID)
+		got, err := ta.GetMediaItem(ta.Ctx, mediaItem.ID)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1021,8 +1022,8 @@ func TestMedia_GetMediaItem(t *testing.T) {
 func TestMedia_CreateMediaItem(t *testing.T) {
 	t.Run("creating with valid data creates a media_item", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		validAttrs := core.Attrs{
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		validAttrs := store.Attrs{
 			"media_id":       "media-" + strconv.Itoa(int(source.ID)),
 			"title":          "Some Product",
 			"media_filepath": "/video/file.mp4",
@@ -1031,26 +1032,26 @@ func TestMedia_CreateMediaItem(t *testing.T) {
 			"uploaded_at":    coretest.Now(),
 		}
 
-		mediaItem, err := ta.MediaCreateMediaItem(ta.Ctx, validAttrs)
+		mediaItem, err := ta.CreateMediaItem(ta.Ctx, validAttrs)
 		if err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
 
-		if core.Deref(mediaItem.Title) != validAttrs["title"] {
-			t.Errorf("title = %v, want %v", core.Deref(mediaItem.Title), validAttrs["title"])
+		if store.Deref(mediaItem.Title) != validAttrs["title"] {
+			t.Errorf("title = %v, want %v", store.Deref(mediaItem.Title), validAttrs["title"])
 		}
 		if mediaItem.MediaID != validAttrs["media_id"] {
 			t.Errorf("media_id = %v, want %v", mediaItem.MediaID, validAttrs["media_id"])
 		}
-		if core.Deref(mediaItem.MediaFilepath) != validAttrs["media_filepath"] {
-			t.Errorf("media_filepath = %v, want %v", core.Deref(mediaItem.MediaFilepath), validAttrs["media_filepath"])
+		if store.Deref(mediaItem.MediaFilepath) != validAttrs["media_filepath"] {
+			t.Errorf("media_filepath = %v, want %v", store.Deref(mediaItem.MediaFilepath), validAttrs["media_filepath"])
 		}
 	})
 
 	t.Run("automatically sets the UUID", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		validAttrs := core.Attrs{
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		validAttrs := store.Attrs{
 			"media_id":       "media-1",
 			"title":          "Some Product",
 			"media_filepath": "/video/file.mp4",
@@ -1059,9 +1060,9 @@ func TestMedia_CreateMediaItem(t *testing.T) {
 			"uploaded_at":    coretest.Now(),
 		}
 
-		mediaItem, err := ta.MediaCreateMediaItem(ta.Ctx, validAttrs)
+		mediaItem, err := ta.CreateMediaItem(ta.Ctx, validAttrs)
 		if err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
 		if mediaItem.UUID == nil || len(*mediaItem.UUID) != 36 {
 			t.Errorf("uuid = %v, want length 36", mediaItem.UUID)
@@ -1070,8 +1071,8 @@ func TestMedia_CreateMediaItem(t *testing.T) {
 
 	t.Run("UUID is not writable by the user", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		validAttrs := core.Attrs{
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		validAttrs := store.Attrs{
 			"media_id":       "media-1",
 			"title":          "Some Product",
 			"media_filepath": "/video/file.mp4",
@@ -1081,9 +1082,9 @@ func TestMedia_CreateMediaItem(t *testing.T) {
 			"uuid":           "some-uuid",
 		}
 
-		mediaItem, err := ta.MediaCreateMediaItem(ta.Ctx, validAttrs)
+		mediaItem, err := ta.CreateMediaItem(ta.Ctx, validAttrs)
 		if err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
 		if mediaItem.UUID == nil || len(*mediaItem.UUID) != 36 {
 			t.Errorf("uuid = %v, want length 36 (not the user-supplied value)", mediaItem.UUID)
@@ -1092,11 +1093,11 @@ func TestMedia_CreateMediaItem(t *testing.T) {
 
 	t.Run("creating with invalid data returns error changeset", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		invalidAttrs := core.Attrs{"title": nil, "media_id": nil, "media_filepath": nil}
+		invalidAttrs := store.Attrs{"title": nil, "media_id": nil, "media_filepath": nil}
 
-		_, err := ta.MediaCreateMediaItem(ta.Ctx, invalidAttrs)
-		if _, ok := core.AsChangesetError(err); !ok {
-			t.Fatalf("expected a *ChangesetError, got %v", err)
+		_, err := ta.CreateMediaItem(ta.Ctx, invalidAttrs)
+		if _, ok := store.AsChangesetError(err); !ok {
+			t.Fatalf("expected a *store.ChangesetError, got %v", err)
 		}
 	})
 }
@@ -1104,25 +1105,25 @@ func TestMedia_CreateMediaItem(t *testing.T) {
 func TestMedia_CreateMediaItemFromBackendAttrs(t *testing.T) {
 	t.Run("creates a media item for a given source and attributes", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
 		var attrsMap map[string]any
-		err := core.DecodeJSON([]byte(coretest.MediaAttributesReturnFixture()), &attrsMap)
+		err := store.DecodeJSON([]byte(coretest.MediaAttributesReturnFixture()), &attrsMap)
 		if err != nil {
 			t.Fatal(err)
 		}
 		mediaAttrs := core.YtDlpMediaResponseToStruct(attrsMap)
 
-		mediaItem, err := ta.MediaCreateMediaItemFromBackendAttrs(ta.Ctx, source, mediaAttrs)
+		mediaItem, err := ta.CreateMediaItemFromBackendAttrs(ta.Ctx, source, mediaAttrs)
 		if err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
 
 		if mediaItem.SourceID != source.ID {
 			t.Errorf("source_id = %v, want %v", mediaItem.SourceID, source.ID)
 		}
-		if core.Deref(mediaItem.Title) != mediaAttrs.Title {
-			t.Errorf("title = %v, want %v", core.Deref(mediaItem.Title), mediaAttrs.Title)
+		if store.Deref(mediaItem.Title) != mediaAttrs.Title {
+			t.Errorf("title = %v, want %v", store.Deref(mediaItem.Title), mediaAttrs.Title)
 		}
 		if mediaItem.MediaID != mediaAttrs.MediaID {
 			t.Errorf("media_id = %v, want %v", mediaItem.MediaID, mediaAttrs.MediaID)
@@ -1130,17 +1131,17 @@ func TestMedia_CreateMediaItemFromBackendAttrs(t *testing.T) {
 		if mediaItem.OriginalURL != mediaAttrs.OriginalURL {
 			t.Errorf("original_url = %v, want %v", mediaItem.OriginalURL, mediaAttrs.OriginalURL)
 		}
-		if core.Deref(mediaItem.Description) != mediaAttrs.Description {
-			t.Errorf("description = %v, want %v", core.Deref(mediaItem.Description), mediaAttrs.Description)
+		if store.Deref(mediaItem.Description) != mediaAttrs.Description {
+			t.Errorf("description = %v, want %v", store.Deref(mediaItem.Description), mediaAttrs.Description)
 		}
 	})
 
 	t.Run("updates the media item if it already exists", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
 		var attrsMap map[string]any
-		err := core.DecodeJSON([]byte(coretest.MediaAttributesReturnFixture()), &attrsMap)
+		err := store.DecodeJSON([]byte(coretest.MediaAttributesReturnFixture()), &attrsMap)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1148,33 +1149,33 @@ func TestMedia_CreateMediaItemFromBackendAttrs(t *testing.T) {
 		differentAttrs := *mediaAttrs
 		differentAttrs.Title = "Different title"
 
-		mediaItem1, err := ta.MediaCreateMediaItemFromBackendAttrs(ta.Ctx, source, mediaAttrs)
+		mediaItem1, err := ta.CreateMediaItemFromBackendAttrs(ta.Ctx, source, mediaAttrs)
 		if err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
-		mediaItem2, err := ta.MediaCreateMediaItemFromBackendAttrs(ta.Ctx, source, &differentAttrs)
+		mediaItem2, err := ta.CreateMediaItemFromBackendAttrs(ta.Ctx, source, &differentAttrs)
 		if err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
 
 		if mediaItem1.ID != mediaItem2.ID {
 			t.Errorf("id_1 = %v, id_2 = %v, want equal", mediaItem1.ID, mediaItem2.ID)
 		}
-		reloaded, err := core.Reload[core.MediaItem](ta.Ctx, ta.Q(ta.Ctx), mediaItem2)
+		reloaded, err := store.Reload[store.MediaItem](ta.Ctx, ta.Q(ta.Ctx), mediaItem2)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if core.Deref(reloaded.Title) != differentAttrs.Title {
-			t.Errorf("title = %v, want %v", core.Deref(reloaded.Title), differentAttrs.Title)
+		if store.Deref(reloaded.Title) != differentAttrs.Title {
+			t.Errorf("title = %v, want %v", store.Deref(reloaded.Title), differentAttrs.Title)
 		}
 	})
 
 	t.Run("doesn't update fields like playlist_index", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
 		var attrsMap map[string]any
-		err := core.DecodeJSON([]byte(coretest.MediaAttributesReturnFixture()), &attrsMap)
+		err := store.DecodeJSON([]byte(coretest.MediaAttributesReturnFixture()), &attrsMap)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1185,20 +1186,20 @@ func TestMedia_CreateMediaItemFromBackendAttrs(t *testing.T) {
 		nineNineNineNine := 9999
 		differentAttrs.PlaylistIndex = &nineNineNineNine
 
-		if _, err := ta.MediaCreateMediaItemFromBackendAttrs(ta.Ctx, source, mediaAttrs); err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+		if _, err := ta.CreateMediaItemFromBackendAttrs(ta.Ctx, source, mediaAttrs); err != nil {
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
-		mediaItem2, err := ta.MediaCreateMediaItemFromBackendAttrs(ta.Ctx, source, &differentAttrs)
+		mediaItem2, err := ta.CreateMediaItemFromBackendAttrs(ta.Ctx, source, &differentAttrs)
 		if err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
 
-		reloaded, err := core.Reload[core.MediaItem](ta.Ctx, ta.Q(ta.Ctx), mediaItem2)
+		reloaded, err := store.Reload[store.MediaItem](ta.Ctx, ta.Q(ta.Ctx), mediaItem2)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if reloaded.PlaylistIndex != core.Deref(mediaAttrs.PlaylistIndex) {
-			t.Errorf("playlist_index = %v, want %v (unchanged)", reloaded.PlaylistIndex, core.Deref(mediaAttrs.PlaylistIndex))
+		if reloaded.PlaylistIndex != store.Deref(mediaAttrs.PlaylistIndex) {
+			t.Errorf("playlist_index = %v, want %v (unchanged)", reloaded.PlaylistIndex, store.Deref(mediaAttrs.PlaylistIndex))
 		}
 	})
 }
@@ -1206,37 +1207,37 @@ func TestMedia_CreateMediaItemFromBackendAttrs(t *testing.T) {
 func TestMedia_UpdateMediaItem(t *testing.T) {
 	t.Run("updating with valid data updates the media_item", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
-		updateAttrs := core.Attrs{
+		updateAttrs := store.Attrs{
 			"media_id":       "updated-media-id",
 			"title":          "Updated Product",
 			"media_filepath": "/video/updated.mp4",
 			"source_id":      source.ID,
 		}
 
-		updated, err := ta.MediaUpdateMediaItem(ta.Ctx, mediaItem, updateAttrs)
+		updated, err := ta.UpdateMediaItem(ta.Ctx, mediaItem, updateAttrs)
 		if err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
-		if core.Deref(updated.Title) != updateAttrs["title"] {
-			t.Errorf("title = %v, want %v", core.Deref(updated.Title), updateAttrs["title"])
+		if store.Deref(updated.Title) != updateAttrs["title"] {
+			t.Errorf("title = %v, want %v", store.Deref(updated.Title), updateAttrs["title"])
 		}
 		if updated.MediaID != updateAttrs["media_id"] {
 			t.Errorf("media_id = %v, want %v", updated.MediaID, updateAttrs["media_id"])
 		}
-		if core.Deref(updated.MediaFilepath) != updateAttrs["media_filepath"] {
-			t.Errorf("media_filepath = %v, want %v", core.Deref(updated.MediaFilepath), updateAttrs["media_filepath"])
+		if store.Deref(updated.MediaFilepath) != updateAttrs["media_filepath"] {
+			t.Errorf("media_filepath = %v, want %v", store.Deref(updated.MediaFilepath), updateAttrs["media_filepath"])
 		}
 	})
 
 	t.Run("updating strips playlist_index from the provided attrs", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"playlist_index": 5})
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"playlist_index": 5})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
-		updateAttrs := core.Attrs{
+		updateAttrs := store.Attrs{
 			"media_id":       "updated-media-id",
 			"title":          "Updated Product",
 			"media_filepath": "/video/updated.mp4",
@@ -1244,9 +1245,9 @@ func TestMedia_UpdateMediaItem(t *testing.T) {
 			"playlist_index": 1,
 		}
 
-		updated, err := ta.MediaUpdateMediaItem(ta.Ctx, mediaItem, updateAttrs)
+		updated, err := ta.UpdateMediaItem(ta.Ctx, mediaItem, updateAttrs)
 		if err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
 		if updated.PlaylistIndex != 5 {
 			t.Errorf("playlist_index = %v, want 5 (unchanged)", updated.PlaylistIndex)
@@ -1255,15 +1256,15 @@ func TestMedia_UpdateMediaItem(t *testing.T) {
 
 	t.Run("updating with invalid data returns error changeset", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
-		invalidAttrs := core.Attrs{"title": nil, "media_id": nil, "media_filepath": nil}
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
+		invalidAttrs := store.Attrs{"title": nil, "media_id": nil, "media_filepath": nil}
 
-		_, err := ta.MediaUpdateMediaItem(ta.Ctx, mediaItem, invalidAttrs)
-		if _, ok := core.AsChangesetError(err); !ok {
-			t.Fatalf("expected a *ChangesetError, got %v", err)
+		_, err := ta.UpdateMediaItem(ta.Ctx, mediaItem, invalidAttrs)
+		if _, ok := store.AsChangesetError(err); !ok {
+			t.Fatalf("expected a *store.ChangesetError, got %v", err)
 		}
 
-		got, err := ta.MediaGetMediaItem(ta.Ctx, mediaItem.ID)
+		got, err := ta.GetMediaItem(ta.Ctx, mediaItem.ID)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1276,47 +1277,47 @@ func TestMedia_UpdateMediaItem(t *testing.T) {
 func TestMedia_DeleteMediaItem(t *testing.T) {
 	t.Run("deletion deletes the media_item", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 
 		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, nil); err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
-		if _, err := ta.MediaGetMediaItem(ta.Ctx, mediaItem.ID); err != core.ErrNotFound {
-			t.Errorf("expected ErrNotFound, got %v", err)
+		if _, err := ta.GetMediaItem(ta.Ctx, mediaItem.ID); err != store.ErrNotFound {
+			t.Errorf("expected store.ErrNotFound, got %v", err)
 		}
 	})
 
 	t.Run("it also deletes attached tasks", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
-		task := coretest.TaskFixture(t, ta, core.Attrs{"media_item_id": mediaItem.ID})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
+		task := coretest.TaskFixture(t, ta, store.Attrs{"media_item_id": mediaItem.ID})
 
 		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, nil); err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
-		if _, err := core.Reload[core.Task](ta.Ctx, ta.Q(ta.Ctx), task); err != core.ErrNotFound {
-			t.Errorf("expected ErrNotFound reloading task, got %v", err)
+		if _, err := store.Reload[store.Task](ta.Ctx, ta.Q(ta.Ctx), task); err != store.ErrNotFound {
+			t.Errorf("expected store.ErrNotFound reloading task, got %v", err)
 		}
 	})
 
 	t.Run("does not delete the media_item's files by default", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
 		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, nil); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
-		if _, err := os.Stat(core.Deref(mediaItem.MediaFilepath)); err != nil {
+		if _, err := os.Stat(store.Deref(mediaItem.MediaFilepath)); err != nil {
 			t.Errorf("expected media_filepath to still exist: %v", err)
 		}
 	})
 
 	t.Run("does delete the media item's metadata files", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", nil
 		})
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 		if _, err := ta.PreloadMediaItemFull(ta.Ctx, mediaItem); err != nil {
 			t.Fatal(err)
 		}
@@ -1330,10 +1331,10 @@ func TestMedia_DeleteMediaItem(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		updated, err := ta.MediaUpdateMediaItem(ta.Ctx, mediaItem, core.Attrs{
+		updated, err := ta.UpdateMediaItem(ta.Ctx, mediaItem, store.Attrs{
 			"metadata": map[string]any{
 				"metadata_filepath":  metadataFilepath,
-				"thumbnail_filepath": core.Deref(thumbnailFilepath),
+				"thumbnail_filepath": store.Deref(thumbnailFilepath),
 			},
 		})
 		if err != nil {
@@ -1360,12 +1361,12 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 	t.Run("deletes the media item's files", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		stubUserScript(ta)
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, core.KW{core.Opt("delete_files", true)}); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, store.KW{store.Opt("delete_files", true)}); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
-		if _, err := os.Stat(core.Deref(mediaItem.MediaFilepath)); err == nil {
+		if _, err := os.Stat(store.Deref(mediaItem.MediaFilepath)); err == nil {
 			t.Errorf("expected media_filepath to be deleted")
 		}
 	})
@@ -1373,10 +1374,10 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 	t.Run("deletes the media item's metadata files", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		stubUserScript(ta)
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", nil
 		})
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 		if _, err := ta.PreloadMediaItemFull(ta.Ctx, mediaItem); err != nil {
 			t.Fatal(err)
 		}
@@ -1390,17 +1391,17 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		updated, err := ta.MediaUpdateMediaItem(ta.Ctx, mediaItem, core.Attrs{
+		updated, err := ta.UpdateMediaItem(ta.Ctx, mediaItem, store.Attrs{
 			"metadata": map[string]any{
 				"metadata_filepath":  metadataFilepath,
-				"thumbnail_filepath": core.Deref(thumbnailFilepath),
+				"thumbnail_filepath": store.Deref(thumbnailFilepath),
 			},
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, updated, core.KW{core.Opt("delete_files", true)}); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, updated, store.KW{store.Opt("delete_files", true)}); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
 		if _, err := os.Stat(updated.Metadata.MetadataFilepath); err == nil {
@@ -1411,23 +1412,23 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 	t.Run("deletion deletes the media_item", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		stubUserScript(ta)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, core.KW{core.Opt("delete_files", true)}); err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, store.KW{store.Opt("delete_files", true)}); err != nil {
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
-		if _, err := ta.MediaGetMediaItem(ta.Ctx, mediaItem.ID); err != core.ErrNotFound {
-			t.Errorf("expected ErrNotFound, got %v", err)
+		if _, err := ta.GetMediaItem(ta.Ctx, mediaItem.ID); err != store.ErrNotFound {
+			t.Errorf("expected store.ErrNotFound, got %v", err)
 		}
 	})
 
 	t.Run("deletes the parent folder if it is empty", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		stubUserScript(ta)
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
-		rootDirectory := filepath.Dir(core.Deref(mediaItem.MediaFilepath))
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
+		rootDirectory := filepath.Dir(store.Deref(mediaItem.MediaFilepath))
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, core.KW{core.Opt("delete_files", true)}); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, store.KW{store.Opt("delete_files", true)}); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
 		if _, err := os.Stat(rootDirectory); err == nil {
@@ -1438,13 +1439,13 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 	t.Run("does not delete the parent folder if it is not empty", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		stubUserScript(ta)
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
-		rootDirectory := filepath.Dir(core.Deref(mediaItem.MediaFilepath))
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
+		rootDirectory := filepath.Dir(store.Deref(mediaItem.MediaFilepath))
 		if err := os.WriteFile(filepath.Join(rootDirectory, "test.txt"), []byte(""), 0o644); err != nil {
 			t.Fatal(err)
 		}
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, core.KW{core.Opt("delete_files", true)}); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, store.KW{store.Opt("delete_files", true)}); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
 		if _, err := os.Stat(rootDirectory); err != nil {
@@ -1461,10 +1462,10 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 
 	t.Run("calls the user script runner", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
 		ta.UserScriptMock.Run.Expect(func(event string, data any) error {
-			mi, ok := data.(*core.MediaItem)
+			mi, ok := data.(*store.MediaItem)
 			if !ok || mi.ID != mediaItem.ID {
 				t.Errorf("expected data.id == %d, got %+v", mediaItem.ID, data)
 			}
@@ -1474,7 +1475,7 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 			return nil
 		})
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, core.KW{core.Opt("delete_files", true)}); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, store.KW{store.Opt("delete_files", true)}); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
 	})
@@ -1488,12 +1489,12 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 	t.Run("does not delete the media_item", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		stubUserScript(ta)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 
 		if _, err := ta.MediaDeleteMediaFiles(ta.Ctx, mediaItem, nil); err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
-		if _, err := core.Reload[core.MediaItem](ta.Ctx, ta.Q(ta.Ctx), mediaItem); err != nil {
+		if _, err := store.Reload[store.MediaItem](ta.Ctx, ta.Q(ta.Ctx), mediaItem); err != nil {
 			t.Errorf("expected reload to succeed, got %v", err)
 		}
 	})
@@ -1501,29 +1502,29 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 	t.Run("deletes attached tasks", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		stubUserScript(ta)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
-		task := coretest.TaskFixture(t, ta, core.Attrs{"media_item_id": mediaItem.ID})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
+		task := coretest.TaskFixture(t, ta, store.Attrs{"media_item_id": mediaItem.ID})
 
 		if _, err := ta.MediaDeleteMediaFiles(ta.Ctx, mediaItem, nil); err != nil {
-			t.Fatalf("expected {:ok, %%MediaItem{}}, got error: %v", err)
+			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
-		if _, err := core.Reload[core.Task](ta.Ctx, ta.Q(ta.Ctx), task); err != core.ErrNotFound {
-			t.Errorf("expected ErrNotFound reloading task, got %v", err)
+		if _, err := store.Reload[store.Task](ta.Ctx, ta.Q(ta.Ctx), task); err != store.ErrNotFound {
+			t.Errorf("expected store.ErrNotFound reloading task, got %v", err)
 		}
 	})
 
 	t.Run("deletes the media_item's files", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		stubUserScript(ta)
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
-		if _, err := os.Stat(core.Deref(mediaItem.MediaFilepath)); err != nil {
+		if _, err := os.Stat(store.Deref(mediaItem.MediaFilepath)); err != nil {
 			t.Fatalf("expected media_filepath to exist before delete: %v", err)
 		}
 		if _, err := ta.MediaDeleteMediaFiles(ta.Ctx, mediaItem, nil); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
-		if _, err := os.Stat(core.Deref(mediaItem.MediaFilepath)); err == nil {
+		if _, err := os.Stat(store.Deref(mediaItem.MediaFilepath)); err == nil {
 			t.Errorf("expected media_filepath to be deleted")
 		}
 	})
@@ -1531,10 +1532,10 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 	t.Run("does not delete the media item's metadata files", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		stubUserScript(ta)
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return "", nil
 		})
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 		if _, err := ta.PreloadMediaItemFull(ta.Ctx, mediaItem); err != nil {
 			t.Fatal(err)
 		}
@@ -1548,10 +1549,10 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		updated, err := ta.MediaUpdateMediaItem(ta.Ctx, mediaItem, core.Attrs{
+		updated, err := ta.UpdateMediaItem(ta.Ctx, mediaItem, store.Attrs{
 			"metadata": map[string]any{
 				"metadata_filepath":  metadataFilepath,
-				"thumbnail_filepath": core.Deref(thumbnailFilepath),
+				"thumbnail_filepath": store.Deref(thumbnailFilepath),
 			},
 		})
 		if err != nil {
@@ -1565,7 +1566,7 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 		if _, err := ta.MediaDeleteMediaFiles(ta.Ctx, updated, nil); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
-		if _, err := core.Reload[core.MediaMetadata](ta.Ctx, ta.Q(ta.Ctx), metadata); err != nil {
+		if _, err := store.Reload[store.MediaMetadata](ta.Ctx, ta.Q(ta.Ctx), metadata); err != nil {
 			t.Errorf("expected metadata to still exist, got %v", err)
 		}
 		if _, err := os.Stat(updated.Metadata.MetadataFilepath); err != nil {
@@ -1573,15 +1574,15 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 		}
 
 		// cleanup
-		ta.MediaDeleteMediaItem(ta.Ctx, updated, core.KW{core.Opt("delete_files", true)})
+		ta.MediaDeleteMediaItem(ta.Ctx, updated, store.KW{store.Opt("delete_files", true)})
 	})
 
 	t.Run("can take additional attributes update media item", func(t *testing.T) {
 		ta := coretest.NewApp(t)
 		stubUserScript(ta)
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
-		updated, err := ta.MediaDeleteMediaFiles(ta.Ctx, mediaItem, core.Attrs{"prevent_download": true})
+		updated, err := ta.MediaDeleteMediaFiles(ta.Ctx, mediaItem, store.Attrs{"prevent_download": true})
 		if err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
@@ -1592,10 +1593,10 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 
 	t.Run("calls the user script runner", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
 		ta.UserScriptMock.Run.Expect(func(event string, data any) error {
-			mi, ok := data.(*core.MediaItem)
+			mi, ok := data.(*store.MediaItem)
 			if !ok || mi.ID != mediaItem.ID {
 				t.Errorf("expected data.id == %d, got %+v", mediaItem.ID, data)
 			}
@@ -1614,24 +1615,24 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 func TestMedia_ChangeMediaItem(t *testing.T) {
 	t.Run("change_media_item/1 returns a media_item changeset", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 
-		cs := ta.MediaChangeMediaItem(ta.Ctx, mediaItem, nil)
+		cs := ta.ChangeMediaItem(ta.Ctx, mediaItem, nil)
 		if cs == nil {
-			t.Errorf("expected a *Changeset")
+			t.Errorf("expected a *store.Changeset")
 		}
 	})
 
 	t.Run("validates the title doesn't start with 'youtube video #'", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 
-		invalid := ta.MediaChangeMediaItem(ta.Ctx, mediaItem, core.Attrs{"title": "youtube video #123"})
+		invalid := ta.ChangeMediaItem(ta.Ctx, mediaItem, store.Attrs{"title": "youtube video #123"})
 		if invalid.Valid() {
 			t.Errorf("expected the changeset to be invalid")
 		}
 
-		valid := ta.MediaChangeMediaItem(ta.Ctx, mediaItem, core.Attrs{"title": "any other title"})
+		valid := ta.ChangeMediaItem(ta.Ctx, mediaItem, store.Attrs{"title": "any other title"})
 		if !valid.Valid() {
 			t.Errorf("expected the changeset to be valid, errors: %+v", valid.ErrorMap())
 		}
@@ -1641,8 +1642,8 @@ func TestMedia_ChangeMediaItem(t *testing.T) {
 func TestMedia_ChangeMediaItem_UploadDateIndexChannel(t *testing.T) {
 	t.Run("upload_date_index is set to 99 if it's the only video uploaded that day", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "channel"})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "channel"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
 
 		if mediaItem.UploadDateIndex != 99 {
 			t.Errorf("upload_date_index = %v, want 99", mediaItem.UploadDateIndex)
@@ -1651,10 +1652,10 @@ func TestMedia_ChangeMediaItem_UploadDateIndexChannel(t *testing.T) {
 
 	t.Run("upload_date_index is set to 98 if it's the second video uploaded that day", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "channel"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "channel"})
 
-		one := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
-		two := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		one := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		two := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
 
 		if one.UploadDateIndex != 99 {
 			t.Errorf("one.upload_date_index = %v, want 99", one.UploadDateIndex)
@@ -1666,10 +1667,10 @@ func TestMedia_ChangeMediaItem_UploadDateIndexChannel(t *testing.T) {
 
 	t.Run("upload_date_index doesn't decrement if the video is uploaded on a different day", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "channel"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "channel"})
 
-		newItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
-		oldItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.NowMinus(1, "day")})
+		newItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		oldItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.NowMinus(1, "day")})
 
 		if newItem.UploadDateIndex != 99 {
 			t.Errorf("new.upload_date_index = %v, want 99", newItem.UploadDateIndex)
@@ -1681,12 +1682,12 @@ func TestMedia_ChangeMediaItem_UploadDateIndexChannel(t *testing.T) {
 
 	t.Run("recomputes upload_date_index if an upload_date is changed...somehow", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "channel"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "channel"})
 
-		newItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
-		oldItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.NowMinus(1, "day")})
+		newItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		oldItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.NowMinus(1, "day")})
 
-		updated, err := ta.MediaUpdateMediaItem(ta.Ctx, oldItem, core.Attrs{"uploaded_at": coretest.Now()})
+		updated, err := ta.UpdateMediaItem(ta.Ctx, oldItem, store.Attrs{"uploaded_at": coretest.Now()})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1701,11 +1702,11 @@ func TestMedia_ChangeMediaItem_UploadDateIndexChannel(t *testing.T) {
 
 	t.Run("upload_date_index doesn't decrement if the video is for a different source", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		sourceOne := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "channel"})
-		sourceTwo := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "channel"})
+		sourceOne := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "channel"})
+		sourceTwo := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "channel"})
 
-		one := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": sourceOne.ID, "uploaded_at": coretest.Now()})
-		two := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": sourceTwo.ID, "uploaded_at": coretest.Now()})
+		one := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": sourceOne.ID, "uploaded_at": coretest.Now()})
+		two := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": sourceTwo.ID, "uploaded_at": coretest.Now()})
 
 		if one.UploadDateIndex != 99 {
 			t.Errorf("one.upload_date_index = %v, want 99", one.UploadDateIndex)
@@ -1717,12 +1718,12 @@ func TestMedia_ChangeMediaItem_UploadDateIndexChannel(t *testing.T) {
 
 	t.Run("upload_date_index doesn't decrement if the a video's upload_date is updated but doesn't change", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "channel"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "channel"})
 
-		one := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		one := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
 
-		updated, err := ta.MediaUpdateMediaItem(ta.Ctx, one, core.Attrs{"uploaded_at": coretest.Now(), "title": "New title"})
+		updated, err := ta.UpdateMediaItem(ta.Ctx, one, store.Attrs{"uploaded_at": coretest.Now(), "title": "New title"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1734,12 +1735,12 @@ func TestMedia_ChangeMediaItem_UploadDateIndexChannel(t *testing.T) {
 
 	t.Run("upload_date_index doesn't increment if the a video's upload_date is changed to the same day", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "channel"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "channel"})
 
-		one := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		one := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
 
-		updated, err := ta.MediaUpdateMediaItem(ta.Ctx, one, core.Attrs{"uploaded_at": coretest.NowPlus(1, "minute"), "title": "New title"})
+		updated, err := ta.UpdateMediaItem(ta.Ctx, one, store.Attrs{"uploaded_at": coretest.NowPlus(1, "minute"), "title": "New title"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1753,8 +1754,8 @@ func TestMedia_ChangeMediaItem_UploadDateIndexChannel(t *testing.T) {
 func TestMedia_ChangeMediaItem_UploadDateIndexPlaylist(t *testing.T) {
 	t.Run("upload_date_index is set to 0 if it's the only video uploaded that day", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "playlist"})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "playlist"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
 
 		if mediaItem.UploadDateIndex != 0 {
 			t.Errorf("upload_date_index = %v, want 0", mediaItem.UploadDateIndex)
@@ -1763,10 +1764,10 @@ func TestMedia_ChangeMediaItem_UploadDateIndexPlaylist(t *testing.T) {
 
 	t.Run("upload_date_index is set to 1 if it's the second video uploaded that day", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "playlist"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "playlist"})
 
-		one := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
-		two := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		one := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		two := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
 
 		if one.UploadDateIndex != 0 {
 			t.Errorf("one.upload_date_index = %v, want 0", one.UploadDateIndex)
@@ -1778,10 +1779,10 @@ func TestMedia_ChangeMediaItem_UploadDateIndexPlaylist(t *testing.T) {
 
 	t.Run("upload_date_index doesn't increment if the video is uploaded on a different day", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "playlist"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "playlist"})
 
-		newItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
-		oldItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.NowMinus(1, "day")})
+		newItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		oldItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.NowMinus(1, "day")})
 
 		if newItem.UploadDateIndex != 0 {
 			t.Errorf("new.upload_date_index = %v, want 0", newItem.UploadDateIndex)
@@ -1793,12 +1794,12 @@ func TestMedia_ChangeMediaItem_UploadDateIndexPlaylist(t *testing.T) {
 
 	t.Run("recomputes upload_date_index if an upload_date is changed...somehow", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "playlist"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "playlist"})
 
-		newItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
-		oldItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.NowMinus(1, "day")})
+		newItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		oldItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.NowMinus(1, "day")})
 
-		updated, err := ta.MediaUpdateMediaItem(ta.Ctx, oldItem, core.Attrs{"uploaded_at": coretest.Now()})
+		updated, err := ta.UpdateMediaItem(ta.Ctx, oldItem, store.Attrs{"uploaded_at": coretest.Now()})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1813,11 +1814,11 @@ func TestMedia_ChangeMediaItem_UploadDateIndexPlaylist(t *testing.T) {
 
 	t.Run("upload_date_index doesn't increment if the video is for a different source", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		sourceOne := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "playlist"})
-		sourceTwo := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "playlist"})
+		sourceOne := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "playlist"})
+		sourceTwo := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "playlist"})
 
-		one := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": sourceOne.ID, "uploaded_at": coretest.Now()})
-		two := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": sourceTwo.ID, "uploaded_at": coretest.Now()})
+		one := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": sourceOne.ID, "uploaded_at": coretest.Now()})
+		two := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": sourceTwo.ID, "uploaded_at": coretest.Now()})
 
 		if one.UploadDateIndex != 0 {
 			t.Errorf("one.upload_date_index = %v, want 0", one.UploadDateIndex)
@@ -1829,12 +1830,12 @@ func TestMedia_ChangeMediaItem_UploadDateIndexPlaylist(t *testing.T) {
 
 	t.Run("upload_date_index doesn't increment if the a video's upload_date is updated but doesn't change", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "playlist"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "playlist"})
 
-		one := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		one := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
 
-		updated, err := ta.MediaUpdateMediaItem(ta.Ctx, one, core.Attrs{"uploaded_at": coretest.Now(), "title": "New title"})
+		updated, err := ta.UpdateMediaItem(ta.Ctx, one, store.Attrs{"uploaded_at": coretest.Now(), "title": "New title"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1846,12 +1847,12 @@ func TestMedia_ChangeMediaItem_UploadDateIndexPlaylist(t *testing.T) {
 
 	t.Run("upload_date_index doesn't increment if the a video's upload_date is changed to the same day", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "playlist"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "playlist"})
 
-		one := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		one := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
 
-		updated, err := ta.MediaUpdateMediaItem(ta.Ctx, one, core.Attrs{"uploaded_at": coretest.NowPlus(1, "minute"), "title": "New title"})
+		updated, err := ta.UpdateMediaItem(ta.Ctx, one, store.Attrs{"uploaded_at": coretest.NowPlus(1, "minute"), "title": "New title"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1862,8 +1863,8 @@ func TestMedia_ChangeMediaItem_UploadDateIndexPlaylist(t *testing.T) {
 	})
 }
 
-// TestMediaItemJSONMatchesElixirGolden checks core.MediaItem.MarshalJSON
-// (the Jason.Encoder defimpl for MediaItem, ported from media_item.ex)
+// TestMediaItemJSONMatchesElixirGolden checks store.MediaItem.MarshalJSON
+// (the Jason.Encoder defimpl for store.MediaItem, ported from media_item.ex)
 // against testdata/elixir/golden/user_script_media_item.json, which is
 // `Jason.encode!(media_item, pretty: true)` for media item 1 of
 // testdata/elixir/populated.db with source/metadata preloaded. Comparison is
@@ -1871,10 +1872,10 @@ func TestMedia_ChangeMediaItem_UploadDateIndexPlaylist(t *testing.T) {
 // whitespace aren't meaningful.
 func TestMediaItemJSONMatchesElixirGolden(t *testing.T) {
 	d := dbtest.CopyOf(t, dbtest.ElixirFixture("populated.db"))
-	a := &core.App{DB: d}
+	a := &core.App{Store: &store.Store{DB: d}}
 	ctx := context.Background()
 
-	mediaItem, err := core.Get[core.MediaItem](ctx, a.Q(ctx), 1)
+	mediaItem, err := store.Get[store.MediaItem](ctx, a.Q(ctx), 1)
 	if err != nil {
 		t.Fatalf("loading media_item 1: %v", err)
 	}
@@ -1901,14 +1902,14 @@ func TestMediaItemJSONMatchesElixirGolden(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("MediaItem JSON does not match golden.\ngot:  %#v\nwant: %#v", got, want)
+		t.Errorf("store.MediaItem JSON does not match golden.\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
 
 func TestMedia_ComputeAndSaveMediaFilesize(t *testing.T) {
 	t.Run("updates the media item with the file size", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
 		if mediaItem.MediaSizeBytes != nil && *mediaItem.MediaSizeBytes != 0 {
 			t.Error("media_size_bytes should initially be nil or 0")
@@ -1926,7 +1927,7 @@ func TestMedia_ComputeAndSaveMediaFilesize(t *testing.T) {
 
 	t.Run("returns the error if operation fails", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{
 			"media_filepath": "/nonexistent/file.mkv",
 		})
 

@@ -6,15 +6,16 @@ import (
 	"strings"
 
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // MediaCollectionGetMediaAttributesForCollection/3
-func (a *App) MediaCollectionGetMediaAttributesForCollection(ctx context.Context, url string, commandOpts KW, addlOpts KW) ([]*YtDlpMedia, error) {
+func (a *App) MediaCollectionGetMediaAttributesForCollection(ctx context.Context, url string, commandOpts store.KW, addlOpts store.KW) ([]*YtDlpMedia, error) {
 	// ignore_no_formats_error is necessary because yt-dlp will error out if
 	// the first video has not released yet (ie: is a premier). We don't care about
 	// available formats since we're just getting the media details
 	allCommandOpts := append(
-		KW{Flag("simulate"), Flag("skip_download"), Flag("ignore_no_formats_error"), Flag("no_warnings")},
+		store.KW{store.Flag("simulate"), store.Flag("skip_download"), store.Flag("ignore_no_formats_error"), store.Flag("no_warnings")},
 		commandOpts...,
 	)
 
@@ -32,7 +33,7 @@ func (a *App) MediaCollectionGetMediaAttributesForCollection(ctx context.Context
 		}
 	}
 
-	runnerOpts := KW{Opt("output_filepath", outputFilepath), Opt("use_cookies", useCookies)}
+	runnerOpts := store.KW{store.Opt("output_filepath", outputFilepath), store.Opt("use_cookies", useCookies)}
 	output, err := a.YtDlp.Run(ctx, url, "get_media_attributes_for_collection", allCommandOpts, outputTemplate, runnerOpts)
 	if err != nil {
 		return nil, err
@@ -48,7 +49,7 @@ func (a *App) MediaCollectionGetMediaAttributesForCollection(ctx context.Context
 		}
 
 		parsed := map[string]any{}
-		if err := DecodeJSON([]byte(line), &parsed); err != nil {
+		if err := store.DecodeJSON([]byte(line), &parsed); err != nil {
 			// Gracefully skip invalid JSON lines
 			continue
 		}
@@ -60,15 +61,15 @@ func (a *App) MediaCollectionGetMediaAttributesForCollection(ctx context.Context
 }
 
 // MediaCollectionGetSourceDetails/3
-func (a *App) MediaCollectionGetSourceDetails(ctx context.Context, sourceURL string, commandOpts KW, addlOpts KW) (map[string]any, error) {
+func (a *App) MediaCollectionGetSourceDetails(ctx context.Context, sourceURL string, commandOpts store.KW, addlOpts store.KW) (map[string]any, error) {
 	// ignore_no_formats_error is necessary because yt-dlp will error out if
 	// the first video has not released yet (ie: is a premier). We don't care about
 	// available formats since we're just getting the source details
-	defaultOpts := KW{
-		Flag("simulate"),
-		Flag("skip_download"),
-		Flag("ignore_no_formats_error"),
-		Opt("playlist_end", 1),
+	defaultOpts := store.KW{
+		store.Flag("simulate"),
+		store.Flag("skip_download"),
+		store.Flag("ignore_no_formats_error"),
+		store.Opt("playlist_end", 1),
 	}
 
 	allCommandOpts := append(defaultOpts, commandOpts...)
@@ -80,7 +81,7 @@ func (a *App) MediaCollectionGetSourceDetails(ctx context.Context, sourceURL str
 	}
 
 	parsed := map[string]any{}
-	if err := DecodeJSON([]byte(output), &parsed); err != nil {
+	if err := store.DecodeJSON([]byte(output), &parsed); err != nil {
 		return nil, &ErrJSONDecode{Message: "Error decoding JSON response"}
 	}
 
@@ -88,14 +89,14 @@ func (a *App) MediaCollectionGetSourceDetails(ctx context.Context, sourceURL str
 }
 
 // MediaCollectionGetSourceMetadata/3
-func (a *App) MediaCollectionGetSourceMetadata(ctx context.Context, sourceURL string, commandOpts KW, addlOpts KW) (map[string]any, error) {
+func (a *App) MediaCollectionGetSourceMetadata(ctx context.Context, sourceURL string, commandOpts store.KW, addlOpts store.KW) (map[string]any, error) {
 	// Validate that playlist_items is present
 	if _, ok := commandOpts.Get("playlist_items"); !ok {
 		slog.Error("playlist_items is required in commandOpts")
 		return nil, ErrMissingPlaylistItems{}
 	}
 
-	allCommandOpts := append(KW{Flag("skip_download")}, commandOpts...)
+	allCommandOpts := append(store.KW{store.Flag("skip_download")}, commandOpts...)
 	outputTemplate := "playlist:%()j"
 
 	output, err := a.YtDlp.Run(ctx, sourceURL, "get_source_metadata", allCommandOpts, outputTemplate, addlOpts)
@@ -104,7 +105,7 @@ func (a *App) MediaCollectionGetSourceMetadata(ctx context.Context, sourceURL st
 	}
 
 	parsed := map[string]any{}
-	if err := DecodeJSON([]byte(output), &parsed); err != nil {
+	if err := store.DecodeJSON([]byte(output), &parsed); err != nil {
 		return nil, err
 	}
 

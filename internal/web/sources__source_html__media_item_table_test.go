@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
 
@@ -37,7 +37,7 @@ func mediaSectionHTML(t *testing.T, html string, sourceID int64, mediaState stri
 func TestMediaItemTableLive_InitialRendering(t *testing.T) {
 	t.Run("shows message when no records", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := coretest.SourceFixture(t, c.TestApp, store.Attrs{})
 
 		html := c.Get(fmt.Sprintf("/sources/%d", source.ID)).HTML(t, 200)
 		pending := mediaSectionHTML(t, html, source.ID, "pending")
@@ -52,8 +52,8 @@ func TestMediaItemTableLive_InitialRendering(t *testing.T) {
 
 	t.Run("shows records when present", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		mediaItem := coretest.MediaItemFixture(t, c.TestApp, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, c.TestApp, store.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
 		html := c.Get(fmt.Sprintf("/sources/%d", source.ID)).HTML(t, 200)
 		pending := mediaSectionHTML(t, html, source.ID, "pending")
@@ -64,7 +64,7 @@ func TestMediaItemTableLive_InitialRendering(t *testing.T) {
 		if !strings.Contains(pending, "Title") {
 			t.Errorf("expected 'Title' in response")
 		}
-		if !strings.Contains(pending, core.Deref(mediaItem.Title)) {
+		if !strings.Contains(pending, store.Deref(mediaItem.Title)) {
 			t.Errorf("expected media item title in response")
 		}
 	})
@@ -73,46 +73,46 @@ func TestMediaItemTableLive_InitialRendering(t *testing.T) {
 func TestMediaItemTableLive_MediaState(t *testing.T) {
 	t.Run("shows pending media when pending", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		downloadedMediaItem := coretest.MediaItemFixture(t, c.TestApp, core.Attrs{"source_id": source.ID})
-		pendingMediaItem := coretest.MediaItemFixture(t, c.TestApp, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, c.TestApp, store.Attrs{})
+		downloadedMediaItem := coretest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID})
+		pendingMediaItem := coretest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
 		html := c.Get(fmt.Sprintf("/sources/%d", source.ID)).HTML(t, 200)
 		pending := mediaSectionHTML(t, html, source.ID, "pending")
 
-		if !strings.Contains(pending, core.Deref(pendingMediaItem.Title)) {
+		if !strings.Contains(pending, store.Deref(pendingMediaItem.Title)) {
 			t.Errorf("expected pending media item title in response")
 		}
-		if strings.Contains(pending, core.Deref(downloadedMediaItem.Title)) {
+		if strings.Contains(pending, store.Deref(downloadedMediaItem.Title)) {
 			t.Errorf("did not expect downloaded media item title in pending section")
 		}
 	})
 
 	t.Run("shows downloaded media when downloaded", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		downloadedMediaItem := coretest.MediaItemFixture(t, c.TestApp, core.Attrs{"source_id": source.ID})
-		pendingMediaItem := coretest.MediaItemFixture(t, c.TestApp, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, c.TestApp, store.Attrs{})
+		downloadedMediaItem := coretest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID})
+		pendingMediaItem := coretest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
 		html := c.Get(fmt.Sprintf("/sources/%d", source.ID)).HTML(t, 200)
 		downloaded := mediaSectionHTML(t, html, source.ID, "downloaded")
 
-		if !strings.Contains(downloaded, core.Deref(downloadedMediaItem.Title)) {
+		if !strings.Contains(downloaded, store.Deref(downloadedMediaItem.Title)) {
 			t.Errorf("expected downloaded media item title in response")
 		}
-		if strings.Contains(downloaded, core.Deref(pendingMediaItem.Title)) {
+		if strings.Contains(downloaded, store.Deref(pendingMediaItem.Title)) {
 			t.Errorf("did not expect pending media item title in downloaded section")
 		}
 	})
 
 	t.Run("shows records that aren't pending or downloaded when other", func(t *testing.T) {
 		c := webtest.New(t)
-		mediaProfile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{"shorts_behaviour": "exclude"})
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{"media_profile_id": mediaProfile.ID})
+		mediaProfile := coretest.MediaProfileFixture(t, c.TestApp, store.Attrs{"shorts_behaviour": "exclude"})
+		source := coretest.SourceFixture(t, c.TestApp, store.Attrs{"media_profile_id": mediaProfile.ID})
 
-		downloadedMediaItem := coretest.MediaItemFixture(t, c.TestApp, core.Attrs{"source_id": source.ID})
-		pendingMediaItem := coretest.MediaItemFixture(t, c.TestApp, core.Attrs{"source_id": source.ID, "media_filepath": nil})
-		otherMediaItem := coretest.MediaItemFixture(t, c.TestApp, core.Attrs{
+		downloadedMediaItem := coretest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID})
+		pendingMediaItem := coretest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		otherMediaItem := coretest.MediaItemFixture(t, c.TestApp, store.Attrs{
 			"source_id":          source.ID,
 			"media_filepath":     nil,
 			"short_form_content": true,
@@ -121,21 +121,21 @@ func TestMediaItemTableLive_MediaState(t *testing.T) {
 		html := c.Get(fmt.Sprintf("/sources/%d", source.ID)).HTML(t, 200)
 		other := mediaSectionHTML(t, html, source.ID, "other")
 
-		if !strings.Contains(other, core.Deref(otherMediaItem.Title)) {
+		if !strings.Contains(other, store.Deref(otherMediaItem.Title)) {
 			t.Errorf("expected other media item title in response")
 		}
-		if strings.Contains(other, core.Deref(downloadedMediaItem.Title)) {
+		if strings.Contains(other, store.Deref(downloadedMediaItem.Title)) {
 			t.Errorf("did not expect downloaded media item title in other section")
 		}
-		if strings.Contains(other, core.Deref(pendingMediaItem.Title)) {
+		if strings.Contains(other, store.Deref(pendingMediaItem.Title)) {
 			t.Errorf("did not expect pending media item title in other section")
 		}
 	})
 
 	t.Run("shows 'Manually Ignored' column when other", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		coretest.MediaItemFixture(t, c.TestApp, core.Attrs{
+		source := coretest.SourceFixture(t, c.TestApp, store.Attrs{})
+		coretest.MediaItemFixture(t, c.TestApp, store.Attrs{
 			"source_id":        source.ID,
 			"prevent_download": true,
 			"media_filepath":   nil,
@@ -153,17 +153,17 @@ func TestMediaItemTableLive_MediaState(t *testing.T) {
 func TestMediaItemTableLive_Search(t *testing.T) {
 	t.Run("q filters records and stays on the matching tab", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		match := coretest.MediaItemFixture(t, c.TestApp, core.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "Match Me"})
-		other := coretest.MediaItemFixture(t, c.TestApp, core.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "Something Else"})
+		source := coretest.SourceFixture(t, c.TestApp, store.Attrs{})
+		match := coretest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "Match Me"})
+		other := coretest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "Something Else"})
 
 		html := c.Get(fmt.Sprintf("/sources/%d", source.ID), map[string]string{"pending_q": "Match"}).HTML(t, 200)
 		pending := mediaSectionHTML(t, html, source.ID, "pending")
 
-		if !strings.Contains(pending, core.Deref(match.Title)) {
+		if !strings.Contains(pending, store.Deref(match.Title)) {
 			t.Errorf("expected matching item in response")
 		}
-		if strings.Contains(pending, core.Deref(other.Title)) {
+		if strings.Contains(pending, store.Deref(other.Title)) {
 			t.Errorf("did not expect non-matching item in response")
 		}
 		if !strings.Contains(html, "value=\"Match\"") {
@@ -175,16 +175,16 @@ func TestMediaItemTableLive_Search(t *testing.T) {
 func TestMediaItemTableLive_Pagination(t *testing.T) {
 	t.Run("paging one tab doesn't reset another's page", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		var pendingItems []*core.MediaItem
+		source := coretest.SourceFixture(t, c.TestApp, store.Attrs{})
+		var pendingItems []*store.MediaItem
 		for i := 0; i < 11; i++ {
-			pendingItems = append(pendingItems, coretest.MediaItemFixture(t, c.TestApp, core.Attrs{
+			pendingItems = append(pendingItems, coretest.MediaItemFixture(t, c.TestApp, store.Attrs{
 				"source_id": source.ID, "media_filepath": nil, "title": fmt.Sprintf("Pending_%02d", i),
 			}))
 		}
-		var downloadedItems []*core.MediaItem
+		var downloadedItems []*store.MediaItem
 		for i := 0; i < 11; i++ {
-			downloadedItems = append(downloadedItems, coretest.MediaItemFixture(t, c.TestApp, core.Attrs{
+			downloadedItems = append(downloadedItems, coretest.MediaItemFixture(t, c.TestApp, store.Attrs{
 				"source_id": source.ID, "title": fmt.Sprintf("Downloaded_%02d", i),
 			}))
 		}
@@ -195,7 +195,7 @@ func TestMediaItemTableLive_Pagination(t *testing.T) {
 		// Records are ordered by uploaded_at DESC, which (fixtures created
 		// within the same second) ties back to insertion order, so the
 		// first-created item is on page 1.
-		if !strings.Contains(pending, core.Deref(pendingItems[0].Title)) {
+		if !strings.Contains(pending, store.Deref(pendingItems[0].Title)) {
 			t.Errorf("expected pending's first page to be unaffected by downloaded's page")
 		}
 		_ = downloadedItems

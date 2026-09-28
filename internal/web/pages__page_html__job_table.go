@@ -5,16 +5,17 @@ import (
 	"strings"
 
 	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // getJobTableTasks fetches all executing tasks with show_in_dashboard tag.
-func getJobTableTasks(ctx context.Context, app *core.App) ([]*core.Task, error) {
-	q := core.TasksQueryJoinJob(core.TasksQueryNew()).
-		Where(core.TasksQueryInState([]string{"executing"})).
-		Where(core.TasksQueryHasTag("show_in_dashboard")).
+func getJobTableTasks(ctx context.Context, app *core.App) ([]*store.Task, error) {
+	q := store.TasksQueryJoinJob(store.TasksQueryNew()).
+		Where(store.TasksQueryInState([]string{"executing"})).
+		Where(store.TasksQueryHasTag("show_in_dashboard")).
 		OrderBy("j.attempted_at DESC")
 
-	tasks, err := core.All[core.Task](ctx, app.Q(ctx), q)
+	tasks, err := store.All[store.Task](ctx, app.Q(ctx), q)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +59,7 @@ func mapWorkerToTaskName(worker string) string {
 }
 
 // taskToRecordName gets the name of the record associated with a task.
-func taskToRecordName(task *core.Task) string {
+func taskToRecordName(task *store.Task) string {
 	if task.Source != nil {
 		return task.Source.CustomName
 	}
@@ -69,7 +70,7 @@ func taskToRecordName(task *core.Task) string {
 }
 
 // taskToLink gets the link for a task's record.
-func taskToLink(ctx context.Context, task *core.Task) string {
+func taskToLink(ctx context.Context, task *store.Task) string {
 	if task.Source != nil {
 		return P(ctx, "/sources/%v", task.Source.ID)
 	}

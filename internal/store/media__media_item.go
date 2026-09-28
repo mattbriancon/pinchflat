@@ -1,4 +1,4 @@
-package core
+package store
 
 import (
 	"context"
@@ -108,9 +108,9 @@ var mediaItemRequiredFields = []string{
 
 // MediaItem.changeset/2
 //
-// Ported as a method on *App (with ctx) because update_upload_date_index
+// Ported as a method taking *Store (with ctx) because update_upload_date_index
 // queries the database (Sources.get_source!/1 and a MediaQuery aggregate).
-func MediaItemChangeset(ctx context.Context, a *App, mediaItem *MediaItem, attrs Attrs) *Changeset {
+func MediaItemChangeset(ctx context.Context, s *Store, mediaItem *MediaItem, attrs Attrs) *Changeset {
 	cs := Cast(mediaItem, attrs, mediaItemAllowedFields)
 	cs.CastAssoc(attrs, "metadata", mediaItem.Metadata, func(data any, attrs Attrs) *Changeset {
 		md, _ := data.(*MediaMetadata)
@@ -120,7 +120,7 @@ func MediaItemChangeset(ctx context.Context, a *App, mediaItem *MediaItem, attrs
 		return MediaMetadataChangeset(md, attrs)
 	})
 	cs.DynamicDefault("uuid", func(*Changeset) any { return GenerateUUID() })
-	cs = mediaItemUpdateUploadDateIndex(ctx, a, cs)
+	cs = mediaItemUpdateUploadDateIndex(ctx, s, cs)
 	cs.ValidateRequired(mediaItemRequiredFields...)
 	// Validate that the title does NOT start with "youtube video #" since that indicates a restriction by YouTube.
 	// See issue #549 for more information.
@@ -149,10 +149,10 @@ func MediaItemFilepathAttributeDefaults() Attrs {
 
 // update_upload_date_index/1. Run it on new records no matter what. The
 // method we delegate to will handle the case where `uploaded_at` is `nil`.
-func mediaItemUpdateUploadDateIndex(ctx context.Context, a *App, cs *Changeset) *Changeset {
+func mediaItemUpdateUploadDateIndex(ctx context.Context, s *Store, cs *Changeset) *Changeset {
 	data, _ := cs.Data.(*MediaItem)
 	if data != nil && data.ID == 0 {
-		return mediaItemDoUpdateUploadDateIndex(ctx, a, cs)
+		return mediaItemDoUpdateUploadDateIndex(ctx, s, cs)
 	}
 
 	// For the update case, we only want to recalculate if the day itself has
@@ -164,7 +164,7 @@ func mediaItemUpdateUploadDateIndex(ctx context.Context, a *App, cs *Changeset) 
 		if mediaItemSameDate(oldUploadedAt.Time, newUploadedAt.Time) {
 			return cs
 		}
-		return mediaItemDoUpdateUploadDateIndex(ctx, a, cs)
+		return mediaItemDoUpdateUploadDateIndex(ctx, s, cs)
 	}
 
 	// If the record is persisted and the `uploaded_at` field is not being
@@ -178,7 +178,7 @@ func mediaItemSameDate(a, b time.Time) bool {
 	return ay == by && am == bm && ad == bd
 }
 
-func mediaItemDoUpdateUploadDateIndex(ctx context.Context, a *App, cs *Changeset) *Changeset {
+func mediaItemDoUpdateUploadDateIndex(ctx context.Context, s *Store, cs *Changeset) *Changeset {
 	if !cs.HasChange("uploaded_at") {
 		return cs
 	}
@@ -195,7 +195,7 @@ func mediaItemDoUpdateUploadDateIndex(ctx context.Context, a *App, cs *Changeset
 
 	sourceID, _ := cs.GetField("source_id").(int64)
 	// Repo.get!/2: raises Ecto.NoResultsError if the source doesn't exist.
-	source, err := MustOne[Source](ctx, a.Q(ctx), From[Source]().Where(sq.Eq{"sources.id": sourceID}))
+	source, err := MustOne[Source](ctx, s.Q(ctx), From[Source]().Where(sq.Eq{"sources.id": sourceID}))
 	if err != nil {
 		panic(err)
 	}
@@ -217,7 +217,7 @@ func mediaItemDoUpdateUploadDateIndex(ctx context.Context, a *App, cs *Changeset
 			return b.RemoveColumns().Column(aggregator + "(mi.upload_date_index) AS agg")
 		})
 
-	currentMax, err := Scalar[sql.NullInt64](ctx, a.Q(ctx), q)
+	currentMax, err := Scalar[sql.NullInt64](ctx, s.Q(ctx), q)
 	if err != nil {
 		panic(err)
 	}

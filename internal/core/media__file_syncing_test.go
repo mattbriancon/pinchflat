@@ -6,6 +6,7 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
@@ -14,8 +15,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		newMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
-		oldMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		newMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
+		oldMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
 		if err := core.FileSyncingDeleteOutdatedFiles(ctx, oldMediaItem, newMediaItem); err != nil {
 			t.Fatalf("DeleteOutdatedFiles failed: %v", err)
@@ -34,8 +35,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		newMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
-		oldMediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": newMediaItem.MediaFilepath})
+		newMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
+		oldMediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": newMediaItem.MediaFilepath})
 
 		if err := core.FileSyncingDeleteOutdatedFiles(ctx, oldMediaItem, newMediaItem); err != nil {
 			t.Fatalf("DeleteOutdatedFiles failed: %v", err)
@@ -54,8 +55,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		newMediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
-		oldMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		newMediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		oldMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
 		if err := core.FileSyncingDeleteOutdatedFiles(ctx, oldMediaItem, newMediaItem); err != nil {
 			t.Fatalf("DeleteOutdatedFiles failed: %v", err)
@@ -71,8 +72,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		newMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
-		oldMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		newMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
+		oldMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
 		if err := core.FileSyncingDeleteOutdatedFiles(ctx, oldMediaItem, newMediaItem); err != nil {
 			t.Fatalf("DeleteOutdatedFiles failed: %v", err)
@@ -94,8 +95,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		newMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
-		oldMediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"subtitle_filepaths": newMediaItem.SubtitleFilepaths})
+		newMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
+		oldMediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"subtitle_filepaths": newMediaItem.SubtitleFilepaths})
 
 		if err := core.FileSyncingDeleteOutdatedFiles(ctx, oldMediaItem, newMediaItem); err != nil {
 			t.Fatalf("DeleteOutdatedFiles failed: %v", err)
@@ -117,8 +118,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		newMediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"subtitle_filepaths": [][]string{}})
-		oldMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		newMediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"subtitle_filepaths": [][]string{}})
+		oldMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
 		if err := core.FileSyncingDeleteOutdatedFiles(ctx, oldMediaItem, newMediaItem); err != nil {
 			t.Fatalf("DeleteOutdatedFiles failed: %v", err)
@@ -137,13 +138,13 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": "/tmp/missing_file.mp4"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": "/tmp/missing_file.mp4"})
 
 		if mediaItem.MediaFilepath == nil {
 			t.Fatal("media_filepath should be set")
 		}
 
-		updatedItems, err := ta.FileSyncingSyncFilePresenceOnDisk(ctx, []*core.MediaItem{mediaItem})
+		updatedItems, err := ta.FileSyncingSyncFilePresenceOnDisk(ctx, []*store.MediaItem{mediaItem})
 		if err != nil {
 			t.Fatalf("SyncFilePresenceOnDisk failed: %v", err)
 		}
@@ -162,13 +163,13 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
 		if mediaItem.MediaFilepath == nil {
 			t.Fatal("media_filepath should be set")
 		}
 
-		updatedItems, err := ta.FileSyncingSyncFilePresenceOnDisk(ctx, []*core.MediaItem{mediaItem})
+		updatedItems, err := ta.FileSyncingSyncFilePresenceOnDisk(ctx, []*store.MediaItem{mediaItem})
 		if err != nil {
 			t.Fatalf("SyncFilePresenceOnDisk failed: %v", err)
 		}
@@ -187,7 +188,7 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
 		if mediaItem.MediaFilepath != nil {
 			os.Remove(*mediaItem.MediaFilepath)
@@ -200,7 +201,7 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 			t.Fatal("media_filepath should be set")
 		}
 
-		updatedItems, err := ta.FileSyncingSyncFilePresenceOnDisk(ctx, []*core.MediaItem{mediaItem})
+		updatedItems, err := ta.FileSyncingSyncFilePresenceOnDisk(ctx, []*store.MediaItem{mediaItem})
 		if err != nil {
 			t.Fatalf("SyncFilePresenceOnDisk failed: %v", err)
 		}
@@ -222,7 +223,7 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{
 			"subtitle_filepaths": [][]string{{"en", "/tmp/missing_file.srt"}},
 		})
 
@@ -230,7 +231,7 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 			t.Fatal("subtitle_filepaths should be set")
 		}
 
-		updatedItems, err := ta.FileSyncingSyncFilePresenceOnDisk(ctx, []*core.MediaItem{mediaItem})
+		updatedItems, err := ta.FileSyncingSyncFilePresenceOnDisk(ctx, []*store.MediaItem{mediaItem})
 		if err != nil {
 			t.Fatalf("SyncFilePresenceOnDisk failed: %v", err)
 		}
@@ -250,13 +251,13 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
 		if len(mediaItem.SubtitleFilepaths) == 0 {
 			t.Fatal("subtitle_filepaths should be set")
 		}
 
-		updatedItems, err := ta.FileSyncingSyncFilePresenceOnDisk(ctx, []*core.MediaItem{mediaItem})
+		updatedItems, err := ta.FileSyncingSyncFilePresenceOnDisk(ctx, []*store.MediaItem{mediaItem})
 		if err != nil {
 			t.Fatalf("SyncFilePresenceOnDisk failed: %v", err)
 		}
@@ -272,7 +273,7 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 	})
 }
 
-func getSubtitleFilepath(mediaItem *core.MediaItem, language string) string {
+func getSubtitleFilepath(mediaItem *store.MediaItem, language string) string {
 	for _, pair := range mediaItem.SubtitleFilepaths {
 		if len(pair) == 2 && pair[0] == language {
 			return pair[1]

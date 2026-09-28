@@ -5,12 +5,13 @@ import (
 	"strings"
 
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // OpmlFeedBuilder builds OPML feeds for a list of sources.
 
 // OpmlFeedBuilderBuild/2
-func OpmlFeedBuilderBuild(urlBase string, sources []*Source) string {
+func OpmlFeedBuilderBuild(urlBase string, sources []*store.Source) string {
 	var sourcesXML []string
 	for _, source := range sources {
 		sourceRoute := opmlFeedBuilderSourceRoute(urlBase, source)
@@ -32,7 +33,7 @@ func OpmlFeedBuilderBuild(urlBase string, sources []*Source) string {
 }
 
 // opmlFeedBuilderSourceRoute builds the URL route for a source's RSS feed
-func opmlFeedBuilderSourceRoute(urlBase string, source *Source) string {
+func opmlFeedBuilderSourceRoute(urlBase string, source *store.Source) string {
 	uuid := ""
 	if source.UUID != nil {
 		uuid = *source.UUID

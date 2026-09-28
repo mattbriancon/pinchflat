@@ -10,6 +10,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
@@ -19,14 +20,14 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		enqueuedJobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaDownloadWorkerName})
 		if len(enqueuedJobs) != 0 {
 			t.Errorf("expected 0 enqueued jobs, got %d", len(enqueuedJobs))
 		}
 
-		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, core.Attrs{}, core.KW{})
+		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, store.KW{})
 		if err != nil {
 			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
 		}
@@ -41,9 +42,9 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
-		task, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, core.Attrs{}, core.KW{})
+		task, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, store.KW{})
 		if err != nil {
 			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
 		}
@@ -57,10 +58,10 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
-		jobArgs := core.Attrs{"force": true}
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		jobArgs := store.Attrs{"force": true}
 
-		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, jobArgs, core.KW{})
+		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, jobArgs, store.KW{})
 		if err != nil {
 			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
 		}
@@ -72,9 +73,9 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
-		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, core.Attrs{}, core.KW{})
+		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, store.KW{})
 		if err != nil {
 			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
 		}
@@ -94,10 +95,10 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		priority := 0
 
-		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, core.Attrs{}, core.KW{core.Opt("priority", priority)})
+		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, store.KW{store.Opt("priority", priority)})
 		if err != nil {
 			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
 		}
@@ -120,7 +121,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 	setup := func(t *testing.T) *coretest.TestApp {
 		ta := coretest.NewApp(t)
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -138,7 +139,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
@@ -149,14 +150,14 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := setup(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		if mediaItem.MediaFilepath != nil {
 			t.Errorf("expected media_filepath to be nil, got %v", *mediaItem.MediaFilepath)
 		}
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-		updatedMediaItem, _ := ta.MediaGetMediaItem(ctx, mediaItem.ID)
+		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
 
 		if updatedMediaItem.MediaFilepath == nil {
 			t.Error("expected media_filepath to not be nil after download")
@@ -167,14 +168,14 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := setup(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		if mediaItem.Metadata != nil {
 			t.Errorf("expected metadata to be nil, got %v", mediaItem.Metadata)
 		}
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-		updatedMediaItem, _ := ta.MediaGetMediaItem(ctx, mediaItem.ID)
+		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
 		updatedMediaItem, _ = ta.App.PreloadMediaItemMetadata(ctx, updatedMediaItem)
 
 		if updatedMediaItem.Metadata == nil {
@@ -185,7 +186,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 	t.Run("won't double-schedule downloading jobs", func(t *testing.T) {
 		ta := setup(t)
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		spec1 := obanlite.JobSpec{Worker: core.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}}
 		spec2 := obanlite.JobSpec{Worker: core.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}}
@@ -203,7 +204,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -217,7 +218,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		spec := obanlite.JobSpec{Worker: core.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}}
 		_, _, _ = ta.InsertUniqueJob(ctx, spec)
 
@@ -232,7 +233,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -246,7 +247,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		spec := obanlite.JobSpec{Worker: core.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}}
 		_, _, _ = ta.InsertUniqueJob(ctx, spec)
 
@@ -262,7 +263,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -276,7 +277,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		err := ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
 
@@ -289,7 +290,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -303,7 +304,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		err := ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
 
@@ -316,7 +317,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -330,7 +331,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		err := ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
 
@@ -343,7 +344,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -357,7 +358,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		err := ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -371,7 +372,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ctx := ta.Ctx
 
 		callCount := 0
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			defer func() { callCount++ }()
 
 			if action == "get_downloadable_status" {
@@ -398,10 +399,10 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return "{}", nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-		updatedMediaItem, _ := ta.MediaGetMediaItem(ctx, mediaItem.ID)
+		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
 
 		if updatedMediaItem.MediaSizeBytes == nil || *updatedMediaItem.MediaSizeBytes <= 0 {
 			t.Error("expected media_size_bytes to be > 0")
@@ -412,10 +413,10 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := setup(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-		updatedMediaItem, _ := ta.MediaGetMediaItem(ctx, mediaItem.ID)
+		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
 
 		if updatedMediaItem.MediaRedownloadedAt != nil {
 			t.Errorf("expected media_redownloaded_at to be nil, got %v", updatedMediaItem.MediaRedownloadedAt)
@@ -439,7 +440,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		noForceOverwritesCalled := false
 		forceOverwritesCalled := false
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -466,7 +467,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -483,15 +484,15 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ctx := ta.Ctx
 
 		downloadCalled := false
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				downloadCalled = true
 			}
 			return "{}", nil
 		})
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{"download_media": false})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"download_media": false})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -505,15 +506,15 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ctx := ta.Ctx
 
 		downloadCalled := false
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				downloadCalled = true
 			}
 			return "{}", nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
-		_, _ = ta.MediaUpdateMediaItem(ctx, mediaItem, core.Attrs{"prevent_download": true})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		_, _ = ta.UpdateMediaItem(ctx, mediaItem, store.Attrs{"prevent_download": true})
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -527,14 +528,14 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ctx := ta.Ctx
 
 		downloadCalled := false
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				downloadCalled = true
 			}
 			return "{}", nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": "foo.mp4"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": "foo.mp4"})
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -549,7 +550,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingNonDownloadableMedia(t *testing.
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return `{"live_status": "is_live"}`, nil
 			}
@@ -560,7 +561,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingNonDownloadableMedia(t *testing.
 			return nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		err := ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -576,7 +577,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingForcedDownloads(t *testing.T) {
 	setup := func(t *testing.T) *coretest.TestApp {
 		ta := coretest.NewApp(t)
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -594,7 +595,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingForcedDownloads(t *testing.T) {
 			return nil
 		})
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
@@ -605,10 +606,10 @@ func TestMediaDownloadWorker_Perform_WhenTestingForcedDownloads(t *testing.T) {
 		ta := setup(t)
 		ctx := ta.Ctx
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{"download_media": false})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"download_media": false})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
-		_, _ = ta.MediaUpdateMediaItem(ctx, mediaItem, core.Attrs{"prevent_download": true})
+		_, _ = ta.UpdateMediaItem(ctx, mediaItem, store.Attrs{"prevent_download": true})
 
 		err := ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "force": true})
 
@@ -621,7 +622,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingForcedDownloads(t *testing.T) {
 		ta := setup(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": "foo.mp4"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": "foo.mp4"})
 
 		err := ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "force": true})
 
@@ -637,7 +638,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingForcedDownloads(t *testing.T) {
 		forceOverwritesCalled := false
 		noForceOverwritesCalled := false
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -663,7 +664,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingForcedDownloads(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "force": true})
 
@@ -680,7 +681,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 	setup := func(t *testing.T) *coretest.TestApp {
 		ta := coretest.NewApp(t)
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -698,7 +699,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 			return nil
 		})
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
@@ -709,10 +710,10 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 		ta := setup(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
-		updatedMediaItem, _ := ta.MediaGetMediaItem(ctx, mediaItem.ID)
+		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
 
 		if updatedMediaItem.MediaRedownloadedAt == nil {
 			t.Error("expected media_redownloaded_at to be set")
@@ -723,7 +724,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 		ta := setup(t)
 		ctx := ta.Ctx
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": "foo.mp4"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": "foo.mp4"})
 
 		err := ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
 
@@ -737,15 +738,15 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 		ctx := ta.Ctx
 
 		downloadCalled := false
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				downloadCalled = true
 			}
 			return "{}", nil
 		})
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{"download_media": false})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": "foo.mp4"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"download_media": false})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": "foo.mp4"})
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
 
@@ -759,15 +760,15 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 		ctx := ta.Ctx
 
 		downloadCalled := false
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				downloadCalled = true
 			}
 			return "{}", nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": "foo.mp4"})
-		_, _ = ta.MediaUpdateMediaItem(ctx, mediaItem, core.Attrs{"prevent_download": true})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": "foo.mp4"})
+		_, _ = ta.UpdateMediaItem(ctx, mediaItem, store.Attrs{"prevent_download": true})
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
 
@@ -783,7 +784,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 		forceOverwritesCalled := false
 		noForceOverwritesCalled := false
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -809,7 +810,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": "foo.mp4"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": "foo.mp4"})
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
 
@@ -825,7 +826,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -845,11 +846,11 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 			return nil
 		})
 
-		oldMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{})
+		oldMediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 		oldFilepath := *oldMediaItem.MediaFilepath
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": oldMediaItem.ID, "force": true})
-		updatedMediaItem, _ := ta.MediaGetMediaItem(ctx, oldMediaItem.ID)
+		updatedMediaItem, _ := ta.GetMediaItem(ctx, oldMediaItem.ID)
 
 		if updatedMediaItem.MediaFilepath == nil || *updatedMediaItem.MediaFilepath == oldFilepath {
 			t.Error("media_filepath should be updated")
@@ -867,9 +868,9 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 		ctx := ta.Ctx
 
 		preDownloadCalled := false
-		preDownloadMediaItem := (*core.MediaItem)(nil)
+		preDownloadMediaItem := (*store.MediaItem)(nil)
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -886,7 +887,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 		ta.UserScriptMock.Run.ExpectN(2, func(event string, data any) error {
 			if event == "media_pre_download" {
 				preDownloadCalled = true
-				if item, ok := data.(*core.MediaItem); ok {
+				if item, ok := data.(*store.MediaItem); ok {
 					preDownloadMediaItem = item
 				}
 			}
@@ -896,7 +897,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 			return nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -914,7 +915,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 
 		downloadCalled := false
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				downloadCalled = true
 			}
@@ -928,11 +929,11 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 			return nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
-		updatedMediaItem, _ := ta.MediaGetMediaItem(ctx, mediaItem.ID)
+		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
 
 		if downloadCalled {
 			t.Error("download should not be called when pre-download script fails")
@@ -948,7 +949,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 
 		downloadCalled := false
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -973,11 +974,11 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 			return nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
-		updatedMediaItem, _ := ta.MediaGetMediaItem(ctx, mediaItem.ID)
+		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
 
 		if !downloadCalled {
 			t.Error("download should be called")
@@ -995,9 +996,9 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 		ctx := ta.Ctx
 
 		postDownloadCalled := false
-		postDownloadMediaItem := (*core.MediaItem)(nil)
+		postDownloadMediaItem := (*store.MediaItem)(nil)
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -1017,14 +1018,14 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 			}
 			if event == "media_downloaded" {
 				postDownloadCalled = true
-				if item, ok := data.(*core.MediaItem); ok {
+				if item, ok := data.(*store.MediaItem); ok {
 					postDownloadMediaItem = item
 				}
 			}
 			return nil
 		})
 
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
 		_ = ta.Oban.PerformJob(ctx, core.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 

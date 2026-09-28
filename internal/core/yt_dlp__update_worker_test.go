@@ -44,7 +44,7 @@ func TestUpdateWorker_Perform(t *testing.T) {
 			}
 
 			if tt.expectVer != "" {
-				val, err := ta.SettingsGet(ta.Ctx, "yt_dlp_version")
+				val, err := ta.GetSetting(ta.Ctx, "yt_dlp_version")
 				if err != nil {
 					t.Fatalf("SettingsGet failed: %v", err)
 				}

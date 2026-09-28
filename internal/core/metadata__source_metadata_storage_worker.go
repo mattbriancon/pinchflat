@@ -8,6 +8,7 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 const SourceMetadataStorageWorkerName = "Pinchflat.Metadata.SourceMetadataStorageWorker"
@@ -19,13 +20,13 @@ var sourceMetadataStorageWorkerOpts = obanlite.WorkerOpts{
 }
 
 // SourceMetadataStorageWorkerKickoffWithTask/2
-func (a *App) SourceMetadataStorageWorkerKickoffWithTask(ctx context.Context, source *Source, opts KW) (*Task, error) {
+func (a *App) SourceMetadataStorageWorkerKickoffWithTask(ctx context.Context, source *store.Source, opts store.KW) (*store.Task, error) {
 	jobSpec := obanlite.JobSpec{
 		Worker: SourceMetadataStorageWorkerName,
 		Args:   map[string]any{"id": source.ID},
 	}
 
-	return a.TasksCreateJobWithTask(ctx, jobSpec, source)
+	return a.CreateJobWithTask(ctx, jobSpec, source)
 }
 
 // perform/1
@@ -38,9 +39,9 @@ func (a *App) SourceMetadataStorageWorkerPerform(ctx context.Context, job *obanl
 		return err
 	}
 
-	source, err := a.SourcesGetSource(ctx, args.ID)
+	source, err := a.GetSource(ctx, args.ID)
 	if err != nil {
-		if err == ErrNotFound {
+		if err == store.ErrNotFound {
 			slog.Info(fmt.Sprintf("%s discarded: source %d not found", SourceMetadataStorageWorkerName, args.ID))
 			return nil
 		}
@@ -50,7 +51,7 @@ func (a *App) SourceMetadataStorageWorkerPerform(ctx context.Context, job *obanl
 	// Preload associations
 	source, err = a.PreloadSourceMetadata(ctx, source)
 	if err != nil {
-		if err == ErrNotFound {
+		if err == store.ErrNotFound {
 			slog.Info(fmt.Sprintf("%s discarded: source %d stale", SourceMetadataStorageWorkerName, args.ID))
 			return nil
 		}
@@ -88,7 +89,7 @@ func (a *App) SourceMetadataStorageWorkerPerform(ctx context.Context, job *obanl
 	}
 
 	// Merge update attributes
-	updateAttrs := Attrs{
+	updateAttrs := store.Attrs{
 		"series_directory": seriesDirectory,
 		"nfo_filepath":     nfoFilepath,
 		"description":      sourceMetadata["description"],
@@ -109,16 +110,16 @@ func (a *App) SourceMetadataStorageWorkerPerform(ctx context.Context, job *obanl
 		updateAttrs[k] = v
 	}
 
-	_, err = a.SourcesUpdateSource(ctx, source, updateAttrs, KW{Opt("run_post_commit_tasks", false)})
+	_, err = a.SourcesUpdateSource(ctx, source, updateAttrs, store.KW{store.Opt("run_post_commit_tasks", false)})
 	return err
 }
 
 // determineSeriesDirectory/1
-func determineSeriesDirectory(ctx context.Context, a *App, source *Source) (any, error) {
+func determineSeriesDirectory(ctx context.Context, a *App, source *store.Source) (any, error) {
 	outputPath := a.DownloadOptionBuilderBuildOutputPathForSource(ctx, source)
 
-	runnerOpts := KW{Opt("output", outputPath)}
-	addlOpts := KW{Opt("use_cookies", SourcesUseCookies(source, "metadata"))}
+	runnerOpts := store.KW{store.Opt("output", outputPath)}
+	addlOpts := store.KW{store.Opt("use_cookies", store.UseCookies(source, "metadata"))}
 
 	sourceDetails, err := a.MediaCollectionGetSourceDetails(ctx, source.OriginalURL, runnerOpts, addlOpts)
 	if err != nil {
@@ -139,7 +140,7 @@ func determineSeriesDirectory(ctx context.Context, a *App, source *Source) (any,
 }
 
 // fetchSourceMetadataAndImages/3
-func fetchSourceMetadataAndImages(ctx context.Context, a *App, seriesDirectory any, source *Source) (map[string]any, Attrs, Attrs, error) {
+func fetchSourceMetadataAndImages(ctx context.Context, a *App, seriesDirectory any, source *store.Source) (map[string]any, store.Attrs, store.Attrs, error) {
 	metadataDirectory, err := a.MetadataFileHelpersMetadataDirectoryFor(ctx, source)
 	if err != nil {
 		return nil, nil, nil, err
@@ -155,12 +156,12 @@ func fetchSourceMetadataAndImages(ctx context.Context, a *App, seriesDirectory a
 		return nil, nil, nil, err
 	}
 
-	metadataImageAttrs := make(Attrs)
+	metadataImageAttrs := make(store.Attrs)
 	for k, v := range metadataImageAttrsRaw {
 		metadataImageAttrs[k] = v
 	}
 
-	sourceImageAttrs := Attrs{}
+	sourceImageAttrs := store.Attrs{}
 	if source.MediaProfile != nil && source.MediaProfile.DownloadSourceImages && seriesDirectory != nil {
 		sourceImageAttrsRaw, err := SourceImageParserStoreSourceImages(seriesDirectory.(string), metadata)
 		if err != nil {
@@ -175,25 +176,25 @@ func fetchSourceMetadataAndImages(ctx context.Context, a *App, seriesDirectory a
 }
 
 // fetchMetadataForSource/1
-func fetchMetadataForSource(ctx context.Context, a *App, source *Source) (map[string]any, error) {
+func fetchMetadataForSource(ctx context.Context, a *App, source *store.Source) (map[string]any, error) {
 	tmpDir := a.Config.TmpfileDirectory
 	tmpOutputPath := filepath.Join(tmpDir, fsutil.RandomString(16), "source_image.%(ext)s")
 
-	baseOpts := KW{
-		Opt("convert_thumbnails", "jpg"),
-		Opt("output", tmpOutputPath),
+	baseOpts := store.KW{
+		store.Opt("convert_thumbnails", "jpg"),
+		store.Opt("output", tmpOutputPath),
 	}
 
-	shouldUseCookies := SourcesUseCookies(source, "metadata")
+	shouldUseCookies := store.UseCookies(source, "metadata")
 
-	var opts KW
-	if source.CollectionType == SourceCollectionTypeChannel {
-		opts = append(baseOpts, Flag("write_all_thumbnails"), Opt("playlist_items", 0))
+	var opts store.KW
+	if source.CollectionType == store.SourceCollectionTypeChannel {
+		opts = append(baseOpts, store.Flag("write_all_thumbnails"), store.Opt("playlist_items", 0))
 	} else {
-		opts = append(baseOpts, Flag("write_thumbnail"), Opt("playlist_items", 1))
+		opts = append(baseOpts, store.Flag("write_thumbnail"), store.Opt("playlist_items", 1))
 	}
 
-	metadata, err := a.MediaCollectionGetSourceMetadata(ctx, source.OriginalURL, opts, KW{Opt("use_cookies", shouldUseCookies)})
+	metadata, err := a.MediaCollectionGetSourceMetadata(ctx, source.OriginalURL, opts, store.KW{store.Opt("use_cookies", shouldUseCookies)})
 	if err != nil {
 		return nil, err
 	}

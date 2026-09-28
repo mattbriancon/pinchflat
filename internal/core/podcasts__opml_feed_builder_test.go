@@ -6,16 +6,17 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestOpmlFeedBuilder_Build(t *testing.T) {
 	ta := coretest.NewApp(t)
 	defer ta.App.DB.Close()
 
-	source := coretest.SourceFixture(t, ta, core.Attrs{})
+	source := coretest.SourceFixture(t, ta, store.Attrs{})
 
 	t.Run("returns an XML document", func(t *testing.T) {
-		res := core.OpmlFeedBuilderBuild("http://example.com", []*core.Source{source})
+		res := core.OpmlFeedBuilderBuild("http://example.com", []*store.Source{source})
 
 		if !strings.Contains(res, `<?xml version="1.0" encoding="UTF-8"?>`) {
 			t.Errorf("expected XML declaration, got: %v", res)
@@ -23,8 +24,8 @@ func TestOpmlFeedBuilder_Build(t *testing.T) {
 	})
 
 	t.Run("escapes illegal characters", func(t *testing.T) {
-		source := coretest.SourceFixture(t, ta, core.Attrs{"custom_name": "A & B"})
-		res := core.OpmlFeedBuilderBuild("http://example.com", []*core.Source{source})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"custom_name": "A & B"})
+		res := core.OpmlFeedBuilderBuild("http://example.com", []*store.Source{source})
 
 		if !strings.Contains(res, `A &amp; B`) {
 			t.Errorf("expected escaped ampersand, got: %v", res)
@@ -32,7 +33,7 @@ func TestOpmlFeedBuilder_Build(t *testing.T) {
 	})
 
 	t.Run("build podcast link with URL base", func(t *testing.T) {
-		res := core.OpmlFeedBuilderBuild("http://example.com", []*core.Source{source})
+		res := core.OpmlFeedBuilderBuild("http://example.com", []*store.Source{source})
 
 		expectedURL := "http://example.com/sources/" + *source.UUID + "/feed.xml"
 		if !strings.Contains(res, expectedURL) {

@@ -6,16 +6,17 @@ import (
 	"log/slog"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // FastIndexingHelpersKickoffIndexingTask/1
-func (a *App) FastIndexingHelpersKickoffIndexingTask(ctx context.Context, source *Source) (*Task, error) {
-	_ = a.TasksDeletePendingTasksFor(ctx, source, Ptr(FastIndexingWorkerName), KW{Flag("include_executing")})
-	return a.FastIndexingWorkerKickoffWithTask(ctx, source, KW{})
+func (a *App) FastIndexingHelpersKickoffIndexingTask(ctx context.Context, source *store.Source) (*store.Task, error) {
+	_ = a.DeletePendingTasksFor(ctx, source, store.Ptr(FastIndexingWorkerName), store.KW{store.Flag("include_executing")})
+	return a.FastIndexingWorkerKickoffWithTask(ctx, source, store.KW{})
 }
 
 // FastIndexingHelpersIndexAndKickoffDownloads/1
-func (a *App) FastIndexingHelpersIndexAndKickoffDownloads(ctx context.Context, source *Source) ([]*MediaItem, error) {
+func (a *App) FastIndexingHelpersIndexAndKickoffDownloads(ctx context.Context, source *store.Source) ([]*store.MediaItem, error) {
 	// The media_profile is needed to determine the quality options to _then_ determine a more
 	// accurate predicted filepath
 	var err error
@@ -46,7 +47,7 @@ func (a *App) FastIndexingHelpersIndexAndKickoffDownloads(ctx context.Context, s
 		}
 	}
 
-	var maybeNewMediaItems []*MediaItem
+	var maybeNewMediaItems []*store.MediaItem
 	for _, mediaID := range newMediaIDs {
 		mediaItem, err := fastIndexingHelpersCreateMediaItemFromMediaID(ctx, a, source, mediaID)
 		if err != nil {
@@ -54,7 +55,7 @@ func (a *App) FastIndexingHelpersIndexAndKickoffDownloads(ctx context.Context, s
 			continue
 		}
 
-		_, err = a.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, KW{Opt("priority", 0)})
+		_, err = a.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.KW{store.Opt("priority", 0)})
 		if err != nil {
 			slog.Error("Error kicking off download", "media_item_id", mediaItem.ID, "error", err)
 		}
@@ -64,12 +65,12 @@ func (a *App) FastIndexingHelpersIndexAndKickoffDownloads(ctx context.Context, s
 
 	// Pick up any stragglers. Intentionally has a lower priority than the per-media item
 	// kickoff above
-	_ = a.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, KW{Opt("priority", 1)})
+	_ = a.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{store.Opt("priority", 1)})
 
 	return maybeNewMediaItems, nil
 }
 
-func fastIndexingHelpersGetRecentMediaIDs(ctx context.Context, a *App, source *Source) ([]string, error) {
+func fastIndexingHelpersGetRecentMediaIDs(ctx context.Context, a *App, source *store.Source) ([]string, error) {
 	if a.YoutubeApiEnabled(ctx) {
 		mediaIDs, err := a.YoutubeApiGetRecentMediaIDs(ctx, source)
 		if err == nil {
@@ -80,28 +81,28 @@ func fastIndexingHelpersGetRecentMediaIDs(ctx context.Context, a *App, source *S
 	return a.YoutubeRssGetRecentMediaIDs(ctx, source)
 }
 
-func fastIndexingHelpersListMediaItemsByMediaIDFor(ctx context.Context, a *App, source *Source, mediaIDs []string) ([]*MediaItem, error) {
-	q := MediaQueryNew().
-		Where(MediaQueryForSource(source.ID)).
+func fastIndexingHelpersListMediaItemsByMediaIDFor(ctx context.Context, a *App, source *store.Source, mediaIDs []string) ([]*store.MediaItem, error) {
+	q := store.MediaQueryNew().
+		Where(store.MediaQueryForSource(source.ID)).
 		Where(sq.Eq{"mi.media_id": mediaIDs})
 
-	return All[MediaItem](ctx, a.Q(ctx), q)
+	return store.All[store.MediaItem](ctx, a.Q(ctx), q)
 }
 
-func fastIndexingHelpersCreateMediaItemFromMediaID(ctx context.Context, a *App, source *Source, mediaID string) (*MediaItem, error) {
+func fastIndexingHelpersCreateMediaItemFromMediaID(ctx context.Context, a *App, source *store.Source, mediaID string) (*store.MediaItem, error) {
 	url := fmt.Sprintf("https://www.youtube.com/watch?v=%s", mediaID)
 	// This is set to :metadata instead of :indexing since this happens _after_ the
 	// actual indexing process. In reality, slow indexing is the only thing that
 	// should be using :indexing.
-	shouldUseCookies := SourcesUseCookies(source, "metadata")
+	shouldUseCookies := store.UseCookies(source, "metadata")
 
-	commandOpts := KW{Opt("output", a.DownloadOptionBuilderBuildOutputPathForSource(ctx, source))}
+	commandOpts := store.KW{store.Opt("output", a.DownloadOptionBuilderBuildOutputPathForSource(ctx, source))}
 	commandOpts = append(commandOpts, a.DownloadOptionBuilderBuildQualityOptionsForSource(ctx, source)...)
 
-	ytDlpMedia, err := a.YtDlpMediaGetMediaAttributes(ctx, url, commandOpts, KW{Opt("use_cookies", shouldUseCookies)})
+	ytDlpMedia, err := a.YtDlpMediaGetMediaAttributes(ctx, url, commandOpts, store.KW{store.Opt("use_cookies", shouldUseCookies)})
 	if err != nil {
 		return nil, err
 	}
 
-	return a.MediaCreateMediaItemFromBackendAttrs(ctx, source, ytDlpMedia)
+	return a.CreateMediaItemFromBackendAttrs(ctx, source, ytDlpMedia)
 }

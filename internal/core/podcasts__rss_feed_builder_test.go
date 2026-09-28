@@ -6,19 +6,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestRssFeedBuilder_Build(t *testing.T) {
 	ta := coretest.NewApp(t)
 	defer ta.App.DB.Close()
 
-	source := coretest.SourceFixture(t, ta, core.Attrs{})
+	source := coretest.SourceFixture(t, ta, store.Attrs{})
 
 	t.Run("returns an XML document", func(t *testing.T) {
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -29,8 +29,8 @@ func TestRssFeedBuilder_Build(t *testing.T) {
 	})
 
 	t.Run("escapes illegal characters", func(t *testing.T) {
-		source := coretest.SourceFixture(t, ta, core.Attrs{"custom_name": "A & B"})
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"custom_name": "A & B"})
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -41,9 +41,9 @@ func TestRssFeedBuilder_Build(t *testing.T) {
 	})
 
 	t.Run("can optionally apply a limit to media items", func(t *testing.T) {
-		goodMedia := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
+		goodMedia := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID})
 
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{core.Opt("limit", 0)})
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, store.KW{store.Opt("limit", 0)})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -54,7 +54,7 @@ func TestRssFeedBuilder_Build(t *testing.T) {
 	})
 
 	t.Run("can optionally specify a URL base", func(t *testing.T) {
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{core.Opt("url_base", "http://example.com")})
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, store.KW{store.Opt("url_base", "http://example.com")})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -70,10 +70,10 @@ func TestRssFeedBuilder_Build_SourceXml(t *testing.T) {
 	ta := coretest.NewApp(t)
 	defer ta.App.DB.Close()
 
-	source := coretest.SourceFixture(t, ta, core.Attrs{})
+	source := coretest.SourceFixture(t, ta, store.Attrs{})
 
 	t.Run("returns XML for static source attributes", func(t *testing.T) {
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -96,7 +96,7 @@ func TestRssFeedBuilder_Build_SourceXml(t *testing.T) {
 	})
 
 	t.Run("returns the lastBuildDate and pubDate based off the source's timestamps", func(t *testing.T) {
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -113,7 +113,7 @@ func TestRssFeedBuilder_Build_SourceXml(t *testing.T) {
 	})
 
 	t.Run("returns a self-link", func(t *testing.T) {
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -125,9 +125,9 @@ func TestRssFeedBuilder_Build_SourceXml(t *testing.T) {
 	})
 
 	t.Run("returns a link to the feed image", func(t *testing.T) {
-		source := coretest.SourceWithMetadataAttachmentsFixture(t, ta, core.Attrs{})
+		source := coretest.SourceWithMetadataAttachmentsFixture(t, ta, store.Attrs{})
 
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -160,12 +160,12 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		goodMedia := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
-		badMedia := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": "/tmp/existing_file.mp3"})
-		pendingMedia := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		goodMedia := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID})
+		badMedia := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": "/tmp/existing_file.mp3"})
+		pendingMedia := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -185,10 +185,10 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "title": "Test Media Item", "description": "Test Description"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "title": "Test Media Item", "description": "Test Description"})
 
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -226,11 +226,11 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 		uploadedAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
-		coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": db.UTCDateTime{Time: uploadedAt}})
+		coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": db.UTCDateTime{Time: uploadedAt}})
 
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -250,10 +250,10 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "media_size_bytes": int64(1234)})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "media_size_bytes": int64(1234)})
 
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -282,10 +282,10 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "media_size_bytes": int64(1234), "title": "Test Media"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "media_size_bytes": int64(1234), "title": "Test Media"})
 
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -309,11 +309,11 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 		ta := coretest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID})
 		os.Remove(*mediaItem.ThumbnailFilepath)
 
-		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, core.KW{})
+		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

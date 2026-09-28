@@ -4,10 +4,10 @@ package web
 
 import (
 	"github.com/a-h/templ"
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-func mediaProfilesShowSourcesTableProps(sources []*core.Source) TableProps {
+func mediaProfilesShowSourcesTableProps(sources []*store.Source) TableProps {
 	rows := make([]any, len(sources))
 	for i, s := range sources {
 		rows[i] = s
@@ -19,26 +19,26 @@ func mediaProfilesShowSourcesTableProps(sources []*core.Source) TableProps {
 			{
 				Label: "Name",
 				Render: func(row any) templ.Component {
-					return mediaProfilesShowSourceNameCell(row.(*core.Source))
+					return mediaProfilesShowSourceNameCell(row.(*store.Source))
 				},
 			},
 			{
 				Label: "Type",
 				Render: func(row any) templ.Component {
-					return mediaProfilesShowSourceTypeCell(row.(*core.Source))
+					return mediaProfilesShowSourceTypeCell(row.(*store.Source))
 				},
 			},
 			{
 				Label: "Should Download?",
 				Render: func(row any) templ.Component {
-					return mediaProfilesShowSourceDownloadCell(row.(*core.Source))
+					return mediaProfilesShowSourceDownloadCell(row.(*store.Source))
 				},
 			},
 			{
 				Label: "",
 				Class: "flex justify-end",
 				Render: func(row any) templ.Component {
-					return mediaProfilesShowSourceEditCell(row.(*core.Source))
+					return mediaProfilesShowSourceEditCell(row.(*store.Source))
 				},
 			},
 		},

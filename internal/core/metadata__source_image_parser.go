@@ -3,9 +3,35 @@ package core
 import (
 	"fmt"
 	"path/filepath"
+	"reflect"
+	"strconv"
+	"strings"
 
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
+
+// toFloat coerces a numeric or numeric-string value to a float64.
+func toFloat(v any) (float64, bool) {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Pointer {
+		if rv.IsNil() {
+			return 0, false
+		}
+		rv = rv.Elem()
+	}
+	switch {
+	case rv.CanInt():
+		return float64(rv.Int()), true
+	case rv.CanUint():
+		return float64(rv.Uint()), true
+	case rv.CanFloat():
+		return rv.Float(), true
+	case rv.Kind() == reflect.String:
+		f, err := strconv.ParseFloat(strings.TrimSpace(rv.String()), 64)
+		return f, err == nil
+	}
+	return 0, false
+}
 
 // SourceImageParserStoreSourceImages/2
 func SourceImageParserStoreSourceImages(baseDirectory string, sourceMetadata map[string]any) (map[string]string, error) {
@@ -132,7 +158,7 @@ func determineBestBanner(images []map[string]any) string {
 	var candidates []map[string]any
 
 	// Filter images with width and height (numbers come back as json.Number,
-	// not float64, when decoded via DecodeJSON).
+	// not float64, when decoded via store.DecodeJSON).
 	for _, img := range images {
 		if width, okW := img["width"]; okW {
 			if height, okH := img["height"]; okH {

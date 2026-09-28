@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // randomVideoName generates a random video filename.
@@ -18,18 +18,18 @@ func randomVideoName() string {
 }
 
 // MediaItemFixture creates a MediaItem with sensible defaults, merging in attrs.
-func MediaItemFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.MediaItem {
+func MediaItemFixture(t testing.TB, ta *TestApp, attrs store.Attrs) *store.MediaItem {
 	t.Helper()
 	mediaID := randBase64(12)
 
-	defaults := core.Attrs{
+	defaults := store.Attrs{
 		"media_id":           mediaID,
 		"title":              "Product " + randBase64(6) + " " + mediaID,
 		"original_url":       "https://www.youtube.com/watch?v=" + mediaID,
 		"livestream":         false,
 		"short_form_content": false,
 		"media_filepath":     "/video/" + randomVideoName(),
-		"source_id":          SourceFixture(t, ta, core.Attrs{}).ID,
+		"source_id":          SourceFixture(t, ta, store.Attrs{}).ID,
 		"uploaded_at":        db.UTCDateTime{Time: time.Now().UTC()},
 	}
 
@@ -38,7 +38,7 @@ func MediaItemFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.MediaIt
 		defaults[k] = v
 	}
 
-	mediaItem, err := ta.MediaCreateMediaItem(ta.Ctx, defaults)
+	mediaItem, err := ta.CreateMediaItem(ta.Ctx, defaults)
 	if err != nil {
 		t.Fatalf("MediaItemFixture: %v", err)
 	}
@@ -46,7 +46,7 @@ func MediaItemFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.MediaIt
 }
 
 // MediaItemWithMetadataAttachmentsFixture creates a MediaItem with metadata attachments.
-func MediaItemWithMetadataAttachmentsFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.MediaItem {
+func MediaItemWithMetadataAttachmentsFixture(t testing.TB, ta *TestApp, attrs store.Attrs) *store.MediaItem {
 	t.Helper()
 
 	metadataDir := filepath.Join(ta.Config.MetadataDirectory, strconv.Itoa(randInt(1000000)+1))
@@ -61,7 +61,7 @@ func MediaItemWithMetadataAttachmentsFixture(t testing.TB, ta *TestApp, attrs co
 		t.Fatalf("copy thumbnail: %v", err)
 	}
 
-	defaults := core.Attrs{
+	defaults := store.Attrs{
 		"metadata": map[string]string{
 			"metadata_filepath":  jsonGzFilepath,
 			"thumbnail_filepath": thumbnailFilepath,
@@ -77,7 +77,7 @@ func MediaItemWithMetadataAttachmentsFixture(t testing.TB, ta *TestApp, attrs co
 }
 
 // MediaItemWithAttachmentsFixture creates a MediaItem with media, thumbnail, and subtitle files.
-func MediaItemWithAttachmentsFixture(t testing.TB, ta *TestApp, attrs core.Attrs) *core.MediaItem {
+func MediaItemWithAttachmentsFixture(t testing.TB, ta *TestApp, attrs store.Attrs) *store.MediaItem {
 	t.Helper()
 
 	baseDir := filepath.Join(ta.Config.MediaDirectory, strconv.Itoa(randInt(1000000)+1))
@@ -96,7 +96,7 @@ func MediaItemWithAttachmentsFixture(t testing.TB, ta *TestApp, attrs core.Attrs
 		t.Fatalf("copy subtitle: %v", err)
 	}
 
-	defaults := core.Attrs{
+	defaults := store.Attrs{
 		"media_filepath":     storedMediaFilepath,
 		"thumbnail_filepath": thumbnailFilepath,
 		"subtitle_filepaths": db.NestedStringArray{[]string{"en", subtitleFilepath}},

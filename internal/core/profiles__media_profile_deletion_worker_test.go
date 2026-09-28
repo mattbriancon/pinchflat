@@ -7,6 +7,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestMediaProfileDeletionWorker_Kickoff(t *testing.T) {
@@ -17,13 +18,13 @@ func TestMediaProfileDeletionWorker_Kickoff(t *testing.T) {
 			return nil
 		})
 
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
 
 		if len(ta.Oban.Enqueued(t, obanlite.Match{Worker: core.MediaProfileDeletionWorkerName})) != 0 {
 			t.Errorf("expected 0 enqueued initially")
 		}
 
-		job, err := ta.App.MediaProfileDeletionWorkerKickoff(ta.Ctx, profile, core.Attrs{}, core.KW{})
+		job, err := ta.App.MediaProfileDeletionWorkerKickoff(ta.Ctx, profile, store.Attrs{}, store.KW{})
 		if err != nil {
 			t.Errorf("kickoff failed: %v", err)
 		}
@@ -43,10 +44,10 @@ func TestMediaProfileDeletionWorker_Kickoff(t *testing.T) {
 			return nil
 		})
 
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
-		jobArgs := core.Attrs{"delete_files": true}
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
+		jobArgs := store.Attrs{"delete_files": true}
 
-		job, err := ta.App.MediaProfileDeletionWorkerKickoff(ta.Ctx, profile, jobArgs, core.KW{})
+		job, err := ta.App.MediaProfileDeletionWorkerKickoff(ta.Ctx, profile, jobArgs, store.KW{})
 		if err != nil {
 			t.Errorf("kickoff failed: %v", err)
 		}
@@ -72,11 +73,11 @@ func TestMediaProfileDeletionWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
-		source := coretest.SourceFixture(t, ta, core.Attrs{
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": profile.ID,
 		})
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
 			"source_id": source.ID,
 		})
 
@@ -85,18 +86,18 @@ func TestMediaProfileDeletionWorker_Perform(t *testing.T) {
 			t.Errorf("perform job failed: %v", err)
 		}
 
-		_, err = ta.App.ProfilesGetMediaProfile(ta.Ctx, profile.ID)
-		if err != core.ErrNotFound {
+		_, err = ta.App.GetMediaProfile(ta.Ctx, profile.ID)
+		if err != store.ErrNotFound {
 			t.Errorf("profile should be deleted")
 		}
 
-		_, err = ta.App.SourcesGetSource(ta.Ctx, source.ID)
-		if err != core.ErrNotFound {
+		_, err = ta.App.GetSource(ta.Ctx, source.ID)
+		if err != store.ErrNotFound {
 			t.Errorf("source should be deleted")
 		}
 
-		_, err = ta.App.MediaGetMediaItem(ta.Ctx, mediaItem.ID)
-		if err != core.ErrNotFound {
+		_, err = ta.App.GetMediaItem(ta.Ctx, mediaItem.ID)
+		if err != store.ErrNotFound {
 			t.Errorf("media_item should be deleted")
 		}
 
@@ -112,11 +113,11 @@ func TestMediaProfileDeletionWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{})
-		source := coretest.SourceFixture(t, ta, core.Attrs{
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": profile.ID,
 		})
-		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{
+		mediaItem := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
 			"source_id": source.ID,
 		})
 
@@ -130,18 +131,18 @@ func TestMediaProfileDeletionWorker_Perform(t *testing.T) {
 			t.Errorf("perform job failed: %v", err)
 		}
 
-		_, err = ta.App.ProfilesGetMediaProfile(ta.Ctx, profile.ID)
-		if err != core.ErrNotFound {
+		_, err = ta.App.GetMediaProfile(ta.Ctx, profile.ID)
+		if err != store.ErrNotFound {
 			t.Errorf("profile should be deleted")
 		}
 
-		_, err = ta.App.SourcesGetSource(ta.Ctx, source.ID)
-		if err != core.ErrNotFound {
+		_, err = ta.App.GetSource(ta.Ctx, source.ID)
+		if err != store.ErrNotFound {
 			t.Errorf("source should be deleted")
 		}
 
-		_, err = ta.App.MediaGetMediaItem(ta.Ctx, mediaItem.ID)
-		if err != core.ErrNotFound {
+		_, err = ta.App.GetMediaItem(ta.Ctx, mediaItem.ID)
+		if err != store.ErrNotFound {
 			t.Errorf("media_item should be deleted")
 		}
 

@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestPodcastHelpers_OpmlSources(t *testing.T) {
@@ -13,8 +13,8 @@ func TestPodcastHelpers_OpmlSources(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("returns sources not marked for deletion", func(t *testing.T) {
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		coretest.SourceFixture(t, ta, core.Attrs{"marked_for_deletion_at": coretest.Now()})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		coretest.SourceFixture(t, ta, store.Attrs{"marked_for_deletion_at": coretest.Now()})
 
 		found, err := ta.PodcastHelpersOpmlSources(ta.Ctx)
 		if err != nil {
@@ -38,11 +38,11 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("returns media items with files that exist on-disk", func(t *testing.T) {
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		goodMedia := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
-		coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": "/tmp/existing_file.mp3"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		goodMedia := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID})
+		coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": "/tmp/existing_file.mp3"})
 
-		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, core.KW{})
+		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -56,10 +56,10 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 	})
 
 	t.Run("lets you specify a limit", func(t *testing.T) {
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID})
 
-		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, core.KW{core.Opt("limit", 0)})
+		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, store.KW{store.Opt("limit", 0)})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -70,13 +70,13 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 	})
 
 	t.Run("orders by upload date where newest is first", func(t *testing.T) {
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
-		oldest := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.NowMinus(2, "day")})
-		current := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
-		older := coretest.MediaItemWithAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID, "uploaded_at": coretest.NowMinus(1, "day")})
+		oldest := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.NowMinus(2, "day")})
+		current := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.Now()})
+		older := coretest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": coretest.NowMinus(1, "day")})
 
-		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, core.KW{})
+		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -95,9 +95,9 @@ func TestPodcastHelpers_SelectCoverImage(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("returns a source's poster, if present", func(t *testing.T) {
-		source := coretest.SourceWithMetadataAttachmentsFixture(t, ta, core.Attrs{})
+		source := coretest.SourceWithMetadataAttachmentsFixture(t, ta, store.Attrs{})
 
-		res, err := ta.PodcastHelpersSelectCoverImage(ta.Ctx, source, []*core.MediaItem{})
+		res, err := ta.PodcastHelpersSelectCoverImage(ta.Ctx, source, []*store.MediaItem{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -108,12 +108,12 @@ func TestPodcastHelpers_SelectCoverImage(t *testing.T) {
 	})
 
 	t.Run("falls back to a source's fanart, if present", func(t *testing.T) {
-		source := coretest.SourceWithMetadataAttachmentsFixture(t, ta, core.Attrs{})
+		source := coretest.SourceWithMetadataAttachmentsFixture(t, ta, store.Attrs{})
 
 		// Remove poster file
 		os.Remove(*source.Metadata.PosterFilepath)
 
-		res, err := ta.PodcastHelpersSelectCoverImage(ta.Ctx, source, []*core.MediaItem{})
+		res, err := ta.PodcastHelpersSelectCoverImage(ta.Ctx, source, []*store.MediaItem{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -124,14 +124,14 @@ func TestPodcastHelpers_SelectCoverImage(t *testing.T) {
 	})
 
 	t.Run("falls back to a media item's thumbnail, if present", func(t *testing.T) {
-		source := coretest.SourceWithMetadataAttachmentsFixture(t, ta, core.Attrs{})
-		mediaItem := coretest.MediaItemWithMetadataAttachmentsFixture(t, ta, core.Attrs{"source_id": source.ID})
+		source := coretest.SourceWithMetadataAttachmentsFixture(t, ta, store.Attrs{})
+		mediaItem := coretest.MediaItemWithMetadataAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID})
 
 		// Remove source image files
 		os.Remove(*source.Metadata.PosterFilepath)
 		os.Remove(*source.Metadata.FanartFilepath)
 
-		res, err := ta.PodcastHelpersSelectCoverImage(ta.Ctx, source, []*core.MediaItem{mediaItem})
+		res, err := ta.PodcastHelpersSelectCoverImage(ta.Ctx, source, []*store.MediaItem{mediaItem})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -142,9 +142,9 @@ func TestPodcastHelpers_SelectCoverImage(t *testing.T) {
 	})
 
 	t.Run("returns error if no artwork can be found", func(t *testing.T) {
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
-		_, err := ta.PodcastHelpersSelectCoverImage(ta.Ctx, source, []*core.MediaItem{})
+		_, err := ta.PodcastHelpersSelectCoverImage(ta.Ctx, source, []*store.MediaItem{})
 		if err == nil {
 			t.Error("expected error, got nil")
 		}

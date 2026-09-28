@@ -6,6 +6,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestFastIndexingWorker_KickoffWithTask(t *testing.T) {
@@ -13,14 +14,14 @@ func TestFastIndexingWorker_KickoffWithTask(t *testing.T) {
 	t.Run("starts worker", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"fast_index": true})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
 
 		workers := ta.Oban.Enqueued(t, obanlite.Match{Worker: core.FastIndexingWorkerName})
 		if len(workers) != 0 {
 			t.Errorf("workers=%d, want 0 initially", len(workers))
 		}
 
-		_, err := ta.App.FastIndexingWorkerKickoffWithTask(ta.Ctx, source, core.KW{})
+		_, err := ta.App.FastIndexingWorkerKickoffWithTask(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("kickoff failed: %v", err)
 		}
@@ -34,9 +35,9 @@ func TestFastIndexingWorker_KickoffWithTask(t *testing.T) {
 	t.Run("creates task with source", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"fast_index": true})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
 
-		task, err := ta.App.FastIndexingWorkerKickoffWithTask(ta.Ctx, source, core.KW{})
+		task, err := ta.App.FastIndexingWorkerKickoffWithTask(ta.Ctx, source, store.KW{})
 		if err != nil {
 			t.Fatalf("kickoff failed: %v", err)
 		}
@@ -52,9 +53,9 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 	t.Run("calls RSS when enabled", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"fast_index": true})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
@@ -71,9 +72,9 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 	t.Run("reschedules when enabled", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"fast_index": true})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
@@ -95,9 +96,9 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 	t.Run("prevents duplicate reschedules", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"fast_index": true})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
@@ -127,9 +128,9 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 	t.Run("skips RSS when disabled", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"fast_index": false})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"fast_index": false})
 
-		ta.HTTPMock.Get.ExpectN(0, func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.ExpectN(0, func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
@@ -146,7 +147,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 	t.Run("does not reschedule when disabled", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"fast_index": false})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"fast_index": false})
 
 		err := ta.Oban.PerformJob(ta.Ctx, core.FastIndexingWorkerName, map[string]any{"id": source.ID})
 		if err != nil {

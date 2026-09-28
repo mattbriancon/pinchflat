@@ -6,6 +6,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
@@ -15,10 +16,10 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, core.KW{}); err != nil {
+		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
 		}
 
@@ -29,10 +30,10 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		_ = coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": "some/filepath.mp4"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		_ = coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": "some/filepath.mp4"})
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, core.KW{}); err != nil {
+		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
 		}
 
@@ -43,10 +44,10 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
-		tasks, err := ta.TasksListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
+		tasks, err := ta.ListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
 		if err != nil {
 			t.Fatalf("TasksListTasksFor failed: %v", err)
 		}
@@ -54,11 +55,11 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 			t.Errorf("expected 0 tasks, got %d", len(tasks))
 		}
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, core.KW{}); err != nil {
+		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
 		}
 
-		tasks, err = ta.TasksListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
+		tasks, err = ta.ListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
 		if err != nil {
 			t.Fatalf("TasksListTasksFor failed: %v", err)
 		}
@@ -71,9 +72,9 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{"download_media": false})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"download_media": false})
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, core.KW{}); err != nil {
+		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
 		}
 
@@ -84,14 +85,14 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{"download_media": false})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"download_media": false})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, core.KW{}); err != nil {
+		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
 		}
 
-		tasks, err := ta.TasksListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
+		tasks, err := ta.ListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
 		if err != nil {
 			t.Fatalf("TasksListTasksFor failed: %v", err)
 		}
@@ -104,11 +105,11 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
 		priority := 1
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, core.KW{core.Opt("priority", priority)}); err != nil {
+		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{store.Opt("priority", priority)}); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
 		}
 
@@ -123,10 +124,10 @@ func TestDownloadingHelpers_DequeuePendingDownloadTasks(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, core.KW{}); err != nil {
+		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
 		}
 		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: core.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
@@ -136,7 +137,7 @@ func TestDownloadingHelpers_DequeuePendingDownloadTasks(t *testing.T) {
 		}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: core.MediaDownloadWorkerName})
-		tasks, err := ta.TasksListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
+		tasks, err := ta.ListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
 		if err != nil {
 			t.Fatalf("TasksListTasksFor failed: %v", err)
 		}
@@ -149,9 +150,9 @@ func TestDownloadingHelpers_DequeuePendingDownloadTasks(t *testing.T) {
 func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 	t.Parallel()
 
-	setup := func(t *testing.T) (*coretest.TestApp, *core.MediaItem) {
+	setup := func(t *testing.T) (*coretest.TestApp, *store.MediaItem) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		return ta, mediaItem
 	}
 
@@ -159,7 +160,7 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 		ta, mediaItem := setup(t)
 		ctx := ta.Ctx
 
-		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, core.KW{})
+		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.KW{})
 		if err != nil {
 			t.Fatalf("DownloadingHelpersKickoffDownloadIfPending failed: %v", err)
 		}
@@ -171,12 +172,12 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 		ta, mediaItem := setup(t)
 		ctx := ta.Ctx
 
-		task, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, core.KW{})
+		task, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.KW{})
 		if err != nil {
 			t.Fatalf("DownloadingHelpersKickoffDownloadIfPending failed: %v", err)
 		}
 
-		tasks, err := ta.TasksListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
+		tasks, err := ta.ListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
 		if err != nil {
 			t.Fatalf("TasksListTasksFor failed: %v", err)
 		}
@@ -193,10 +194,10 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{"download_media": false})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"download_media": false})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
-		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, core.KW{})
+		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.KW{})
 		if err == nil {
 			t.Fatalf("expected error, got nil")
 		}
@@ -211,11 +212,11 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		profile := coretest.MediaProfileFixture(t, ta, core.Attrs{"livestream_behaviour": "exclude"})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": profile.ID})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
+		profile := coretest.MediaProfileFixture(t, ta, store.Attrs{"livestream_behaviour": "exclude"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
 
-		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, core.KW{})
+		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.KW{})
 		if err == nil {
 			t.Fatalf("expected error, got nil")
 		}
@@ -231,7 +232,7 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 		ctx := ta.Ctx
 
 		priority := 1
-		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, core.KW{core.Opt("priority", priority)})
+		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.KW{store.Opt("priority", priority)})
 		if err != nil {
 			t.Fatalf("DownloadingHelpersKickoffDownloadIfPending failed: %v", err)
 		}
@@ -245,8 +246,8 @@ func TestDownloadingHelpers_KickoffRedownloadForExistingMedia(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": "some/filepath.mp4"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": "some/filepath.mp4"})
 
 		results, err := ta.DownloadingHelpersKickoffRedownloadForExistingMedia(ctx, source)
 		if err != nil {
@@ -264,11 +265,11 @@ func TestDownloadingHelpers_KickoffRedownloadForExistingMedia(t *testing.T) {
 		ta := coretest.NewApp(t)
 		ctx := ta.Ctx
 
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
-		otherSource := coretest.SourceFixture(t, ta, core.Attrs{})
-		_ = coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
-		_ = coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": otherSource.ID, "media_filepath": "some/filepath.mp4"})
-		_ = coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": "some/filepath.mp4", "prevent_download": true})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
+		otherSource := coretest.SourceFixture(t, ta, store.Attrs{})
+		_ = coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		_ = coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": otherSource.ID, "media_filepath": "some/filepath.mp4"})
+		_ = coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": "some/filepath.mp4", "prevent_download": true})
 
 		results, err := ta.DownloadingHelpersKickoffRedownloadForExistingMedia(ctx, source)
 		if err != nil {

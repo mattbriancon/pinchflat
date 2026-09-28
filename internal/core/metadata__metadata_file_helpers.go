@@ -14,6 +14,7 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // MetadataFileHelpersMetadataDirectoryFor/1
@@ -101,7 +102,7 @@ func (a *App) MetadataFileHelpersReadCompressedMetadata(ctx context.Context, fil
 
 	// Decode JSON
 	var result map[string]any
-	if err := DecodeJSON(buf.Bytes(), &result); err != nil {
+	if err := store.DecodeJSON(buf.Bytes(), &result); err != nil {
 		return nil, err
 	}
 
@@ -109,7 +110,7 @@ func (a *App) MetadataFileHelpersReadCompressedMetadata(ctx context.Context, fil
 }
 
 // MetadataFileHelpersDownloadAndStoreThumbnailFor/1
-func (a *App) MetadataFileHelpersDownloadAndStoreThumbnailFor(ctx context.Context, mediaItemWithPreloads *MediaItem) (*string, error) {
+func (a *App) MetadataFileHelpersDownloadAndStoreThumbnailFor(ctx context.Context, mediaItemWithPreloads *store.MediaItem) (*string, error) {
 	ytDlpFilepath, err := metadataFileHelpersGenerateFilepathFor(ctx, a, mediaItemWithPreloads, "thumbnail.%(ext)s")
 	if err != nil {
 		return nil, err
@@ -120,12 +121,12 @@ func (a *App) MetadataFileHelpersDownloadAndStoreThumbnailFor(ctx context.Contex
 		return nil, err
 	}
 
-	commandOpts := KW{
-		Opt("output", ytDlpFilepath),
+	commandOpts := store.KW{
+		store.Opt("output", ytDlpFilepath),
 	}
 
-	addlOpts := KW{
-		Opt("use_cookies", SourcesUseCookies(mediaItemWithPreloads.Source, "metadata")),
+	addlOpts := store.KW{
+		store.Opt("use_cookies", store.UseCookies(mediaItemWithPreloads.Source, "metadata")),
 	}
 
 	_, err = a.YtDlpMediaDownloadThumbnail(ctx, mediaItemWithPreloads.OriginalURL, commandOpts, addlOpts)

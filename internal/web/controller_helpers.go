@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // parseIDParam parses the named route param as an int64, or returns
@@ -25,7 +25,7 @@ func parseIDParam(r *http.Request, param string) (int64, bool) {
 func loadOrFail[T any](s *Server, w http.ResponseWriter, r *http.Request, param string, get func(context.Context, int64) (T, error)) (v T, ok bool) {
 	id, valid := parseIDParam(r, param)
 	if !valid {
-		s.Fail(w, r, core.ErrNotFound)
+		s.Fail(w, r, store.ErrNotFound)
 		return v, false
 	}
 	v, err := get(r.Context(), id)

@@ -10,11 +10,12 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db/dbtest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestWorkerOptionsMatchElixirJobs(t *testing.T) {
 	d := dbtest.CopyOf(t, dbtest.ElixirFixture("populated.db"))
-	app := &core.App{DB: d, Oban: obanlite.New(d)}
+	app := &core.App{Store: &store.Store{DB: d, Oban: obanlite.New(d)}}
 	app.RegisterWorkers()
 
 	type row struct {

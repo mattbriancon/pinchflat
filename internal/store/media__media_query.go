@@ -1,4 +1,4 @@
-package core
+package store
 
 // Port of lib/pinchflat/media/media_query.ex. Hand-written in W0 because it
 // defines the query-builder type the Media context and web tables compose.

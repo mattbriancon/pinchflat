@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // FriendlyIndexFrequencies is friendly_index_frequencies/0: a list of
@@ -58,7 +58,7 @@ func FriendlyCookieBehaviourOptions() []CoreSelectOption {
 
 // MediaProfileOptions turns media profiles into select options
 // (Enum.map(@media_profiles, &{&1.name, &1.id})).
-func MediaProfileOptions(mediaProfiles []*core.MediaProfile) []CoreSelectOption {
+func MediaProfileOptions(mediaProfiles []*store.MediaProfile) []CoreSelectOption {
 	out := make([]CoreSelectOption, 0, len(mediaProfiles))
 	for _, p := range mediaProfiles {
 		out = append(out, CoreSelectOption{Label: p.Name, Value: fmt.Sprint(p.ID)})
@@ -108,8 +108,8 @@ func sourcesHTMLNow(ctx context.Context) time.Time {
 // separate concatenation (rather than a single ~p sigil) works around a
 // Phoenix bug (see the Elixir source); it has no effect in the Go port but
 // is kept for parity.
-func RssFeedURL(ctx context.Context, source *core.Source) string {
-	return URL(ctx, "/sources/%v/feed", core.Deref(source.UUID)) + ".xml"
+func RssFeedURL(ctx context.Context, source *store.Source) string {
+	return URL(ctx, "/sources/%v/feed", store.Deref(source.UUID)) + ".xml"
 }
 
 // OpmlFeedURL is opml_feed_url/1: the absolute, route-token-protected OPML
@@ -117,7 +117,7 @@ func RssFeedURL(ctx context.Context, source *core.Source) string {
 func OpmlFeedURL(ctx context.Context) string {
 	token := ""
 	if a := layoutsApp(ctx); a != nil {
-		if v, err := a.SettingsGetBang(ctx, "route_token"); err == nil {
+		if v, err := a.GetSettingBang(ctx, "route_token"); err == nil {
 			token, _ = v.(string)
 		}
 	}
@@ -125,7 +125,7 @@ func OpmlFeedURL(ctx context.Context) string {
 }
 
 // OutputPathTemplateOverridePlaceholders returns a JSON map of media profile output path templates.
-func OutputPathTemplateOverridePlaceholders(mediaProfiles []*core.MediaProfile) string {
+func OutputPathTemplateOverridePlaceholders(mediaProfiles []*store.MediaProfile) string {
 	m := make(map[int64]string)
 	for _, p := range mediaProfiles {
 		m[p.ID] = p.OutputPathTemplate
@@ -163,6 +163,6 @@ func computeDateOffset(t time.Time, days int) string {
 // sourcesJSONLiteral is String.raw`#{Jason.Formatter.pretty_print(Jason.encode!(@source))}`
 // for the "Copy JSON" action. Source's encoder includes its media_profile,
 // so the caller must have preloaded it.
-func sourcesJSONLiteral(source *core.Source) string {
+func sourcesJSONLiteral(source *store.Source) string {
 	return "String.raw`" + prettyJSON(source) + "`"
 }

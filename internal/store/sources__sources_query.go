@@ -1,4 +1,4 @@
-package core
+package store
 
 // Port of lib/pinchflat/sources/sources_query.ex (alias: sources AS s).
 

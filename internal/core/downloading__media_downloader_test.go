@@ -9,6 +9,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
@@ -16,15 +17,15 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 
 	t.Run("calls the backend runner", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		// Stub HTTP mock
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			} else if action == "download_thumbnail" {
@@ -50,7 +51,7 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 			return "", fmt.Errorf("unexpected action: %s", action)
 		})
 
-		result, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
@@ -62,14 +63,14 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 
 	t.Run("saves the metadata filepath to the database", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			} else if action == "download_thumbnail" {
@@ -85,7 +86,7 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 			t.Errorf("expected no metadata initially")
 		}
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil {
 			t.Errorf("expected result")
@@ -103,21 +104,21 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 
 	t.Run("errors for non-downloadable media are passed through", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return `{"live_status": "is_live"}`, nil
 			}
 			return "", nil
 		})
 
-		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if err == nil {
 			t.Errorf("expected error")
@@ -133,21 +134,21 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 
 	t.Run("non-recoverable errors are passed through", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
 			return "", &fsutil.CommandError{Output: "some_error", Status: 1}
 		})
 
-		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if err == nil {
 			t.Errorf("expected error")
@@ -163,21 +164,21 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 
 	t.Run("unknown errors are passed through", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
 			return "", fmt.Errorf("some_error")
 		})
 
-		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if err == nil {
 			t.Errorf("expected error")
@@ -197,14 +198,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonDownloadableMedia(t 
 
 	t.Run("calls the download runner if the media is currently downloadable", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return `{"live_status": "was_live"}`, nil
 			} else if action == "download" {
@@ -216,7 +217,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonDownloadableMedia(t 
 			return "", nil
 		})
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil {
 			t.Errorf("expected result")
@@ -225,21 +226,21 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonDownloadableMedia(t 
 
 	t.Run("does not call the download runner if the media is not downloadable", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return `{"live_status": "is_live"}`, nil
 			}
 			return "", nil
 		})
 
-		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if err == nil {
 			t.Errorf("expected error")
@@ -248,21 +249,21 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonDownloadableMedia(t 
 
 	t.Run("returns unexpected errors from the download status determination method", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "", fmt.Errorf("what_tha")
 			}
 			return "", nil
 		})
 
-		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if err == nil {
 			t.Errorf("expected error")
@@ -282,14 +283,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingOverrideOptions(t *test
 
 	t.Run("includes override opts if specified", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			} else if action == "download" {
@@ -318,7 +319,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingOverrideOptions(t *test
 			return "", nil
 		})
 
-		overrideOpts := core.KW{core.Opt("overwrite_behaviour", "no_force_overwrites")}
+		overrideOpts := store.KW{store.Opt("overwrite_behaviour", "no_force_overwrites")}
 		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, overrideOpts)
 
 		if result == nil {
@@ -332,15 +333,15 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 
 	t.Run("sets use_cookies if the source uses cookies", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "all_operations"})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "all_operations"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			useCookies, _ := addlOpts.Get("use_cookies")
 			if useCookies != true {
 				t.Errorf("expected use_cookies to be true, got %v", useCookies)
@@ -356,7 +357,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 			return "", nil
 		})
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil {
 			t.Errorf("expected result")
@@ -365,15 +366,15 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 
 	t.Run("does not set use_cookies if the source uses cookies when needed", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "when_needed"})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "when_needed"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			useCookies, _ := addlOpts.Get("use_cookies")
 			if useCookies != false {
 				t.Errorf("expected use_cookies to be false, got %v", useCookies)
@@ -389,7 +390,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 			return "", nil
 		})
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil {
 			t.Errorf("expected result")
@@ -398,15 +399,15 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 
 	t.Run("does not set use_cookies if the source does not use cookies", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "disabled"})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "disabled"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			useCookies, _ := addlOpts.Get("use_cookies")
 			if useCookies != false {
 				t.Errorf("expected use_cookies to be false, got %v", useCookies)
@@ -422,7 +423,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 			return "", nil
 		})
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil {
 			t.Errorf("expected result")
@@ -435,14 +436,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 
 	t.Run("returns a recovered tuple on recoverable errors", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			} else if action == "download" {
@@ -457,7 +458,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 			return "", nil
 		})
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil {
 			t.Errorf("expected result")
@@ -469,14 +470,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 
 	t.Run("attempts to update the media item on recoverable errors", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			} else if action == "download" {
@@ -491,7 +492,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 			return "", nil
 		})
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil {
 			t.Errorf("expected result")
@@ -507,14 +508,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 
 	t.Run("returns an unrecoverable tuple if recovery fails", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			} else if action == "download" {
@@ -524,7 +525,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 			return "", nil
 		})
 
-		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if err == nil {
 			t.Errorf("expected error")
@@ -540,14 +541,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 
 	t.Run("sets the last_error appropriately when recovered", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			} else if action == "download" {
@@ -562,7 +563,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 			return "", nil
 		})
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil || result.MediaItem.LastError == nil {
 			t.Errorf("expected last_error to be set")
@@ -574,14 +575,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 
 	t.Run("sets the last_error appropriately when unrecoverable", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			} else if action == "download" {
@@ -590,10 +591,10 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 			return "", nil
 		})
 
-		_, _ = ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		_, _ = ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
-		// Reload the media item from the database
-		reloadedMediaItem, _ := ta.App.MediaGetMediaItem(ta.Ctx, mediaItem.ID)
+		// store.Reload the media item from the database
+		reloadedMediaItem, _ := ta.App.GetMediaItem(ta.Ctx, mediaItem.ID)
 
 		if reloadedMediaItem.LastError == nil {
 			t.Errorf("expected last_error to be set")
@@ -609,15 +610,15 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 
 	t.Run("retries with cookies if we think it would help and the source allows", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "when_needed"})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "when_needed"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(4, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(4, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			useCookies, _ := addlOpts.Get("use_cookies")
 			if action == "get_downloadable_status" {
 				if useCookies == false {
@@ -634,7 +635,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 			return "", nil
 		})
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil {
 			t.Errorf("expected result")
@@ -643,22 +644,22 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 
 	t.Run("does not retry with cookies if we don't think it would help even the source allows", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "when_needed"})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "when_needed"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "", &fsutil.CommandError{Output: "Some other error", Status: 1}
 			}
 			return "", nil
 		})
 
-		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if err == nil {
 			t.Errorf("expected error")
@@ -674,22 +675,22 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 
 	t.Run("does not retry with cookies even if we think it would help but source doesn't allow", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "disabled"})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "disabled"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "", &fsutil.CommandError{Output: "Sign in to confirm your age", Status: 1}
 			}
 			return "", nil
 		})
 
-		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if err == nil {
 			t.Errorf("expected error")
@@ -705,22 +706,22 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 
 	t.Run("does not retry with cookies if cookies were already used", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"cookie_behaviour": "all_operations"})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "all_operations"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "", &fsutil.CommandError{Output: "This video is available to this channel's members", Status: 1}
 			}
 			return "", nil
 		})
 
-		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		_, err := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if err == nil {
 			t.Errorf("expected error")
@@ -740,14 +741,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("sets the media_downloaded_at", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				metadata, _ := coretest.RenderMetadata("media_metadata")
 				return metadata, nil
@@ -763,7 +764,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 			t.Errorf("expected media_downloaded_at to be nil initially")
 		}
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil || result.MediaItem.MediaDownloadedAt == nil {
 			t.Errorf("expected media_downloaded_at to be set")
@@ -777,14 +778,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("sets the culled_at to nil", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil, "culled_at": time.Now().UTC()})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil, "culled_at": time.Now().UTC()})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				metadata, _ := coretest.RenderMetadata("media_metadata")
 				return metadata, nil
@@ -796,7 +797,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 			return "", nil
 		})
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil || result.MediaItem.CulledAt != nil {
 			t.Errorf("expected culled_at to be nil")
@@ -805,14 +806,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("extracts the title", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				metadata, _ := coretest.RenderMetadata("media_metadata")
 				return metadata, nil
@@ -824,7 +825,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 			return "", nil
 		})
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil || result.MediaItem.Title == nil || *result.MediaItem.Title != "Pinchflat Example Video" {
 			title := ""
@@ -837,14 +838,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("extracts the description", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				metadata, _ := coretest.RenderMetadata("media_metadata")
 				return metadata, nil
@@ -856,7 +857,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 			return "", nil
 		})
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil || result.MediaItem.Description == nil || *result.MediaItem.Description == "" {
 			t.Errorf("expected description to be set")
@@ -865,14 +866,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("extracts the media_filepath", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				metadata, _ := coretest.RenderMetadata("media_metadata")
 				return metadata, nil
@@ -888,7 +889,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 			t.Errorf("expected media_filepath to be nil initially")
 		}
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil || result.MediaItem.MediaFilepath == nil || !mediaDownloaderTestHasExtension(*result.MediaItem.MediaFilepath, ".mkv") {
 			t.Errorf("expected media_filepath to end with .mkv")
@@ -897,14 +898,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("extracts the subtitle_filepaths", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				metadata, _ := coretest.RenderMetadata("media_metadata")
 				return metadata, nil
@@ -920,7 +921,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 			t.Errorf("expected no subtitle_filepaths initially")
 		}
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil || len(result.MediaItem.SubtitleFilepaths) == 0 {
 			t.Errorf("expected subtitle_filepaths to be extracted")
@@ -929,14 +930,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("extracts the duration_seconds", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				metadata, _ := coretest.RenderMetadata("media_metadata")
 				return metadata, nil
@@ -952,7 +953,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 			t.Errorf("expected duration_seconds to be nil initially")
 		}
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil || result.MediaItem.DurationSeconds == nil {
 			t.Errorf("expected duration_seconds to be set")
@@ -961,14 +962,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("extracts the thumbnail_filepath", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				// Return the parsed live_status response
 				return `{"live_status":"not_live"}`, nil
@@ -985,7 +986,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 			t.Errorf("expected thumbnail_filepath to be nil initially")
 		}
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		// The thumbnail_filepath should exist (it's created by MetadataFileHelpersDownloadAndStoreThumbnailFor)
 		// We just check that it was populated
@@ -996,14 +997,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("extracts the metadata_filepath", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				// Return the parsed live_status response
 				return `{"live_status":"not_live"}`, nil
@@ -1020,7 +1021,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 			t.Errorf("expected metadata_filepath to be nil initially")
 		}
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		// The metadata_filepath should exist (it's created by MetadataFileHelpersCompressAndStoreMetadataFor)
 		// We just check that it was populated
@@ -1031,14 +1032,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("sets the last_error to nil on success", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"media_filepath": nil, "last_error": "Some error"})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil, "last_error": "Some error"})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				metadata, _ := coretest.RenderMetadata("media_metadata")
 				return metadata, nil
@@ -1050,7 +1051,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 			return "", nil
 		})
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil || result.MediaItem.LastError != nil {
 			t.Errorf("expected last_error to be nil")
@@ -1059,14 +1060,14 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("sets the last_error to the error message on failure", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			} else if action == "download" {
@@ -1075,10 +1076,10 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 			return "", nil
 		})
 
-		_, _ = ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		_, _ = ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
-		// Reload the media item from the database
-		reloadedMediaItem, _ := ta.App.MediaGetMediaItem(ta.Ctx, mediaItem.ID)
+		// store.Reload the media item from the database
+		reloadedMediaItem, _ := ta.App.GetMediaItem(ta.Ctx, mediaItem.ID)
 
 		if reloadedMediaItem.LastError == nil {
 			t.Errorf("expected last_error to be set")
@@ -1091,16 +1092,16 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNFOGeneration(t *testin
 
 	t.Run("generates an NFO file if the source is set to download NFOs", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_nfo": true})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": mediaProfile.ID})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{"download_nfo": true})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				metadata, _ := coretest.RenderMetadata("media_metadata")
 				return metadata, nil
@@ -1112,7 +1113,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNFOGeneration(t *testin
 			return "", nil
 		})
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil || result.MediaItem.NfoFilepath == nil {
 			t.Errorf("expected NFO filepath to be set")
@@ -1131,16 +1132,16 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNFOGeneration(t *testin
 
 	t.Run("does not generate an NFO file if the source is set to not download NFOs", func(t *testing.T) {
 		ta := coretest.NewApp(t)
-		mediaProfile := coretest.MediaProfileFixture(t, ta, core.Attrs{"download_nfo": false})
-		source := coretest.SourceFixture(t, ta, core.Attrs{"media_profile_id": mediaProfile.ID})
-		mediaItem := coretest.MediaItemFixture(t, ta, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaProfile := coretest.MediaProfileFixture(t, ta, store.Attrs{"download_nfo": false})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		mediaItem := coretest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
 			return "", nil
 		})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts core.KW, outputTemplate string, addlOpts core.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
 			if action == "download" {
 				metadata, _ := coretest.RenderMetadata("media_metadata")
 				return metadata, nil
@@ -1152,7 +1153,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNFOGeneration(t *testin
 			return "", nil
 		})
 
-		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, core.KW{})
+		result, _ := ta.App.MediaDownloaderDownloadForMediaItem(ta.Ctx, mediaItem, store.KW{})
 
 		if result == nil || result.MediaItem.NfoFilepath != nil {
 			t.Errorf("expected NfoFilepath to be nil")

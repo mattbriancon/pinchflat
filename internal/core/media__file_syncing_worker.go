@@ -5,6 +5,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 const FileSyncingWorkerName = "Pinchflat.Media.FileSyncingWorker"
@@ -15,7 +16,7 @@ var fileSyncingWorkerOpts = obanlite.WorkerOpts{
 }
 
 // FileSyncingWorker.kickoff_with_task/2
-func (a *App) FileSyncingWorkerKickoffWithTask(ctx context.Context, source *Source, opts KW) (*Task, error) {
+func (a *App) FileSyncingWorkerKickoffWithTask(ctx context.Context, source *store.Source, opts store.KW) (*store.Task, error) {
 	jobSpec := obanlite.JobSpec{
 		Worker: FileSyncingWorkerName,
 		Args: map[string]any{
@@ -44,7 +45,7 @@ func (a *App) FileSyncingWorkerKickoffWithTask(ctx context.Context, source *Sour
 		}
 	}
 
-	return a.TasksCreateJobWithTask(ctx, jobSpec, source)
+	return a.CreateJobWithTask(ctx, jobSpec, source)
 }
 
 // FileSyncingWorker.perform/1
@@ -57,13 +58,13 @@ func (a *App) FileSyncingWorkerPerform(ctx context.Context, job *obanlite.Job) e
 		return err
 	}
 
-	source, err := a.SourcesGetSource(ctx, args.ID)
+	source, err := a.GetSource(ctx, args.ID)
 	if err != nil {
 		return err
 	}
 
 	// Preload media_items
-	mediaItems, err := All[MediaItem](ctx, a.Q(ctx), From[MediaItem]().Where(sq.Eq{"source_id": source.ID}))
+	mediaItems, err := store.All[store.MediaItem](ctx, a.Q(ctx), store.From[store.MediaItem]().Where(sq.Eq{"source_id": source.ID}))
 	if err != nil {
 		return err
 	}

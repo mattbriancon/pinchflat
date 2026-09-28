@@ -5,8 +5,8 @@ package web
 // this flat package.
 
 import (
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // mpKV is one entry of media_center_custom_output_template_options/0 and
@@ -144,7 +144,7 @@ func mediaProfilesPresetOptions() []CoreSelectOption {
 // schema field defaults on a bare struct literal, so this must go through
 // the NewMediaProfile() constructor rather than a zero-value MediaProfile{}.
 func mediaProfilesDefaultOutputTemplate() string {
-	return core.NewMediaProfile().OutputPathTemplate
+	return store.NewMediaProfile().OutputPathTemplate
 }
 
 // mediaProfilesMediaCenterOutputTemplate is media_center_output_template/0.

@@ -3,7 +3,7 @@ package web
 import (
 	"net/http"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // SearchControllerShow: show(conn, params)
@@ -14,13 +14,13 @@ func (s *Server) SearchControllerShow(w http.ResponseWriter, r *http.Request) {
 		searchTerm = ""
 	}
 
-	searchResults, err := s.App.MediaSearch(ctx, searchTerm, core.KW{})
+	searchResults, err := s.App.Search(ctx, searchTerm, store.KW{})
 	if err != nil {
 		s.Fail(w, r, err)
 		return
 	}
 	if searchResults == nil {
-		searchResults = []*core.MediaItem{}
+		searchResults = []*store.MediaItem{}
 	}
 
 	s.Render(w, r, http.StatusOK, LayoutApp, SearchHTMLShow(searchTerm, searchResults))

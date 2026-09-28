@@ -1,4 +1,4 @@
-package core
+package store
 
 // Repo helpers: the Ecto.Repo operations Pinchflat uses, over db-tagged
 // schema structs. Hand-written W0 infrastructure; not a manifest row.

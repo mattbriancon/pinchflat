@@ -1,4 +1,4 @@
-package core
+package store
 
 // Port of lib/pinchflat/tasks/tasks_query.ex (aliases: tasks AS t, oban_jobs AS j).
 

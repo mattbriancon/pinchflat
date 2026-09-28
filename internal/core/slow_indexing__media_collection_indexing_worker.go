@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // MediaCollectionIndexingWorker indexes media collections for sources.
@@ -22,9 +23,9 @@ var mediaCollectionIndexingWorkerOpts = obanlite.WorkerOpts{
 }
 
 // MediaCollectionIndexingWorkerKickoffWithTask/3
-func (a *App) MediaCollectionIndexingWorkerKickoffWithTask(ctx context.Context, source *Source, jobArgs Attrs, jobOpts KW) (*Task, error) {
+func (a *App) MediaCollectionIndexingWorkerKickoffWithTask(ctx context.Context, source *store.Source, jobArgs store.Attrs, jobOpts store.KW) (*store.Task, error) {
 	// Build arguments
-	args := Attrs{"id": source.ID}
+	args := store.Attrs{"id": source.ID}
 	if jobArgs != nil {
 		for k, v := range jobArgs {
 			args[k] = v
@@ -45,7 +46,7 @@ func (a *App) MediaCollectionIndexingWorkerKickoffWithTask(ctx context.Context, 
 		spec.MaxAttempts = maxAttempts.(int)
 	}
 
-	return a.TasksCreateJobWithTask(ctx, spec, source)
+	return a.CreateJobWithTask(ctx, spec, source)
 }
 
 // MediaCollectionIndexingWorkerPerform/1
@@ -60,7 +61,7 @@ func (a *App) MediaCollectionIndexingWorkerPerform(ctx context.Context, job *oba
 	}
 
 	// Get the source
-	source, err := a.SourcesGetSource(ctx, args.ID)
+	source, err := a.GetSource(ctx, args.ID)
 	if err != nil {
 		// Log and return nil to discard the job
 		slog.Info("MediaCollectionIndexingWorker discarded: source not found", "id", args.ID)
@@ -105,23 +106,23 @@ func (a *App) MediaCollectionIndexingWorkerPerform(ctx context.Context, job *oba
 
 // Private helpers
 
-func mediaCollectionIndexingWorkerPerformIndexing(ctx context.Context, a *App, source *Source, wasForced bool) error {
-	_, err := a.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx, source, KW{
-		Opt("was_forced", wasForced),
+func mediaCollectionIndexingWorkerPerformIndexing(ctx context.Context, a *App, source *store.Source, wasForced bool) error {
+	_, err := a.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx, source, store.KW{
+		store.Opt("was_forced", wasForced),
 	})
 	return err
 }
 
-func mediaCollectionIndexingWorkerRescheduleIndexing(ctx context.Context, a *App, source *Source) error {
+func mediaCollectionIndexingWorkerRescheduleIndexing(ctx context.Context, a *App, source *store.Source) error {
 	nextRunIn := source.IndexFrequencyMinutes * 60
 
 	spec := obanlite.JobSpec{
 		Worker:     MediaCollectionIndexingWorkerName,
-		Args:       Attrs{"id": source.ID},
+		Args:       store.Attrs{"id": source.ID},
 		ScheduleIn: nextRunIn,
 	}
 
-	_, err := a.TasksCreateJobWithTask(ctx, spec, source)
+	_, err := a.CreateJobWithTask(ctx, spec, source)
 	if err != nil {
 		if err.Error() == "duplicate_job" {
 			return nil
@@ -132,25 +133,25 @@ func mediaCollectionIndexingWorkerRescheduleIndexing(ctx context.Context, a *App
 	return nil
 }
 
-func mediaCollectionIndexingWorkerMaybeEnqueueFastIndexingTask(ctx context.Context, a *App, source *Source) error {
+func mediaCollectionIndexingWorkerMaybeEnqueueFastIndexingTask(ctx context.Context, a *App, source *store.Source) error {
 	if !source.FastIndex {
 		return nil
 	}
 
 	// Delete existing fast indexing tasks
-	if err := a.TasksDeletePendingTasksFor(ctx, source, stringPtr("FastIndexingWorker"), KW{}); err != nil {
+	if err := a.DeletePendingTasksFor(ctx, source, stringPtr("FastIndexingWorker"), store.KW{}); err != nil {
 		return err
 	}
 
-	nextRunIn := SourceFastIndexFrequency() * 60
+	nextRunIn := store.SourceFastIndexFrequency() * 60
 
 	spec := obanlite.JobSpec{
 		Worker:     FastIndexingWorkerName,
-		Args:       Attrs{"id": source.ID},
+		Args:       store.Attrs{"id": source.ID},
 		ScheduleIn: nextRunIn,
 	}
 
-	_, err := a.TasksCreateJobWithTask(ctx, spec, source)
+	_, err := a.CreateJobWithTask(ctx, spec, source)
 	if err != nil {
 		// Ignore duplicate job errors
 		if err.Error() == "duplicate_job" {

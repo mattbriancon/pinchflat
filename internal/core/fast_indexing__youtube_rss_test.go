@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 func TestYoutubeRss_Enabled(t *testing.T) {
@@ -24,9 +24,9 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 	t.Run("builds URL for channel", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "channel", "collection_id": "channel_id"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "channel", "collection_id": "channel_id"})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			if !strings.Contains(url, "https://www.youtube.com/feeds/videos.xml?channel_id=channel_id") {
 				t.Errorf("url=%s, want channel pattern", url)
 			}
@@ -42,9 +42,9 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 	t.Run("builds URL for playlist", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{"collection_type": "playlist", "collection_id": "playlist_id"})
+		source := coretest.SourceFixture(t, ta, store.Attrs{"collection_type": "playlist", "collection_id": "playlist_id"})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			if !strings.Contains(url, "https://www.youtube.com/feeds/videos.xml?playlist_id=playlist_id") {
 				t.Errorf("url=%s, want playlist pattern", url)
 			}
@@ -60,9 +60,9 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 	t.Run("returns fetch error", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			return "", ErrTest
 		})
 
@@ -75,9 +75,9 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 	t.Run("returns media IDs", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			return "<yt:videoId>test_1</yt:videoId><yt:videoId>test_2</yt:videoId>", nil
 		})
 
@@ -93,9 +93,9 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 	t.Run("trims whitespace", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			return "<yt:videoId> test_1 </yt:videoId><yt:videoId> test_2 </yt:videoId>", nil
 		})
 
@@ -111,9 +111,9 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 	t.Run("filters empty IDs", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			return "<yt:videoId>test_1</yt:videoId><yt:videoId></yt:videoId>", nil
 		})
 
@@ -129,9 +129,9 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 	t.Run("deduplicates IDs", func(t *testing.T) {
 		t.Parallel()
 		ta := coretest.NewApp(t)
-		source := coretest.SourceFixture(t, ta, core.Attrs{})
+		source := coretest.SourceFixture(t, ta, store.Attrs{})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts core.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
 			return "<yt:videoId>test_1</yt:videoId><yt:videoId>test_1</yt:videoId>", nil
 		})
 

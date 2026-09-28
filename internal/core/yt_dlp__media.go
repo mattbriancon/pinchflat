@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
@@ -11,8 +12,8 @@ import (
 type YtDlpMedia = ytdlp.Media
 
 // YtDlpMediaDownload/3
-func (a *App) YtDlpMediaDownload(ctx context.Context, url string, commandOpts KW, addlOpts KW) (map[string]any, error) {
-	allCommandOpts := append(KW{Flag("no_simulate")}, commandOpts...)
+func (a *App) YtDlpMediaDownload(ctx context.Context, url string, commandOpts store.KW, addlOpts store.KW) (map[string]any, error) {
+	allCommandOpts := append(store.KW{store.Flag("no_simulate")}, commandOpts...)
 
 	output, err := a.YtDlp.Run(ctx, url, "download", allCommandOpts, "after_move:%()j", addlOpts)
 	if err != nil {
@@ -20,7 +21,7 @@ func (a *App) YtDlpMediaDownload(ctx context.Context, url string, commandOpts KW
 	}
 
 	result := map[string]any{}
-	if err := DecodeJSON([]byte(output), &result); err != nil {
+	if err := store.DecodeJSON([]byte(output), &result); err != nil {
 		return nil, err
 	}
 
@@ -28,8 +29,8 @@ func (a *App) YtDlpMediaDownload(ctx context.Context, url string, commandOpts KW
 }
 
 // YtDlpMediaGetDownloadableStatus/2
-func (a *App) YtDlpMediaGetDownloadableStatus(ctx context.Context, url string, addlOpts KW) (string, error) {
-	commandOpts := KW{Flag("simulate"), Flag("skip_download")}
+func (a *App) YtDlpMediaGetDownloadableStatus(ctx context.Context, url string, addlOpts store.KW) (string, error) {
+	commandOpts := store.KW{store.Flag("simulate"), store.Flag("skip_download")}
 
 	output, err := a.YtDlp.Run(ctx, url, "get_downloadable_status", commandOpts, "%(.{live_status})j", addlOpts)
 	if err != nil {
@@ -37,7 +38,7 @@ func (a *App) YtDlpMediaGetDownloadableStatus(ctx context.Context, url string, a
 	}
 
 	parsed := map[string]any{}
-	if err := DecodeJSON([]byte(output), &parsed); err != nil {
+	if err := store.DecodeJSON([]byte(output), &parsed); err != nil {
 		return "", err
 	}
 
@@ -45,9 +46,9 @@ func (a *App) YtDlpMediaGetDownloadableStatus(ctx context.Context, url string, a
 }
 
 // YtDlpMediaDownloadThumbnail/3
-func (a *App) YtDlpMediaDownloadThumbnail(ctx context.Context, url string, commandOpts KW, addlOpts KW) (string, error) {
+func (a *App) YtDlpMediaDownloadThumbnail(ctx context.Context, url string, commandOpts store.KW, addlOpts store.KW) (string, error) {
 	allCommandOpts := append(
-		KW{Flag("no_simulate"), Flag("skip_download"), Flag("write_thumbnail"), Opt("convert_thumbnail", "jpg")},
+		store.KW{store.Flag("no_simulate"), store.Flag("skip_download"), store.Flag("write_thumbnail"), store.Opt("convert_thumbnail", "jpg")},
 		commandOpts...,
 	)
 
@@ -60,8 +61,8 @@ func (a *App) YtDlpMediaDownloadThumbnail(ctx context.Context, url string, comma
 }
 
 // YtDlpMediaGetMediaAttributes/3
-func (a *App) YtDlpMediaGetMediaAttributes(ctx context.Context, url string, commandOpts KW, addlOpts KW) (*YtDlpMedia, error) {
-	allCommandOpts := append(KW{Flag("simulate"), Flag("skip_download")}, commandOpts...)
+func (a *App) YtDlpMediaGetMediaAttributes(ctx context.Context, url string, commandOpts store.KW, addlOpts store.KW) (*YtDlpMedia, error) {
+	allCommandOpts := append(store.KW{store.Flag("simulate"), store.Flag("skip_download")}, commandOpts...)
 	outputTemplate := YtDlpMediaIndexingOutputTemplate()
 
 	output, err := a.YtDlp.Run(ctx, url, "get_media_attributes", allCommandOpts, outputTemplate, addlOpts)
@@ -70,7 +71,7 @@ func (a *App) YtDlpMediaGetMediaAttributes(ctx context.Context, url string, comm
 	}
 
 	parsed := map[string]any{}
-	if err := DecodeJSON([]byte(output), &parsed); err != nil {
+	if err := store.DecodeJSON([]byte(output), &parsed); err != nil {
 		return nil, err
 	}
 

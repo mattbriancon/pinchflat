@@ -21,7 +21,7 @@ func layoutsYtDlpVersion(ctx context.Context) string {
 	if a == nil {
 		return ""
 	}
-	v, err := a.SettingsGetBang(ctx, "yt_dlp_version")
+	v, err := a.GetSettingBang(ctx, "yt_dlp_version")
 	if err != nil {
 		return ""
 	}
