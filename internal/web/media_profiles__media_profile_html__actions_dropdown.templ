@@ -14,9 +14,9 @@ templ MediaProfilesHTMLActionsDropdown(mediaProfile *store.MediaProfile) {
 }
 
 templ mediaProfilesCopyJSONOption(mediaProfile *store.MediaProfile) {
-	<span x-data="{ copied: false }" x-on:click={ mediaProfilesCopyWithCallbacksJS(mediaProfile) }>
+	<span data-copy={ prettyJSON(mediaProfile) }>
 		Copy JSON
-		<span x-show="copied" x-transition.duration.150ms>
+		<span data-copied hidden>
 			@CoreIcon("hero-check", "ml-2 h-4 w-4", nil)
 		</span>
 	</span>

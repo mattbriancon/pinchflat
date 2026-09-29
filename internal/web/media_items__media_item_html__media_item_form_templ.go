@@ -33,8 +33,6 @@ func MediaItemsMediaItemHTMLMediaItemForm(f *Form, action string) templ.Componen
 			templ.Attributes{
 				"action": action,
 				"method": "post",
-				"x-data": "{ advancedMode: !!JSON.parse(localStorage.getItem('advancedMode')) }",
-				"x-init": "$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))",
 			},
 			mediaItemFormContent(f),
 			nil,

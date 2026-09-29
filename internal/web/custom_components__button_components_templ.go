@@ -119,12 +119,12 @@ func ButtonButtonDropdown(text string, class string, options []ButtonButtonOptio
 			templ_7745c5c3_Var5 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		var templ_7745c5c3_Var6 = []any{"relative flex", class}
+		var templ_7745c5c3_Var6 = []any{"dropdown group relative flex", class}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var6...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div x-data=\"{ dropdownOpen: false }\" class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<details class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -137,24 +137,24 @@ func ButtonButtonDropdown(text string, class string, options []ButtonButtonOptio
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\"><span x-on:click.prevent=\"dropdownOpen = !dropdownOpen\" class=\"cursor-pointer inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm whitespace-nowrap font-medium text-white hover:bg-opacity-95\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\"><summary class=\"cursor-pointer list-none [&::-webkit-details-marker]:hidden inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm whitespace-nowrap font-medium text-white hover:bg-opacity-95\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(text)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__button_components.templ`, Line: 29, Col: 9}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `custom_components__button_components.templ`, Line: 26, Col: 9}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = CoreIcon("hero-chevron-down", "fill-current duration-200 ease-linear h-4 w-4", templ.Attributes{"x-bind:class": "dropdownOpen && 'rotate-180'"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = CoreIcon("hero-chevron-down", "fill-current duration-200 ease-linear h-4 w-4 group-open:rotate-180", nil).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</span><div x-show=\"dropdownOpen\" x-on:click.outside=\"dropdownOpen = false\" class=\"absolute right-0 top-full z-40 mt-1 min-w-full w-max rounded-lg border border-strokedark bg-graydark py-1 shadow-lg\"><ul class=\"flex flex-col\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</summary><div class=\"absolute right-0 top-full z-40 mt-1 min-w-full w-max rounded-lg border border-strokedark bg-graydark py-1 shadow-lg\"><ul class=\"flex flex-col\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -172,7 +172,7 @@ func ButtonButtonDropdown(text string, class string, options []ButtonButtonOptio
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</ul></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</ul></div></details>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

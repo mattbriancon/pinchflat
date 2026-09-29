@@ -1,8 +1,7 @@
 package web
 
 // The toggle is a plain form POST to /sources/{id}/enabled that redirects
-// back; Alpine still auto-submits the form on the hidden input's "change"
-// event, which the toggle already dispatches.
+// back; app.js auto-submits the form when the checkbox changes.
 
 import "fmt"
 
@@ -20,7 +19,7 @@ templ SourceEnableToggleRender(sourceID int64, enabled bool) {
 				Type:  "toggle",
 				Value: enabled,
 				Rest: templ.Attributes{
-					"x-on:change": "$el.form.requestSubmit()",
+					"data-submit-on-change": true,
 				},
 			})
 		</form>

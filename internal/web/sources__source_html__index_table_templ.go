@@ -244,14 +244,14 @@ func sourceLiveIndexRSSCell(state *sourceIndexTableState, row *sourceLiveIndexRo
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" x-data=\"{ copied: false }\" x-on:click=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" data-copy=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var9 string
-		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue("copyWithCallbacks('" + feedURL + "', () => copied = true, () => copied = false)")
+		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(feedURL)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__index_table.templ`, Line: 96, Col: 97}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__index_table.templ`, Line: 95, Col: 22}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 		if templ_7745c5c3_Err != nil {
@@ -261,11 +261,11 @@ func sourceLiveIndexRSSCell(state *sourceIndexTableState, row *sourceLiveIndexRo
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = CoreIcon("hero-document-duplicate", "h-4 w-4", templ.Attributes{"x-show": "!copied"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = CoreIcon("hero-document-duplicate", "h-4 w-4", templ.Attributes{"data-copy-idle": true}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = CoreIcon("hero-check", "h-4 w-4 text-meta-3", templ.Attributes{"x-show": "copied", "x-cloak": "true"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = CoreIcon("hero-check", "h-4 w-4 text-meta-3", templ.Attributes{"data-copied": true, "hidden": true}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -417,7 +417,7 @@ func sourceLiveIndexProfileName(row *sourceLiveIndexRow) templ.Component {
 		var templ_7745c5c3_Var15 string
 		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(row.MediaProfileName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__index_table.templ`, Line: 121, Col: 23}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__index_table.templ`, Line: 120, Col: 23}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 		if templ_7745c5c3_Err != nil {

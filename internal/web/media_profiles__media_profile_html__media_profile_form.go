@@ -4,19 +4,19 @@ package web
 // templ's DSL can't build inline).
 
 import (
+	"encoding/json"
+
 	"github.com/a-h/templ"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // mediaProfilesFormAttrs are the form tag's rest attributes: action, method
 // (always "post" on the wire; method="patch" adds a hidden _method field,
-// see mediaProfilesMethodOverride) and the Alpine advancedMode toggle.
+// see mediaProfilesMethodOverride).
 func mediaProfilesFormAttrs(action string) templ.Attributes {
 	return templ.Attributes{
 		"action": action,
 		"method": "post",
-		"x-data": "{ advancedMode: !!JSON.parse(localStorage.getItem('advancedMode')) }",
-		"x-init": "$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))",
 	}
 }
 
@@ -58,4 +58,16 @@ func mediaProfileForm(m *store.MediaProfile, errs map[string][]string) *Form {
 		"media_container":         nullable(m.MediaContainer, m.MediaContainer == nil),
 		"audio_track":             nullable(m.AudioTrack, m.AudioTrack == nil),
 	}, errs)
+}
+
+// mediaProfilesOutputTemplatePresets is the data-presets JSON for the output
+// path template input: what each preset button fills in.
+func mediaProfilesOutputTemplatePresets() string {
+	data, _ := json.Marshal(map[string]string{
+		"default":      mediaProfilesDefaultOutputTemplate(),
+		"media_center": mediaProfilesMediaCenterOutputTemplate(),
+		"audio":        mediaProfilesAudioOutputTemplate(),
+		"archiving":    mediaProfilesDefaultOutputTemplate(),
+	})
+	return string(data)
 }

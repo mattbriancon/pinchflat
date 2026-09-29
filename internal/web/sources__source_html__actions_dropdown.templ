@@ -35,23 +35,19 @@ func sourcesActionsDropdownOptions(source *store.Source) []ButtonButtonOption {
 templ sourcesActionsCopyRSS(source *store.Source) {
 	<a
 		href={ templ.URL(RssFeedURL(ctx, source)) }
-		x-data="{ copied: false }"
-		x-on:click={ "$event.preventDefault(); copyWithCallbacks('" + RssFeedURL(ctx, source) + "', () => copied = true, () => copied = false)" }
+		data-copy={ RssFeedURL(ctx, source) }
 	>
 		Copy RSS Feed
-		<span x-show="copied" x-transition.duration.150ms>
+		<span data-copied hidden>
 			@CoreIcon("hero-check", "ml-2 h-4 w-4", nil)
 		</span>
 	</a>
 }
 
 templ sourcesActionsCopyJSON(source *store.Source) {
-	<span
-		x-data="{ copied: false }"
-		x-on:click={ "copyWithCallbacks(" + sourcesJSONLiteral(source) + ", () => copied = true, () => copied = false)" }
-	>
+	<span data-copy={ prettyJSON(source) }>
 		Copy JSON
-		<span x-show="copied" x-transition.duration.150ms>
+		<span data-copied hidden>
 			@CoreIcon("hero-check", "ml-2 h-4 w-4", nil)
 		</span>
 	</span>

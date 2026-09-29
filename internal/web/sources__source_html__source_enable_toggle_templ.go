@@ -9,8 +9,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 // The toggle is a plain form POST to /sources/{id}/enabled that redirects
-// back; Alpine still auto-submits the form on the hidden input's "change"
-// event, which the toggle already dispatches.
+// back; app.js auto-submits the form when the checkbox changes.
 
 import "fmt"
 
@@ -43,7 +42,7 @@ func SourceEnableToggleRender(sourceID int64, enabled bool) templ.Component {
 		var templ_7745c5c3_Var2 templ.SafeURL
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/sources/%v/enabled", sourceID)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_enable_toggle.templ`, Line: 15, Col: 62}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__source_enable_toggle.templ`, Line: 14, Col: 62}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -59,7 +58,7 @@ func SourceEnableToggleRender(sourceID int64, enabled bool) templ.Component {
 			Type:  "toggle",
 			Value: enabled,
 			Rest: templ.Attributes{
-				"x-on:change": "$el.form.requestSubmit()",
+				"data-submit-on-change": true,
 			},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {

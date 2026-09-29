@@ -100,20 +100,20 @@ func mediaItemsCopyJSONOption(mediaItem *store.MediaItem) templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<span x-data=\"{ copied: false }\" x-on:click=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<span data-copy=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
-		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(mediaItemsCopyJSONScript(mediaItem))
+		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(prettyJSON(mediaItem))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__actions_dropdown.templ`, Line: 26, Col: 82}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__actions_dropdown.templ`, Line: 26, Col: 40}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\">Copy JSON <span x-show=\"copied\" x-transition.duration.150ms>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\">Copy JSON <span data-copied hidden>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -319,16 +319,6 @@ func mediaItemsDeleteAndIgnoreText() templ.Component {
 		}
 		return nil
 	})
-}
-
-// mediaItemsCopyJSONScript builds the Alpine click handler that copies
-// Jason.Formatter.pretty_print(Jason.encode!(@media_item)) to the clipboard.
-func mediaItemsCopyJSONScript(mediaItem *store.MediaItem) string {
-	return "copyWithCallbacks(" +
-		"String.raw`" + prettyJSON(mediaItem) + "`, " +
-		"() => copied = true, " +
-		"() => copied = false" +
-		")"
 }
 
 var _ = templruntime.GeneratedTemplate

@@ -23,9 +23,9 @@ templ mediaItemsDividerOption() {
 // mediaItemsCopyJSONOption is the <:option> that copies
 // Jason.Formatter.pretty_print(Jason.encode!(@media_item)) to the clipboard.
 templ mediaItemsCopyJSONOption(mediaItem *store.MediaItem) {
-	<span x-data="{ copied: false }" x-on:click={ mediaItemsCopyJSONScript(mediaItem) }>
+	<span data-copy={ prettyJSON(mediaItem) }>
 		Copy JSON
-		<span x-show="copied" x-transition.duration.150ms>
+		<span data-copied hidden>
 			@CoreIcon("hero-check", "ml-2 h-4 w-4", nil)
 		</span>
 	</span>
@@ -71,14 +71,4 @@ templ mediaItemsDeleteAndIgnoreOption(mediaItem *store.MediaItem) {
 
 templ mediaItemsDeleteAndIgnoreText() {
 	Delete and Ignore
-}
-
-// mediaItemsCopyJSONScript builds the Alpine click handler that copies
-// Jason.Formatter.pretty_print(Jason.encode!(@media_item)) to the clipboard.
-func mediaItemsCopyJSONScript(mediaItem *store.MediaItem) string {
-	return "copyWithCallbacks(" +
-		"String.raw`" + prettyJSON(mediaItem) + "`, " +
-		"() => copied = true, " +
-		"() => copied = false" +
-		")"
 }
