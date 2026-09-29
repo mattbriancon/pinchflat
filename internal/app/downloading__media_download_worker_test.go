@@ -12,39 +12,54 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
-	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
+
+// downloadWorkerApp returns an app whose user scripts and HTTP client are
+// stubbed out; callers install the yt-dlp mock they need.
+func downloadWorkerApp(t *testing.T) *apptest.TestApp {
+	ta := apptest.NewApp(t)
+	ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
+	ta.HTTPMock.Get.Stub(func(url string, headers http.Header) (string, error) { return "", nil })
+	return ta
+}
+
+// performDownload runs the media download worker for a media item; extra are
+// job args beyond the id.
+func performDownload(ta *apptest.TestApp, id int64, extra map[string]any) error {
+	args := map[string]any{"id": id}
+	for k, v := range extra {
+		args[k] = v
+	}
+	return ta.Oban.PerformJob(ta.Ctx, app.MediaDownloadWorkerName, args)
+}
 
 func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 	t.Parallel()
 
-	t.Run("starts the worker", func(t *testing.T) {
+	newItem := func(t *testing.T) (*apptest.TestApp, *store.MediaItem) {
 		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
+		return ta, apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
+	}
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
+	t.Run("starts the worker", func(t *testing.T) {
+		ta, mediaItem := newItem(t)
 
-		enqueuedJobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if len(enqueuedJobs) != 0 {
-			t.Errorf("expected 0 enqueued jobs, got %d", len(enqueuedJobs))
+		if n := enqueuedDownloads(t, ta); n != 0 {
+			t.Errorf("expected 0 enqueued jobs, got %d", n)
 		}
 
-		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{}, nil)
+		_, err := ta.MediaDownloadWorkerKickoffWithTask(ta.Ctx, mediaItem, map[string]any{}, nil)
 		must(t, err)
 
-		enqueuedJobs = ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if len(enqueuedJobs) != 1 {
-			t.Errorf("expected 1 enqueued job, got %d", len(enqueuedJobs))
+		if n := enqueuedDownloads(t, ta); n != 1 {
+			t.Errorf("expected 1 enqueued job, got %d", n)
 		}
 	})
 
 	t.Run("attaches a task", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
+		ta, mediaItem := newItem(t)
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-
-		task, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{}, nil)
+		task, err := ta.MediaDownloadWorkerKickoffWithTask(ta.Ctx, mediaItem, map[string]any{}, nil)
 		must(t, err)
 
 		if task.MediaItemID == nil || *task.MediaItemID != mediaItem.ID {
@@ -52,800 +67,274 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		}
 	})
 
-	t.Run("can be called with additional job arguments", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
+	for _, c := range []struct {
+		name         string
+		args         map[string]any
+		priority     *int
+		wantPriority int
+	}{
+		{"can be called with additional job arguments", map[string]any{"force": true}, nil, 5},
+		{"has a priority of 5 by default", map[string]any{}, nil, 5},
+		{"priority can be set", map[string]any{}, store.Ptr(0), 0},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta, mediaItem := newItem(t)
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-		jobArgs := map[string]any{"force": true}
+			_, err := ta.MediaDownloadWorkerKickoffWithTask(ta.Ctx, mediaItem, c.args, c.priority)
+			must(t, err)
 
-		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, jobArgs, nil)
-		must(t, err)
-
-		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID, "force": true}})
-	})
-
-	t.Run("has a priority of 5 by default", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-
-		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{}, nil)
-		must(t, err)
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
-		if len(jobs) != 1 {
-			t.Fatalf("expected 1 job, got %d", len(jobs))
-		}
-
-		job := jobs[0]
-		if job.Priority != 5 {
-			t.Errorf("expected priority 5, got %v", job.Priority)
-		}
-	})
-
-	t.Run("priority can be set", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-		priority := 0
-
-		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{}, &priority)
-		must(t, err)
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
-		if len(jobs) != 1 {
-			t.Fatalf("expected 1 job, got %d", len(jobs))
-		}
-
-		job := jobs[0]
-		if job.Priority != 0 {
-			t.Errorf("expected priority 0, got %v", job.Priority)
-		}
-	})
+			args := map[string]any{"id": mediaItem.ID}
+			for k, v := range c.args {
+				args[k] = v
+			}
+			jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: args})
+			if len(jobs) != 1 {
+				t.Fatalf("expected 1 job, got %d", len(jobs))
+			}
+			if jobs[0].Priority != c.wantPriority {
+				t.Errorf("expected priority %d, got %v", c.wantPriority, jobs[0].Priority)
+			}
+		})
+	}
 }
 
 func TestMediaDownloadWorker_Perform(t *testing.T) {
 	t.Parallel()
 
-	setup := func(t *testing.T) *apptest.TestApp {
-		ta := apptest.NewApp(t)
-
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return "{}", nil
-			}
-			if action == "download" {
-				metadata, _ := apptest.RenderMetadata("media_metadata")
-				return metadata, nil
-			}
-			if action == "download_thumbnail" {
-				return "", nil
-			}
-			return "{}", nil
-		})
-
-		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
-			return nil
-		})
-
-		ta.HTTPMock.Get.Stub(func(url string, headers http.Header) (string, error) {
-			return "", nil
-		})
-
-		return ta
+	cleared := store.MediaItemParams{Clear: store.ClearMediaFilepath}
+	downloaded := store.MediaItemParams{MediaFilepath: store.Ptr("foo.mp4")}
+	quality := map[string]any{"quality_upgrade?": true}
+	force := map[string]any{"force": true}
+	noDownload := store.SourceParams{DownloadMedia: store.Ptr(false)}
+	prevented := func(p store.MediaItemParams) store.MediaItemParams {
+		p.PreventDownload = store.Ptr(true)
+		return p
 	}
 
-	t.Run("saves attributes to the media_item", func(t *testing.T) {
-		ta := setup(t)
-		ctx := ta.Ctx
+	// Each case performs a job for one item and checks the item afterwards.
+	for _, c := range []struct {
+		name    string
+		item    store.MediaItemParams
+		args    map[string]any
+		initial func(*store.MediaItem) bool // must hold before the job, if set
+		ok      func(*store.MediaItem) bool // must hold on the reloaded item
+	}{
+		{"saves attributes to the media_item", cleared, nil, func(m *store.MediaItem) bool { return m.MediaFilepath == nil },
+			func(m *store.MediaItem) bool { return m.MediaFilepath != nil }},
+		{"saves the metadata to the media_item", cleared, nil, func(m *store.MediaItem) bool { return m.Metadata == nil },
+			func(m *store.MediaItem) bool { return m.Metadata != nil }},
+		{"does not set redownloaded_at by default", cleared, nil, nil,
+			func(m *store.MediaItem) bool { return m.MediaRedownloadedAt == nil }},
+		{"sets redownloaded_at on the media_item", cleared, quality, nil,
+			func(m *store.MediaItem) bool { return m.MediaRedownloadedAt != nil }},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := downloadWorkerApp(t)
+			ta.YtDlpMock.Run.Stub(downloadMock(nil))
+			mediaItem := apptest.MediaItemFixture(t, ta, c.item)
+			if c.initial != nil && !c.initial(mediaItem) {
+				t.Errorf("initial state not as expected: %+v", mediaItem)
+			}
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
+			_ = performDownload(ta, mediaItem.ID, c.args)
 
-		if mediaItem.MediaFilepath != nil {
-			t.Errorf("expected media_filepath to be nil, got %v", *mediaItem.MediaFilepath)
-		}
-
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
-
-		if updatedMediaItem.MediaFilepath == nil {
-			t.Error("expected media_filepath to not be nil after download")
-		}
-	})
-
-	t.Run("saves the metadata to the media_item", func(t *testing.T) {
-		ta := setup(t)
-		ctx := ta.Ctx
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-
-		if mediaItem.Metadata != nil {
-			t.Errorf("expected metadata to be nil, got %v", mediaItem.Metadata)
-		}
-
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
-		updatedMediaItem, _ = ta.App.PreloadMediaItemMetadata(ctx, updatedMediaItem)
-
-		if updatedMediaItem.Metadata == nil {
-			t.Error("expected metadata to not be nil after download")
-		}
-	})
+			updated, err := ta.GetMediaItem(ta.Ctx, mediaItem.ID)
+			must(t, err)
+			updated, err = ta.App.PreloadMediaItemMetadata(ta.Ctx, updated)
+			must(t, err)
+			if !c.ok(updated) {
+				t.Errorf("unexpected media item after download: %+v", updated)
+			}
+		})
+	}
 
 	t.Run("won't double-schedule downloading jobs", func(t *testing.T) {
-		ta := setup(t)
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-
-		spec1 := obanlite.JobSpec{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}}
-		spec2 := obanlite.JobSpec{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}}
-
-		ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), spec1)
-		ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), spec2)
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if len(jobs) != 1 {
-			t.Errorf("expected 1 job due to unique constraint, got %d", len(jobs))
-		}
-	})
-
-	t.Run("sets the job to retryable if the download fails", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return "{}", nil
-			}
-			if action == "download" {
-				return "", fmt.Errorf("error")
-			}
-			return "{}", nil
-		})
-
-		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
-			return nil
-		})
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
+		ta := downloadWorkerApp(t)
+		mediaItem := apptest.MediaItemFixture(t, ta, cleared)
 		spec := obanlite.JobSpec{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}}
-		_, _, _ = ta.InsertUniqueJob(ctx, spec)
 
-		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
+		ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), spec)
+		ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), spec)
 
-		if err == nil {
-			t.Error("expected error for download failure")
+		if n := enqueuedDownloads(t, ta); n != 1 {
+			t.Errorf("expected 1 job due to unique constraint, got %d", n)
 		}
 	})
 
-	t.Run("sets the job to retryable if the download failed and was retried", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return "{}", nil
+	// A failing download either errors the job (so it is retried) or, when a
+	// retry couldn't help, is swallowed.
+	for _, c := range []struct {
+		name         string
+		msg          string
+		uniqueJob    bool
+		args         map[string]any
+		wantRetryErr bool
+	}{
+		{"sets the job to retryable if the download fails", "error", true, nil, true},
+		{"sets the job to retryable if the download failed and was retried", "Unable to communicate with SponsorBlock", true, nil, true},
+		{"ensures error are returned in a 2-item tuple", "error", false, nil, true},
+		{"does not set the job to retryable if retrying wouldn't fix the issue", "Something something Video unavailable something something", false, quality, false},
+		{"does not set the job to retryable if youtube thinks you're a bot", "Sign in to confirm you're not a bot", false, quality, false},
+		{"does not set the job to retryable you aren't a member", "This video is available to this channel's members on level: foo", false, quality, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := downloadWorkerApp(t)
+			ta.YtDlpMock.Run.ExpectN(2, downloadMock(dlActions{"download": retErr(fmt.Errorf("%s", c.msg))}))
+			mediaItem := apptest.MediaItemFixture(t, ta, cleared)
+			if c.uniqueJob {
+				_, _, _ = ta.InsertUniqueJob(ta.Ctx, obanlite.JobSpec{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
 			}
-			if action == "download" {
-				return "", fmt.Errorf("Unable to communicate with SponsorBlock")
+
+			err := performDownload(ta, mediaItem.ID, c.args)
+
+			if c.wantRetryErr && err == nil {
+				t.Error("expected an error so the job is retried")
 			}
-			return "{}", nil
-		})
-
-		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
-			return nil
-		})
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-		spec := obanlite.JobSpec{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}}
-		_, _, _ = ta.InsertUniqueJob(ctx, spec)
-
-		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-
-		// If it's a retryable error, it should return an error
-		if err == nil {
-			t.Error("expected error for retryable case")
-		}
-	})
-
-	t.Run("does not set the job to retryable if retrying wouldn't fix the issue", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return "{}", nil
+			if !c.wantRetryErr && err != nil {
+				t.Errorf("expected nil error for non-retryable case, got %v", err)
 			}
-			if action == "download" {
-				return "", fmt.Errorf("Something something Video unavailable something something")
-			}
-			return "{}", nil
 		})
-
-		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
-			return nil
-		})
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-
-		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
-
-		if err != nil {
-			t.Errorf("expected nil error for non-retryable case, got %v", err)
-		}
-	})
-
-	t.Run("does not set the job to retryable if youtube thinks you're a bot", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return "{}", nil
-			}
-			if action == "download" {
-				return "", fmt.Errorf("Sign in to confirm you're not a bot")
-			}
-			return "{}", nil
-		})
-
-		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
-			return nil
-		})
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-
-		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
-
-		if err != nil {
-			t.Errorf("expected nil error for bot check case, got %v", err)
-		}
-	})
-
-	t.Run("does not set the job to retryable you aren't a member", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return "{}", nil
-			}
-			if action == "download" {
-				return "", fmt.Errorf("This video is available to this channel's members on level: foo")
-			}
-			return "{}", nil
-		})
-
-		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
-			return nil
-		})
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-
-		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
-
-		if err != nil {
-			t.Errorf("expected nil error for members-only case, got %v", err)
-		}
-	})
-
-	t.Run("ensures error are returned in a 2-item tuple", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return "{}", nil
-			}
-			if action == "download" {
-				return "", fmt.Errorf("error")
-			}
-			return "{}", nil
-		})
-
-		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
-			return nil
-		})
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-
-		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-
-		if err == nil {
-			t.Error("expected error for download_failed case")
-		}
-	})
+	}
 
 	t.Run("saves the file's size to the database", func(t *testing.T) {
-		ta := setup(t)
-		ctx := ta.Ctx
+		ta := downloadWorkerApp(t)
+		ta.YtDlpMock.Run.ExpectN(3, downloadMock(dlActions{"download": func(ytCall) (string, error) {
+			metadata, _ := apptest.RenderParsedMetadata("media_metadata")
+			filePath, _ := metadata["filepath"].(string)
 
-		callCount := 0
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			defer func() { callCount++ }()
-
-			if action == "get_downloadable_status" {
-				return "{}", nil
+			// Write test file
+			if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
+				return "", err
 			}
-			if action == "download" {
-				metadata, _ := apptest.RenderParsedMetadata("media_metadata")
-				filePath, _ := metadata["filepath"].(string)
-
-				// Write test file
-				if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-					return "", err
-				}
-				if err := os.WriteFile(filePath, []byte("test"), 0644); err != nil {
-					return "", err
-				}
-
-				jsonStr, _ := db.EncodeJSON(metadata)
-				return jsonStr, nil
+			if err := os.WriteFile(filePath, []byte("test"), 0o644); err != nil {
+				return "", err
 			}
-			if action == "download_thumbnail" {
-				return "", nil
-			}
-			return "{}", nil
-		})
+			return db.EncodeJSON(metadata)
+		}}))
+		mediaItem := apptest.MediaItemFixture(t, ta, cleared)
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
+		_ = performDownload(ta, mediaItem.ID, nil)
 
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
-
-		if updatedMediaItem.MediaSizeBytes == nil || *updatedMediaItem.MediaSizeBytes <= 0 {
+		updated, err := ta.GetMediaItem(ta.Ctx, mediaItem.ID)
+		must(t, err)
+		if updated.MediaSizeBytes == nil || *updated.MediaSizeBytes <= 0 {
 			t.Error("expected media_size_bytes to be > 0")
 		}
 	})
 
-	t.Run("does not set redownloaded_at by default", func(t *testing.T) {
-		ta := setup(t)
-		ctx := ta.Ctx
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
-
-		if updatedMediaItem.MediaRedownloadedAt != nil {
-			t.Errorf("expected media_redownloaded_at to be nil, got %v", updatedMediaItem.MediaRedownloadedAt)
-		}
-	})
-
 	t.Run("does not blow up if the record doesn't exist", func(t *testing.T) {
-		ta := setup(t)
-		ctx := ta.Ctx
+		ta := downloadWorkerApp(t)
+		ta.YtDlpMock.Run.Stub(downloadMock(nil))
 
-		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": int64(0)})
-		must(t, err)
+		must(t, performDownload(ta, 0, nil))
 	})
 
-	t.Run("sets the no_force_overwrites runner option", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
+	// The force_overwrites runner option depends on whether the job is a
+	// fresh download, a forced one or a quality upgrade.
+	for _, c := range []struct {
+		name string
+		item store.MediaItemParams
+		args map[string]any
+		want string // "force_overwrites" or "no_force_overwrites"
+	}{
+		{"sets the no_force_overwrites runner option", cleared, nil, "no_force_overwrites"},
+		{"sets force_overwrites runner option when forced", cleared, force, "force_overwrites"},
+		{"sets force_overwrites runner option when redownloading", downloaded, quality, "force_overwrites"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := downloadWorkerApp(t)
+			other := "force_overwrites"
+			if c.want == other {
+				other = "no_force_overwrites"
+			}
+			ta.YtDlpMock.Run.ExpectN(3, downloadMock(dlActions{"download": func(c2 ytCall) (string, error) {
+				wantOpts(t, c2.opts, []string{c.want}, []string{other})
+				return retMetadata(c2)
+			}}))
+			mediaItem := apptest.MediaItemFixture(t, ta, c.item)
 
-		noForceOverwritesCalled := false
-		forceOverwritesCalled := false
+			_ = performDownload(ta, mediaItem.ID, c.args)
+		})
+	}
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
+	// Each case must not reach the download runner and must not error.
+	for _, c := range []struct {
+		name string
+		src  store.SourceParams
+		item store.MediaItemParams
+		args map[string]any
+	}{
+		{"does not download if the source is set to not download", noDownload, cleared, nil},
+		{"does not download if the media item is set to not download", store.SourceParams{}, prevented(cleared), nil},
+		{"does not download if the media item isn't pending download", store.SourceParams{}, downloaded, nil},
+		{"doesn't redownload if the source is set to not download", noDownload, downloaded, quality},
+		{"doesn't redownload if the media item is set to not download", store.SourceParams{}, prevented(downloaded), quality},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := downloadWorkerApp(t)
+			ta.YtDlpMock.Run.Stub(downloadMock(dlActions{"download": func(ytCall) (string, error) {
+				t.Error("download should not be called")
 				return "{}", nil
-			}
-			if action == "download" {
-				// Check that no_force_overwrites is in opts and force_overwrites is not
-				for _, opt := range opts {
-					if opt.Key == "no_force_overwrites" {
-						noForceOverwritesCalled = true
-					}
-					if opt.Key == "force_overwrites" {
-						forceOverwritesCalled = true
-					}
-				}
-				metadata, _ := apptest.RenderMetadata("media_metadata")
-				return metadata, nil
-			}
-			if action == "download_thumbnail" {
-				return "", nil
-			}
-			return "{}", nil
+			}}))
+			c.item.SourceID = store.Ptr(apptest.SourceFixture(t, ta, c.src).ID)
+			mediaItem := apptest.MediaItemFixture(t, ta, c.item)
+
+			_ = performDownload(ta, mediaItem.ID, c.args)
 		})
-
-		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
-			return nil
-		})
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-
-		if !noForceOverwritesCalled {
-			t.Error("expected no_force_overwrites to be called")
-		}
-		if forceOverwritesCalled {
-			t.Error("expected force_overwrites to not be called")
-		}
-	})
-
-	t.Run("does not download if the source is set to not download", func(t *testing.T) {
-		ta := setup(t)
-		ctx := ta.Ctx
-
-		downloadCalled := false
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "download" {
-				downloadCalled = true
-			}
-			return "{}", nil
-		})
-
-		source := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
-
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-
-		if downloadCalled {
-			t.Error("download should not be called")
-		}
-	})
-
-	t.Run("does not download if the media item is set to not download", func(t *testing.T) {
-		ta := setup(t)
-		ctx := ta.Ctx
-
-		downloadCalled := false
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "download" {
-				downloadCalled = true
-			}
-			return "{}", nil
-		})
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-		_, _ = ta.UpdateMediaItem(ctx, mediaItem, store.MediaItemParams{PreventDownload: store.Ptr(true)})
-
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-
-		if downloadCalled {
-			t.Error("download should not be called")
-		}
-	})
-
-	t.Run("does not download if the media item isn't pending download", func(t *testing.T) {
-		ta := setup(t)
-		ctx := ta.Ctx
-
-		downloadCalled := false
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "download" {
-				downloadCalled = true
-			}
-			return "{}", nil
-		})
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{MediaFilepath: store.Ptr("foo.mp4")})
-
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-
-		if downloadCalled {
-			t.Error("download should not be called")
-		}
-	})
+	}
 }
 
 func TestMediaDownloadWorker_Perform_WhenTestingNonDownloadableMedia(t *testing.T) {
 	t.Run("does not retry the job if the media is currently not downloadable", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return `{"live_status": "is_live"}`, nil
-			}
-			return "{}", nil
-		})
-
-		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
-			return nil
-		})
-
+		ta := downloadWorkerApp(t)
+		ta.YtDlpMock.Run.Expect(downloadMock(dlActions{"get_downloadable_status": ret(`{"live_status": "is_live"}`)}))
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
-		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-
-		if err == nil {
-			// Download should be skipped for non-downloadable media, so no error expected
-		} else {
-			t.Errorf("expected no error for non-downloadable media, got %v", err)
-		}
+		// Download should be skipped for non-downloadable media, so no error expected
+		must(t, performDownload(ta, mediaItem.ID, nil))
 	})
 }
 
 func TestMediaDownloadWorker_Perform_WhenTestingForcedDownloads(t *testing.T) {
-	setup := func(t *testing.T) *apptest.TestApp {
-		ta := apptest.NewApp(t)
+	// Forced and quality-upgrade jobs ignore prevent_download and whether the
+	// item is pending, and must succeed.
+	for _, c := range []struct {
+		name string
+		src  store.SourceParams
+		item store.MediaItemParams
+		args map[string]any
+	}{
+		{"ignores 'prevent_download' if forced", store.SourceParams{DownloadMedia: store.Ptr(false)}, store.MediaItemParams{PreventDownload: store.Ptr(true), Clear: store.ClearMediaFilepath}, map[string]any{"force": true}},
+		{"ignores whether the media item is pending when forced", store.SourceParams{}, store.MediaItemParams{MediaFilepath: store.Ptr("foo.mp4")}, map[string]any{"force": true}},
+		{"ignores whether the media item is pending when re-downloaded", store.SourceParams{}, store.MediaItemParams{MediaFilepath: store.Ptr("foo.mp4")}, map[string]any{"quality_upgrade?": true}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := downloadWorkerApp(t)
+			ta.YtDlpMock.Run.Stub(downloadMock(nil))
+			c.item.SourceID = store.Ptr(apptest.SourceFixture(t, ta, c.src).ID)
+			mediaItem := apptest.MediaItemFixture(t, ta, c.item)
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return "{}", nil
-			}
-			if action == "download" {
-				metadata, _ := apptest.RenderMetadata("media_metadata")
-				return metadata, nil
-			}
-			if action == "download_thumbnail" {
-				return "", nil
-			}
-			return "{}", nil
+			must(t, performDownload(ta, mediaItem.ID, c.args))
 		})
-
-		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
-			return nil
-		})
-
-		ta.HTTPMock.Get.Stub(func(url string, headers http.Header) (string, error) {
-			return "", nil
-		})
-
-		return ta
 	}
-
-	t.Run("ignores 'prevent_download' if forced", func(t *testing.T) {
-		ta := setup(t)
-		ctx := ta.Ctx
-
-		source := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
-
-		_, _ = ta.UpdateMediaItem(ctx, mediaItem, store.MediaItemParams{PreventDownload: store.Ptr(true)})
-
-		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "force": true})
-
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-	})
-
-	t.Run("ignores whether the media item is pending when forced", func(t *testing.T) {
-		ta := setup(t)
-		ctx := ta.Ctx
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{MediaFilepath: store.Ptr("foo.mp4")})
-
-		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "force": true})
-
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-	})
-
-	t.Run("sets force_overwrites runner option", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		forceOverwritesCalled := false
-		noForceOverwritesCalled := false
-
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return "{}", nil
-			}
-			if action == "download" {
-				for _, opt := range opts {
-					if opt.Key == "force_overwrites" {
-						forceOverwritesCalled = true
-					}
-					if opt.Key == "no_force_overwrites" {
-						noForceOverwritesCalled = true
-					}
-				}
-				metadata, _ := apptest.RenderMetadata("media_metadata")
-				return metadata, nil
-			}
-			if action == "download_thumbnail" {
-				return "", nil
-			}
-			return "{}", nil
-		})
-
-		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
-			return nil
-		})
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "force": true})
-
-		if !forceOverwritesCalled {
-			t.Error("expected force_overwrites to be called")
-		}
-		if noForceOverwritesCalled {
-			t.Error("expected no_force_overwrites to not be called")
-		}
-	})
-}
-
-func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
-	setup := func(t *testing.T) *apptest.TestApp {
-		ta := apptest.NewApp(t)
-
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return "{}", nil
-			}
-			if action == "download" {
-				metadata, _ := apptest.RenderMetadata("media_metadata")
-				return metadata, nil
-			}
-			if action == "download_thumbnail" {
-				return "", nil
-			}
-			return "{}", nil
-		})
-
-		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
-			return nil
-		})
-
-		ta.HTTPMock.Get.Stub(func(url string, headers http.Header) (string, error) {
-			return "", nil
-		})
-
-		return ta
-	}
-
-	t.Run("sets redownloaded_at on the media_item", func(t *testing.T) {
-		ta := setup(t)
-		ctx := ta.Ctx
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
-		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
-
-		if updatedMediaItem.MediaRedownloadedAt == nil {
-			t.Error("expected media_redownloaded_at to be set")
-		}
-	})
-
-	t.Run("ignores whether the media item is pending when re-downloaded", func(t *testing.T) {
-		ta := setup(t)
-		ctx := ta.Ctx
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{MediaFilepath: store.Ptr("foo.mp4")})
-
-		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
-
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-	})
-
-	t.Run("doesn't redownload if the source is set to not download", func(t *testing.T) {
-		ta := setup(t)
-		ctx := ta.Ctx
-
-		downloadCalled := false
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "download" {
-				downloadCalled = true
-			}
-			return "{}", nil
-		})
-
-		source := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaFilepath: store.Ptr("foo.mp4")})
-
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
-
-		if downloadCalled {
-			t.Error("download should not be called")
-		}
-	})
-
-	t.Run("doesn't redownload if the media item is set to not download", func(t *testing.T) {
-		ta := setup(t)
-		ctx := ta.Ctx
-
-		downloadCalled := false
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "download" {
-				downloadCalled = true
-			}
-			return "{}", nil
-		})
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{MediaFilepath: store.Ptr("foo.mp4")})
-		_, _ = ta.UpdateMediaItem(ctx, mediaItem, store.MediaItemParams{PreventDownload: store.Ptr(true)})
-
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
-
-		if downloadCalled {
-			t.Error("download should not be called")
-		}
-	})
-
-	t.Run("sets force_overwrites runner option", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		forceOverwritesCalled := false
-		noForceOverwritesCalled := false
-
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return "{}", nil
-			}
-			if action == "download" {
-				for _, opt := range opts {
-					if opt.Key == "force_overwrites" {
-						forceOverwritesCalled = true
-					}
-					if opt.Key == "no_force_overwrites" {
-						noForceOverwritesCalled = true
-					}
-				}
-				metadata, _ := apptest.RenderMetadata("media_metadata")
-				return metadata, nil
-			}
-			if action == "download_thumbnail" {
-				return "", nil
-			}
-			return "{}", nil
-		})
-
-		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
-			return nil
-		})
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{MediaFilepath: store.Ptr("foo.mp4")})
-
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
-
-		if !forceOverwritesCalled {
-			t.Error("expected force_overwrites to be called")
-		}
-		if noForceOverwritesCalled {
-			t.Error("expected no_force_overwrites to not be called")
-		}
-	})
 
 	t.Run("deletes old files if the media item has been updated", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return "{}", nil
-			}
-			if action == "download" {
-				metadata, _ := apptest.RenderParsedMetadata("media_metadata")
-				metadata["filepath"] = apptest.MediaFilePathFixture() // Use old path
-				jsonStr, _ := db.EncodeJSON(metadata)
-				return jsonStr, nil
-			}
-			if action == "download_thumbnail" {
-				return "", nil
-			}
-			return "{}", nil
-		})
-
-		ta.UserScriptMock.Run.Stub(func(event string, data any) error {
-			return nil
-		})
-
+		ta := downloadWorkerApp(t)
+		ta.YtDlpMock.Run.ExpectN(3, downloadMock(dlActions{"download": func(ytCall) (string, error) {
+			metadata, _ := apptest.RenderParsedMetadata("media_metadata")
+			metadata["filepath"] = apptest.MediaFilePathFixture() // Use old path
+			return db.EncodeJSON(metadata)
+		}}))
 		oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 		oldFilepath := *oldMediaItem.MediaFilepath
 
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": oldMediaItem.ID, "force": true})
-		updatedMediaItem, _ := ta.GetMediaItem(ctx, oldMediaItem.ID)
+		_ = performDownload(ta, oldMediaItem.ID, map[string]any{"force": true})
 
-		if updatedMediaItem.MediaFilepath == nil || *updatedMediaItem.MediaFilepath == oldFilepath {
+		updated, err := ta.GetMediaItem(ta.Ctx, oldMediaItem.ID)
+		must(t, err)
+		if updated.MediaFilepath == nil || *updated.MediaFilepath == oldFilepath {
 			t.Error("media_filepath should be updated")
 		}
-
 		if _, err := os.Stat(oldFilepath); err == nil {
 			t.Error("old file should be deleted")
 		}
@@ -853,177 +342,55 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 }
 
 func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T) {
-	t.Run("calls the media_pre_download user script runner", func(t *testing.T) {
+	t.Run("calls the media_pre_download and media_downloaded user script runners", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		preDownloadCalled := false
-		preDownloadMediaItem := (*store.MediaItem)(nil)
-
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return "{}", nil
-			}
-			if action == "download" {
-				metadata, _ := apptest.RenderMetadata("media_metadata")
-				return metadata, nil
-			}
-			if action == "download_thumbnail" {
-				return "", nil
-			}
-			return "{}", nil
-		})
-
+		ta.YtDlpMock.Run.Stub(downloadMock(nil))
+		items := map[string]*store.MediaItem{}
 		ta.UserScriptMock.Run.ExpectN(2, func(event string, data any) error {
-			if event == "media_pre_download" {
-				preDownloadCalled = true
-				if item, ok := data.(*store.MediaItem); ok {
-					preDownloadMediaItem = item
-				}
-			}
-			if event == "media_downloaded" {
-				// Just return nil for post-download
+			if item, ok := data.(*store.MediaItem); ok {
+				items[event] = item
 			}
 			return nil
 		})
-
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
+		_ = performDownload(ta, mediaItem.ID, nil)
 
-		if !preDownloadCalled {
-			t.Error("expected media_pre_download to be called")
+		for _, event := range []string{"media_pre_download", "media_downloaded"} {
+			if items[event] == nil || items[event].ID != mediaItem.ID {
+				t.Errorf("expected %s to be called with the correct media item", event)
+			}
 		}
-		if preDownloadMediaItem == nil || preDownloadMediaItem.ID != mediaItem.ID {
-			t.Error("expected pre-download script to receive the correct media item")
+		updated, err := ta.GetMediaItem(ta.Ctx, mediaItem.ID)
+		must(t, err)
+		if updated.MediaFilepath == nil {
+			t.Error("expected media_filepath to be set")
+		}
+		if updated.PreventDownload {
+			t.Error("expected prevent_download to be false")
 		}
 	})
 
 	t.Run("does not download the media if the pre-download script returns an error", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		downloadCalled := false
-
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "download" {
-				downloadCalled = true
-			}
+		ta.YtDlpMock.Run.Stub(downloadMock(dlActions{"download": func(ytCall) (string, error) {
+			t.Error("download should not be called when pre-download script fails")
 			return "{}", nil
-		})
-
+		}}))
 		ta.UserScriptMock.Run.Expect(func(event string, data any) error {
 			if event == "media_pre_download" {
 				return fmt.Errorf("exit code 1")
 			}
 			return nil
 		})
-
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
+		_ = performDownload(ta, mediaItem.ID, nil)
 
-		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
-
-		if downloadCalled {
-			t.Error("download should not be called when pre-download script fails")
-		}
-		if !updatedMediaItem.PreventDownload {
+		updated, err := ta.GetMediaItem(ta.Ctx, mediaItem.ID)
+		must(t, err)
+		if !updated.PreventDownload {
 			t.Error("expected prevent_download to be set to true")
-		}
-	})
-
-	t.Run("downloads media if the pre-download script is not present", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		downloadCalled := false
-
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return "{}", nil
-			}
-			if action == "download" {
-				downloadCalled = true
-				metadata, _ := apptest.RenderMetadata("media_metadata")
-				return metadata, nil
-			}
-			if action == "download_thumbnail" {
-				return "", nil
-			}
-			return "{}", nil
-		})
-
-		callCount := 0
-		ta.UserScriptMock.Run.ExpectN(2, func(event string, data any) error {
-			defer func() { callCount++ }()
-			if event == "media_pre_download" || event == "media_downloaded" {
-				// Return nil (no error) to simulate script not being present
-				return nil
-			}
-			return nil
-		})
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-
-		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
-
-		if !downloadCalled {
-			t.Error("download should be called")
-		}
-		if updatedMediaItem.MediaFilepath == nil {
-			t.Error("expected media_filepath to be set")
-		}
-		if updatedMediaItem.PreventDownload {
-			t.Error("expected prevent_download to be false")
-		}
-	})
-
-	t.Run("calls the media_downloaded user script runner", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ctx := ta.Ctx
-
-		postDownloadCalled := false
-		postDownloadMediaItem := (*store.MediaItem)(nil)
-
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			if action == "get_downloadable_status" {
-				return "{}", nil
-			}
-			if action == "download" {
-				metadata, _ := apptest.RenderMetadata("media_metadata")
-				return metadata, nil
-			}
-			if action == "download_thumbnail" {
-				return "", nil
-			}
-			return "{}", nil
-		})
-
-		ta.UserScriptMock.Run.ExpectN(2, func(event string, data any) error {
-			if event == "media_pre_download" {
-				return nil
-			}
-			if event == "media_downloaded" {
-				postDownloadCalled = true
-				if item, ok := data.(*store.MediaItem); ok {
-					postDownloadMediaItem = item
-				}
-			}
-			return nil
-		})
-
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-
-		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
-
-		if !postDownloadCalled {
-			t.Error("expected media_downloaded to be called")
-		}
-		if postDownloadMediaItem == nil || postDownloadMediaItem.ID != mediaItem.ID {
-			t.Error("expected post-download script to receive the correct media item")
 		}
 	})
 }
