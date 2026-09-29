@@ -10,16 +10,13 @@ import (
 
 func TestPodcastHelpers_OpmlSources(t *testing.T) {
 	ta := apptest.NewApp(t)
-	defer ta.App.DB.Close()
 
 	t.Run("returns sources not marked for deletion", func(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		apptest.SourceFixture(t, ta, store.SourceParams{MarkedForDeletionAt: store.Ptr(apptest.Now())})
 
 		found, err := ta.PodcastHelpersOpmlSources(ta.Ctx)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if len(found) != 1 {
 			t.Errorf("expected 1 source, got %d", len(found))
@@ -35,7 +32,6 @@ func TestPodcastHelpers_OpmlSources(t *testing.T) {
 
 func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 	ta := apptest.NewApp(t)
-	defer ta.App.DB.Close()
 
 	t.Run("returns media items with files that exist on-disk", func(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
@@ -43,9 +39,7 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaFilepath: store.Ptr("/tmp/existing_file.mp3")})
 
 		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, 1000)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if len(persisted) != 1 {
 			t.Errorf("expected 1 media item, got %d", len(persisted))
@@ -60,9 +54,7 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 		apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 
 		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, 0)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if len(persisted) != 0 {
 			t.Errorf("expected 0 media items with limit 0, got %d", len(persisted))
@@ -77,9 +69,7 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 		older := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.NowMinus(1, "day"))})
 
 		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, 1000)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if len(persisted) != 3 {
 			t.Errorf("expected 3 media items, got %d", len(persisted))
@@ -92,15 +82,12 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 
 func TestPodcastHelpers_SelectCoverImage(t *testing.T) {
 	ta := apptest.NewApp(t)
-	defer ta.App.DB.Close()
 
 	t.Run("returns a source's poster, if present", func(t *testing.T) {
 		source := apptest.SourceWithMetadataAttachmentsFixture(t, ta, store.SourceParams{})
 
 		res, err := ta.PodcastHelpersSelectCoverImage(ta.Ctx, source, []*store.MediaItem{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if res != *source.Metadata.PosterFilepath {
 			t.Errorf("expected %q, got %q", *source.Metadata.PosterFilepath, res)
@@ -114,9 +101,7 @@ func TestPodcastHelpers_SelectCoverImage(t *testing.T) {
 		os.Remove(*source.Metadata.PosterFilepath)
 
 		res, err := ta.PodcastHelpersSelectCoverImage(ta.Ctx, source, []*store.MediaItem{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if res != *source.Metadata.FanartFilepath {
 			t.Errorf("expected %q, got %q", *source.Metadata.FanartFilepath, res)
@@ -132,9 +117,7 @@ func TestPodcastHelpers_SelectCoverImage(t *testing.T) {
 		os.Remove(*source.Metadata.FanartFilepath)
 
 		res, err := ta.PodcastHelpersSelectCoverImage(ta.Ctx, source, []*store.MediaItem{mediaItem})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if res != mediaItem.Metadata.ThumbnailFilepath {
 			t.Errorf("expected %q, got %q", mediaItem.Metadata.ThumbnailFilepath, res)

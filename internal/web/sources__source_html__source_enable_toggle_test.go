@@ -17,9 +17,7 @@ import (
 func TestSourceEnableToggle_InitialRendering(t *testing.T) {
 	t.Run("renders a toggle in the on position if the source is enabled", func(t *testing.T) {
 		html, err := templ.ToGoHTML(context.Background(), web.SourceEnableToggleRender(1, true))
-		if err != nil {
-			t.Fatalf("render failed: %v", err)
-		}
+		must(t, err)
 
 		// The checkbox carries the toggle position
 		if !strings.Contains(string(html), ` checked`) {
@@ -29,9 +27,7 @@ func TestSourceEnableToggle_InitialRendering(t *testing.T) {
 
 	t.Run("renders a toggle in the off position if the source is disabled", func(t *testing.T) {
 		html, err := templ.ToGoHTML(context.Background(), web.SourceEnableToggleRender(1, false))
-		if err != nil {
-			t.Fatalf("render failed: %v", err)
-		}
+		must(t, err)
 
 		if strings.Contains(string(html), ` checked`) {
 			t.Errorf("expected an unchecked checkbox in response, got: %s", html)
@@ -57,9 +53,7 @@ func TestSourceEnableToggle_Update(t *testing.T) {
 		}
 
 		reloaded, err := c.App.GetSource(c.Ctx, source.ID)
-		if err != nil {
-			t.Fatalf("reload failed: %v", err)
-		}
+		must(t, err)
 		if reloaded.Enabled {
 			t.Errorf("expected source to be disabled")
 		}

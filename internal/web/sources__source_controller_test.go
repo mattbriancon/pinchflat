@@ -354,9 +354,7 @@ func TestSourceController_ForceIndex(t *testing.T) {
 		c := webtest.New(t)
 		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 		task, err := c.App.SlowIndexingHelpersKickoffIndexingTask(c.Ctx, source, map[string]any{})
-		if err != nil {
-			t.Fatalf("kickoff failed: %v", err)
-		}
+		must(t, err)
 		task, _ = c.App.PreloadTaskJob(c.Ctx, task)
 
 		if task.Job.State != "available" {
@@ -366,9 +364,7 @@ func TestSourceController_ForceIndex(t *testing.T) {
 		c.Post(fmt.Sprintf("/sources/%d/force_index", source.ID), "", nil)
 
 		reloadedJob, err := c.Oban.GetJob(c.Ctx, task.Job.ID)
-		if err != nil {
-			t.Fatalf("reload job failed: %v", err)
-		}
+		must(t, err)
 		if reloadedJob.State != "cancelled" {
 			t.Errorf("expected job state 'cancelled', got %s", reloadedJob.State)
 		}

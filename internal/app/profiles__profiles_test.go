@@ -26,9 +26,7 @@ func TestProfiles_ListMediaProfiles(t *testing.T) {
 	mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 
 	profiles, err := ta.ListMediaProfiles(ta.Ctx)
-	if err != nil {
-		t.Fatalf("ProfilesListMediaProfiles failed: %v", err)
-	}
+	must(t, err)
 
 	if len(profiles) != 1 {
 		t.Errorf("expected 1 profile, got %d", len(profiles))
@@ -44,9 +42,7 @@ func TestProfiles_GetMediaProfile(t *testing.T) {
 	mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 
 	retrieved, err := ta.GetMediaProfile(ta.Ctx, mediaProfile.ID)
-	if err != nil {
-		t.Fatalf("ProfilesGetMediaProfile failed: %v", err)
-	}
+	must(t, err)
 
 	if retrieved.ID != mediaProfile.ID {
 		t.Errorf("expected profile ID %d, got %d", mediaProfile.ID, retrieved.ID)
@@ -83,9 +79,7 @@ func TestProfiles_CreateMediaProfile(t *testing.T) {
 		ta := apptest.NewApp(t)
 
 		profile, errs, err := ta.CreateMediaProfile(ta.Ctx, store.MediaProfileParams{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if profile != nil || len(errs) == 0 {
 			t.Errorf("expected validation errors, got profile=%v errs=%v", profile, errs)
 		}
@@ -100,9 +94,7 @@ func TestProfiles_CreateMediaProfile(t *testing.T) {
 			Name:               store.Ptr(existing.Name),
 			OutputPathTemplate: store.Ptr("x.{{ ext }}"),
 		})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if got := errs["name"]; len(got) != 1 || got[0] != "has already been taken" {
 			t.Errorf("expected name taken error, got %v", errs)
 		}
@@ -130,9 +122,7 @@ func TestProfiles_UpdateMediaProfile(t *testing.T) {
 			t.Errorf("expected template 'new_output_template.{{ ext }}', got %s", updated.OutputPathTemplate)
 		}
 		reloaded, err := ta.GetMediaProfile(ta.Ctx, mediaProfile.ID)
-		if err != nil {
-			t.Fatalf("GetMediaProfile failed: %v", err)
-		}
+		must(t, err)
 		if reloaded.Name != "updated name" {
 			t.Errorf("expected persisted name 'updated name', got %s", reloaded.Name)
 		}
@@ -185,17 +175,13 @@ func TestProfiles_UpdateMediaProfile(t *testing.T) {
 			Name:               store.Ptr(""),
 			OutputPathTemplate: store.Ptr(""),
 		})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if len(errs["name"]) == 0 || len(errs["output_path_template"]) == 0 {
 			t.Errorf("expected validation errors, got %v", errs)
 		}
 
 		retrieved, err := ta.GetMediaProfile(ta.Ctx, mediaProfile.ID)
-		if err != nil {
-			t.Fatalf("GetMediaProfile failed: %v", err)
-		}
+		must(t, err)
 		if retrieved.Name != mediaProfile.Name {
 			t.Error("profile should not have changed")
 		}
@@ -209,9 +195,7 @@ func TestProfiles_DeleteMediaProfile(t *testing.T) {
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 
 		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, false)
-		if err != nil {
-			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
-		}
+		must(t, err)
 
 		_, err = ta.GetMediaProfile(ta.Ctx, mediaProfile.ID)
 		if err != store.ErrNotFound {
@@ -228,9 +212,7 @@ func TestProfiles_DeleteMediaProfile(t *testing.T) {
 		})
 
 		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, false)
-		if err != nil {
-			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
-		}
+		must(t, err)
 
 		_, err = ta.GetSource(ta.Ctx, source.ID)
 		if err != store.ErrNotFound {
@@ -250,9 +232,7 @@ func TestProfiles_DeleteMediaProfile(t *testing.T) {
 		})
 
 		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, false)
-		if err != nil {
-			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
-		}
+		must(t, err)
 
 		_, err = ta.GetMediaItem(ta.Ctx, mediaItem.ID)
 		if err != store.ErrNotFound {
@@ -272,9 +252,7 @@ func TestProfiles_DeleteMediaProfile(t *testing.T) {
 		})
 
 		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, false)
-		if err != nil {
-			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
-		}
+		must(t, err)
 
 		if _, err := os.Stat(*mediaItem.MediaFilepath); os.IsNotExist(err) {
 			t.Error("expected media file to exist")
@@ -299,9 +277,7 @@ func TestProfiles_DeleteMediaProfile_WhenDeletingFiles(t *testing.T) {
 		})
 
 		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, true)
-		if err != nil {
-			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
-		}
+		must(t, err)
 
 		_, err = ta.GetMediaProfile(ta.Ctx, mediaProfile.ID)
 		if err != store.ErrNotFound {
@@ -337,9 +313,7 @@ func TestProfiles_DeleteMediaProfile_WhenDeletingFiles(t *testing.T) {
 		mediaFilepath := *mediaItem.MediaFilepath
 
 		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, true)
-		if err != nil {
-			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
-		}
+		must(t, err)
 
 		if _, err := os.Stat(mediaFilepath); !os.IsNotExist(err) {
 			t.Error("expected media file to not exist")

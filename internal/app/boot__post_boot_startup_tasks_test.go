@@ -16,9 +16,7 @@ func TestPostBootStartupTasks_UpdateYtDlp(t *testing.T) {
 		t.Errorf("expected no jobs initially")
 	}
 
-	if err := ta.PostBootStartupTasksInit(ta.Ctx); err != nil {
-		t.Fatalf("PostBootStartupTasksInit failed: %v", err)
-	}
+	must(t, ta.PostBootStartupTasksInit(ta.Ctx))
 
 	if len(ta.Oban.Enqueued(t, obanlite.Match{Worker: app.UpdateWorkerName})) != 1 {
 		t.Errorf("expected 1 job enqueued")

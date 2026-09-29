@@ -120,9 +120,7 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		ta.SetSetting(ta.Ctx, "youtube_api_key", "key1, key2")
 
-		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
-			return "{}", nil
-		})
+		ta.HTTPMock.Get.Expect(httpReturns("{}"))
 
 		result, err := ta.YoutubeApiGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {
@@ -139,9 +137,7 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		ta.SetSetting(ta.Ctx, "youtube_api_key", "key1, key2")
 
-		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
-			return `{"items":[{"contentDetails":{"videoId":"test_1"}},{"contentDetails":{"videoId":"test_2"}}]}`, nil
-		})
+		ta.HTTPMock.Get.Expect(httpReturns(`{"items":[{"contentDetails":{"videoId":"test_1"}},{"contentDetails":{"videoId":"test_2"}}]}`))
 
 		result, err := ta.YoutubeApiGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {

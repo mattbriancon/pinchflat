@@ -18,9 +18,7 @@ func TestCoreListItemsFromMap(t *testing.T) {
 		source, _ = ta.App.PreloadSourceMediaProfile(ta.Ctx, source)
 
 		html, err := templ.ToGoHTML(context.Background(), web.CoreListItemsFromMap(source))
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		s := string(html)
 		for _, want := range []string{"<strong>custom_name:</strong>", "<strong>inserted_at:</strong>", `href="https://www.youtube.com/@x"`} {
 			if !strings.Contains(s, want) {

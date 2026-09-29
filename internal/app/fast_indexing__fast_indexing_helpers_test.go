@@ -15,9 +15,13 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
-// parseWorkerID extracts an int64 ID from a worker arg value that may be json.Number, int64, or float64.
-func parseWorkerID(t *testing.T, idVal any) int64 {
+// jobID extracts the int64 "id" arg of a job, which may be a json.Number, int64 or float64.
+func jobID(t *testing.T, job *obanlite.Job) int64 {
 	t.Helper()
+	idVal, ok := job.ArgsMap()["id"]
+	if !ok {
+		t.Fatalf("missing id in worker args")
+	}
 	switch v := idVal.(type) {
 	case json.Number:
 		n, _ := v.Int64()
@@ -43,9 +47,7 @@ func TestFastIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		existingTask := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(existingJob.ID)})
 
 		newTask, err := ta.FastIndexingHelpersKickoffIndexingTask(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("kickoff failed: %v", err)
-		}
+		must(t, err)
 
 		if newTask == nil || newTask.ID == existingTask.ID {
 			t.Error("expected new task to be created, different from existing")
@@ -58,9 +60,7 @@ func TestFastIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		task, err := ta.FastIndexingHelpersKickoffIndexingTask(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("kickoff failed: %v", err)
-		}
+		must(t, err)
 
 		if task == nil || task.SourceID == nil || *task.SourceID != source.ID {
 			t.Errorf("task.SourceID=%v, want %d", task.SourceID, source.ID)
@@ -70,12 +70,7 @@ func TestFastIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		if len(workers) != 1 {
 			t.Errorf("workers=%d, want 1", len(workers))
 		}
-		args := workers[0].ArgsMap()
-		idVal, ok := args["id"]
-		if !ok {
-			t.Fatalf("missing id in worker args")
-		}
-		workerID := parseWorkerID(t, idVal)
+		workerID := jobID(t, workers[0])
 		if workerID != source.ID {
 			t.Errorf("worker id=%d, want %d", workerID, source.ID)
 		}
@@ -85,12 +80,8 @@ func TestFastIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 // Helper to set up standard mocks for IndexAndKickoffDownloads tests.
 func setupDownloadIndexMocks(t *testing.T, ta *apptest.TestApp, rssResp string) {
 	t.Helper()
-	ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-		return apptest.MediaAttributesReturnFixture(), nil
-	})
-	ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
-		return rssResp, nil
-	})
+	ta.YtDlpMock.Run.Expect(ytReturns(apptest.MediaAttributesReturnFixture()))
+	ta.HTTPMock.Get.Expect(httpReturns(rssResp))
 }
 
 func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
@@ -102,9 +93,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		setupDownloadIndexMocks(t, ta, "<yt:videoId>test_1</yt:videoId>")
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 1 {
 			t.Errorf("items=%d, want 1", len(items))
@@ -114,12 +103,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		if len(workers) != 1 {
 			t.Errorf("workers=%d, want 1", len(workers))
 		}
-		args := workers[0].ArgsMap()
-		idVal, ok := args["id"]
-		if !ok {
-			t.Fatalf("missing id in worker args")
-		}
-		workerID := parseWorkerID(t, idVal)
+		workerID := jobID(t, workers[0])
 		if workerID != items[0].ID {
 			t.Errorf("worker id=%d, want %d", workerID, items[0].ID)
 		}
@@ -137,14 +121,10 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 			MediaID:  store.Ptr("test_1"),
 		})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
-			return "<yt:videoId>test_1</yt:videoId>", nil
-		})
+		ta.HTTPMock.Get.Expect(httpReturns("<yt:videoId>test_1</yt:videoId>"))
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 0 {
 			t.Errorf("items=%d, want 0", len(items))
@@ -163,9 +143,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		setupDownloadIndexMocks(t, ta, "<yt:videoId>test_1</yt:videoId>")
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 1 {
 			t.Errorf("items=%d, want 1", len(items))
@@ -176,12 +154,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 			t.Errorf("workers=%d, want 2", len(workers))
 		}
 
-		args := workers[0].ArgsMap()
-		idVal, ok := args["id"]
-		if !ok {
-			t.Fatalf("missing id in worker args")
-		}
-		workerID := parseWorkerID(t, idVal)
+		workerID := jobID(t, workers[0])
 		if workerID != pendingItem.ID {
 			t.Errorf("worker id=%d, want %d", workerID, pendingItem.ID)
 		}
@@ -197,9 +170,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		setupDownloadIndexMocks(t, ta, "<yt:videoId>test_1</yt:videoId>")
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 1 {
 			t.Errorf("items=%d, want 1", len(items))
@@ -216,9 +187,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		setupDownloadIndexMocks(t, ta, "<yt:videoId>test_1</yt:videoId>")
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 1 {
 			t.Errorf("items=%d, want 1", len(items))
@@ -231,17 +200,11 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			return "{}", nil
-		})
-		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
-			return "<yt:videoId>test_1</yt:videoId>", nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns("{}"))
+		ta.HTTPMock.Get.Expect(httpReturns("<yt:videoId>test_1</yt:videoId>"))
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 0 {
 			t.Errorf("items=%d, want 0", len(items))
@@ -256,14 +219,10 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			return "", &cmdrun.Error{Output: "error", Status: 1}
 		})
-		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
-			return "<yt:videoId>test_1</yt:videoId>", nil
-		})
+		ta.HTTPMock.Get.Expect(httpReturns("<yt:videoId>test_1</yt:videoId>"))
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 0 {
 			t.Errorf("items=%d, want 0", len(items))
@@ -293,14 +252,10 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 			optionsChecked = true
 			return apptest.MediaAttributesReturnFixture(), nil
 		})
-		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
-			return "<yt:videoId>test_1</yt:videoId>", nil
-		})
+		ta.HTTPMock.Get.Expect(httpReturns("<yt:videoId>test_1</yt:videoId>"))
 
 		_, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if !optionsChecked {
 			t.Error("yt-dlp not called")
@@ -328,14 +283,10 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 			jsonStr, _ := db.EncodeJSON(output)
 			return jsonStr, nil
 		})
-		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
-			return "<yt:videoId>test_1</yt:videoId>", nil
-		})
+		ta.HTTPMock.Get.Expect(httpReturns("<yt:videoId>test_1</yt:videoId>"))
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 1 {
 			t.Errorf("items=%d, want 1", len(items))
@@ -371,14 +322,10 @@ func TestFastIndexingHelpers_CookieBehavior(t *testing.T) {
 				return apptest.MediaAttributesReturnFixture(), nil
 			})
 
-			ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
-				return "<yt:videoId>test_1</yt:videoId>", nil
-			})
+			ta.HTTPMock.Get.Expect(httpReturns("<yt:videoId>test_1</yt:videoId>"))
 
 			_, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-			if err != nil {
-				t.Fatalf("failed: %v", err)
-			}
+			must(t, err)
 
 			if !cookieChecked {
 				t.Error("yt-dlp not called")
@@ -404,9 +351,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		})
 
 		_, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if !apiUsed {
 			t.Error("API not used")
@@ -419,9 +364,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		ta.SetSetting(ta.Ctx, "youtube_api_key", "test_key")
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			return apptest.MediaAttributesReturnFixture(), nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns(apptest.MediaAttributesReturnFixture()))
 
 		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			if strings.Contains(url, "youtube.googleapis.com") {
@@ -437,9 +380,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		})
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 1 {
 			t.Errorf("items=%d, want 1", len(items))
@@ -452,9 +393,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		ta.SetSetting(ta.Ctx, "youtube_api_key", "test_key")
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			return apptest.MediaAttributesReturnFixture(), nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns(apptest.MediaAttributesReturnFixture()))
 
 		callCount := 0
 		ta.HTTPMock.Get.Stub(func(url string, headers http.Header) (string, error) {
@@ -469,9 +408,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		})
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 1 {
 			t.Errorf("items=%d, want 1", len(items))
@@ -484,9 +421,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		ta.SetSetting(ta.Ctx, "youtube_api_key", nil)
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			return apptest.MediaAttributesReturnFixture(), nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns(apptest.MediaAttributesReturnFixture()))
 
 		rssUsed := false
 		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
@@ -497,9 +432,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		})
 
 		_, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if !rssUsed {
 			t.Error("RSS not used")

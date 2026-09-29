@@ -55,10 +55,7 @@ func TestSourceDeletionWorker_Kickoff(t *testing.T) {
 			t.Error("expected job")
 		}
 
-		enqueued := ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.SourceDeletionWorkerName,
-			Args:   map[string]any{"id": source.ID, "delete_files": true},
-		})
+		enqueued := ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.SourceDeletionWorkerName, Args: map[string]any{"id": source.ID, "delete_files": true}})
 		if enqueued == nil {
 			t.Error("job not enqueued as expected")
 		}

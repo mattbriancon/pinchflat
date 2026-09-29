@@ -16,9 +16,7 @@ func TestTasks_Schema(t *testing.T) {
 
 		// Delete the job (which should cascade to the task)
 		_, err := store.Exec(ts.Ctx, ts.Q(ts.Ctx), store.SQ.Delete("oban_jobs").Where(sq.Eq{"id": task.JobID}))
-		if err != nil {
-			t.Fatalf("deleting job failed: %v", err)
-		}
+		must(t, err)
 
 		// Verify the task was deleted (should raise an error)
 		_, err = store.MustOne[store.Task](ts.Ctx, ts.Q(ts.Ctx), store.From[store.Task]().Where(sq.Eq{"id": task.ID}))
@@ -36,15 +34,11 @@ func TestTasks_Schema(t *testing.T) {
 			t.Fatalf("task should have source_id")
 		}
 		source, err := store.MustOne[store.Source](ts.Ctx, ts.Q(ts.Ctx), store.From[store.Source]().Where(sq.Eq{"id": *task.SourceID}))
-		if err != nil {
-			t.Fatalf("getting source failed: %v", err)
-		}
+		must(t, err)
 
 		// Delete the job (which should cascade to the task)
 		_, err = store.Exec(ts.Ctx, ts.Q(ts.Ctx), store.SQ.Delete("oban_jobs").Where(sq.Eq{"id": task.JobID}))
-		if err != nil {
-			t.Fatalf("deleting job failed: %v", err)
-		}
+		must(t, err)
 
 		// Verify the source still exists
 		reloadedSource, err := store.MustOne[store.Source](ts.Ctx, ts.Q(ts.Ctx), store.From[store.Source]().Where(sq.Eq{"id": source.ID}))
@@ -63,9 +57,7 @@ func TestTasks_ListTasks(t *testing.T) {
 		task := storetest.TaskFixture(t, ts, storetest.TaskParams{})
 
 		tasks, err := ts.ListTasks(ts.Ctx)
-		if err != nil {
-			t.Fatalf("TasksListTasks failed: %v", err)
-		}
+		must(t, err)
 		if len(tasks) != 1 {
 			t.Errorf("expected 1 task, got %d", len(tasks))
 		}
@@ -82,9 +74,7 @@ func TestTasks_ListTasksFor(t *testing.T) {
 		task := storetest.TaskFixture(t, ts, storetest.TaskParams{SourceID: store.Ptr(source.ID)})
 
 		tasks, err := ts.ListTasksFor(ts.Ctx, source, nil, []string{"available"})
-		if err != nil {
-			t.Fatalf("TasksListTasksFor failed: %v", err)
-		}
+		must(t, err)
 		if len(tasks) != 1 {
 			t.Errorf("expected 1 task, got %d", len(tasks))
 		}
@@ -100,18 +90,14 @@ func TestTasks_ListTasksFor(t *testing.T) {
 
 		// Should find task with available state
 		tasks, err := ts.ListTasksFor(ts.Ctx, source, nil, []string{"available"})
-		if err != nil {
-			t.Fatalf("TasksListTasksFor available failed: %v", err)
-		}
+		must(t, err)
 		if len(tasks) != 1 {
 			t.Errorf("expected 1 task with available state, got %d", len(tasks))
 		}
 
 		// Should not find task with cancelled state
 		tasks, err = ts.ListTasksFor(ts.Ctx, source, nil, []string{"cancelled"})
-		if err != nil {
-			t.Fatalf("TasksListTasksFor cancelled failed: %v", err)
-		}
+		must(t, err)
 		if len(tasks) != 0 {
 			t.Errorf("expected 0 tasks with cancelled state, got %d", len(tasks))
 		}
@@ -127,18 +113,14 @@ func TestTasks_ListTasksFor(t *testing.T) {
 
 		// Should find task with TestJobWorker
 		tasks, err := ts.ListTasksFor(ts.Ctx, source, store.Ptr("TestJobWorker"), pendingStates)
-		if err != nil {
-			t.Fatalf("TasksListTasksFor with worker failed: %v", err)
-		}
+		must(t, err)
 		if len(tasks) != 1 {
 			t.Errorf("expected 1 task with TestJobWorker, got %d", len(tasks))
 		}
 
 		// Should not find task with FooBarWorker
 		tasks, err = ts.ListTasksFor(ts.Ctx, source, store.Ptr("FooBarWorker"), pendingStates)
-		if err != nil {
-			t.Fatalf("TasksListTasksFor with FooBarWorker failed: %v", err)
-		}
+		must(t, err)
 		if len(tasks) != 0 {
 			t.Errorf("expected 0 tasks with FooBarWorker, got %d", len(tasks))
 		}
@@ -154,9 +136,7 @@ func TestTasks_ListTasksFor(t *testing.T) {
 
 		// Should find task without specifying worker
 		tasks, err := ts.ListTasksFor(ts.Ctx, source, nil, pendingStates)
-		if err != nil {
-			t.Fatalf("TasksListTasksFor without worker filter failed: %v", err)
-		}
+		must(t, err)
 		if len(tasks) != 1 {
 			t.Errorf("expected 1 task, got %d", len(tasks))
 		}
@@ -172,9 +152,7 @@ func TestTasks_GetTaskBang(t *testing.T) {
 		task := storetest.TaskFixture(t, ts, storetest.TaskParams{})
 
 		retrievedTask, err := ts.GetTaskBang(ts.Ctx, task.ID)
-		if err != nil {
-			t.Fatalf("TasksGetTaskBang failed: %v", err)
-		}
+		must(t, err)
 		if retrievedTask.ID != task.ID {
 			t.Errorf("expected task ID %d, got %d", task.ID, retrievedTask.ID)
 		}
@@ -187,9 +165,7 @@ func TestTasks_CreateTask(t *testing.T) {
 		job := storetest.JobFixture(t, ts)
 
 		task, err := ts.CreateTask(ts.Ctx, job.ID, nil, nil)
-		if err != nil {
-			t.Fatalf("TasksCreateTask failed: %v", err)
-		}
+		must(t, err)
 		if task == nil {
 			t.Fatalf("expected store.Task, got nil")
 		}
@@ -204,9 +180,7 @@ func TestTasks_CreateTask(t *testing.T) {
 		source := storetest.SourceFixture(t, ts, store.SourceParams{})
 
 		task, err := ts.CreateTask(ts.Ctx, job.ID, &source.ID, nil)
-		if err != nil {
-			t.Fatalf("TasksCreateTask failed: %v", err)
-		}
+		must(t, err)
 		if task == nil {
 			t.Fatalf("expected store.Task, got nil")
 		}
@@ -221,9 +195,7 @@ func TestTasks_CreateTask(t *testing.T) {
 		source := storetest.SourceFixture(t, ts, store.SourceParams{})
 
 		task, err := ts.CreateTaskWithRecord(ts.Ctx, job, source)
-		if err != nil {
-			t.Fatalf("TasksCreateTaskWithRecord failed: %v", err)
-		}
+		must(t, err)
 		if task.JobID != job.ID {
 			t.Errorf("expected job_id %d, got %d", job.ID, task.JobID)
 		}
@@ -238,9 +210,7 @@ func TestTasks_CreateTask(t *testing.T) {
 		mediaItem := storetest.MediaItemFixture(t, ts, store.MediaItemParams{})
 
 		task, err := ts.CreateTaskWithRecord(ts.Ctx, job, mediaItem)
-		if err != nil {
-			t.Fatalf("TasksCreateTaskWithRecord failed: %v", err)
-		}
+		must(t, err)
 		if task.JobID != job.ID {
 			t.Errorf("expected job_id %d, got %d", job.ID, task.JobID)
 		}
@@ -258,9 +228,7 @@ func TestTasks_CreateJobWithTask(t *testing.T) {
 
 		spec := obanlite.NewJob(storetest.TestJobWorkerName, map[string]any{})
 		task, err := ts.CreateJobWithTask(ts.Ctx, spec, mediaItem)
-		if err != nil {
-			t.Fatalf("TasksCreateJobWithTask failed: %v", err)
-		}
+		must(t, err)
 		if task == nil {
 			t.Fatalf("expected store.Task, got nil")
 		}
@@ -279,9 +247,7 @@ func TestTasks_CreateJobWithTask(t *testing.T) {
 
 		spec := obanlite.NewJob(storetest.TestJobWorkerName, map[string]any{})
 		task, err := ts.CreateJobWithTask(ts.Ctx, spec, source)
-		if err != nil {
-			t.Fatalf("TasksCreateJobWithTask failed: %v", err)
-		}
+		must(t, err)
 		if task.SourceID == nil || *task.SourceID != source.ID {
 			t.Errorf("expected source_id %d, got %v", source.ID, task.SourceID)
 		}
@@ -296,9 +262,7 @@ func TestTasks_CreateJobWithTask(t *testing.T) {
 		spec.Unique = &obanlite.UniqueOpts{Period: obanlite.Infinity}
 
 		task1, err := ts.CreateJobWithTask(ts.Ctx, spec, source)
-		if err != nil {
-			t.Fatalf("first TasksCreateJobWithTask failed: %v", err)
-		}
+		must(t, err)
 		if task1 == nil {
 			t.Fatalf("expected store.Task, got nil")
 		}
@@ -331,9 +295,7 @@ func TestTasks_DeleteTask(t *testing.T) {
 		task := storetest.TaskFixture(t, ts, storetest.TaskParams{})
 
 		_, err := ts.DeleteTask(ts.Ctx, task)
-		if err != nil {
-			t.Fatalf("TasksDeleteTask failed: %v", err)
-		}
+		must(t, err)
 
 		// Verify the task was deleted
 		_, err = ts.GetTaskBang(ts.Ctx, task.ID)
@@ -348,16 +310,12 @@ func TestTasks_DeleteTask(t *testing.T) {
 		jobID := task.JobID
 
 		_, err := ts.DeleteTask(ts.Ctx, task)
-		if err != nil {
-			t.Fatalf("TasksDeleteTask failed: %v", err)
-		}
+		must(t, err)
 
 		// Verify the job was cancelled by querying the database
 		var state string
 		err = ts.Q(ts.Ctx).GetContext(ts.Ctx, &state, "SELECT state FROM oban_jobs WHERE id = ?", jobID)
-		if err != nil {
-			t.Fatalf("failed to query job state: %v", err)
-		}
+		must(t, err)
 		if state != "cancelled" {
 			t.Errorf("expected job state 'cancelled', got '%s'", state)
 		}
@@ -372,9 +330,7 @@ func TestTasks_DeleteTasksFor(t *testing.T) {
 
 		pendingStates := []string{"available", "scheduled", "retryable"}
 		err := ts.DeleteTasksFor(ts.Ctx, source, nil, pendingStates)
-		if err != nil {
-			t.Fatalf("TasksDeleteTasksFor failed: %v", err)
-		}
+		must(t, err)
 
 		// Verify the task was deleted
 		_, err = ts.GetTaskBang(ts.Ctx, task.ID)
@@ -390,9 +346,7 @@ func TestTasks_DeleteTasksFor(t *testing.T) {
 
 		pendingStates := []string{"available", "scheduled", "retryable"}
 		err := ts.DeleteTasksFor(ts.Ctx, mediaItem, nil, pendingStates)
-		if err != nil {
-			t.Fatalf("TasksDeleteTasksFor failed: %v", err)
-		}
+		must(t, err)
 
 		// Verify the task was deleted
 		_, err = ts.GetTaskBang(ts.Ctx, task.ID)
@@ -410,9 +364,7 @@ func TestTasks_DeleteTasksFor(t *testing.T) {
 
 		// Should not delete with FooBarWorker filter
 		err := ts.DeleteTasksFor(ts.Ctx, mediaItem, store.Ptr("FooBarWorker"), pendingStates)
-		if err != nil {
-			t.Fatalf("TasksDeleteTasksFor with FooBarWorker filter failed: %v", err)
-		}
+		must(t, err)
 		retrievedTask, _ := ts.GetTaskBang(ts.Ctx, task.ID)
 		if retrievedTask == nil {
 			t.Errorf("expected task to still exist after filtering by FooBarWorker")
@@ -420,9 +372,7 @@ func TestTasks_DeleteTasksFor(t *testing.T) {
 
 		// Should delete with TestJobWorker filter
 		err = ts.DeleteTasksFor(ts.Ctx, mediaItem, store.Ptr("TestJobWorker"), pendingStates)
-		if err != nil {
-			t.Fatalf("TasksDeleteTasksFor with TestJobWorker filter failed: %v", err)
-		}
+		must(t, err)
 		_, err = ts.GetTaskBang(ts.Ctx, task.ID)
 		if err == nil {
 			t.Errorf("expected task to be deleted, but it still exists")
@@ -436,9 +386,7 @@ func TestTasks_DeleteTasksFor(t *testing.T) {
 
 		// Should not delete with executing state filter
 		err := ts.DeleteTasksFor(ts.Ctx, source, nil, []string{"executing"})
-		if err != nil {
-			t.Fatalf("TasksDeleteTasksFor with executing state filter failed: %v", err)
-		}
+		must(t, err)
 		retrievedTask, _ := ts.GetTaskBang(ts.Ctx, task.ID)
 		if retrievedTask == nil {
 			t.Errorf("expected task to still exist after filtering by executing state")
@@ -446,9 +394,7 @@ func TestTasks_DeleteTasksFor(t *testing.T) {
 
 		// Should delete with available state filter
 		err = ts.DeleteTasksFor(ts.Ctx, source, nil, []string{"available"})
-		if err != nil {
-			t.Fatalf("TasksDeleteTasksFor with available state filter failed: %v", err)
-		}
+		must(t, err)
 		_, err = ts.GetTaskBang(ts.Ctx, task.ID)
 		if err == nil {
 			t.Errorf("expected task to be deleted, but it still exists")
@@ -464,19 +410,13 @@ func TestTasks_DeleteTasksFor(t *testing.T) {
 
 		// Delete tasks for different sources
 		err := ts.DeleteTasksFor(ts.Ctx, storetest.SourceFixture(t, ts, store.SourceParams{}), nil, pendingStates)
-		if err != nil {
-			t.Fatalf("first TasksDeleteTasksFor failed: %v", err)
-		}
+		must(t, err)
 
 		err = ts.DeleteTasksFor(ts.Ctx, storetest.SourceFixture(t, ts, store.SourceParams{}), store.Ptr("FooBarWorker"), pendingStates)
-		if err != nil {
-			t.Fatalf("second TasksDeleteTasksFor failed: %v", err)
-		}
+		must(t, err)
 
 		err = ts.DeleteTasksFor(ts.Ctx, storetest.SourceFixture(t, ts, store.SourceParams{}), store.Ptr("TestJobWorker"), pendingStates)
-		if err != nil {
-			t.Fatalf("third TasksDeleteTasksFor failed: %v", err)
-		}
+		must(t, err)
 
 		// Verify the original task still exists
 		retrievedTask, err := ts.GetTaskBang(ts.Ctx, task.ID)
@@ -493,9 +433,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 		task := storetest.TaskFixture(t, ts, storetest.TaskParams{SourceID: store.Ptr(source.ID)})
 
 		err := ts.DeletePendingTasksFor(ts.Ctx, source, nil, false)
-		if err != nil {
-			t.Fatalf("TasksDeletePendingTasksFor failed: %v", err)
-		}
+		must(t, err)
 
 		// Verify the task was deleted
 		_, err = ts.GetTaskBang(ts.Ctx, task.ID)
@@ -513,9 +451,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 		ts.Oban.CancelJob(ts.Ctx, task.JobID)
 
 		err := ts.DeletePendingTasksFor(ts.Ctx, source, nil, false)
-		if err != nil {
-			t.Fatalf("TasksDeletePendingTasksFor failed: %v", err)
-		}
+		must(t, err)
 
 		// Verify the task still exists
 		retrievedTask, err := ts.GetTaskBang(ts.Ctx, task.ID)
@@ -534,9 +470,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 		ts.Oban.CancelJob(ts.Ctx, cancelledTask.JobID)
 
 		err := ts.DeletePendingTasksFor(ts.Ctx, mediaItem, nil, false)
-		if err != nil {
-			t.Fatalf("TasksDeletePendingTasksFor failed: %v", err)
-		}
+		must(t, err)
 
 		// Verify the pending task was deleted
 		_, err = ts.GetTaskBang(ts.Ctx, pendingTask.ID)
@@ -558,9 +492,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 
 		// Should not delete with FooBarWorker filter
 		err := ts.DeletePendingTasksFor(ts.Ctx, mediaItem, store.Ptr("FooBarWorker"), false)
-		if err != nil {
-			t.Fatalf("TasksDeletePendingTasksFor with FooBarWorker filter failed: %v", err)
-		}
+		must(t, err)
 		retrievedTask, _ := ts.GetTaskBang(ts.Ctx, task.ID)
 		if retrievedTask == nil {
 			t.Errorf("expected task to still exist after filtering by FooBarWorker")
@@ -568,9 +500,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 
 		// Should delete with TestJobWorker filter
 		err = ts.DeletePendingTasksFor(ts.Ctx, mediaItem, store.Ptr("TestJobWorker"), false)
-		if err != nil {
-			t.Fatalf("TasksDeletePendingTasksFor with TestJobWorker filter failed: %v", err)
-		}
+		must(t, err)
 		_, err = ts.GetTaskBang(ts.Ctx, task.ID)
 		if err == nil {
 			t.Errorf("expected task to be deleted")
@@ -584,15 +514,11 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 
 		// Set the job to executing state
 		_, err := store.Exec(ts.Ctx, ts.Q(ts.Ctx), store.SQ.Update("oban_jobs").Set("state", "executing").Where(sq.Eq{"id": task.JobID}))
-		if err != nil {
-			t.Fatalf("failed to update job state: %v", err)
-		}
+		must(t, err)
 
 		// Should not delete with include_executing=false
 		err = ts.DeletePendingTasksFor(ts.Ctx, source, nil, false)
-		if err != nil {
-			t.Fatalf("first TasksDeletePendingTasksFor failed: %v", err)
-		}
+		must(t, err)
 		retrievedTask, _ := ts.GetTaskBang(ts.Ctx, task.ID)
 		if retrievedTask == nil {
 			t.Errorf("expected task to still exist when include_executing=false")
@@ -600,9 +526,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 
 		// Should delete with include_executing=true
 		err = ts.DeletePendingTasksFor(ts.Ctx, source, nil, true)
-		if err != nil {
-			t.Fatalf("second TasksDeletePendingTasksFor failed: %v", err)
-		}
+		must(t, err)
 		_, err = ts.GetTaskBang(ts.Ctx, task.ID)
 		if err == nil {
 			t.Errorf("expected task to be deleted when include_executing=true")

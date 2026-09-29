@@ -20,31 +20,21 @@ func TestSourceAndProfileJSONMatchElixirGolden(t *testing.T) {
 
 	decode := func(b []byte) map[string]any {
 		var m map[string]any
-		if err := json.Unmarshal(b, &m); err != nil {
-			t.Fatal(err)
-		}
+		must(t, json.Unmarshal(b, &m))
 		return m
 	}
 	golden := func(name string) map[string]any {
 		b, err := os.ReadFile(dbtest.ElixirFixture("golden/" + name))
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		return decode(b)
 	}
 
 	t.Run("source", func(t *testing.T) {
 		src, err := store.MustOne[store.Source](ctx, s.DB, store.From[store.Source]().Where(sq.Eq{"id": 1}))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err := s.PreloadSourceMediaProfile(ctx, src); err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
+		mustOK(t)(s.PreloadSourceMediaProfile(ctx, src))
 		b, err := json.Marshal(src)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if got, want := decode(b), golden("user_script_source.json"); !reflect.DeepEqual(got, want) {
 			t.Errorf("source JSON differs\n got: %v\nwant: %v", got, want)
 		}
@@ -52,13 +42,9 @@ func TestSourceAndProfileJSONMatchElixirGolden(t *testing.T) {
 
 	t.Run("media profile", func(t *testing.T) {
 		p, err := store.MustOne[store.MediaProfile](ctx, s.DB, store.From[store.MediaProfile]().Where(sq.Eq{"id": 2}))
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		b, err := json.Marshal(p)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if got, want := decode(b), golden("user_script_media_profile.json"); !reflect.DeepEqual(got, want) {
 			t.Errorf("profile JSON differs\n got: %v\nwant: %v", got, want)
 		}

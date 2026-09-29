@@ -14,9 +14,7 @@ func TestPodcastController_OpmlFeed(t *testing.T) {
 		c := webtest.New(t)
 		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 		routeToken, err := c.App.GetSetting(c.Ctx, "route_token")
-		if err != nil {
-			t.Fatalf("get route_token: %v", err)
-		}
+		must(t, err)
 
 		res := c.Get("/sources/opml.xml", map[string]string{"route_token": routeToken.(string)})
 

@@ -39,15 +39,11 @@ func TestUpdateWorker_Perform(t *testing.T) {
 			})
 
 			err := ta.Oban.PerformJob(ta.Ctx, app.UpdateWorkerName, map[string]any{})
-			if err != nil {
-				t.Fatalf("PerformJob failed: %v", err)
-			}
+			must(t, err)
 
 			if tt.expectVer != "" {
 				val, err := ta.GetSetting(ta.Ctx, "yt_dlp_version")
-				if err != nil {
-					t.Fatalf("SettingsGet failed: %v", err)
-				}
+				must(t, err)
 
 				var version string
 				if v, ok := val.(*string); ok && v != nil {

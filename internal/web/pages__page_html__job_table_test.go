@@ -21,14 +21,10 @@ func createMediaItemJob(t testing.TB, c *webtest.Client, jobState string) (*stor
 	source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 	mediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 	task, err := c.App.MediaDownloadWorkerKickoffWithTask(c.Ctx, mediaItem, map[string]any{}, nil)
-	if err != nil {
-		t.Fatalf("MediaDownloadWorkerKickoffWithTask: %v", err)
-	}
+	must(t, err)
 
 	_, err = store.Exec(c.Ctx, c.App.Q(c.Ctx), store.SQ.Update("oban_jobs").Set("state", jobState).Where(sq.Eq{"id": task.JobID}))
-	if err != nil {
-		t.Fatalf("failed to update job state: %v", err)
-	}
+	must(t, err)
 
 	return source, mediaItem, task
 }
@@ -38,14 +34,10 @@ func createSourceJob(t testing.TB, c *webtest.Client, jobState string) (*store.S
 	t.Helper()
 	source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 	task, err := c.App.FastIndexingWorkerKickoffWithTask(c.Ctx, source, 0)
-	if err != nil {
-		t.Fatalf("FastIndexingWorkerKickoffWithTask: %v", err)
-	}
+	must(t, err)
 
 	_, err = store.Exec(c.Ctx, c.App.Q(c.Ctx), store.SQ.Update("oban_jobs").Set("state", jobState).Where(sq.Eq{"id": task.JobID}))
-	if err != nil {
-		t.Fatalf("failed to update job state: %v", err)
-	}
+	must(t, err)
 
 	return source, task
 }
@@ -54,9 +46,7 @@ func createSourceJob(t testing.TB, c *webtest.Client, jobState string) (*store.S
 func homeClient(t testing.TB) *webtest.Client {
 	t.Helper()
 	c := webtest.New(t)
-	if _, err := c.App.SetSetting(c.Ctx, "onboarding", false); err != nil {
-		t.Fatalf("SettingsSet: %v", err)
-	}
+	mustOK(t)(c.App.SetSetting(c.Ctx, "onboarding", false))
 	return c
 }
 

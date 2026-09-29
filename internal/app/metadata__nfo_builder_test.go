@@ -19,9 +19,7 @@ func TestNfoBuilderBuildAndStoreForMediaItem(t *testing.T) {
 		metadata := renderParsedMediaMetadata()
 
 		result, err := app.NfoBuilderBuildAndStoreForMediaItem(filepath, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if result != filepath {
 			t.Errorf("expected %s, got %s", filepath, result)
@@ -37,14 +35,10 @@ func TestNfoBuilderBuildAndStoreForMediaItem(t *testing.T) {
 		metadata := renderParsedMediaMetadata()
 
 		result, err := app.NfoBuilderBuildAndStoreForMediaItem(filepath, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		nfo, err := os.ReadFile(result)
-		if err != nil {
-			t.Fatalf("failed to read NFO file: %v", err)
-		}
+		must(t, err)
 
 		nfoStr := string(nfo)
 		if !strings.Contains(nfoStr, `<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>`) {
@@ -67,14 +61,10 @@ func TestNfoBuilderBuildAndStoreForMediaItem(t *testing.T) {
 		}
 
 		result, err := app.NfoBuilderBuildAndStoreForMediaItem(filepath, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		nfo, err := os.ReadFile(result)
-		if err != nil {
-			t.Fatalf("failed to read NFO file: %v", err)
-		}
+		must(t, err)
 
 		nfoStr := string(nfo)
 		if !strings.Contains(nfoStr, "hello&#39; &amp; &lt;world&gt;") {
@@ -94,14 +84,10 @@ func TestNfoBuilderBuildAndStoreForMediaItem(t *testing.T) {
 		filepath := filepath.Join(ta.Config.TmpfileDirectory, "foo/s0123e456.nfo")
 
 		result, err := app.NfoBuilderBuildAndStoreForMediaItem(filepath, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		nfo, err := os.ReadFile(result)
-		if err != nil {
-			t.Fatalf("failed to read NFO file: %v", err)
-		}
+		must(t, err)
 
 		nfoStr := string(nfo)
 		if !strings.Contains(nfoStr, "<season>0123</season>") {
@@ -126,14 +112,10 @@ func TestNfoBuilderBuildAndStoreForMediaItem(t *testing.T) {
 		}
 
 		result, err := app.NfoBuilderBuildAndStoreForMediaItem(filepath, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		nfo, err := os.ReadFile(result)
-		if err != nil {
-			t.Fatalf("failed to read NFO file: %v", err)
-		}
+		must(t, err)
 
 		nfoStr := string(nfo)
 		if !strings.Contains(nfoStr, "<season>2021</season>") {
@@ -155,9 +137,7 @@ func TestNfoBuilderBuildAndStoreForSource(t *testing.T) {
 		metadata := renderParsedChannelMetadata()
 
 		result, err := app.NfoBuilderBuildAndStoreForSource(filepath, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if result != filepath {
 			t.Errorf("expected %s, got %s", filepath, result)
@@ -173,14 +153,10 @@ func TestNfoBuilderBuildAndStoreForSource(t *testing.T) {
 		metadata := renderParsedChannelMetadata()
 
 		result, err := app.NfoBuilderBuildAndStoreForSource(filepath, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		nfo, err := os.ReadFile(result)
-		if err != nil {
-			t.Fatalf("failed to read NFO file: %v", err)
-		}
+		must(t, err)
 
 		nfoStr := string(nfo)
 		if !strings.Contains(nfoStr, `<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>`) {
@@ -201,14 +177,10 @@ func TestNfoBuilderBuildAndStoreForSource(t *testing.T) {
 		}
 
 		result, err := app.NfoBuilderBuildAndStoreForSource(filepath, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		nfo, err := os.ReadFile(result)
-		if err != nil {
-			t.Fatalf("failed to read NFO file: %v", err)
-		}
+		must(t, err)
 
 		nfoStr := string(nfo)
 		if !strings.Contains(nfoStr, "hello&#39; &amp; &lt;world&gt;") {

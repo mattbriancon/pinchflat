@@ -46,9 +46,7 @@ func TestSettingController_UpdateSettings(t *testing.T) {
 // checkbox's "true", and every field of the form.
 func TestSettingController_UpdateSettingsFromBrowserForm(t *testing.T) {
 	c := webtest.New(t)
-	if _, err := c.App.SetSetting(c.Ctx, "onboarding", false); err != nil {
-		t.Fatal(err)
-	}
+	mustOK(t)(c.App.SetSetting(c.Ctx, "onboarding", false))
 
 	form := url.Values{
 		"_method":                                   {"patch"},
@@ -66,9 +64,7 @@ func TestSettingController_UpdateSettingsFromBrowserForm(t *testing.T) {
 	}
 
 	s, err := c.App.GetSettingsRecord(c.Ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	must(t, err)
 	if s.RestrictFilenames == nil || !*s.RestrictFilenames {
 		t.Errorf("restrict_filenames = %v, want true", s.RestrictFilenames)
 	}
@@ -98,13 +94,9 @@ func TestSettingController_DownloadLogs(t *testing.T) {
 
 		// Create a temporary log file
 		logDir := filepath.Join(os.TempDir(), "pinchflat", "data")
-		if err := os.MkdirAll(logDir, 0755); err != nil {
-			t.Fatalf("failed to create log dir: %v", err)
-		}
+		must(t, os.MkdirAll(logDir, 0755))
 		logPath := filepath.Join(logDir, "pinchflat.log")
-		if err := os.WriteFile(logPath, []byte("test log data"), 0644); err != nil {
-			t.Fatalf("failed to write log file: %v", err)
-		}
+		must(t, os.WriteFile(logPath, []byte("test log data"), 0644))
 		defer os.RemoveAll(logDir)
 
 		// Set the log path in config
