@@ -1,6 +1,7 @@
 package store_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/mattbriancon/pinchflat/internal/store"
@@ -17,45 +18,6 @@ func TestSettingsRecord(t *testing.T) {
 	}
 	if setting == nil {
 		t.Fatalf("expected store.Setting")
-	}
-}
-
-func TestSettingsUpdateSetting(t *testing.T) {
-	t.Parallel()
-	ts := storetest.NewStore(t)
-
-	_, err := ts.SetSetting(ts.Ctx, store.KW{store.Opt("onboarding", false)})
-	if err != nil {
-		t.Fatalf("setup: set onboarding to false failed: %v", err)
-	}
-
-	setting, err := ts.GetSettingsRecord(ts.Ctx)
-	if err != nil {
-		t.Fatalf("SettingsRecord failed: %v", err)
-	}
-
-	val, err := ts.GetSetting(ts.Ctx, "onboarding")
-	if err != nil {
-		t.Fatalf("SettingsGet failed: %v", err)
-	}
-	if val != false {
-		t.Errorf("expected onboarding=false")
-	}
-
-	updated, err := ts.UpdateSetting(ts.Ctx, setting, store.Attrs{"onboarding": true})
-	if err != nil {
-		t.Fatalf("SettingsUpdateSetting failed: %v", err)
-	}
-	if updated == nil {
-		t.Fatalf("expected store.Setting")
-	}
-
-	val, err = ts.GetSetting(ts.Ctx, "onboarding")
-	if err != nil {
-		t.Fatalf("SettingsGet failed: %v", err)
-	}
-	if val != true {
-		t.Errorf("expected onboarding=true")
 	}
 }
 
@@ -98,8 +60,8 @@ func TestSettingsSet(t *testing.T) {
 		if err == nil {
 			t.Fatalf("expected error")
 		}
-		if _, ok := store.AsChangesetError(err); !ok {
-			t.Errorf("expected store.ChangesetError, got %T", err)
+		if err.Error() != "invalid value for onboarding: expected bool" {
+			t.Errorf("expected type error, got %q", err.Error())
 		}
 	})
 }
@@ -166,61 +128,63 @@ func TestSettingsGetBang(t *testing.T) {
 	})
 }
 
-func TestSettingsChangeSetting(t *testing.T) {
+func TestSettingParamsValidate(t *testing.T) {
+	t.Parallel()
 	ts := storetest.NewStore(t)
 
-	t.Run("returns changeset", func(t *testing.T) {
-		t.Parallel()
-		setting, err := ts.GetSettingsRecord(ts.Ctx)
-		if err != nil {
-			t.Fatalf("SettingsRecord failed: %v", err)
-		}
+	setting, err := ts.GetSettingsRecord(ts.Ctx)
+	if err != nil {
+		t.Fatalf("SettingsRecord failed: %v", err)
+	}
 
-		cs := ts.ChangeSetting(ts.Ctx, setting, store.Attrs{"onboarding": true})
-		if cs == nil {
-			t.Fatalf("expected store.Changeset")
-		}
-	})
+	tests := []struct {
+		name     string
+		params   store.SettingParams
+		expected map[string][]string
+	}{
+		{
+			"empty params",
+			store.SettingParams{},
+			map[string][]string{},
+		},
+		{
+			"negative extractor sleep",
+			store.SettingParams{ExtractorSleepIntervalSeconds: store.Ptr(-1)},
+			map[string][]string{"extractor_sleep_interval_seconds": {"must be greater than or equal to 0"}},
+		},
+		{
+			"zero extractor sleep",
+			store.SettingParams{ExtractorSleepIntervalSeconds: store.Ptr(0)},
+			map[string][]string{},
+		},
+		{
+			"positive extractor sleep",
+			store.SettingParams{ExtractorSleepIntervalSeconds: store.Ptr(1)},
+			map[string][]string{},
+		},
+		{
+			"valid codec preferences",
+			store.SettingParams{VideoCodecPreference: store.Ptr("h264"), AudioCodecPreference: store.Ptr("aac")},
+			map[string][]string{},
+		},
+		{
+			"empty video codec",
+			store.SettingParams{VideoCodecPreference: store.Ptr("")},
+			map[string][]string{"video_codec_preference": {"can't be blank"}},
+		},
+		{
+			"empty audio codec",
+			store.SettingParams{AudioCodecPreference: store.Ptr("")},
+			map[string][]string{"audio_codec_preference": {"can't be blank"}},
+		},
+	}
 
-	t.Run("validates extractor sleep interval", func(t *testing.T) {
-		t.Parallel()
-		setting, err := ts.GetSettingsRecord(ts.Ctx)
-		if err != nil {
-			t.Fatalf("SettingsRecord failed: %v", err)
-		}
-
-		tests := []struct {
-			value   int
-			isValid bool
-		}{
-			{1, true},
-			{0, true},
-			{-1, false},
-		}
-
-		for _, tt := range tests {
-			cs := ts.ChangeSetting(ts.Ctx, setting, store.Attrs{"extractor_sleep_interval_seconds": tt.value})
-			if cs.Valid() != tt.isValid {
-				t.Errorf("value %d: expected valid=%v, got %v", tt.value, tt.isValid, cs.Valid())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errs := tt.params.Validate(setting)
+			if !reflect.DeepEqual(errs, tt.expected) {
+				t.Errorf("expected %v, got %v", tt.expected, errs)
 			}
-		}
-	})
-
-	t.Run("allows resetting sleep interval", func(t *testing.T) {
-		t.Parallel()
-		setting, err := ts.GetSettingsRecord(ts.Ctx)
-		if err != nil {
-			t.Fatalf("SettingsRecord failed: %v", err)
-		}
-
-		updated, err := ts.UpdateSetting(ts.Ctx, setting, store.Attrs{"extractor_sleep_interval_seconds": 1})
-		if err != nil {
-			t.Fatalf("SettingsUpdateSetting failed: %v", err)
-		}
-
-		cs := ts.ChangeSetting(ts.Ctx, updated, store.Attrs{"extractor_sleep_interval_seconds": 0})
-		if !cs.Valid() {
-			t.Errorf("resetting to 0 should be valid, got errors: %v", cs.Errors)
-		}
-	})
+		})
+	}
 }

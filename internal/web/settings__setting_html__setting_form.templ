@@ -1,8 +1,6 @@
 package web
 
-import "github.com/mattbriancon/pinchflat/internal/store"
-
-templ SettingHTMLSettingForm(changeset *store.Changeset, action string) {
+templ SettingHTMLSettingForm(f *Form, action string) {
 	<form
 		method="post"
 		action={ action }
@@ -14,7 +12,7 @@ templ SettingHTMLSettingForm(changeset *store.Changeset, action string) {
 		// _method override hidden field (there is no CSRF token to emit; Go's
 		// cross-origin protection replaces it).
 		<input type="hidden" name="_method" value="put"/>
-		@formContent(FormFor(changeset, "setting"))
+		@formContent(f)
 		@ButtonButton("bg-primary", "rounded-lg", "mt-6 mb-2 w-full sm:w-auto", "submit", false, nil, saveSettingsButtonContent())
 	</form>
 }

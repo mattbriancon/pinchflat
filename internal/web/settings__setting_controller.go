@@ -17,8 +17,18 @@ func (s *Server) SettingControllerShow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	changeset := s.App.ChangeSetting(ctx, setting, store.Attrs{})
-	s.Render(w, r, http.StatusOK, LayoutApp, SettingHTMLShow(changeset))
+	values := map[string]any{
+		"onboarding":                       setting.Onboarding,
+		"yt_dlp_version":                   setting.YtDlpVersion,
+		"video_codec_preference":           setting.VideoCodecPreference,
+		"audio_codec_preference":           setting.AudioCodecPreference,
+		"youtube_api_key":                  setting.YoutubeAPIKey,
+		"extractor_sleep_interval_seconds": setting.ExtractorSleepIntervalSeconds,
+		"download_throughput_limit":        setting.DownloadThroughputLimit,
+		"restrict_filenames":               setting.RestrictFilenames,
+	}
+	form := NewForm("setting", values, nil)
+	s.Render(w, r, http.StatusOK, LayoutApp, SettingHTMLShowWithForm(form))
 }
 
 // SettingControllerUpdate updates the app settings.
@@ -31,20 +41,50 @@ func (s *Server) SettingControllerUpdate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	settingParams := ParseForm(r, "setting")
-
-	_, err = s.App.UpdateSetting(ctx, setting, settingParams)
-	if err != nil {
-		// Failed changeset re-renders with status 200
-		cs, ok := store.AsChangesetError(err)
-		if ok && cs != nil {
-			s.Render(w, r, http.StatusOK, LayoutApp, SettingHTMLShow(cs))
-			return
+	_ = r.ParseForm()
+	p, parseErrs := store.ParseSettingParams(r.PostForm)
+	if len(parseErrs) > 0 {
+		// Build Values map for form redisplay
+		values := map[string]any{
+			"onboarding":                       p.Onboarding,
+			"yt_dlp_version":                   p.YtDlpVersion,
+			"video_codec_preference":           p.VideoCodecPreference,
+			"audio_codec_preference":           p.AudioCodecPreference,
+			"youtube_api_key":                  p.YoutubeAPIKey,
+			"extractor_sleep_interval_seconds": p.ExtractorSleepIntervalSeconds,
+			"download_throughput_limit":        p.DownloadThroughputLimit,
+			"restrict_filenames":               p.RestrictFilenames,
 		}
+		form := NewForm("setting", values, parseErrs)
+		s.Render(w, r, http.StatusOK, LayoutApp, SettingHTMLShowWithForm(form))
+		return
+	}
+
+	updated, errs, err := s.App.UpdateSetting(ctx, setting, p)
+	if err != nil {
 		s.Fail(w, r, err)
 		return
 	}
 
+	if len(errs) > 0 {
+		// Build Values map for form redisplay
+		values := map[string]any{
+			"onboarding":                       p.Onboarding,
+			"yt_dlp_version":                   p.YtDlpVersion,
+			"video_codec_preference":           p.VideoCodecPreference,
+			"audio_codec_preference":           p.AudioCodecPreference,
+			"youtube_api_key":                  p.YoutubeAPIKey,
+			"extractor_sleep_interval_seconds": p.ExtractorSleepIntervalSeconds,
+			"download_throughput_limit":        p.DownloadThroughputLimit,
+			"restrict_filenames":               p.RestrictFilenames,
+		}
+		form := NewForm("setting", values, errs)
+		s.Render(w, r, http.StatusOK, LayoutApp, SettingHTMLShowWithForm(form))
+		return
+	}
+
+	// Update succeeded
+	_ = updated
 	s.PutFlash(w, r, "info", "Settings updated successfully.")
 	s.Redirect(w, r, P(ctx, "/settings"))
 }
