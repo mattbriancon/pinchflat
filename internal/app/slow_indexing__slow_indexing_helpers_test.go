@@ -12,330 +12,200 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
+type indexMockFn = func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error)
+
+// indexMock returns the fixture index response, after letting check inspect
+// the call.
+func indexMock(check func(opts ytdlp.Args, addl ytdlp.CallOptions)) indexMockFn {
+	return func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+		if check != nil {
+			check(opts, addl)
+		}
+		return apptest.SourceAttributesReturnFixture(), nil
+	}
+}
+
+// indexSource runs the indexing helper and returns its per-item results.
+func indexSource(t *testing.T, ta *apptest.TestApp, source *store.Source, force bool) []any {
+	t.Helper()
+	result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, force)
+	must(t, err)
+	return result
+}
+
+// mediaItemsOf picks the media items out of an indexing result.
+func mediaItemsOf(result []any) []*store.MediaItem {
+	var items []*store.MediaItem
+	for _, r := range result {
+		if mi, ok := r.(*store.MediaItem); ok {
+			items = append(items, mi)
+		}
+	}
+	return items
+}
+
+func allMediaItems(t *testing.T, ta *apptest.TestApp) []*store.MediaItem {
+	t.Helper()
+	items, err := store.All[store.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), store.From[store.MediaItem]("mi"))
+	must(t, err)
+	return items
+}
+
+func enqueuedDownloads(t *testing.T, ta *apptest.TestApp) int {
+	t.Helper()
+	return len(ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName}))
+}
+
+// setExecuting marks the task's job as executing.
+func setExecuting(t *testing.T, ta *apptest.TestApp, task *store.Task) {
+	t.Helper()
+	mustOK(t)(ta.DB.ExecContext(ta.Ctx, `UPDATE oban_jobs SET state = 'executing' WHERE id = ?`, task.JobID))
+}
+
 func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
-	t.Run("schedules a job", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{IndexFrequencyMinutes: store.Ptr(1)})
-
-		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{})
+	kickoff := func(t *testing.T, ta *apptest.TestApp, source *store.Source, args map[string]any) *store.Task {
+		t.Helper()
+		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, args)
 		must(t, err)
 		if task == nil {
 			t.Fatal("expected task, got nil")
 		}
+		return task
+	}
+	ago := func(minutes int) store.SourceParams {
+		return store.SourceParams{IndexFrequencyMinutes: store.Ptr(30), LastIndexedAt: store.Ptr(apptest.NowMinus(minutes, "minutes"))}
+	}
 
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID}})
-		if len(jobs) == 0 {
-			t.Fatal("expected job to be enqueued")
-		}
-	})
+	for _, c := range []struct {
+		name     string
+		src      store.SourceParams
+		args     map[string]any
+		min, max time.Duration // bounds for how far in the future the job is scheduled
+	}{
+		{"schedules a job", store.SourceParams{IndexFrequencyMinutes: store.Ptr(1)}, map[string]any{}, -time.Second, time.Second},
+		{"schedules a job for the future based on when the source was last indexed", ago(5), map[string]any{}, 24 * time.Minute, 26 * time.Minute},
+		{"schedules a job immediately if the source was indexed far in the past", ago(60), map[string]any{}, -time.Second, time.Second},
+		{"schedules a job immediately if the source has never been indexed", store.SourceParams{IndexFrequencyMinutes: store.Ptr(30), Clear: store.ClearLastIndexedAt}, map[string]any{}, -time.Second, time.Second},
+		{"schedules a job immediately if the user is forcing an index", ago(5), map[string]any{"force": true}, -time.Second, time.Second},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := apptest.NewApp(t)
+			source := apptest.SourceFixture(t, ta, c.src)
 
-	t.Run("schedules a job for the future based on when the source was last indexed", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{
-			IndexFrequencyMinutes: store.Ptr(30),
-			LastIndexedAt:         store.Ptr(apptest.NowMinus(5, "minutes")),
+			kickoff(t, ta, source, c.args)
+
+			args := map[string]any{"id": source.ID}
+			for k, v := range c.args {
+				args[k] = v
+			}
+			jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: args})
+			if len(jobs) != 1 {
+				t.Fatalf("expected 1 job, got %d", len(jobs))
+			}
+			if diff := jobs[0].ScheduledAt.Sub(apptest.Now()); diff < c.min || diff > c.max {
+				t.Errorf("expected scheduled between %v and %v from now, got %v", c.min, c.max, diff)
+			}
 		})
-
-		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{})
-		must(t, err)
-		if task == nil {
-			t.Fatal("expected task, got nil")
-		}
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID}})
-		if len(jobs) != 1 {
-			t.Fatalf("expected 1 job, got %d", len(jobs))
-		}
-
-		// Should be scheduled approximately 25 minutes in the future
-		diff := jobs[0].ScheduledAt.Sub(apptest.Now())
-		if diff < 24*time.Minute || diff > 26*time.Minute {
-			t.Errorf("expected scheduled in ~25 minutes, got %v", diff)
-		}
-	})
-
-	t.Run("schedules a job immediately if the source was indexed far in the past", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{
-			IndexFrequencyMinutes: store.Ptr(30),
-			LastIndexedAt:         store.Ptr(apptest.NowMinus(60, "minutes")),
-		})
-
-		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{})
-		must(t, err)
-		if task == nil {
-			t.Fatal("expected task, got nil")
-		}
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID}})
-		if len(jobs) != 1 {
-			t.Fatalf("expected 1 job, got %d", len(jobs))
-		}
-
-		// Should be scheduled immediately (within 1 second)
-		diff := jobs[0].ScheduledAt.Sub(apptest.Now())
-		if diff < -1*time.Second || diff > 1*time.Second {
-			t.Errorf("expected scheduled immediately, got %v", diff)
-		}
-	})
-
-	t.Run("schedules a job immediately if the source has never been indexed", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{
-			IndexFrequencyMinutes: store.Ptr(30),
-			Clear:                 store.ClearLastIndexedAt,
-		})
-
-		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{})
-		must(t, err)
-		if task == nil {
-			t.Fatal("expected task, got nil")
-		}
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID}})
-		if len(jobs) != 1 {
-			t.Fatalf("expected 1 job, got %d", len(jobs))
-		}
-
-		// Should be scheduled immediately
-		diff := jobs[0].ScheduledAt.Sub(apptest.Now())
-		if diff < -1*time.Second || diff > 1*time.Second {
-			t.Errorf("expected scheduled immediately, got %v", diff)
-		}
-	})
-
-	t.Run("schedules a job immediately if the user is forcing an index", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{
-			IndexFrequencyMinutes: store.Ptr(30),
-			LastIndexedAt:         store.Ptr(apptest.NowMinus(5, "minutes")),
-		})
-
-		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{"force": true})
-		must(t, err)
-		if task == nil {
-			t.Fatal("expected task, got nil")
-		}
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID}})
-		if len(jobs) != 1 {
-			t.Fatalf("expected 1 job, got %d", len(jobs))
-		}
-
-		// Should be scheduled immediately
-		diff := jobs[0].ScheduledAt.Sub(apptest.Now())
-		if diff < -1*time.Second || diff > 1*time.Second {
-			t.Errorf("expected scheduled immediately, got %v", diff)
-		}
-	})
+	}
 
 	t.Run("creates and attaches a task", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{IndexFrequencyMinutes: store.Ptr(1)})
 
-		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{})
-		must(t, err)
+		task := kickoff(t, ta, source, map[string]any{})
 
 		if *task.SourceID != source.ID {
-			t.Errorf("expected task.SourceID to be %d, got %d", source.ID, task.SourceID)
+			t.Errorf("expected task.SourceID to be %d, got %d", source.ID, *task.SourceID)
 		}
 	})
 
 	t.Run("deletes any pending media collection tasks for the source", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
-		})
-		must(t, err)
-		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(job.ID)})
+		task := pendingTask(t, ta, source, app.MediaCollectionIndexingWorkerName)
 
-		_, err = ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{})
-		must(t, err)
+		kickoff(t, ta, source, map[string]any{})
 
-		// The old task should be deleted
-		_, err = ta.App.GetTaskBang(ta.Ctx, task.ID)
-		if err == nil {
-			t.Fatal("expected error reloading task, but got nil")
-		}
+		wantTaskGone(t, ta, task)
 	})
 
 	t.Run("deletes any executing media collection tasks for the source", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
-		})
-		must(t, err)
-		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(job.ID)})
+		task := pendingTask(t, ta, source, app.MediaCollectionIndexingWorkerName)
+		setExecuting(t, ta, task)
 
-		// Mark the job as executing
-		mustOK(t)(ta.DB.ExecContext(ta.Ctx, `UPDATE oban_jobs SET state = 'executing' WHERE id = ?`, job.ID))
+		kickoff(t, ta, source, map[string]any{})
 
-		_, err = ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{})
-		must(t, err)
-
-		// The task should be deleted
-		_, err = ta.App.GetTaskBang(ta.Ctx, task.ID)
-		if err == nil {
-			t.Fatal("expected error reloading task, but got nil")
-		}
-	})
-
-	t.Run("can be called with additional job arguments", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{IndexFrequencyMinutes: store.Ptr(1)})
-		jobArgs := map[string]any{"force": true}
-
-		_, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, jobArgs)
-		must(t, err)
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID, "force": true}})
-		if len(jobs) == 0 {
-			t.Fatal("expected job to be enqueued with force argument")
-		}
+		wantTaskGone(t, ta, task)
 	})
 }
 
 func TestSlowIndexingHelpers_DeleteIndexingTasks(t *testing.T) {
-	t.Run("deletes slow indexing tasks for the source", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{})
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
+	for _, c := range []struct{ name, worker string }{
+		{"deletes slow indexing tasks for the source", app.MediaCollectionIndexingWorkerName},
+		{"deletes fast indexing tasks for the source", app.FastIndexingWorkerName},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := apptest.NewApp(t)
+			source := apptest.SourceFixture(t, ta, store.SourceParams{})
+			pendingTask(t, ta, source, c.worker)
+
+			if jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: c.worker}); len(jobs) == 0 {
+				t.Fatal("expected job to be enqueued")
+			}
+
+			must(t, ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, false))
+
+			if jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: c.worker}); len(jobs) != 0 {
+				t.Fatalf("expected no jobs, got %d", len(jobs))
+			}
 		})
-		must(t, err)
-		_ = apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(job.ID)})
+	}
 
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
-		if len(jobs) == 0 {
-			t.Fatal("expected job to be enqueued")
-		}
+	for _, c := range []struct {
+		name  string
+		force bool
+	}{
+		{"doesn't normally delete currently executing tasks", false},
+		{"can optionally delete currently executing tasks", true},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := apptest.NewApp(t)
+			source := apptest.SourceFixture(t, ta, store.SourceParams{})
+			task := pendingTask(t, ta, source, app.MediaCollectionIndexingWorkerName)
+			setExecuting(t, ta, task)
 
-		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, false)
-		must(t, err)
+			_, err := ta.App.GetTaskBang(ta.Ctx, task.ID)
+			must(t, err)
 
-		jobs = ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
-		if len(jobs) != 0 {
-			t.Fatalf("expected no jobs, got %d", len(jobs))
-		}
-	})
+			must(t, ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, c.force))
 
-	t.Run("deletes fast indexing tasks for the source", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{})
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.FastIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
+			_, err = ta.App.GetTaskBang(ta.Ctx, task.ID)
+			if c.force && err == nil {
+				t.Fatal("expected error reloading task, but got nil")
+			}
+			if !c.force {
+				must(t, err)
+			}
 		})
-		must(t, err)
-		_ = apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(job.ID)})
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-		if len(jobs) == 0 {
-			t.Fatal("expected job to be enqueued")
-		}
-
-		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, false)
-		must(t, err)
-
-		jobs = ta.Oban.Enqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-		if len(jobs) != 0 {
-			t.Fatalf("expected no jobs, got %d", len(jobs))
-		}
-	})
-
-	t.Run("doesn't normally delete currently executing tasks", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{})
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
-		})
-		must(t, err)
-		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(job.ID)})
-
-		mustOK(t)(ta.DB.ExecContext(ta.Ctx, `UPDATE oban_jobs SET state = 'executing' WHERE id = ?`, job.ID))
-
-		reloadedTask, err := ta.App.GetTaskBang(ta.Ctx, task.ID)
-		must(t, err)
-
-		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, false)
-		must(t, err)
-
-		reloadedTask, err = ta.App.GetTaskBang(ta.Ctx, reloadedTask.ID)
-		must(t, err)
-	})
-
-	t.Run("can optionally delete currently executing tasks", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{})
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
-		})
-		must(t, err)
-		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(job.ID)})
-
-		mustOK(t)(ta.DB.ExecContext(ta.Ctx, `UPDATE oban_jobs SET state = 'executing' WHERE id = ?`, job.ID))
-
-		reloadedTask, err := ta.App.GetTaskBang(ta.Ctx, task.ID)
-		must(t, err)
-
-		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, true)
-		must(t, err)
-
-		_, err = ta.App.GetTaskBang(ta.Ctx, reloadedTask.ID)
-		if err == nil {
-			t.Fatal("expected error reloading task, but got nil")
-		}
-	})
+	}
 }
 
 func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) {
-	t.Run("creates a media_item record for each media ID returned", func(t *testing.T) {
+	t.Run("creates a media_item record for each media ID returned, attached to the given source", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
+		ta.YtDlpMock.Run.Expect(indexMock(nil))
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
+		items := mediaItemsOf(indexSource(t, ta, source, false))
 
-		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-
-		mediaItems := 0
-		for _, item := range result {
-			if mi, ok := item.(*store.MediaItem); ok {
-				mediaItems++
-				_ = mi
-			}
+		if len(items) != 3 {
+			t.Errorf("expected 3 media items, got %d", len(items))
 		}
-
-		if mediaItems != 3 {
-			t.Errorf("expected 3 media items, got %d", mediaItems)
-		}
-	})
-
-	t.Run("attaches all media_items to the given source", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{})
-
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
-
-		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-
-		for _, item := range result {
-			if mi, ok := item.(*store.MediaItem); ok {
-				if mi.SourceID != source.ID {
-					t.Errorf("expected source_id to be %d, got %d", source.ID, mi.SourceID)
-				}
+		for _, mi := range items {
+			if mi.SourceID != source.ID {
+				t.Errorf("expected source_id to be %d, got %d", source.ID, mi.SourceID)
 			}
 		}
 	})
@@ -343,23 +213,12 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 	t.Run("won't duplicate media_items based on media_id and source", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
+		ta.YtDlpMock.Run.ExpectN(2, indexMock(nil))
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
+		indexSource(t, ta, source, false)
+		indexSource(t, ta, source, false)
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-
-		_, err = ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-
-		// Check that we still have only 3 media items
-		q := store.From[store.MediaItem]("mi").Where(map[string]interface{}{"mi.source_id": source.ID})
-		items, err := store.All[store.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), q)
-		must(t, err)
-
-		if len(items) != 3 {
+		if items := allMediaItems(t, ta); len(items) != 3 {
 			t.Errorf("expected 3 media items, got %d", len(items))
 		}
 	})
@@ -368,71 +227,30 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		ta := apptest.NewApp(t)
 		source1 := apptest.SourceFixture(t, ta, store.SourceParams{})
 		source2 := apptest.SourceFixture(t, ta, store.SourceParams{})
+		ta.YtDlpMock.Run.ExpectN(2, indexMock(nil))
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
+		n1 := len(mediaItemsOf(indexSource(t, ta, source1, false)))
+		n2 := len(mediaItemsOf(indexSource(t, ta, source2, false)))
 
-		result1, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source1, false)
-		must(t, err)
-
-		result2, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source2, false)
-		must(t, err)
-
-		mediaItems1 := 0
-		mediaItems2 := 0
-		for _, item := range result1 {
-			if _, ok := item.(*store.MediaItem); ok {
-				mediaItems1++
-			}
-		}
-		for _, item := range result2 {
-			if _, ok := item.(*store.MediaItem); ok {
-				mediaItems2++
-			}
-		}
-
-		if mediaItems1 != 3 || mediaItems2 != 3 {
-			t.Errorf("expected 3 media items for each source, got %d and %d", mediaItems1, mediaItems2)
+		if n1 != 3 || n2 != 3 {
+			t.Errorf("expected 3 media items for each source, got %d and %d", n1, n2)
 		}
 	})
 
 	t.Run("returns a list of media_items", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
+		ta.YtDlpMock.Run.ExpectN(2, indexMock(nil))
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
+		items1 := mediaItemsOf(indexSource(t, ta, source, false))
+		items2 := mediaItemsOf(indexSource(t, ta, source, false))
 
-		result1, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-
-		result2, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-
-		ids1 := make([]int64, 0)
-		ids2 := make([]int64, 0)
-
-		for _, item := range result1 {
-			if mi, ok := item.(*store.MediaItem); ok {
-				ids1 = append(ids1, mi.ID)
-			}
+		if len(items1) != len(items2) {
+			t.Fatalf("expected same number of items, got %d and %d", len(items1), len(items2))
 		}
-
-		for _, item := range result2 {
-			if mi, ok := item.(*store.MediaItem); ok {
-				ids2 = append(ids2, mi.ID)
-			}
-		}
-
-		if len(ids1) != len(ids2) {
-			t.Errorf("expected same number of items, got %d and %d", len(ids1), len(ids2))
-		}
-
-		for i := 0; i < len(ids1); i++ {
-			if ids1[i] != ids2[i] {
-				t.Errorf("expected ids to match at index %d, got %d != %d", i, ids1[i], ids2[i])
+		for i := range items1 {
+			if items1[i].ID != items2[i].ID {
+				t.Errorf("expected ids to match at index %d, got %d != %d", i, items1[i].ID, items2[i].ID)
 			}
 		}
 	})
@@ -440,27 +258,19 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 	t.Run("updates the source's last_indexed_at field", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
-
 		if source.LastIndexedAt != nil {
 			t.Errorf("expected last_indexed_at to be nil initially, got %v", source.LastIndexedAt)
 		}
+		ta.YtDlpMock.Run.Expect(indexMock(nil))
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
-
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
+		indexSource(t, ta, source, false)
 
 		reloadedSource, err := ta.App.GetSource(ta.Ctx, source.ID)
 		must(t, err)
-
 		if reloadedSource.LastIndexedAt == nil {
 			t.Fatal("expected last_indexed_at to be set")
 		}
-
-		diff := time.Now().UTC().Sub(reloadedSource.LastIndexedAt.Time)
-		if diff < 0 || diff > 2*time.Second {
+		if diff := time.Now().UTC().Sub(reloadedSource.LastIndexedAt.Time); diff < 0 || diff > 2*time.Second {
 			t.Errorf("expected last_indexed_at to be recent, got diff %v", diff)
 		}
 	})
@@ -469,13 +279,9 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
+		ta.YtDlpMock.Run.Expect(indexMock(nil))
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
-
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
+		indexSource(t, ta, source, false)
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
 		if len(jobs) == 0 {
@@ -487,13 +293,9 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
+		ta.YtDlpMock.Run.Expect(indexMock(nil))
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
-
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
+		indexSource(t, ta, source, false)
 
 		tasks, err := ta.App.ListTasksFor(ta.Ctx, mediaItem, nil, nil)
 		must(t, err)
@@ -502,54 +304,33 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		}
 	})
 
-	t.Run("doesn't blow up if a media item cannot be coerced into a struct", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{})
+	for _, c := range []struct{ name, response string }{
+		{"doesn't blow up if a media item cannot be coerced into a struct", `{"id":"video3","title":"Video 3","live_status":"not_live","description":"desc3","original_url":null,"aspect_ratio":null,"duration":null,"upload_date":null}`},
+		// a disallowed title - see store.MediaItem changeset or issue #549
+		{"doesn't blow up if the media item cannot be saved", `{"id":"video1","title":"youtube video #123","original_url":"https://example.com/video1","live_status":"not_live","description":"desc1","aspect_ratio":1.67,"duration":12.34,"upload_date":"20210101"}`},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := apptest.NewApp(t)
+			source := apptest.SourceFixture(t, ta, store.SourceParams{})
+			ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+				return c.response, nil
+			})
 
-		response := `{"id":"video3","title":"Video 3","live_status":"not_live","description":"desc3","original_url":null,"aspect_ratio":null,"duration":null,"upload_date":null}`
+			result := indexSource(t, ta, source, false)
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return response, nil
+			if len(result) != 1 {
+				t.Fatalf("expected 1 result, got %d", len(result))
+			}
+			if _, ok := result[0].(store.ValidationErrors); !ok {
+				t.Errorf("expected a store.ValidationErrors result, got %T", result[0])
+			}
 		})
-
-		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-
-		if len(result) != 1 {
-			t.Fatalf("expected 1 result, got %d", len(result))
-		}
-		if _, ok := result[0].(store.ValidationErrors); !ok {
-			t.Errorf("expected a store.ValidationErrors result, got %T", result[0])
-		}
-	})
-
-	t.Run("doesn't blow up if the media item cannot be saved", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{})
-
-		// This is a disallowed title - see store.MediaItem changeset or issue #549
-		response := `{"id":"video1","title":"youtube video #123","original_url":"https://example.com/video1","live_status":"not_live","description":"desc1","aspect_ratio":1.67,"duration":12.34,"upload_date":"20210101"}`
-
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return response, nil
-		})
-
-		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-
-		if len(result) != 1 {
-			t.Fatalf("expected 1 result, got %d", len(result))
-		}
-		if _, ok := result[0].(store.ValidationErrors); !ok {
-			t.Errorf("expected a store.ValidationErrors result, got %T", result[0])
-		}
-	})
+	}
 
 	t.Run("passes the source's download options to the yt-dlp runner", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
-
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+		ta.YtDlpMock.Run.Expect(indexMock(func(opts ytdlp.Args, _ ytdlp.CallOptions) {
 			output, hasOutput := opts.Get("output")
 			if !hasOutput {
 				t.Error("expected output option to be set")
@@ -561,325 +342,160 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 			if !hasRemux || remux != "mp4" {
 				t.Errorf("expected remux_video to be mp4, got %v (present=%v)", remux, hasRemux)
 			}
+		}))
 
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
-
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
+		indexSource(t, ta, source, false)
 	})
 }
 
 func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_Cookies(t *testing.T) {
-	t.Run("sets use_cookies if the source uses cookies", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{CookieBehaviour: store.Ptr(store.SourceCookieBehaviourAllOperations)})
+	for _, c := range []struct {
+		name      string
+		behaviour store.SourceCookieBehaviour
+		want      bool
+	}{
+		{"sets use_cookies if the source uses cookies", store.SourceCookieBehaviourAllOperations, true},
+		{"sets use_cookies if the source uses cookies when needed", store.SourceCookieBehaviourWhenNeeded, true},
+		{"doesn't set use_cookies if the source doesn't use cookies", store.SourceCookieBehaviourDisabled, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := apptest.NewApp(t)
+			source := apptest.SourceFixture(t, ta, store.SourceParams{CookieBehaviour: store.Ptr(c.behaviour)})
+			ta.YtDlpMock.Run.Expect(indexMock(func(_ ytdlp.Args, addl ytdlp.CallOptions) {
+				if addl.UseCookies != c.want {
+					t.Errorf("expected use_cookies to be %v in addl opts, got %v", c.want, addl.UseCookies)
+				}
+			}))
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			if !addl.UseCookies {
-				t.Error("expected use_cookies to be true in addl opts")
-			}
-			return apptest.SourceAttributesReturnFixture(), nil
+			indexSource(t, ta, source, false)
 		})
-
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-	})
-
-	t.Run("sets use_cookies if the source uses cookies when needed", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{CookieBehaviour: store.Ptr(store.SourceCookieBehaviourWhenNeeded)})
-
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			if !addl.UseCookies {
-				t.Error("expected use_cookies to be true in addl opts")
-			}
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
-
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-	})
-
-	t.Run("doesn't set use_cookies if the source doesn't use cookies", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{CookieBehaviour: store.Ptr(store.SourceCookieBehaviourDisabled)})
-
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			if addl.UseCookies {
-				t.Error("expected use_cookies to be false in addl opts")
-			}
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
-
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-	})
+	}
 }
 
 func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t *testing.T) {
-	t.Run("creates a new media item for everything already in the file", func(t *testing.T) {
+	// setup creates a source whose index run writes contents to the output
+	// file (which the file watcher picks up) and returns ret synchronously.
+	setup := func(t *testing.T, profile store.MediaProfileParams, src store.SourceParams, contents, ret string) (*apptest.TestApp, *store.Source) {
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{})
+		src.MediaProfileID = store.Ptr(apptest.MediaProfileFixture(t, ta, profile).ID)
+		source := apptest.SourceFixture(t, ta, src)
 		pollInterval := ta.App.Config.FileWatcherPollInterval
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			filepath := addl.OutputFilepath
-			must(t, os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644))
+			must(t, os.WriteFile(addl.OutputFilepath, []byte(contents), 0o644))
 			time.Sleep(pollInterval * 2)
-			// We know we're testing the file watcher since the synchronous call
-			// only returns an empty string (creating no records)
-			return "", nil
+			return ret, nil
 		})
+		return ta, source
+	}
+	fixture := apptest.SourceAttributesReturnFixture()
 
-		countBefore, err := store.All[store.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), store.From[store.MediaItem]("mi"))
-		must(t, err)
-		if len(countBefore) != 0 {
-			t.Fatalf("expected 0 media items before indexing, got %d", len(countBefore))
+	t.Run("creates a new media item for everything already in the file", func(t *testing.T) {
+		// The synchronous call returns "" (creating no records), so anything
+		// created came from the file watcher.
+		ta, source := setup(t, store.MediaProfileParams{}, store.SourceParams{}, fixture, "")
+		if n := len(allMediaItems(t, ta)); n != 0 {
+			t.Fatalf("expected 0 media items before indexing, got %d", n)
 		}
 
-		_, err = ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
+		indexSource(t, ta, source, false)
 
-		countAfter, err := store.All[store.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), store.From[store.MediaItem]("mi"))
-		must(t, err)
-		if len(countAfter) != 3 {
-			t.Errorf("expected 3 media items after indexing, got %d", len(countAfter))
+		if n := len(allMediaItems(t, ta)); n != 3 {
+			t.Errorf("expected 3 media items after indexing, got %d", n)
 		}
 	})
 
 	t.Run("enqueues a download for everything already in the file", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{})
-		pollInterval := ta.App.Config.FileWatcherPollInterval
-
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			filepath := addl.OutputFilepath
-			must(t, os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644))
-			time.Sleep(pollInterval * 2)
-			return "", nil
-		})
-
-		before := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if len(before) != 0 {
-			t.Fatalf("expected no download jobs enqueued before indexing, got %d", len(before))
+		ta, source := setup(t, store.MediaProfileParams{}, store.SourceParams{}, fixture, "")
+		if n := enqueuedDownloads(t, ta); n != 0 {
+			t.Fatalf("expected no download jobs enqueued before indexing, got %d", n)
 		}
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
+		indexSource(t, ta, source, false)
 
-		after := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if len(after) == 0 {
+		if enqueuedDownloads(t, ta) == 0 {
 			t.Fatal("expected download job to be enqueued")
 		}
 	})
 
 	t.Run("does not enqueue downloads if the source is set to not download", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false)})
-		pollInterval := ta.App.Config.FileWatcherPollInterval
+		ta, source := setup(t, store.MediaProfileParams{}, store.SourceParams{DownloadMedia: store.Ptr(false)}, fixture, "")
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			filepath := addl.OutputFilepath
-			must(t, os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644))
-			time.Sleep(pollInterval * 2)
-			return "", nil
-		})
+		indexSource(t, ta, source, false)
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if len(jobs) != 0 {
-			t.Errorf("expected no download jobs enqueued, got %d", len(jobs))
+		if n := enqueuedDownloads(t, ta); n != 0 {
+			t.Errorf("expected no download jobs enqueued, got %d", n)
 		}
 	})
 
 	t.Run("does not enqueue downloads for media that doesn't match the profile's format options", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{ShortsBehaviour: store.Ptr(store.MediaProfileShortsBehaviourExclude)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(profile.ID)})
-		pollInterval := ta.App.Config.FileWatcherPollInterval
+		contents := `{"id":"video2","title":"Video 2","original_url":"https://example.com/shorts/video2","live_status":"is_live","description":"desc2","aspect_ratio":1.67,"duration":345.67,"upload_date":"20210101"}`
+		ta, source := setup(t, store.MediaProfileParams{ShortsBehaviour: store.Ptr(store.MediaProfileShortsBehaviourExclude)}, store.SourceParams{}, contents, "")
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			filepath := addl.OutputFilepath
-			contents := `{"id":"video2","title":"Video 2","original_url":"https://example.com/shorts/video2","live_status":"is_live","description":"desc2","aspect_ratio":1.67,"duration":345.67,"upload_date":"20210101"}`
-			must(t, os.WriteFile(filepath, []byte(contents), 0644))
-			time.Sleep(pollInterval * 2)
-			return "", nil
-		})
+		indexSource(t, ta, source, false)
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if len(jobs) != 0 {
-			t.Errorf("expected no download jobs enqueued, got %d", len(jobs))
+		if n := enqueuedDownloads(t, ta); n != 0 {
+			t.Errorf("expected no download jobs enqueued, got %d", n)
 		}
 	})
 
 	t.Run("does not enqueue multiple download jobs for the same media items", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{})
-		pollInterval := ta.App.Config.FileWatcherPollInterval
+		// The runner also returns the final result (like real usage), so the
+		// media items and jobs are attempted a second time.
+		ta, source := setup(t, store.MediaProfileParams{}, store.SourceParams{}, fixture, fixture)
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			filepath := addl.OutputFilepath
-			must(t, os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644))
-			time.Sleep(pollInterval * 2)
-			// This also returns the final result to the yt-dlp call (like the real
-			// usage actually would do) so it'll attempt to create the media items and
-			// enqueue the download jobs based on this as well
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
+		indexSource(t, ta, source, false)
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-
-		items, err := store.All[store.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), store.From[store.MediaItem]("mi"))
-		must(t, err)
-		if len(items) != 3 {
+		if items := allMediaItems(t, ta); len(items) != 3 {
 			t.Errorf("expected 3 media items, got %d", len(items))
 		}
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if len(jobs) != 3 {
-			t.Errorf("expected 3 download jobs enqueued, got %d", len(jobs))
+		if n := enqueuedDownloads(t, ta); n != 3 {
+			t.Errorf("expected 3 download jobs enqueued, got %d", n)
 		}
 	})
 
 	t.Run("does not blow up if the file returns invalid json", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{})
-		pollInterval := ta.App.Config.FileWatcherPollInterval
+		ta, source := setup(t, store.MediaProfileParams{}, store.SourceParams{}, "INVALID", "")
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			filepath := addl.OutputFilepath
-			must(t, os.WriteFile(filepath, []byte("INVALID"), 0644))
-			time.Sleep(pollInterval * 2)
-			return "", nil
-		})
-
-		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-		if len(result) != 0 {
+		if result := indexSource(t, ta, source, false); len(result) != 0 {
 			t.Errorf("expected no results, got %d", len(result))
 		}
 	})
 }
 
 func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchive(t *testing.T) {
-	t.Run("a download archive is used if the source is a channel that has been indexed before", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{
-			CollectionType: store.Ptr(store.SourceCollectionTypeChannel),
-			LastIndexedAt:  store.Ptr(apptest.Now()),
-		})
+	channel, playlist := store.Ptr(store.SourceCollectionTypeChannel), store.Ptr(store.SourceCollectionTypePlaylist)
+	archiveOpts := []string{"break_on_existing*", "download_archive*"}
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			hasBreakOnExisting := false
-			hasDownloadArchive := false
-
-			for _, opt := range opts {
-				if opt.Key == "break_on_existing" {
-					hasBreakOnExisting = true
+	for _, c := range []struct {
+		name        string
+		src         store.SourceParams
+		force       bool
+		wantArchive bool
+	}{
+		{"a download archive is used if the source is a channel that has been indexed before", store.SourceParams{CollectionType: channel, LastIndexedAt: store.Ptr(apptest.Now())}, false, true},
+		{"a download archive is not used if the source is not a channel", store.SourceParams{CollectionType: playlist, LastIndexedAt: store.Ptr(apptest.Now())}, false, false},
+		{"a download archive is not used if the source has never been indexed before", store.SourceParams{CollectionType: channel, Clear: store.ClearLastIndexedAt}, false, false},
+		{"a download archive is not used if the index has been forced to run", store.SourceParams{CollectionType: channel}, true, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := apptest.NewApp(t)
+			source := apptest.SourceFixture(t, ta, c.src)
+			ta.YtDlpMock.Run.Expect(indexMock(func(opts ytdlp.Args, _ ytdlp.CallOptions) {
+				if c.wantArchive {
+					wantOpts(t, opts, archiveOpts, nil)
+				} else {
+					wantOpts(t, opts, nil, archiveOpts)
 				}
-				if opt.Key == "download_archive" {
-					hasDownloadArchive = true
-				}
-			}
+			}))
 
-			if !hasBreakOnExisting {
-				t.Error("expected break_on_existing in opts")
-			}
-			if !hasDownloadArchive {
-				t.Error("expected download_archive in opts")
-			}
-
-			return apptest.SourceAttributesReturnFixture(), nil
+			indexSource(t, ta, source, c.force)
 		})
-
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-	})
-
-	t.Run("a download archive is not used if the source is not a channel", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{
-			CollectionType: store.Ptr(store.SourceCollectionTypePlaylist),
-			LastIndexedAt:  store.Ptr(apptest.Now()),
-		})
-
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			for _, opt := range opts {
-				if opt.Key == "break_on_existing" {
-					t.Error("expected no break_on_existing in opts for playlist")
-				}
-				if opt.Key == "download_archive" {
-					t.Error("expected no download_archive in opts for playlist")
-				}
-			}
-
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
-
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-	})
-
-	t.Run("a download archive is not used if the source has never been indexed before", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{
-			CollectionType: store.Ptr(store.SourceCollectionTypeChannel),
-			Clear:          store.ClearLastIndexedAt,
-		})
-
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			for _, opt := range opts {
-				if opt.Key == "break_on_existing" {
-					t.Error("expected no break_on_existing in opts")
-				}
-				if opt.Key == "download_archive" {
-					t.Error("expected no download_archive in opts")
-				}
-			}
-
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
-
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
-	})
-
-	t.Run("a download archive is not used if the index has been forced to run", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{
-			CollectionType: store.Ptr(store.SourceCollectionTypeChannel),
-		})
-
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			for _, opt := range opts {
-				if opt.Key == "break_on_existing" {
-					t.Error("expected no break_on_existing in opts when forced")
-				}
-				if opt.Key == "download_archive" {
-					t.Error("expected no download_archive in opts when forced")
-				}
-			}
-
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
-
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, true)
-		must(t, err)
-	})
+	}
 
 	t.Run("the download archive is formatted correctly and contains the right video", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{
-			CollectionType: store.Ptr(store.SourceCollectionTypeChannel),
-			LastIndexedAt:  store.Ptr(apptest.Now()),
-		})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{CollectionType: channel, LastIndexedAt: store.Ptr(apptest.Now())})
 
 		var mediaItems []*store.MediaItem
 		for n := 1; n <= 21; n++ {
@@ -890,7 +506,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 		}
 		lastMediaItem := mediaItems[len(mediaItems)-1]
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+		ta.YtDlpMock.Run.Expect(indexMock(func(opts ytdlp.Args, _ ytdlp.CallOptions) {
 			archiveFile, _ := opts.Get("download_archive")
 			contents, err := os.ReadFile(archiveFile.(string))
 			must(t, err)
@@ -898,12 +514,9 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 			if string(contents) != expected {
 				t.Errorf("expected archive contents %q, got %q", expected, string(contents))
 			}
+		}))
 
-			return apptest.SourceAttributesReturnFixture(), nil
-		})
-
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		must(t, err)
+		indexSource(t, ta, source, false)
 	})
 }
 
@@ -923,6 +536,6 @@ func TestSlowIndexingHelpers_IndexAndEnqueuePreloadsMediaProfile(t *testing.T) {
 			return "", nil
 		})
 
-		mustOK(t)(ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false))
+		indexSource(t, ta, source, false)
 	})
 }
