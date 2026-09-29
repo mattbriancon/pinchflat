@@ -48,10 +48,7 @@ func TestMediaQualityUpgradeWorker_Perform(t *testing.T) {
 			err := ta.Oban.PerformJob(ctx, app.MediaQualityUpgradeWorkerName, map[string]any{})
 			must(t, err)
 
-			enqueued := ta.Oban.Enqueued(t, obanlite.Match{
-				Worker: app.MediaDownloadWorkerName,
-				Args:   map[string]any{"id": mediaItem.ID, "quality_upgrade?": true},
-			})
+			enqueued := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID, "quality_upgrade?": true}})
 			if tt.wantEnqueuedJob {
 				if len(enqueued) != 1 {
 					t.Errorf("expected 1 enqueued job, got %d", len(enqueued))

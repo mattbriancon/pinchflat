@@ -55,10 +55,7 @@ func TestMediaProfileDeletionWorker_Kickoff(t *testing.T) {
 			t.Error("expected job")
 		}
 
-		enqueued := ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.MediaProfileDeletionWorkerName,
-			Args:   map[string]any{"id": profile.ID, "delete_files": true},
-		})
+		enqueued := ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaProfileDeletionWorkerName, Args: map[string]any{"id": profile.ID, "delete_files": true}})
 		if enqueued == nil {
 			t.Error("job not enqueued as expected")
 		}

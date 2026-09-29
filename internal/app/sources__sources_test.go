@@ -208,11 +208,7 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID: store.Ptr(mediaProfile.ID),
-			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
-		}
+		validAttrs := newSourceAttrs(t, ta)
 
 		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		must(t, err)
@@ -225,11 +221,7 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID: store.Ptr(mediaProfile.ID),
-			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
-		}
+		validAttrs := newSourceAttrs(t, ta)
 
 		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		must(t, err)
@@ -242,11 +234,7 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID: store.Ptr(mediaProfile.ID),
-			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
-		}
+		validAttrs := newSourceAttrs(t, ta)
 
 		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		must(t, err)
@@ -262,11 +250,8 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ta.YtDlpMock.Run.Expect(sourcesTestPlaylistMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID: store.Ptr(mediaProfile.ID),
-			OriginalURL:    store.Ptr("https://www.youtube.com/playlist?list=abc123"),
-		}
+		validAttrs := newSourceAttrs(t, ta)
+		validAttrs.OriginalURL = store.Ptr("https://www.youtube.com/playlist?list=abc123")
 
 		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		must(t, err)
@@ -284,20 +269,10 @@ func TestSources_CreateSource(t *testing.T) {
 			return "", &cmdrun.Error{Output: "some error", Status: 1}
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID: store.Ptr(mediaProfile.ID),
-			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
-		}
+		validAttrs := newSourceAttrs(t, ta)
 
 		_, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
-		if err == nil {
-			t.Fatal("expected an error")
-		}
-		errs, ok := store.AsValidationErrors(err)
-		if !ok {
-			t.Fatalf("expected a validation error, got %T", err)
-		}
+		errs := validationErrors(t, err)
 		if !containsString(errs["original_url"], "could not fetch source details from URL") {
 			t.Errorf("expected original_url error, got %+v", errs)
 		}
@@ -309,20 +284,10 @@ func TestSources_CreateSource(t *testing.T) {
 			return "store.Not JSON", nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID: store.Ptr(mediaProfile.ID),
-			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
-		}
+		validAttrs := newSourceAttrs(t, ta)
 
 		_, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
-		if err == nil {
-			t.Fatal("expected an error")
-		}
-		errs, ok := store.AsValidationErrors(err)
-		if !ok {
-			t.Fatalf("expected a validation error, got %T", err)
-		}
+		errs := validationErrors(t, err)
 		if !containsString(errs["original_url"], "could not fetch source details from URL") {
 			t.Errorf("expected original_url error, got %+v", errs)
 		}
@@ -332,12 +297,8 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID: store.Ptr(mediaProfile.ID),
-			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
-			CustomName:     store.Ptr("some custom name"),
-		}
+		validAttrs := newSourceAttrs(t, ta)
+		validAttrs.CustomName = store.Ptr("some custom name")
 
 		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		must(t, err)
@@ -350,11 +311,7 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID: store.Ptr(mediaProfile.ID),
-			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
-		}
+		validAttrs := newSourceAttrs(t, ta)
 
 		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		must(t, err)
@@ -375,12 +332,8 @@ func TestSources_CreateSource(t *testing.T) {
 			return jsonStr, nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validOnceAttrs := store.SourceParams{
-			MediaProfileID:   store.Ptr(mediaProfile.ID),
-			OriginalURL:      store.Ptr("https://www.youtube.com/channel/abc123"),
-			TitleFilterRegex: store.Ptr(""),
-		}
+		validOnceAttrs := newSourceAttrs(t, ta)
+		validOnceAttrs.TitleFilterRegex = store.Ptr("")
 
 		mustOK(t)(ta.App.SourcesCreateSource(ta.Ctx, validOnceAttrs, true))
 		_, err := ta.App.SourcesCreateSource(ta.Ctx, validOnceAttrs, true)
@@ -408,11 +361,7 @@ func TestSources_CreateSource(t *testing.T) {
 			return jsonStr, nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID: store.Ptr(mediaProfile.ID),
-			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
-		}
+		validAttrs := newSourceAttrs(t, ta)
 		source1Attrs, source2Attrs := validAttrs, validAttrs
 		source1Attrs.TitleFilterRegex = store.Ptr("foo")
 		source2Attrs.TitleFilterRegex = store.Ptr("bar")
@@ -450,11 +399,7 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 		ta.YtDlpMock.Run.Expect(sourcesTestPlaylistMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID: store.Ptr(mediaProfile.ID),
-			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
-		}
+		validAttrs := newSourceAttrs(t, ta)
 
 		source1, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		must(t, err)
@@ -500,51 +445,33 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID: store.Ptr(mediaProfile.ID),
-			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
-		}
+		validAttrs := newSourceAttrs(t, ta)
 
 		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		must(t, err)
 
-		ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": src.ID},
-		})
+		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": src.ID}})
 	})
 
 	t.Run("creation will schedule a fast indexing job if the fast_index option is set", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID: store.Ptr(mediaProfile.ID),
-			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
-			FastIndex:      store.Ptr(true),
-		}
+		validAttrs := newSourceAttrs(t, ta)
+		validAttrs.FastIndex = store.Ptr(true)
 
 		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		must(t, err)
 
-		ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.FastIndexingWorkerName,
-			Args:   map[string]any{"id": src.ID},
-		})
+		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName, Args: map[string]any{"id": src.ID}})
 	})
 
 	t.Run("creation will not schedule a fast indexing job if the fast_index option is not set", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID: store.Ptr(mediaProfile.ID),
-			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
-			FastIndex:      store.Ptr(false),
-		}
+		validAttrs := newSourceAttrs(t, ta)
+		validAttrs.FastIndex = store.Ptr(false)
 
 		mustOK(t)(ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true))
 
@@ -555,33 +482,22 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID:        store.Ptr(mediaProfile.ID),
-			OriginalURL:           store.Ptr("https://www.youtube.com/channel/abc123"),
-			IndexFrequencyMinutes: store.Ptr(0),
-		}
+		validAttrs := newSourceAttrs(t, ta)
+		validAttrs.IndexFrequencyMinutes = store.Ptr(0)
 
 		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		must(t, err)
 
-		ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": src.ID},
-		})
+		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": src.ID}})
 	})
 
 	t.Run("fast_index forces the index frequency to be a default value", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID:        store.Ptr(mediaProfile.ID),
-			OriginalURL:           store.Ptr("https://www.youtube.com/channel/abc123"),
-			FastIndex:             store.Ptr(true),
-			IndexFrequencyMinutes: store.Ptr(0),
-		}
+		validAttrs := newSourceAttrs(t, ta)
+		validAttrs.FastIndex = store.Ptr(true)
+		validAttrs.IndexFrequencyMinutes = store.Ptr(0)
 
 		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		must(t, err)
@@ -594,13 +510,9 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID:        store.Ptr(mediaProfile.ID),
-			OriginalURL:           store.Ptr("https://www.youtube.com/channel/abc123"),
-			FastIndex:             store.Ptr(false),
-			IndexFrequencyMinutes: store.Ptr(0),
-		}
+		validAttrs := newSourceAttrs(t, ta)
+		validAttrs.FastIndex = store.Ptr(false)
+		validAttrs.IndexFrequencyMinutes = store.Ptr(0)
 
 		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		must(t, err)
@@ -613,21 +525,14 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID:        store.Ptr(mediaProfile.ID),
-			OriginalURL:           store.Ptr("https://www.youtube.com/channel/abc123"),
-			FastIndex:             store.Ptr(false),
-			IndexFrequencyMinutes: store.Ptr(0),
-		}
+		validAttrs := newSourceAttrs(t, ta)
+		validAttrs.FastIndex = store.Ptr(false)
+		validAttrs.IndexFrequencyMinutes = store.Ptr(0)
 
 		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		must(t, err)
 
-		ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.SourceMetadataStorageWorkerName,
-			Args:   map[string]any{"id": src.ID},
-		})
+		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.SourceMetadataStorageWorkerName, Args: map[string]any{"id": src.ID}})
 	})
 }
 
@@ -641,12 +546,8 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 			return sourcesTestPlaylistReturn(), nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID:  store.Ptr(mediaProfile.ID),
-			OriginalURL:     store.Ptr("https://www.youtube.com/channel/abc123"),
-			CookieBehaviour: store.Ptr(store.SourceCookieBehaviourAllOperations),
-		}
+		validAttrs := newSourceAttrs(t, ta)
+		validAttrs.CookieBehaviour = store.Ptr(store.SourceCookieBehaviourAllOperations)
 
 		mustOK(t)(ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true))
 	})
@@ -660,12 +561,8 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 			return sourcesTestPlaylistReturn(), nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID:  store.Ptr(mediaProfile.ID),
-			OriginalURL:     store.Ptr("https://www.youtube.com/channel/abc123"),
-			CookieBehaviour: store.Ptr(store.SourceCookieBehaviourWhenNeeded),
-		}
+		validAttrs := newSourceAttrs(t, ta)
+		validAttrs.CookieBehaviour = store.Ptr(store.SourceCookieBehaviourWhenNeeded)
 
 		mustOK(t)(ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true))
 	})
@@ -679,12 +576,8 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 			return sourcesTestPlaylistReturn(), nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID:  store.Ptr(mediaProfile.ID),
-			OriginalURL:     store.Ptr("https://www.youtube.com/channel/abc123"),
-			CookieBehaviour: store.Ptr(store.SourceCookieBehaviourDisabled),
-		}
+		validAttrs := newSourceAttrs(t, ta)
+		validAttrs.CookieBehaviour = store.Ptr(store.SourceCookieBehaviourDisabled)
 
 		mustOK(t)(ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true))
 	})
@@ -698,11 +591,7 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 			return sourcesTestPlaylistReturn(), nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID: store.Ptr(mediaProfile.ID),
-			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
-		}
+		validAttrs := newSourceAttrs(t, ta)
 
 		mustOK(t)(ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true))
 	})
@@ -713,11 +602,7 @@ func TestSources_CreateSourceWhenTestingOptions(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.SourceParams{
-			MediaProfileID: store.Ptr(mediaProfile.ID),
-			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
-		}
+		validAttrs := newSourceAttrs(t, ta)
 
 		mustOK(t)(ta.App.SourcesCreateSource(ta.Ctx, validAttrs, false))
 
@@ -833,10 +718,7 @@ func TestSources_UpdateSource(t *testing.T) {
 		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		must(t, err)
 
-		ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.SourceMetadataStorageWorkerName,
-			Args:   map[string]any{"id": updated.ID},
-		})
+		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.SourceMetadataStorageWorkerName, Args: map[string]any{"id": updated.ID}})
 	})
 
 	t.Run("updating will not kickoff a metadata storage worker other attrs change", func(t *testing.T) {
@@ -861,10 +743,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.MediaDownloadWorkerName,
-			Args:   map[string]any{"id": mediaItem.ID},
-		})
+		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
 	})
 
 	t.Run("disabling the download_media attribute will cancel the download task", func(t *testing.T) {
@@ -875,10 +754,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		updateAttrs := store.SourceParams{DownloadMedia: store.Ptr(false)}
 		must(t, ta.App.DownloadingHelpersEnqueuePendingDownloadTasks(ta.Ctx, src, nil))
 
-		ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.MediaDownloadWorkerName,
-			Args:   map[string]any{"id": mediaItem.ID},
-		})
+		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
 		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 	})
@@ -903,10 +779,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		updateAttrs := store.SourceParams{Enabled: store.Ptr(false)}
 		must(t, ta.App.DownloadingHelpersEnqueuePendingDownloadTasks(ta.Ctx, src, nil))
 
-		ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.MediaDownloadWorkerName,
-			Args:   map[string]any{"id": mediaItem.ID},
-		})
+		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
 		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 	})
@@ -920,10 +793,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.MediaDownloadWorkerName,
-			Args:   map[string]any{"id": mediaItem.ID},
-		})
+		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
 	})
 
 	t.Run("enabling a source will not schedule a download task if download_media is false", func(t *testing.T) {
@@ -951,10 +821,7 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		if updated.IndexFrequencyMinutes != 123 {
 			t.Errorf("expected 123, got %d", updated.IndexFrequencyMinutes)
 		}
-		ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": updated.ID},
-		})
+		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": updated.ID}})
 	})
 
 	t.Run("updating the index frequency to 0 will not re-schedule the indexing task", func(t *testing.T) {
@@ -965,10 +832,7 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 
 		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
 
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": src.ID},
-		})
+		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": src.ID}})
 	})
 
 	t.Run("updating the index frequency to 0 will delete any pending tasks", func(t *testing.T) {
@@ -1006,10 +870,7 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		if _, err := store.Get[store.Task](ta.Ctx, ta.Q(ta.Ctx), task.ID); err != nil {
 			t.Errorf("expected task to still exist, got err=%v", err)
 		}
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": src.ID},
-		})
+		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": src.ID}})
 	})
 
 	t.Run("disabling a source will delete any pending tasks", func(t *testing.T) {
@@ -1048,10 +909,7 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
 		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": src.ID},
-		})
+		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": src.ID}})
 	})
 
 	t.Run("enabling a source will not create a task if the index frequency is 0", func(t *testing.T) {
@@ -1075,10 +933,7 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
 		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.FastIndexingWorkerName,
-			Args:   map[string]any{"id": src.ID},
-		})
+		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName, Args: map[string]any{"id": src.ID}})
 	})
 
 	t.Run("disabling fast_index will cancel the fast indexing task", func(t *testing.T) {
@@ -1090,10 +945,7 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		must(t, err)
 		apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(src.ID), JobID: store.Ptr(job.ID)})
 
-		ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.FastIndexingWorkerName,
-			Args:   map[string]any{"id": src.ID},
-		})
+		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName, Args: map[string]any{"id": src.ID}})
 		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
 	})
@@ -1160,10 +1012,7 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
 		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: app.FastIndexingWorkerName,
-			Args:   map[string]any{"id": src.ID},
-		})
+		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName, Args: map[string]any{"id": src.ID}})
 	})
 
 	t.Run("enabling a source will not create a task if fast_index is false", func(t *testing.T) {
@@ -1344,4 +1193,27 @@ func containsString(list []string, want string) bool {
 		}
 	}
 	return false
+}
+
+// newSourceAttrs returns valid channel-source params on a fresh media profile.
+func newSourceAttrs(t *testing.T, ta *apptest.TestApp) store.SourceParams {
+	t.Helper()
+	return store.SourceParams{
+		MediaProfileID: store.Ptr(apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{}).ID),
+		OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
+	}
+}
+
+// validationErrors asserts err is a non-nil store validation error and
+// returns its field errors.
+func validationErrors(t *testing.T, err error) map[string][]string {
+	t.Helper()
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	errs, ok := store.AsValidationErrors(err)
+	if !ok {
+		t.Fatalf("expected a validation error, got %T: %v", err, err)
+	}
+	return errs
 }

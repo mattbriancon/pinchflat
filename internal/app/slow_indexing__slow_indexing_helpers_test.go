@@ -23,10 +23,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 			t.Fatal("expected task, got nil")
 		}
 
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
-		})
+		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID}})
 		if len(jobs) == 0 {
 			t.Fatal("expected job to be enqueued")
 		}
@@ -45,10 +42,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 			t.Fatal("expected task, got nil")
 		}
 
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
-		})
+		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID}})
 		if len(jobs) != 1 {
 			t.Fatalf("expected 1 job, got %d", len(jobs))
 		}
