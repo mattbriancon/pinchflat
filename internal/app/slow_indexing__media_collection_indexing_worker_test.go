@@ -64,59 +64,27 @@ func TestMediaCollectionIndexingWorker_KickoffWithTask(t *testing.T) {
 }
 
 func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
-	t.Run("indexes the source if it should be indexed", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{IndexFrequencyMinutes: store.Ptr(10)})
+	for _, c := range []struct {
+		name string
+		src  store.SourceParams
+		args map[string]any
+	}{
+		{"indexes the source if it should be indexed", store.SourceParams{IndexFrequencyMinutes: store.Ptr(10)}, nil},
+		{"indexes the source no matter what if the source has never been indexed before", store.SourceParams{IndexFrequencyMinutes: store.Ptr(0), Clear: store.ClearLastIndexedAt}, nil},
+		{"indexes the source no matter what if the 'force' arg is passed", store.SourceParams{IndexFrequencyMinutes: store.Ptr(0), LastIndexedAt: store.Ptr(apptest.Now())}, map[string]any{"force": true}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := apptest.NewApp(t)
+			source := apptest.SourceFixture(t, ta, c.src)
+			ta.YtDlpMock.Run.Stub(ytReturns(""))
+			args := map[string]any{"id": source.ID}
+			for k, v := range c.args {
+				args[k] = v
+			}
 
-		ta.YtDlpMock.Run.Stub(ytReturns(""))
-
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
+			performIndexing(t, ta, args)
 		})
-		must(t, err)
-
-		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		must(t, err)
-	})
-
-	t.Run("indexes the source no matter what if the source has never been indexed before", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{
-			IndexFrequencyMinutes: store.Ptr(0),
-			Clear:                 store.ClearLastIndexedAt,
-		})
-
-		ta.YtDlpMock.Run.Stub(ytReturns(""))
-
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
-		})
-		must(t, err)
-
-		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		must(t, err)
-	})
-
-	t.Run("indexes the source no matter what if the 'force' arg is passed", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{
-			IndexFrequencyMinutes: store.Ptr(0),
-			LastIndexedAt:         store.Ptr(apptest.Now()),
-		})
-
-		ta.YtDlpMock.Run.Stub(ytReturns(""))
-
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID, "force": true},
-		})
-		must(t, err)
-
-		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		must(t, err)
-	})
+	}
 
 	t.Run("doesn't use a download archive if the index has been forced", func(t *testing.T) {
 		ta := apptest.NewApp(t)
@@ -138,14 +106,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			return "", nil
 		})
 
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID, "force": true},
-		})
-		must(t, err)
-
-		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		must(t, err)
+		performIndexing(t, ta, map[string]any{"id": source.ID, "force": true})
 	})
 
 	t.Run("does not do any indexing if the source has been indexed and shouldn't be rescheduled", func(t *testing.T) {
@@ -158,14 +119,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		// Intentionally not stubbing YtDlpMock.Run: any call is unexpected and
 		// will fail the test.
 
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
-		})
-		must(t, err)
-
-		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		must(t, err)
+		performIndexing(t, ta, map[string]any{"id": source.ID})
 	})
 
 	t.Run("does not reschedule if the source shouldn't be indexed", func(t *testing.T) {
@@ -182,68 +136,32 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		}
 	})
 
-	t.Run("kicks off a download job for each pending media item", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{IndexFrequencyMinutes: store.Ptr(10)})
+	for _, c := range []struct {
+		name     string
+		existing []store.MediaItemParams // pending items created before indexing
+		want     int
+	}{
+		{"kicks off a download job for each pending media item", nil, 3},
+		{"starts a job for any pending media item even if it's from another run", []store.MediaItemParams{{Clear: store.ClearMediaFilepath}}, 4},
+		// only 3 jobs: the first video is a duplicate
+		{"does not kick off a job for media items that could not be saved", []store.MediaItemParams{{MediaID: store.Ptr("video1"), Clear: store.ClearMediaFilepath}}, 3},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := apptest.NewApp(t)
+			source := apptest.SourceFixture(t, ta, store.SourceParams{IndexFrequencyMinutes: store.Ptr(10)})
+			for _, p := range c.existing {
+				p.SourceID = store.Ptr(source.ID)
+				apptest.MediaItemFixture(t, ta, p)
+			}
 
-		ta.YtDlpMock.Run.Expect(ytReturns(apptest.SourceAttributesReturnFixture()))
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
+			ta.YtDlpMock.Run.Expect(ytReturns(apptest.SourceAttributesReturnFixture()))
+			performIndexing(t, ta, map[string]any{"id": source.ID})
+
+			if n := enqueuedDownloads(t, ta); n != c.want {
+				t.Errorf("expected %d download jobs, got %d", c.want, n)
+			}
 		})
-		must(t, err)
-
-		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		must(t, err)
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if len(jobs) != 3 {
-			t.Errorf("expected 3 download jobs, got %d", len(jobs))
-		}
-	})
-
-	t.Run("starts a job for any pending media item even if it's from another run", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{IndexFrequencyMinutes: store.Ptr(10)})
-		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
-
-		ta.YtDlpMock.Run.Expect(ytReturns(apptest.SourceAttributesReturnFixture()))
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
-		})
-		must(t, err)
-
-		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		must(t, err)
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if len(jobs) != 4 {
-			t.Errorf("expected 4 download jobs, got %d", len(jobs))
-		}
-	})
-
-	t.Run("does not kick off a job for media items that could not be saved", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.SourceParams{IndexFrequencyMinutes: store.Ptr(10)})
-		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaID: store.Ptr("video1"), Clear: store.ClearMediaFilepath})
-
-		ta.YtDlpMock.Run.Expect(ytReturns(apptest.SourceAttributesReturnFixture()))
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
-		})
-		must(t, err)
-
-		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		must(t, err)
-
-		// Only 3 jobs should be enqueued, since the first video is a duplicate
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if len(jobs) != 3 {
-			t.Errorf("expected 3 download jobs, got %d", len(jobs))
-		}
-	})
+	}
 
 	t.Run("reschedules the job based on the index frequency", func(t *testing.T) {
 		ta := apptest.NewApp(t)
@@ -294,14 +212,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta.YtDlpMock.Run.Stub(ytReturns(""))
 		beforeTime := apptest.Now()
 
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
-		})
-		must(t, err)
-
-		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		must(t, err)
+		performIndexing(t, ta, map[string]any{"id": source.ID})
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName, Args: map[string]any{"id": source.ID}})
 		if len(jobs) != 1 {
@@ -327,14 +238,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		must(t, err)
 		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(existingJob.ID)})
 
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
-		})
-		must(t, err)
-
-		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		must(t, err)
+		performIndexing(t, ta, map[string]any{"id": source.ID})
 
 		_, err = ta.App.GetTaskBang(ta.Ctx, task.ID)
 		if err == nil {
@@ -347,14 +251,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{IndexFrequencyMinutes: store.Ptr(10), FastIndex: store.Ptr(false)})
 
 		ta.YtDlpMock.Run.Stub(ytReturns(""))
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
-		})
-		must(t, err)
-
-		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		must(t, err)
+		performIndexing(t, ta, map[string]any{"id": source.ID})
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
 		if len(jobs) != 0 {
@@ -381,14 +278,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			t.Fatalf("expected no media items before, got %v", before)
 		}
 
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": source.ID},
-		})
-		must(t, err)
-
-		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		must(t, err)
+		performIndexing(t, ta, map[string]any{"id": source.ID})
 
 		after := mediaItemMediaIDs()
 		expected := []string{"video1", "video2", "video3"}
@@ -405,13 +295,14 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 	t.Run("does not blow up if the record doesn't exist", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
-		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
-			Worker: app.MediaCollectionIndexingWorkerName,
-			Args:   map[string]any{"id": 0},
-		})
-		must(t, err)
-
-		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		must(t, err)
+		performIndexing(t, ta, map[string]any{"id": 0})
 	})
+}
+
+// performIndexing inserts an indexing job with args and performs it.
+func performIndexing(t *testing.T, ta *apptest.TestApp, args map[string]any) {
+	t.Helper()
+	job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{Worker: app.MediaCollectionIndexingWorkerName, Args: args})
+	must(t, err)
+	must(t, ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job))
 }
