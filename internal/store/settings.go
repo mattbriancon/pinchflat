@@ -11,10 +11,56 @@ func (s *Store) GetSettingsRecord(ctx context.Context) (*Setting, error) {
 	return One[Setting](ctx, s.Q(ctx), From[Setting]().Limit(1))
 }
 
-// UpdateSetting updates setting with attrs.
+// UpdateSetting updates setting with attrs (deprecated; use UpdateSettingWithParams).
 func (s *Store) UpdateSetting(ctx context.Context, setting *Setting, attrs Attrs) (*Setting, error) {
 	cs := SettingChangeset(setting, attrs)
 	return Update[Setting](ctx, s.Q(ctx), cs)
+}
+
+// UpdateSettingWithParams updates setting with typed parameters.
+// Returns the updated Setting, validation errors as a map, and any system error.
+func (s *Store) UpdateSettingWithParams(ctx context.Context, setting *Setting, p SettingParams) (*Setting, map[string][]string, error) {
+	errs := p.Validate(setting)
+	if len(errs) > 0 {
+		return nil, errs, nil
+	}
+
+	// Build the Attrs map from non-nil params
+	attrs := Attrs{}
+	if p.Onboarding != nil {
+		attrs["onboarding"] = *p.Onboarding
+	}
+	if p.YtDlpVersion != nil {
+		attrs["yt_dlp_version"] = *p.YtDlpVersion
+	}
+	if p.VideoCodecPreference != nil {
+		attrs["video_codec_preference"] = *p.VideoCodecPreference
+	}
+	if p.AudioCodecPreference != nil {
+		attrs["audio_codec_preference"] = *p.AudioCodecPreference
+	}
+	if p.YoutubeAPIKey != nil {
+		attrs["youtube_api_key"] = *p.YoutubeAPIKey
+	}
+	if p.ExtractorSleepIntervalSeconds != nil {
+		attrs["extractor_sleep_interval_seconds"] = *p.ExtractorSleepIntervalSeconds
+	}
+	if p.DownloadThroughputLimit != nil {
+		attrs["download_throughput_limit"] = *p.DownloadThroughputLimit
+	}
+	if p.RestrictFilenames != nil {
+		attrs["restrict_filenames"] = *p.RestrictFilenames
+	}
+
+	updated, err := s.UpdateSetting(ctx, setting, attrs)
+	if err != nil {
+		if cs, ok := AsChangesetError(err); ok {
+			return nil, cs.ErrorMap(), nil
+		}
+		return nil, nil, err
+	}
+
+	return updated, nil, nil
 }
 
 // SetSetting sets a single named setting (Settings.set/1).
