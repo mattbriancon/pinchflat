@@ -6,11 +6,10 @@ package web
 
 import (
 	"context"
+	"math"
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
 // textDescURLPattern is ~r{https?://\S+}.
@@ -148,7 +147,7 @@ func textPluralize(word string, count int, suffix string) string {
 
 // textReadableFilesize is readable_filesize/1.
 func textReadableFilesize(byteSize int64) (float64, string) {
-	return fsutil.HumanByteSize(byteSize, 2)
+	return humanByteSize(byteSize, 2)
 }
 
 func textReadableFilesizeValue(byteSize int64) float64 {
@@ -167,4 +166,23 @@ func textDefaultFormat(format string) string {
 		return "%Y-%m-%d %H:%M:%S"
 	}
 	return format
+}
+
+var byteSizeSuffixes = []string{"B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"}
+
+// humanByteSize converts number to a human-readable byte size, rounded to
+// precision decimal places.
+func humanByteSize(number int64, precision int) (float64, string) {
+	value := float64(number)
+	suffix := "B"
+	for _, s := range byteSizeSuffixes {
+		if value < 1024 {
+			suffix = s
+			break
+		}
+		value /= 1024
+	}
+
+	scale := math.Pow(10, float64(precision))
+	return math.Round(value*scale) / scale, suffix
 }

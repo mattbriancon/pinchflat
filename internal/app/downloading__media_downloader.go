@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
@@ -75,7 +76,7 @@ func mediaDownloaderAttemptDownloadAndUpdateForMediaItem(ctx context.Context, a 
 	}
 
 	// Check if it's a command error (yt-dlp error)
-	cmdErr, isCommandError := dlErr.(*fsutil.CommandError)
+	cmdErr, isCommandError := dlErr.(*cmdrun.Error)
 	if isCommandError {
 		errMsg := cmdErr.Output
 		slog.Error(fmt.Sprintf("yt-dlp download error for media item #%d: %v", mediaWithPreloads.ID, dlErr))
@@ -204,7 +205,7 @@ func mediaDownloaderDownloadWithOptions(ctx context.Context, a *App, url string,
 
 func mediaDownloaderMaybeRetryWithCookies(ctx context.Context, a *App, url string, itemWithPreloads *store.MediaItem, outputFilepath string, overrides DownloadOverrides, err error) (map[string]any, error) {
 	source := itemWithPreloads.Source
-	cmdErr, isCommandError := err.(*fsutil.CommandError)
+	cmdErr, isCommandError := err.(*cmdrun.Error)
 	if !isCommandError {
 		return nil, err
 	}

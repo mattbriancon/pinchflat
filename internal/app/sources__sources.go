@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
@@ -110,7 +111,7 @@ func sourcesChangeSourceFromURL(ctx context.Context, a *App, source *store.Sourc
 	if err != nil {
 		var errMsg string
 		switch e := err.(type) {
-		case *fsutil.CommandError:
+		case *cmdrun.Error:
 			errMsg = e.Output
 		default:
 			errMsg = err.Error()

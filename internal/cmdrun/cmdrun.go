@@ -1,8 +1,6 @@
-// Package fsutil holds small, dependency-free filesystem, process and
-// formatting helpers used across the app. Nothing here depends on the
-// database or on application config; callers pass in whatever paths or
-// values they need.
-package fsutil
+// Package cmdrun runs external commands: with a working directory, combined
+// output, cancellation that kills the whole process group, and logging.
+package cmdrun
 
 import (
 	"bytes"
@@ -18,18 +16,18 @@ import (
 	"time"
 )
 
-// CommandError is returned when a command exits with a non-zero status.
-type CommandError struct {
+// Error is returned when a command exits with a non-zero status.
+type Error struct {
 	Output string
 	Status int
 }
 
-func (e *CommandError) Error() string {
+func (e *Error) Error() string {
 	return fmt.Sprintf("command exited %d: %s", e.Status, strings.TrimSpace(e.Output))
 }
 
-// RunOptions configures RunCommand.
-type RunOptions struct {
+// Options configures Run.
+type Options struct {
 	// StderrToStdout merges stderr into the captured output (stdout only by
 	// default).
 	StderrToStdout bool
@@ -38,12 +36,12 @@ type RunOptions struct {
 	LoggingArgOverride string
 }
 
-// RunCommand runs command with args in dir, with its own process group so
+// Run runs command with args in dir, with its own process group so
 // that cancelling ctx (the job being cancelled, or the app shutting down)
 // kills the whole group, including any children (e.g. ffmpeg). It returns
 // the captured output and exit status; an error is only returned if the
 // executable itself couldn't be started.
-func RunCommand(ctx context.Context, dir string, command string, args []string, opts RunOptions) (string, int, error) {
+func Run(ctx context.Context, dir string, command string, args []string, opts Options) (string, int, error) {
 	loggingArgs := opts.LoggingArgOverride
 	if loggingArgs == "" {
 		loggingArgs = strings.Join(args, " ")

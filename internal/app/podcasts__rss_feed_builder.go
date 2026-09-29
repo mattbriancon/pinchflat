@@ -3,13 +3,13 @@ package app
 import (
 	"context"
 	"fmt"
+	"html"
 	"mime"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
@@ -92,10 +92,10 @@ func rssFeedBuilderBuildSourceXml(ctx context.Context, a *App, source *store.Sou
 
   </channel>
 </rss>
-`, fsutil.XMLSafe(source.CustomName), fsutil.XMLSafe(source.OriginalURL), fsutil.XMLSafe(description),
-		lastBuildDate, pubDate, fsutil.XMLSafe(selfLink), uuid, fsutil.XMLSafe(feedImagePath),
-		fsutil.XMLSafe(source.CustomName), fsutil.XMLSafe(source.OriginalURL),
-		fsutil.XMLSafe(source.CustomName), fsutil.XMLSafe(source.CustomName), fsutil.XMLSafe(feedImagePath),
+`, xmlSafe(source.CustomName), xmlSafe(source.OriginalURL), xmlSafe(description),
+		lastBuildDate, pubDate, xmlSafe(selfLink), uuid, xmlSafe(feedImagePath),
+		xmlSafe(source.CustomName), xmlSafe(source.OriginalURL),
+		xmlSafe(source.CustomName), xmlSafe(source.CustomName), xmlSafe(feedImagePath),
 		itemsJoined)
 
 	return xml
@@ -132,7 +132,7 @@ func rssFeedBuilderBuildMediaItemXml(ctx context.Context, a *App, source *store.
 	itemImageLines := ""
 	if itemImagePath != nil && *itemImagePath != "" {
 		itemImageLines = fmt.Sprintf(`      <itunes:image href="%s"></itunes:image>
-      <podcast:images srcset="%s" />`, fsutil.XMLSafe(*itemImagePath), fsutil.XMLSafe(*itemImagePath))
+      <podcast:images srcset="%s" />`, xmlSafe(*itemImagePath), xmlSafe(*itemImagePath))
 	}
 
 	uuid := ""
@@ -159,10 +159,10 @@ func rssFeedBuilderBuildMediaItemXml(ctx context.Context, a *App, source *store.
       %s
 
       <itunes:explicit>false</itunes:explicit>
-    </item>`, uuid, fsutil.XMLSafe(title), fsutil.XMLSafe(mediaItem.OriginalURL),
-		fsutil.XMLSafe(description), uploadedAt, durationSeconds,
-		fsutil.XMLSafe(mediaStreamPath), mediaSizeBytes, mediaType,
-		fsutil.XMLSafe(source.CustomName), fsutil.XMLSafe(title),
+    </item>`, uuid, xmlSafe(title), xmlSafe(mediaItem.OriginalURL),
+		xmlSafe(description), uploadedAt, durationSeconds,
+		xmlSafe(mediaStreamPath), mediaSizeBytes, mediaType,
+		xmlSafe(source.CustomName), xmlSafe(title),
 		description, itemImageLines)
 
 	return xml
@@ -256,4 +256,16 @@ func getMIMEType(filePath *string) string {
 	}
 
 	return "application/octet-stream"
+}
+
+// xmlSafe escapes invalid XML characters in value (any type; nil becomes "").
+func xmlSafe(value any) string {
+	switch v := value.(type) {
+	case nil:
+		return ""
+	case string:
+		return html.EscapeString(v)
+	default:
+		return html.EscapeString(fmt.Sprintf("%v", v))
+	}
 }

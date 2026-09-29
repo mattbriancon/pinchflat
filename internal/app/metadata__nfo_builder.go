@@ -67,7 +67,7 @@ func buildForMediaItem(nfoFilepath string, metadata map[string]any) string {
   <episode>%s</episode>
   <genre>YouTube</genre>
 </episodedetails>
-`, fsutil.XMLSafe(title), fsutil.XMLSafe(uploader), fsutil.XMLSafe(id), fsutil.XMLSafe(description), fsutil.XMLSafe(aired), fsutil.XMLSafe(season), fsutil.XMLSafe(episode))
+`, xmlSafe(title), xmlSafe(uploader), xmlSafe(id), xmlSafe(description), xmlSafe(aired), xmlSafe(season), xmlSafe(episode))
 }
 
 func buildForSource(metadata map[string]any) string {
@@ -82,7 +82,7 @@ func buildForSource(metadata map[string]any) string {
   <uniqueid type="youtube" default="true">%s</uniqueid>
   <genre>YouTube</genre>
 </tvshow>
-`, fsutil.XMLSafe(title), fsutil.XMLSafe(description), fsutil.XMLSafe(id))
+`, xmlSafe(title), xmlSafe(description), xmlSafe(id))
 }
 
 func getStringFromMetadata(metadata map[string]any, key string) string {

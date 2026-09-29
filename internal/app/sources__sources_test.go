@@ -10,6 +10,7 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/app"
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
@@ -312,7 +313,7 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(func(_, _ string, _ ytdlp.Args, _ string, _ ytdlp.CallOptions) (string, error) {
-			return "", &fsutil.CommandError{Output: "some error", Status: 1}
+			return "", &cmdrun.Error{Output: "some error", Status: 1}
 		})
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})

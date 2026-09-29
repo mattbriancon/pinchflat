@@ -2,9 +2,9 @@ package ytdlp
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
-
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"strings"
 )
 
 // Arg is one yt-dlp CLI option: a bare flag (Flag set, no value) or a
@@ -52,12 +52,12 @@ func (a Args) Strings() []string {
 	var out []string
 	for _, arg := range a {
 		if arg.Flag {
-			out = append(out, "--"+fsutil.ToKebabCase(arg.Key))
+			out = append(out, "--"+kebabCase(arg.Key))
 			continue
 		}
 		key := arg.Key
 		if len(key) == 0 || key[0] != '-' {
-			key = "--" + fsutil.ToKebabCase(key)
+			key = "--" + kebabCase(key)
 		}
 		out = append(out, key, argString(arg.Value))
 	}
@@ -79,4 +79,11 @@ func argString(v any) string {
 	default:
 		return ""
 	}
+}
+
+var kebabCaseReplacer = regexp.MustCompile(`[\s_]`)
+
+// kebabCase converts "hello world" or "hello_world" to "hello-world".
+func kebabCase(s string) string {
+	return strings.ToLower(kebabCaseReplacer.ReplaceAllString(s, "-"))
 }

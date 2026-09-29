@@ -7,7 +7,7 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/app"
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
 	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
@@ -96,7 +96,7 @@ func TestYtDlpMedia_Download(t *testing.T) {
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return "", &fsutil.CommandError{Output: "something", Status: 1}
+			return "", &cmdrun.Error{Output: "something", Status: 1}
 		})
 
 		_, err := ta.YtDlpMediaDownload(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
@@ -302,7 +302,7 @@ func TestYtDlpMedia_DownloadThumbnail(t *testing.T) {
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return "", &fsutil.CommandError{Output: "something", Status: 1}
+			return "", &cmdrun.Error{Output: "something", Status: 1}
 		})
 
 		_, err := ta.YtDlpMediaDownloadThumbnail(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
@@ -385,7 +385,7 @@ func TestYtDlpMedia_GetMediaAttributes(t *testing.T) {
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return "", &fsutil.CommandError{Output: "Big issue", Status: 1}
+			return "", &cmdrun.Error{Output: "Big issue", Status: 1}
 		})
 
 		_, err := ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})

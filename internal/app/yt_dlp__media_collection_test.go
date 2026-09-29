@@ -5,7 +5,7 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/app"
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
 	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
@@ -56,7 +56,7 @@ func TestYtDlpMediaCollection_GetMediaAttributesForCollection(t *testing.T) {
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return "", &fsutil.CommandError{Output: "Big issue", Status: 1}
+			return "", &cmdrun.Error{Output: "Big issue", Status: 1}
 		})
 
 		_, err := ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, nil, ytdlp.CallOptions{}, nil)
@@ -240,7 +240,7 @@ func TestYtDlpMediaCollection_GetSourceDetails(t *testing.T) {
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return "", &fsutil.CommandError{Output: "Big issue", Status: 1}
+			return "", &cmdrun.Error{Output: "Big issue", Status: 1}
 		})
 
 		_, err := ta.MediaCollectionGetSourceDetails(ta.Ctx, channelURL, nil, ytdlp.CallOptions{})
@@ -355,7 +355,7 @@ func TestYtDlpMediaCollection_GetSourceMetadata(t *testing.T) {
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return "", &fsutil.CommandError{Output: "Big issue", Status: 1}
+			return "", &cmdrun.Error{Output: "Big issue", Status: 1}
 		})
 
 		_, err := ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, ytdlp.Args{}.Opt("playlist_items", 0), ytdlp.CallOptions{})

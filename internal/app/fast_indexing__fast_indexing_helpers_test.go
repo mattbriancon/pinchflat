@@ -8,8 +8,8 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/app"
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
 	"github.com/mattbriancon/pinchflat/internal/db"
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/ytdlp"
@@ -257,7 +257,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
-			return "", &fsutil.CommandError{Output: "error", Status: 1}
+			return "", &cmdrun.Error{Output: "error", Status: 1}
 		})
 		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			return "<yt:videoId>test_1</yt:videoId>", nil
@@ -463,7 +463,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		ta.HTTPMock.Get.Stub(func(url string, headers http.Header) (string, error) {
 			callCount++
 			if callCount == 1 && strings.Contains(url, "youtube.googleapis.com") {
-				return "", &fsutil.CommandError{Output: "API failed", Status: 1}
+				return "", &cmdrun.Error{Output: "API failed", Status: 1}
 			}
 			if strings.Contains(url, "youtube.com/feeds") {
 				return "<yt:videoId>test_1</yt:videoId>", nil

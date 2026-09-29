@@ -50,7 +50,7 @@ type App struct {
 type YtDlpRunner interface {
 	// Run runs yt-dlp against url for action (used for logging), with CLI
 	// args, an output template and per-call options. Failure returns
-	// *fsutil.CommandError.
+	// *cmdrun.Error.
 	Run(ctx context.Context, url string, action string, args ytdlp.Args, outputTemplate string, opts ytdlp.CallOptions) (string, error)
 	Version(ctx context.Context) (string, error)
 	Update(ctx context.Context) (string, error)

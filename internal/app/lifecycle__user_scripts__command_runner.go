@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"path/filepath"
 
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
@@ -68,7 +69,7 @@ func (r *UserScriptsCommandRunner) RunWithResult(ctx context.Context, eventType 
 	}
 
 	// Run the command
-	output, exitCode, err := fsutil.RunCommand(ctx, r.App.Config.TmpfileDirectory, executablePath, []string{eventType, encodedData}, fsutil.RunOptions{LoggingArgOverride: "[suppressed]"})
+	output, exitCode, err := cmdrun.Run(ctx, r.App.Config.TmpfileDirectory, executablePath, []string{eventType, encodedData}, cmdrun.Options{LoggingArgOverride: "[suppressed]"})
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +105,7 @@ func (r *UserScriptsCommandRunner) Run(ctx context.Context, eventType string, da
 		return err
 	}
 	if !result.NoExecutable && result.ExitCode != 0 {
-		return &fsutil.CommandError{Output: result.Output, Status: result.ExitCode}
+		return &cmdrun.Error{Output: result.Output, Status: result.ExitCode}
 	}
 	return nil
 }

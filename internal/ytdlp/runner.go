@@ -7,11 +7,14 @@ package ytdlp
 import (
 	"context"
 	"log/slog"
+	"math"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 )
 
@@ -67,7 +70,7 @@ type Runner struct {
 //	2   = error in user-provided options
 //	1   = any other error
 //
-// A non-0/101 status is returned as *fsutil.CommandError.
+// A non-0/101 status is returned as *cmdrun.Error.
 func (r *Runner) Run(ctx context.Context, url string, action string, args Args, outputTemplate string, opts CallOptions) (string, error) {
 	slog.Debug("Running yt-dlp command for action: " + action)
 
@@ -92,7 +95,7 @@ func (r *Runner) Run(ctx context.Context, url string, action string, args Args, 
 
 	formattedArgs := append([]string{url}, allArgs...)
 
-	output, status, err := fsutil.RunCommand(ctx, r.TmpDir, r.Executable, formattedArgs, fsutil.RunOptions{StderrToStdout: true})
+	output, status, err := cmdrun.Run(ctx, r.TmpDir, r.Executable, formattedArgs, cmdrun.Options{StderrToStdout: true})
 	if err != nil {
 		return "", err
 	}
@@ -105,31 +108,31 @@ func (r *Runner) Run(ctx context.Context, url string, action string, args Args, 
 		return string(content), nil
 	}
 
-	return "", &fsutil.CommandError{Output: output, Status: status}
+	return "", &cmdrun.Error{Output: output, Status: status}
 }
 
 // Version runs `yt-dlp --version`.
 func (r *Runner) Version(ctx context.Context) (string, error) {
-	output, status, err := fsutil.RunCommand(ctx, r.TmpDir, r.Executable, []string{"--version"}, fsutil.RunOptions{})
+	output, status, err := cmdrun.Run(ctx, r.TmpDir, r.Executable, []string{"--version"}, cmdrun.Options{})
 	if err != nil {
 		return "", err
 	}
 	if status == 0 {
 		return strings.TrimSpace(output), nil
 	}
-	return "", &fsutil.CommandError{Output: output, Status: status}
+	return "", &cmdrun.Error{Output: output, Status: status}
 }
 
 // Update runs `yt-dlp --update`.
 func (r *Runner) Update(ctx context.Context) (string, error) {
-	output, status, err := fsutil.RunCommand(ctx, r.TmpDir, r.Executable, []string{"--update"}, fsutil.RunOptions{})
+	output, status, err := cmdrun.Run(ctx, r.TmpDir, r.Executable, []string{"--update"}, cmdrun.Options{})
 	if err != nil {
 		return "", err
 	}
 	if status == 0 {
 		return strings.TrimSpace(output), nil
 	}
-	return "", &fsutil.CommandError{Output: output, Status: status}
+	return "", &cmdrun.Error{Output: output, Status: status}
 }
 
 func (r *Runner) cookieFileArgs(useCookies bool) []string {
@@ -155,9 +158,9 @@ func rateLimitArgs(settings Settings, skipSleepInterval bool) []string {
 
 	// Jitter is computed separately for each option, as in Elixir.
 	args = append(args,
-		"--sleep-requests", strconv.Itoa(fsutil.AddJitter(settings.SleepIntervalSeconds, 0.5)),
-		"--sleep-interval", strconv.Itoa(fsutil.AddJitter(settings.SleepIntervalSeconds, 0.5)),
-		"--sleep-subtitles", strconv.Itoa(fsutil.AddJitter(settings.SleepIntervalSeconds, 0.5)),
+		"--sleep-requests", strconv.Itoa(addJitter(settings.SleepIntervalSeconds, 0.5)),
+		"--sleep-interval", strconv.Itoa(addJitter(settings.SleepIntervalSeconds, 0.5)),
+		"--sleep-subtitles", strconv.Itoa(addJitter(settings.SleepIntervalSeconds, 0.5)),
 	)
 	return args
 }
@@ -174,4 +177,19 @@ func (r *Runner) settings(ctx context.Context) Settings {
 		return Settings{}
 	}
 	return r.SettingsFunc(ctx)
+}
+
+// addJitter adds a random amount, up to jitterPercentage of num, to num.
+// Returns 0 if num is less than or equal to 0.
+func addJitter(num int, jitterPercentage float64) int {
+	if num <= 0 {
+		return 0
+	}
+
+	maxJitter := int(math.Round(float64(num) * jitterPercentage))
+	if maxJitter <= 0 {
+		return num
+	}
+
+	return num + rand.IntN(maxJitter)
 }
