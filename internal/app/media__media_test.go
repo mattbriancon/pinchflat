@@ -27,14 +27,10 @@ func TestMedia_Schema(t *testing.T) {
 				ThumbnailFilepath: store.Ptr("/thumbnail.jpg"),
 			},
 		})
-		if _, err := ta.PreloadMediaItemMetadata(ta.Ctx, mediaItem); err != nil {
-			t.Fatal(err)
-		}
+		mustOK(t)(ta.PreloadMediaItemMetadata(ta.Ctx, mediaItem))
 		metadata := mediaItem.Metadata
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, false); err != nil {
-			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
-		}
+		mustOK(t)(ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, false))
 
 		if _, err := store.Reload[store.MediaMetadata](ta.Ctx, ta.Q(ta.Ctx), metadata); err != store.ErrNotFound {
 			t.Errorf("expected store.ErrNotFound reloading metadata, got %v", err)
@@ -45,9 +41,7 @@ func TestMedia_Schema(t *testing.T) {
 		ta := apptest.NewApp(t)
 
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
-		if _, err := ta.PreloadMediaItemSourceAndProfile(ta.Ctx, mediaItem); err != nil {
-			t.Fatal(err)
-		}
+		mustOK(t)(ta.PreloadMediaItemSourceAndProfile(ta.Ctx, mediaItem))
 
 		// Phoenix.json_library().encode(media_item)
 		if _, err := json.Marshal(mediaItem); err != nil {
@@ -64,9 +58,7 @@ func TestMedia_ListMediaItems(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 
 		got, err := ta.ListMediaItems(ta.Ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{mediaItem}) {
 			t.Errorf("got %+v, want [%+v]", got, mediaItem)
 		}
@@ -94,9 +86,7 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 		})
 
 		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{mediaItem}) {
 			t.Errorf("got %+v, want [%+v]", got, mediaItem)
 		}
@@ -112,9 +102,7 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 		})
 
 		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{mediaItem}) {
 			t.Errorf("got %+v, want [%+v]", got, mediaItem)
 		}
@@ -129,9 +117,7 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 		})
 
 		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 0 {
 			t.Errorf("got %+v, want []", got)
 		}
@@ -148,9 +134,7 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 		})
 
 		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 0 {
 			t.Errorf("got %+v, want []", got)
 		}
@@ -167,9 +151,7 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 		})
 
 		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 0 {
 			t.Errorf("got %+v, want []", got)
 		}
@@ -185,9 +167,7 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 		})
 
 		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 0 {
 			t.Errorf("got %+v, want []", got)
 		}
@@ -204,9 +184,7 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 		})
 
 		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 0 {
 			t.Errorf("got %+v, want []", got)
 		}
@@ -222,9 +200,7 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 		})
 
 		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 0 {
 			t.Errorf("got %+v, want []", got)
 		}
@@ -240,9 +216,7 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 		})
 
 		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 0 {
 			t.Errorf("got %+v, want []", got)
 		}
@@ -260,9 +234,7 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 		})
 
 		got, err := ta.ListUpgradeableMediaItems(ta.Ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 0 {
 			t.Errorf("got %+v, want []", got)
 		}
@@ -278,9 +250,7 @@ func TestMedia_ListPendingMediaItemsFor(t *testing.T) {
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(otherSource.ID), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{mediaItem}) {
 			t.Errorf("got %+v, want [%+v]", got, mediaItem)
 		}
@@ -296,9 +266,7 @@ func TestMedia_ListPendingMediaItemsFor(t *testing.T) {
 		})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 0 {
 			t.Errorf("got %+v, want []", got)
 		}
@@ -314,9 +282,7 @@ func TestMedia_ListPendingMediaItemsFor_Shorts(t *testing.T) {
 		short := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), ShortFormContent: store.Ptr(true), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{normal, short}) {
 			t.Errorf("got %+v, want [%+v %+v]", got, normal, short)
 		}
@@ -330,9 +296,7 @@ func TestMedia_ListPendingMediaItemsFor_Shorts(t *testing.T) {
 		short := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), ShortFormContent: store.Ptr(true), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{short}) {
 			t.Errorf("got %+v, want [%+v]", got, short)
 		}
@@ -346,9 +310,7 @@ func TestMedia_ListPendingMediaItemsFor_Shorts(t *testing.T) {
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), ShortFormContent: store.Ptr(true), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{normal}) {
 			t.Errorf("got %+v, want [%+v]", got, normal)
 		}
@@ -364,9 +326,7 @@ func TestMedia_ListPendingMediaItemsFor_Livestreams(t *testing.T) {
 		livestream := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Livestream: store.Ptr(true), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{normal, livestream}) {
 			t.Errorf("got %+v, want [%+v %+v]", got, normal, livestream)
 		}
@@ -380,9 +340,7 @@ func TestMedia_ListPendingMediaItemsFor_Livestreams(t *testing.T) {
 		livestream := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Livestream: store.Ptr(true), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{livestream}) {
 			t.Errorf("got %+v, want [%+v]", got, livestream)
 		}
@@ -396,9 +354,7 @@ func TestMedia_ListPendingMediaItemsFor_Livestreams(t *testing.T) {
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Livestream: store.Ptr(true), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{normal}) {
 			t.Errorf("got %+v, want [%+v]", got, normal)
 		}
@@ -416,9 +372,7 @@ func TestMedia_ListPendingMediaItemsFor_AllFormatOptions(t *testing.T) {
 		short := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), ShortFormContent: store.Ptr(true), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{normal, livestream, short}) {
 			t.Errorf("got %+v, want [%+v %+v %+v]", got, normal, livestream, short)
 		}
@@ -434,9 +388,7 @@ func TestMedia_ListPendingMediaItemsFor_AllFormatOptions(t *testing.T) {
 		short := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), ShortFormContent: store.Ptr(true), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{livestream, short}) {
 			t.Errorf("got %+v, want [%+v %+v]", got, livestream, short)
 		}
@@ -452,9 +404,7 @@ func TestMedia_ListPendingMediaItemsFor_AllFormatOptions(t *testing.T) {
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), ShortFormContent: store.Ptr(true), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{normal}) {
 			t.Errorf("got %+v, want [%+v]", got, normal)
 		}
@@ -470,9 +420,7 @@ func TestMedia_ListPendingMediaItemsFor_AllFormatOptions(t *testing.T) {
 		short := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), ShortFormContent: store.Ptr(true), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{short}) {
 			t.Errorf("got %+v, want [%+v]", got, short)
 		}
@@ -488,9 +436,7 @@ func TestMedia_ListPendingMediaItemsFor_CutoffDates(t *testing.T) {
 		newMediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.Now()), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{newMediaItem}) {
 			t.Errorf("got %+v, want [%+v]", got, newMediaItem)
 		}
@@ -504,9 +450,7 @@ func TestMedia_ListPendingMediaItemsFor_CutoffDates(t *testing.T) {
 		newMediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.Now()), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{oldMediaItem, newMediaItem}) {
 			t.Errorf("got %+v, want [%+v %+v]", got, oldMediaItem, newMediaItem)
 		}
@@ -522,9 +466,7 @@ func TestMedia_ListPendingMediaItemsFor_TitleRegex(t *testing.T) {
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Title: store.Ptr("bar"), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{matching}) {
 			t.Errorf("got %+v, want [%+v]", got, matching)
 		}
@@ -538,9 +480,7 @@ func TestMedia_ListPendingMediaItemsFor_TitleRegex(t *testing.T) {
 		two := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Title: store.Ptr("bar"), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{one, two}) {
 			t.Errorf("got %+v, want [%+v %+v]", got, one, two)
 		}
@@ -557,9 +497,7 @@ func TestMedia_ListPendingMediaItemsFor_MinAndMaxDurations(t *testing.T) {
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), DurationSeconds: store.Ptr(25), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{normal}) {
 			t.Errorf("got %+v, want [%+v]", got, normal)
 		}
@@ -574,9 +512,7 @@ func TestMedia_ListPendingMediaItemsFor_MinAndMaxDurations(t *testing.T) {
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), DurationSeconds: store.Ptr(25), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{short, normal}) {
 			t.Errorf("got %+v, want [%+v %+v]", got, short, normal)
 		}
@@ -591,9 +527,7 @@ func TestMedia_ListPendingMediaItemsFor_MinAndMaxDurations(t *testing.T) {
 		long := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), DurationSeconds: store.Ptr(25), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{normal, long}) {
 			t.Errorf("got %+v, want [%+v %+v]", got, normal, long)
 		}
@@ -608,9 +542,7 @@ func TestMedia_ListPendingMediaItemsFor_MinAndMaxDurations(t *testing.T) {
 		long := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), DurationSeconds: store.Ptr(25), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{short, normal, long}) {
 			t.Errorf("got %+v, want [%+v %+v %+v]", got, short, normal, long)
 		}
@@ -625,9 +557,7 @@ func TestMedia_ListPendingMediaItemsFor_DownloadPrevention(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), PreventDownload: store.Ptr(false), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.ListPendingMediaItemsFor(ta.Ctx, source)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, []*store.MediaItem{mediaItem}) {
 			t.Errorf("got %+v, want [%+v]", got, mediaItem)
 		}
@@ -640,9 +570,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !got {
 			t.Errorf("expected pending download")
 		}
@@ -653,9 +581,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{MediaFilepath: store.Ptr("/video/downloaded.mp4")})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if got {
 			t.Errorf("expected not pending download")
 		}
@@ -668,9 +594,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), ShortFormContent: store.Ptr(true), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if got {
 			t.Errorf("expected not pending download")
 		}
@@ -683,9 +607,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Livestream: store.Ptr(true), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if got {
 			t.Errorf("expected not pending download")
 		}
@@ -697,9 +619,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.NowMinus(1, "day")), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !got {
 			t.Errorf("expected pending download")
 		}
@@ -711,9 +631,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.NowMinus(2, "days")), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !got {
 			t.Errorf("expected pending download")
 		}
@@ -725,9 +643,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.NowMinus(2, "days")), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if got {
 			t.Errorf("expected not pending download")
 		}
@@ -739,9 +655,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.NowMinus(1, "day")), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !got {
 			t.Errorf("expected pending download")
 		}
@@ -753,9 +667,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Title: store.Ptr("foo"), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !got {
 			t.Errorf("expected pending download")
 		}
@@ -767,9 +679,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Title: store.Ptr("bar"), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if got {
 			t.Errorf("expected not pending download")
 		}
@@ -781,9 +691,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Title: store.Ptr("foo"), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !got {
 			t.Errorf("expected pending download")
 		}
@@ -795,9 +703,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), DurationSeconds: store.Ptr(15), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !got {
 			t.Errorf("expected pending download")
 		}
@@ -809,9 +715,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), DurationSeconds: store.Ptr(5), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if got {
 			t.Errorf("expected not pending download")
 		}
@@ -823,9 +727,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), DurationSeconds: store.Ptr(25), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if got {
 			t.Errorf("expected not pending download")
 		}
@@ -837,9 +739,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), DurationSeconds: store.Ptr(15), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !got {
 			t.Errorf("expected pending download")
 		}
@@ -850,9 +750,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{PreventDownload: store.Ptr(false), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !got {
 			t.Errorf("expected pending download")
 		}
@@ -863,9 +761,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{PreventDownload: store.Ptr(true), Clear: store.ClearMediaFilepath})
 
 		got, err := ta.PendingDownload(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if got {
 			t.Errorf("expected not pending download")
 		}
@@ -887,9 +783,7 @@ func TestMedia_Search(t *testing.T) {
 		ta, mediaItemID := setup(t)
 
 		got, err := ta.Search(ta.Ctx, "quick", 0)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 1 || got[0].ID != mediaItemID {
 			t.Errorf("got %+v, want a single result with id %d", got, mediaItemID)
 		}
@@ -899,9 +793,7 @@ func TestMedia_Search(t *testing.T) {
 		ta, mediaItemID := setup(t)
 
 		got, err := ta.Search(ta.Ctx, "lazy", 0)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 1 || got[0].ID != mediaItemID {
 			t.Errorf("got %+v, want a single result with id %d", got, mediaItemID)
 		}
@@ -911,9 +803,7 @@ func TestMedia_Search(t *testing.T) {
 		ta, _ := setup(t)
 
 		got, err := ta.Search(ta.Ctx, "quick", 0)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 1 {
 			t.Fatalf("got %+v, want a single result", got)
 		}
@@ -928,9 +818,7 @@ func TestMedia_Search(t *testing.T) {
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{Title: store.Ptr("foobar baz"), Clear: store.ClearDescription})
 
 		got, err := ta.Search(ta.Ctx, "baz", 0)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 1 {
 			t.Fatalf("got %+v, want a single result", got)
 		}
@@ -944,9 +832,7 @@ func TestMedia_Search(t *testing.T) {
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{Title: store.Ptr("The small gray dog")})
 
 		got, err := ta.Search(ta.Ctx, "dog", 1)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 1 {
 			t.Errorf("got %+v, want a single result", got)
 		}
@@ -956,9 +842,7 @@ func TestMedia_Search(t *testing.T) {
 		ta, _ := setup(t)
 
 		got, err := ta.Search(ta.Ctx, "", 0)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 0 {
 			t.Errorf("got %+v, want []", got)
 		}
@@ -969,9 +853,7 @@ func TestMedia_Search(t *testing.T) {
 
 		// Go has no nil string; the "" case above covers Media.search(nil, _opts).
 		got, err := ta.Search(ta.Ctx, "", 0)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if len(got) != 0 {
 			t.Errorf("got %+v, want []", got)
 		}
@@ -1009,9 +891,7 @@ func TestMedia_GetMediaItem(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 
 		got, err := ta.GetMediaItem(ta.Ctx, mediaItem.ID)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, mediaItem) {
 			t.Errorf("got %+v, want %+v", got, mediaItem)
 		}
@@ -1036,9 +916,7 @@ func TestMedia_CreateMediaItem(t *testing.T) {
 		params := validParams(source, "media-"+strconv.Itoa(int(source.ID)))
 
 		mediaItem, err := ta.CreateMediaItem(ta.Ctx, params)
-		if err != nil {
-			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
-		}
+		must(t, err)
 
 		if store.Deref(mediaItem.Title) != *params.Title {
 			t.Errorf("title = %v, want %v", store.Deref(mediaItem.Title), *params.Title)
@@ -1056,9 +934,7 @@ func TestMedia_CreateMediaItem(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		mediaItem, err := ta.CreateMediaItem(ta.Ctx, validParams(source, "media-1"))
-		if err != nil {
-			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
-		}
+		must(t, err)
 		if mediaItem.UUID == nil || len(*mediaItem.UUID) != 36 {
 			t.Errorf("uuid = %v, want length 36", mediaItem.UUID)
 		}
@@ -1078,9 +954,7 @@ func TestMedia_CreateMediaItem(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
-		if _, err := ta.CreateMediaItem(ta.Ctx, validParams(source, "media-1")); err != nil {
-			t.Fatal(err)
-		}
+		mustOK(t)(ta.CreateMediaItem(ta.Ctx, validParams(source, "media-1")))
 		_, err := ta.CreateMediaItem(ta.Ctx, validParams(source, "media-1"))
 		errs, ok := store.AsValidationErrors(err)
 		if !ok {
@@ -1099,15 +973,11 @@ func TestMedia_UpsertMediaItemFromYtDlp(t *testing.T) {
 
 		var attrsMap map[string]any
 		err := store.DecodeJSON([]byte(apptest.MediaAttributesReturnFixture()), &attrsMap)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		mediaAttrs := app.YtDlpMediaResponseToStruct(attrsMap)
 
 		mediaItem, err := ta.UpsertMediaItemFromYtDlp(ta.Ctx, source, mediaAttrs)
-		if err != nil {
-			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
-		}
+		must(t, err)
 
 		if mediaItem.SourceID != source.ID {
 			t.Errorf("source_id = %v, want %v", mediaItem.SourceID, source.ID)
@@ -1132,29 +1002,21 @@ func TestMedia_UpsertMediaItemFromYtDlp(t *testing.T) {
 
 		var attrsMap map[string]any
 		err := store.DecodeJSON([]byte(apptest.MediaAttributesReturnFixture()), &attrsMap)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		mediaAttrs := app.YtDlpMediaResponseToStruct(attrsMap)
 		differentAttrs := *mediaAttrs
 		differentAttrs.Title = "Different title"
 
 		mediaItem1, err := ta.UpsertMediaItemFromYtDlp(ta.Ctx, source, mediaAttrs)
-		if err != nil {
-			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
-		}
+		must(t, err)
 		mediaItem2, err := ta.UpsertMediaItemFromYtDlp(ta.Ctx, source, &differentAttrs)
-		if err != nil {
-			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
-		}
+		must(t, err)
 
 		if mediaItem1.ID != mediaItem2.ID {
 			t.Errorf("id_1 = %v, id_2 = %v, want equal", mediaItem1.ID, mediaItem2.ID)
 		}
 		reloaded, err := store.Reload[store.MediaItem](ta.Ctx, ta.Q(ta.Ctx), mediaItem2)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if store.Deref(reloaded.Title) != differentAttrs.Title {
 			t.Errorf("title = %v, want %v", store.Deref(reloaded.Title), differentAttrs.Title)
 		}
@@ -1166,9 +1028,7 @@ func TestMedia_UpsertMediaItemFromYtDlp(t *testing.T) {
 
 		var attrsMap map[string]any
 		err := store.DecodeJSON([]byte(apptest.MediaAttributesReturnFixture()), &attrsMap)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		attrsMap["playlist_index"] = 1
 		mediaAttrs := app.YtDlpMediaResponseToStruct(attrsMap)
 
@@ -1176,18 +1036,12 @@ func TestMedia_UpsertMediaItemFromYtDlp(t *testing.T) {
 		nineNineNineNine := 9999
 		differentAttrs.PlaylistIndex = &nineNineNineNine
 
-		if _, err := ta.UpsertMediaItemFromYtDlp(ta.Ctx, source, mediaAttrs); err != nil {
-			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
-		}
+		mustOK(t)(ta.UpsertMediaItemFromYtDlp(ta.Ctx, source, mediaAttrs))
 		mediaItem2, err := ta.UpsertMediaItemFromYtDlp(ta.Ctx, source, &differentAttrs)
-		if err != nil {
-			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
-		}
+		must(t, err)
 
 		reloaded, err := store.Reload[store.MediaItem](ta.Ctx, ta.Q(ta.Ctx), mediaItem2)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if reloaded.PlaylistIndex != store.Deref(mediaAttrs.PlaylistIndex) {
 			t.Errorf("playlist_index = %v, want %v (unchanged)", reloaded.PlaylistIndex, store.Deref(mediaAttrs.PlaylistIndex))
 		}
@@ -1208,9 +1062,7 @@ func TestMedia_UpdateMediaItem(t *testing.T) {
 		}
 
 		updated, err := ta.UpdateMediaItem(ta.Ctx, mediaItem, params)
-		if err != nil {
-			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
-		}
+		must(t, err)
 		if store.Deref(updated.Title) != *params.Title {
 			t.Errorf("title = %v, want %v", store.Deref(updated.Title), *params.Title)
 		}
@@ -1230,9 +1082,7 @@ func TestMedia_UpdateMediaItem(t *testing.T) {
 			Title:         store.Ptr("Updated Product"),
 			PlaylistIndex: store.Ptr(1),
 		})
-		if err != nil {
-			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
-		}
+		must(t, err)
 		if updated.PlaylistIndex != 5 {
 			t.Errorf("playlist_index = %v, want 5 (unchanged)", updated.PlaylistIndex)
 		}
@@ -1249,9 +1099,7 @@ func TestMedia_UpdateMediaItem(t *testing.T) {
 		}
 
 		got, err := ta.GetMediaItem(ta.Ctx, mediaItem.ID)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !reflect.DeepEqual(got, mediaItem) {
 			t.Errorf("media_item was modified: got %+v, want %+v", got, mediaItem)
 		}
@@ -1263,9 +1111,7 @@ func TestMedia_DeleteMediaItem(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, false); err != nil {
-			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
-		}
+		mustOK(t)(ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, false))
 		if _, err := ta.GetMediaItem(ta.Ctx, mediaItem.ID); err != store.ErrNotFound {
 			t.Errorf("expected store.ErrNotFound, got %v", err)
 		}
@@ -1276,9 +1122,7 @@ func TestMedia_DeleteMediaItem(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		task := apptest.TaskFixture(t, ta, apptest.TaskParams{MediaItemID: store.Ptr(mediaItem.ID)})
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, false); err != nil {
-			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
-		}
+		mustOK(t)(ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, false))
 		if _, err := store.Reload[store.Task](ta.Ctx, ta.Q(ta.Ctx), task); err != store.ErrNotFound {
 			t.Errorf("expected store.ErrNotFound reloading task, got %v", err)
 		}
@@ -1288,9 +1132,7 @@ func TestMedia_DeleteMediaItem(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, false); err != nil {
-			t.Fatalf("expected {:ok, _}, got error: %v", err)
-		}
+		mustOK(t)(ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, false))
 		if _, err := os.Stat(store.Deref(mediaItem.MediaFilepath)); err != nil {
 			t.Errorf("expected media_filepath to still exist: %v", err)
 		}
@@ -1302,18 +1144,12 @@ func TestMedia_DeleteMediaItem(t *testing.T) {
 			return "", nil
 		})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
-		if _, err := ta.PreloadMediaItemFull(ta.Ctx, mediaItem); err != nil {
-			t.Fatal(err)
-		}
+		mustOK(t)(ta.PreloadMediaItemFull(ta.Ctx, mediaItem))
 
 		metadataFilepath, err := ta.MetadataFileHelpersCompressAndStoreMetadataFor(ta.Ctx, mediaItem, map[string]any{})
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		thumbnailFilepath, err := ta.MetadataFileHelpersDownloadAndStoreThumbnailFor(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 
 		updated, err := ta.UpdateMediaItem(ta.Ctx, mediaItem, store.MediaItemParams{
 			Metadata: &store.MediaMetadataParams{
@@ -1321,13 +1157,9 @@ func TestMedia_DeleteMediaItem(t *testing.T) {
 				ThumbnailFilepath: thumbnailFilepath,
 			},
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, updated, false); err != nil {
-			t.Fatalf("expected {:ok, _}, got error: %v", err)
-		}
+		mustOK(t)(ta.MediaDeleteMediaItem(ta.Ctx, updated, false))
 		if updated.Metadata == nil {
 			t.Fatal("expected updated media_item to have metadata preloaded")
 		}
@@ -1347,9 +1179,7 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 		stubUserScript(ta)
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, true); err != nil {
-			t.Fatalf("expected {:ok, _}, got error: %v", err)
-		}
+		mustOK(t)(ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, true))
 		if _, err := os.Stat(store.Deref(mediaItem.MediaFilepath)); err == nil {
 			t.Errorf("expected media_filepath to be deleted")
 		}
@@ -1362,18 +1192,12 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 			return "", nil
 		})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
-		if _, err := ta.PreloadMediaItemFull(ta.Ctx, mediaItem); err != nil {
-			t.Fatal(err)
-		}
+		mustOK(t)(ta.PreloadMediaItemFull(ta.Ctx, mediaItem))
 
 		metadataFilepath, err := ta.MetadataFileHelpersCompressAndStoreMetadataFor(ta.Ctx, mediaItem, map[string]any{})
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		thumbnailFilepath, err := ta.MetadataFileHelpersDownloadAndStoreThumbnailFor(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 
 		updated, err := ta.UpdateMediaItem(ta.Ctx, mediaItem, store.MediaItemParams{
 			Metadata: &store.MediaMetadataParams{
@@ -1381,13 +1205,9 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 				ThumbnailFilepath: thumbnailFilepath,
 			},
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, updated, true); err != nil {
-			t.Fatalf("expected {:ok, _}, got error: %v", err)
-		}
+		mustOK(t)(ta.MediaDeleteMediaItem(ta.Ctx, updated, true))
 		if _, err := os.Stat(updated.Metadata.MetadataFilepath); err == nil {
 			t.Errorf("expected metadata_filepath to be deleted")
 		}
@@ -1398,9 +1218,7 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 		stubUserScript(ta)
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, true); err != nil {
-			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
-		}
+		mustOK(t)(ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, true))
 		if _, err := ta.GetMediaItem(ta.Ctx, mediaItem.ID); err != store.ErrNotFound {
 			t.Errorf("expected store.ErrNotFound, got %v", err)
 		}
@@ -1412,9 +1230,7 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 		rootDirectory := filepath.Dir(store.Deref(mediaItem.MediaFilepath))
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, true); err != nil {
-			t.Fatalf("expected {:ok, _}, got error: %v", err)
-		}
+		mustOK(t)(ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, true))
 		if _, err := os.Stat(rootDirectory); err == nil {
 			t.Errorf("expected root_directory to be removed")
 		}
@@ -1425,23 +1241,15 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 		stubUserScript(ta)
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 		rootDirectory := filepath.Dir(store.Deref(mediaItem.MediaFilepath))
-		if err := os.WriteFile(filepath.Join(rootDirectory, "test.txt"), []byte(""), 0o644); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.WriteFile(filepath.Join(rootDirectory, "test.txt"), []byte(""), 0o644))
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, true); err != nil {
-			t.Fatalf("expected {:ok, _}, got error: %v", err)
-		}
+		mustOK(t)(ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, true))
 		if _, err := os.Stat(rootDirectory); err != nil {
 			t.Errorf("expected root_directory to still exist: %v", err)
 		}
 
-		if err := os.Remove(filepath.Join(rootDirectory, "test.txt")); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.Remove(rootDirectory); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.Remove(filepath.Join(rootDirectory, "test.txt")))
+		must(t, os.Remove(rootDirectory))
 	})
 
 	t.Run("calls the user script runner", func(t *testing.T) {
@@ -1459,9 +1267,7 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 			return nil
 		})
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, true); err != nil {
-			t.Fatalf("expected {:ok, _}, got error: %v", err)
-		}
+		mustOK(t)(ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, true))
 	})
 }
 
@@ -1475,9 +1281,7 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 		stubUserScript(ta)
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 
-		if _, err := ta.MediaDeleteMediaFiles(ta.Ctx, mediaItem, store.MediaItemParams{}); err != nil {
-			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
-		}
+		mustOK(t)(ta.MediaDeleteMediaFiles(ta.Ctx, mediaItem, store.MediaItemParams{}))
 		if _, err := store.Reload[store.MediaItem](ta.Ctx, ta.Q(ta.Ctx), mediaItem); err != nil {
 			t.Errorf("expected reload to succeed, got %v", err)
 		}
@@ -1489,9 +1293,7 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		task := apptest.TaskFixture(t, ta, apptest.TaskParams{MediaItemID: store.Ptr(mediaItem.ID)})
 
-		if _, err := ta.MediaDeleteMediaFiles(ta.Ctx, mediaItem, store.MediaItemParams{}); err != nil {
-			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
-		}
+		mustOK(t)(ta.MediaDeleteMediaFiles(ta.Ctx, mediaItem, store.MediaItemParams{}))
 		if _, err := store.Reload[store.Task](ta.Ctx, ta.Q(ta.Ctx), task); err != store.ErrNotFound {
 			t.Errorf("expected store.ErrNotFound reloading task, got %v", err)
 		}
@@ -1502,12 +1304,8 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 		stubUserScript(ta)
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 
-		if _, err := os.Stat(store.Deref(mediaItem.MediaFilepath)); err != nil {
-			t.Fatalf("expected media_filepath to exist before delete: %v", err)
-		}
-		if _, err := ta.MediaDeleteMediaFiles(ta.Ctx, mediaItem, store.MediaItemParams{}); err != nil {
-			t.Fatalf("expected {:ok, _}, got error: %v", err)
-		}
+		mustOK(t)(os.Stat(store.Deref(mediaItem.MediaFilepath)))
+		mustOK(t)(ta.MediaDeleteMediaFiles(ta.Ctx, mediaItem, store.MediaItemParams{}))
 		if _, err := os.Stat(store.Deref(mediaItem.MediaFilepath)); err == nil {
 			t.Errorf("expected media_filepath to be deleted")
 		}
@@ -1520,18 +1318,12 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 			return "", nil
 		})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
-		if _, err := ta.PreloadMediaItemFull(ta.Ctx, mediaItem); err != nil {
-			t.Fatal(err)
-		}
+		mustOK(t)(ta.PreloadMediaItemFull(ta.Ctx, mediaItem))
 
 		metadataFilepath, err := ta.MetadataFileHelpersCompressAndStoreMetadataFor(ta.Ctx, mediaItem, map[string]any{})
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		thumbnailFilepath, err := ta.MetadataFileHelpersDownloadAndStoreThumbnailFor(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 
 		updated, err := ta.UpdateMediaItem(ta.Ctx, mediaItem, store.MediaItemParams{
 			Metadata: &store.MediaMetadataParams{
@@ -1539,17 +1331,11 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 				ThumbnailFilepath: thumbnailFilepath,
 			},
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err := ta.PreloadMediaItemMetadata(ta.Ctx, updated); err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
+		mustOK(t)(ta.PreloadMediaItemMetadata(ta.Ctx, updated))
 		metadata := updated.Metadata
 
-		if _, err := ta.MediaDeleteMediaFiles(ta.Ctx, updated, store.MediaItemParams{}); err != nil {
-			t.Fatalf("expected {:ok, _}, got error: %v", err)
-		}
+		mustOK(t)(ta.MediaDeleteMediaFiles(ta.Ctx, updated, store.MediaItemParams{}))
 		if _, err := store.Reload[store.MediaMetadata](ta.Ctx, ta.Q(ta.Ctx), metadata); err != nil {
 			t.Errorf("expected metadata to still exist, got %v", err)
 		}
@@ -1567,9 +1353,7 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 
 		updated, err := ta.MediaDeleteMediaFiles(ta.Ctx, mediaItem, store.MediaItemParams{PreventDownload: store.Ptr(true)})
-		if err != nil {
-			t.Fatalf("expected {:ok, _}, got error: %v", err)
-		}
+		must(t, err)
 		if !updated.PreventDownload {
 			t.Errorf("expected prevent_download to be true")
 		}
@@ -1590,9 +1374,7 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 			return nil
 		})
 
-		if _, err := ta.MediaDeleteMediaFiles(ta.Ctx, mediaItem, store.MediaItemParams{}); err != nil {
-			t.Fatalf("expected {:ok, _}, got error: %v", err)
-		}
+		mustOK(t)(ta.MediaDeleteMediaFiles(ta.Ctx, mediaItem, store.MediaItemParams{}))
 	})
 }
 
@@ -1665,9 +1447,7 @@ func TestMedia_UpdateMediaItem_UploadDateIndexChannel(t *testing.T) {
 		oldItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.NowMinus(1, "day"))})
 
 		updated, err := ta.UpdateMediaItem(ta.Ctx, oldItem, store.MediaItemParams{UploadedAt: store.Ptr(apptest.Now())})
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 
 		if newItem.UploadDateIndex != 99 {
 			t.Errorf("new.upload_date_index = %v, want 99", newItem.UploadDateIndex)
@@ -1701,9 +1481,7 @@ func TestMedia_UpdateMediaItem_UploadDateIndexChannel(t *testing.T) {
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.Now())})
 
 		updated, err := ta.UpdateMediaItem(ta.Ctx, one, store.MediaItemParams{UploadedAt: store.Ptr(apptest.Now()), Title: store.Ptr("New title")})
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 
 		if updated.UploadDateIndex != 99 {
 			t.Errorf("updated.upload_date_index = %v, want 99", updated.UploadDateIndex)
@@ -1718,9 +1496,7 @@ func TestMedia_UpdateMediaItem_UploadDateIndexChannel(t *testing.T) {
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.Now())})
 
 		updated, err := ta.UpdateMediaItem(ta.Ctx, one, store.MediaItemParams{UploadedAt: store.Ptr(apptest.NowPlus(1, "minute")), Title: store.Ptr("New title")})
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 
 		if updated.UploadDateIndex != 99 {
 			t.Errorf("updated.upload_date_index = %v, want 99", updated.UploadDateIndex)
@@ -1777,9 +1553,7 @@ func TestMedia_UpdateMediaItem_UploadDateIndexPlaylist(t *testing.T) {
 		oldItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.NowMinus(1, "day"))})
 
 		updated, err := ta.UpdateMediaItem(ta.Ctx, oldItem, store.MediaItemParams{UploadedAt: store.Ptr(apptest.Now())})
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 
 		if newItem.UploadDateIndex != 0 {
 			t.Errorf("new.upload_date_index = %v, want 0", newItem.UploadDateIndex)
@@ -1813,9 +1587,7 @@ func TestMedia_UpdateMediaItem_UploadDateIndexPlaylist(t *testing.T) {
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.Now())})
 
 		updated, err := ta.UpdateMediaItem(ta.Ctx, one, store.MediaItemParams{UploadedAt: store.Ptr(apptest.Now()), Title: store.Ptr("New title")})
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 
 		if updated.UploadDateIndex != 0 {
 			t.Errorf("updated.upload_date_index = %v, want 0", updated.UploadDateIndex)
@@ -1830,9 +1602,7 @@ func TestMedia_UpdateMediaItem_UploadDateIndexPlaylist(t *testing.T) {
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.Now())})
 
 		updated, err := ta.UpdateMediaItem(ta.Ctx, one, store.MediaItemParams{UploadedAt: store.Ptr(apptest.NowPlus(1, "minute")), Title: store.Ptr("New title")})
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 
 		if updated.UploadDateIndex != 0 {
 			t.Errorf("updated.upload_date_index = %v, want 0", updated.UploadDateIndex)
@@ -1853,30 +1623,18 @@ func TestMediaItemJSONMatchesElixirGolden(t *testing.T) {
 	ctx := context.Background()
 
 	mediaItem, err := store.Get[store.MediaItem](ctx, a.Q(ctx), 1)
-	if err != nil {
-		t.Fatalf("loading media_item 1: %v", err)
-	}
-	if _, err := a.PreloadMediaItemSourceAndProfile(ctx, mediaItem); err != nil {
-		t.Fatalf("preloading source/media_profile: %v", err)
-	}
+	must(t, err)
+	mustOK(t)(a.PreloadMediaItemSourceAndProfile(ctx, mediaItem))
 
 	gotBytes, err := json.Marshal(mediaItem)
-	if err != nil {
-		t.Fatalf("MarshalJSON: %v", err)
-	}
+	must(t, err)
 
 	wantBytes, err := os.ReadFile("../../testdata/elixir/golden/user_script_media_item.json")
-	if err != nil {
-		t.Fatalf("reading golden file: %v", err)
-	}
+	must(t, err)
 
 	var got, want map[string]any
-	if err := json.Unmarshal(gotBytes, &got); err != nil {
-		t.Fatalf("decoding got JSON: %v", err)
-	}
-	if err := json.Unmarshal(wantBytes, &want); err != nil {
-		t.Fatalf("decoding golden JSON: %v", err)
-	}
+	must(t, json.Unmarshal(gotBytes, &got))
+	must(t, json.Unmarshal(wantBytes, &want))
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("store.MediaItem JSON does not match golden.\ngot:  %#v\nwant: %#v", got, want)
@@ -1893,9 +1651,7 @@ func TestMedia_ComputeAndSaveMediaFilesize(t *testing.T) {
 		}
 
 		result, err := ta.App.ComputeAndSaveMediaFilesize(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if result.MediaSizeBytes == nil || *result.MediaSizeBytes == 0 {
 			t.Error("media_size_bytes should be set and non-zero")

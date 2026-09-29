@@ -12,23 +12,16 @@ import (
 func TestFileFollowerServer_WatchFile(t *testing.T) {
 	t.Run("handles existing lines", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		defer ta.App.DB.Close()
 
 		tmpfile, err := os.CreateTemp(ta.Config.TmpfileDirectory, "*.txt")
-		if err != nil {
-			t.Fatalf("create file: %v", err)
-		}
+		must(t, err)
 		defer os.Remove(tmpfile.Name())
 
-		if _, err := tmpfile.WriteString("line1\nline2"); err != nil {
-			t.Fatalf("write: %v", err)
-		}
+		mustOK(t)(tmpfile.WriteString("line1\nline2"))
 		tmpfile.Close()
 
 		server, err := app.FileFollowerServerStartLink(ta.Ctx, 50*time.Millisecond)
-		if err != nil {
-			t.Fatalf("start server: %v", err)
-		}
+		must(t, err)
 
 		lines := make(chan string, 10)
 		if err := server.WatchFile(tmpfile.Name(), func(line string) {
@@ -63,19 +56,14 @@ func TestFileFollowerServer_WatchFile(t *testing.T) {
 
 	t.Run("handles new lines appended", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		defer ta.App.DB.Close()
 
 		tmpfile, err := os.CreateTemp(ta.Config.TmpfileDirectory, "*.txt")
-		if err != nil {
-			t.Fatalf("create file: %v", err)
-		}
+		must(t, err)
 		defer os.Remove(tmpfile.Name())
 		tmpfile.Close()
 
 		server, err := app.FileFollowerServerStartLink(ta.Ctx, 50*time.Millisecond)
-		if err != nil {
-			t.Fatalf("start server: %v", err)
-		}
+		must(t, err)
 
 		lines := make(chan string, 10)
 		if err := server.WatchFile(tmpfile.Name(), func(line string) {
@@ -85,16 +73,12 @@ func TestFileFollowerServer_WatchFile(t *testing.T) {
 		}
 
 		file, err := os.OpenFile(tmpfile.Name(), os.O_APPEND|os.O_WRONLY, 0)
-		if err != nil {
-			t.Fatalf("open: %v", err)
-		}
+		must(t, err)
 
 		timeout := time.NewTimer(5 * time.Second)
 		defer timeout.Stop()
 
-		if _, err := file.WriteString("line1\n"); err != nil {
-			t.Fatalf("write1: %v", err)
-		}
+		mustOK(t)(file.WriteString("line1\n"))
 
 		select {
 		case line := <-lines:
@@ -105,9 +89,7 @@ func TestFileFollowerServer_WatchFile(t *testing.T) {
 			t.Fatal("timeout on line1")
 		}
 
-		if _, err := file.WriteString("line2"); err != nil {
-			t.Fatalf("write2: %v", err)
-		}
+		mustOK(t)(file.WriteString("line2"))
 
 		select {
 		case line := <-lines:
@@ -126,23 +108,16 @@ func TestFileFollowerServer_WatchFile(t *testing.T) {
 func TestFileFollowerServer_Stop(t *testing.T) {
 	t.Run("stops watching", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		defer ta.App.DB.Close()
 
 		tmpfile, err := os.CreateTemp(ta.Config.TmpfileDirectory, "*.txt")
-		if err != nil {
-			t.Fatalf("create file: %v", err)
-		}
+		must(t, err)
 		defer os.Remove(tmpfile.Name())
 		tmpfile.Close()
 
 		server, err := app.FileFollowerServerStartLink(ta.Ctx, 50*time.Millisecond)
-		if err != nil {
-			t.Fatalf("start server: %v", err)
-		}
+		must(t, err)
 
-		if err := server.WatchFile(tmpfile.Name(), func(line string) {}); err != nil {
-			t.Fatalf("watch: %v", err)
-		}
+		must(t, server.WatchFile(tmpfile.Name(), func(line string) {}))
 
 		time.Sleep(50 * time.Millisecond)
 		server.Stop()

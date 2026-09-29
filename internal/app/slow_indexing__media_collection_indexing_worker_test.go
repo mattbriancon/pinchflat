@@ -22,9 +22,7 @@ func TestMediaCollectionIndexingWorker_KickoffWithTask(t *testing.T) {
 		}
 
 		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, map[string]any{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if task == nil {
 			t.Fatal("expected task, got nil")
 		}
@@ -40,9 +38,7 @@ func TestMediaCollectionIndexingWorker_KickoffWithTask(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{IndexFrequencyMinutes: store.Ptr(10)})
 
 		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, map[string]any{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if *task.SourceID != source.ID {
 			t.Errorf("expected task.SourceID to be %d, got %d", source.ID, task.SourceID)
@@ -55,9 +51,7 @@ func TestMediaCollectionIndexingWorker_KickoffWithTask(t *testing.T) {
 		jobArgs := map[string]any{"force": true}
 
 		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, jobArgs)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if task == nil {
 			t.Fatal("expected task, got nil")
 		}
@@ -82,14 +76,10 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 
 		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 	})
 
 	t.Run("indexes the source no matter what if the source has never been indexed before", func(t *testing.T) {
@@ -107,14 +97,10 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 
 		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 	})
 
 	t.Run("indexes the source no matter what if the 'force' arg is passed", func(t *testing.T) {
@@ -132,14 +118,10 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID, "force": true},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 
 		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 	})
 
 	t.Run("doesn't use a download archive if the index has been forced", func(t *testing.T) {
@@ -166,14 +148,10 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID, "force": true},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 
 		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 	})
 
 	t.Run("does not do any indexing if the source has been indexed and shouldn't be rescheduled", func(t *testing.T) {
@@ -190,14 +168,10 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 
 		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 	})
 
 	t.Run("does not reschedule if the source shouldn't be indexed", func(t *testing.T) {
@@ -208,9 +182,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			return "", nil
 		})
 		err := ta.Oban.PerformJob(ta.Ctx, app.MediaCollectionIndexingWorkerName, map[string]any{"id": source.ID})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID}})
 		if len(jobs) != 0 {
@@ -229,14 +201,10 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 
 		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 		if len(jobs) != 3 {
@@ -256,14 +224,10 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 
 		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 		if len(jobs) != 4 {
@@ -283,14 +247,10 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 
 		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		// Only 3 jobs should be enqueued, since the first video is a duplicate
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
@@ -308,9 +268,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		})
 		beforeTime := apptest.Now()
 		err := ta.Oban.PerformJob(ta.Ctx, app.MediaCollectionIndexingWorkerName, map[string]any{"id": source.ID})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID}})
 		if len(jobs) != 1 {
@@ -332,22 +290,16 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			return "", nil
 		})
 		before, err := ta.App.ListTasksFor(ta.Ctx, source, store.Ptr("MediaCollectionIndexingWorker"), nil)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if len(before) != 0 {
 			t.Fatalf("expected 0 tasks before, got %d", len(before))
 		}
 
 		err = ta.Oban.PerformJob(ta.Ctx, app.MediaCollectionIndexingWorkerName, map[string]any{"id": source.ID})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		after, err := ta.App.ListTasksFor(ta.Ctx, source, store.Ptr("MediaCollectionIndexingWorker"), nil)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if len(after) != 1 {
 			t.Errorf("expected 1 task after, got %d", len(after))
 		}
@@ -366,14 +318,10 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 
 		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName, Args: map[string]any{"id": source.ID}})
 		if len(jobs) != 1 {
@@ -398,23 +346,17 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			Worker: app.FastIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(existingJob.ID)})
 
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 
 		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		_, err = ta.App.GetTaskBang(ta.Ctx, task.ID)
 		if err == nil {
@@ -433,14 +375,10 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 
 		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
 		if len(jobs) != 0 {
@@ -457,9 +395,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		})
 		mediaItemMediaIDs := func() []string {
 			mediaItems, err := store.All[store.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), store.From[store.MediaItem]("mi").Where(map[string]interface{}{"mi.source_id": source.ID}))
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			must(t, err)
 			ids := make([]string, len(mediaItems))
 			for i, mi := range mediaItems {
 				ids[i] = mi.MediaID
@@ -475,14 +411,10 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 
 		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		after := mediaItemMediaIDs()
 		expected := []string{"video1", "video2", "video3"}
@@ -503,13 +435,9 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": 0},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 
 		err = ta.App.MediaCollectionIndexingWorkerPerform(ta.Ctx, job)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 	})
 }

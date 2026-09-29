@@ -795,9 +795,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, err := ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-		if err != nil {
-			t.Fatalf("PreloadMediaItemFull: %v", err)
-		}
+		must(t, err)
 		return mediaItem
 	}
 
@@ -806,9 +804,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 		mediaItem := newConfigMediaItem(t, ta)
 		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
 		configPath := filepath.Join(baseDir, "base-config.txt")
-		if err := fsutil.WriteFileAll(configPath, "base config"); err != nil {
-			t.Fatalf("write config: %v", err)
-		}
+		must(t, fsutil.WriteFileAll(configPath, "base config"))
 
 		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
@@ -829,9 +825,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 		mediaItem := newConfigMediaItem(t, ta)
 		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
 		configPath := filepath.Join(baseDir, fmt.Sprintf("media-profile-%d-config.txt", mediaItem.Source.MediaProfileID))
-		if err := fsutil.WriteFileAll(configPath, "profile config"); err != nil {
-			t.Fatalf("write config: %v", err)
-		}
+		must(t, fsutil.WriteFileAll(configPath, "profile config"))
 
 		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
@@ -852,9 +846,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 		mediaItem := newConfigMediaItem(t, ta)
 		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
 		configPath := filepath.Join(baseDir, fmt.Sprintf("source-%d-config.txt", mediaItem.SourceID))
-		if err := fsutil.WriteFileAll(configPath, "source config"); err != nil {
-			t.Fatalf("write config: %v", err)
-		}
+		must(t, fsutil.WriteFileAll(configPath, "source config"))
 
 		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
@@ -875,9 +867,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 		mediaItem := newConfigMediaItem(t, ta)
 		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
 		configPath := filepath.Join(baseDir, fmt.Sprintf("media-item-%d-config.txt", mediaItem.ID))
-		if err := fsutil.WriteFileAll(configPath, "media item config"); err != nil {
-			t.Fatalf("write config: %v", err)
-		}
+		must(t, fsutil.WriteFileAll(configPath, "media item config"))
 
 		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
@@ -916,9 +906,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 		mediaItem := newConfigMediaItem(t, ta)
 		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
 		configPath := filepath.Join(baseDir, "base-config.txt")
-		if err := fsutil.WriteFileAll(configPath, " \n \n "); err != nil {
-			t.Fatalf("write config: %v", err)
-		}
+		must(t, fsutil.WriteFileAll(configPath, " \n \n "))
 
 		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
@@ -945,9 +933,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 		mediaProfileFilepath := filepath.Join(baseDir, fmt.Sprintf("media-profile-%d-config.txt", mediaItem.Source.MediaProfileID))
 
 		for _, p := range []string{baseFilepath, sourceFilepath, mediaItemFilepath, mediaProfileFilepath} {
-			if err := fsutil.WriteFileAll(p, "config"); err != nil {
-				t.Fatalf("write config: %v", err)
-			}
+			must(t, fsutil.WriteFileAll(p, "config"))
 		}
 
 		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})

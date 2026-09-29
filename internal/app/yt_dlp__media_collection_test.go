@@ -20,9 +20,7 @@ func TestYtDlpMediaCollection_GetMediaAttributesForCollection(t *testing.T) {
 
 		result, err := ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, nil, ytdlp.CallOptions{}, nil)
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if len(result) != 3 {
 			t.Errorf("expected 3 media items, got %d", len(result))
 		}
@@ -135,9 +133,7 @@ func TestYtDlpMediaCollection_GetMediaAttributesForCollection(t *testing.T) {
 
 		result, err := ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, nil, ytdlp.CallOptions{}, nil)
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if len(result) != 3 {
 			t.Errorf("expected 3 media items, got %d", len(result))
 		}
@@ -161,9 +157,7 @@ func TestYtDlpMediaCollection_GetSourceDetails(t *testing.T) {
 
 		result, err := ta.MediaCollectionGetSourceDetails(ta.Ctx, channelURL, nil, ytdlp.CallOptions{})
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if result == nil {
 			t.Fatal("expected non-nil result")
 		}
@@ -280,9 +274,7 @@ func TestYtDlpMediaCollection_GetSourceMetadata(t *testing.T) {
 
 		result, err := ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, ytdlp.Args{}.Opt("playlist_items", 0), ytdlp.CallOptions{})
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if result == nil {
 			t.Fatal("expected non-nil result")
 		}

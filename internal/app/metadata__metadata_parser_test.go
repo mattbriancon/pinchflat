@@ -17,14 +17,10 @@ func loadMetadataFixture(t *testing.T) map[string]any {
 	fixtureFile := filepath.Join(root, "testdata", "support", "files", "media_metadata.json")
 
 	data, err := os.ReadFile(fixtureFile)
-	if err != nil {
-		t.Fatalf("failed to read metadata fixture: %v", err)
-	}
+	must(t, err)
 
 	var metadata map[string]any
-	if err := json.Unmarshal(data, &metadata); err != nil {
-		t.Fatalf("failed to parse metadata fixture: %v", err)
-	}
+	must(t, json.Unmarshal(data, &metadata))
 
 	return metadata
 }
@@ -43,9 +39,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	t.Run("it extracts the media filepath", func(t *testing.T) {
 		t.Parallel()
 		result, err := app.MetadataParserParseForMediaItem(metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		mediaFilepath := result.MediaFilepath
 		if mediaFilepath == nil {
@@ -63,9 +57,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	t.Run("it extracts the title", func(t *testing.T) {
 		t.Parallel()
 		result, err := app.MetadataParserParseForMediaItem(metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		title := *result.Title
 
@@ -78,9 +70,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	t.Run("it extracts the description", func(t *testing.T) {
 		t.Parallel()
 		result, err := app.MetadataParserParseForMediaItem(metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		description := *result.Description
 
@@ -93,9 +83,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	t.Run("it extracts the original_url", func(t *testing.T) {
 		t.Parallel()
 		result, err := app.MetadataParserParseForMediaItem(metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		originalURL := *result.OriginalURL
 
@@ -108,9 +96,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	t.Run("it extracts the media_id", func(t *testing.T) {
 		t.Parallel()
 		result, err := app.MetadataParserParseForMediaItem(metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		mediaID := *result.MediaID
 
@@ -123,9 +109,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	t.Run("it extracts the livestream flag", func(t *testing.T) {
 		t.Parallel()
 		result, err := app.MetadataParserParseForMediaItem(metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		livestream := *result.Livestream
 
@@ -147,9 +131,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 		metadataCopy["live_status"] = nil
 
 		result, err := app.MetadataParserParseForMediaItem(metadataCopy)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		livestream := *result.Livestream
 
@@ -161,9 +143,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 	t.Run("it extracts the duration in seconds", func(t *testing.T) {
 		t.Parallel()
 		result, err := app.MetadataParserParseForMediaItem(metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		durationSecondsPtr := result.DurationSeconds
 		if durationSecondsPtr == nil {
@@ -188,9 +168,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingSubtitleMetadata(t *testing
 	t.Run("extracts the subtitle filepaths", func(t *testing.T) {
 		t.Parallel()
 		result, err := app.MetadataParserParseForMediaItem(metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		subtitleFilepaths := *result.SubtitleFilepaths
 
@@ -231,9 +209,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingSubtitleMetadata(t *testing
 		}
 
 		result, err := app.MetadataParserParseForMediaItem(metadataCopy)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		subtitleFilepaths := *result.SubtitleFilepaths
 
@@ -258,9 +234,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingSubtitleMetadata(t *testing
 		metadataCopy["requested_subtitles"] = map[string]any{}
 
 		result, err := app.MetadataParserParseForMediaItem(metadataCopy)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		subtitleFilepaths := *result.SubtitleFilepaths
 
@@ -278,9 +252,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingSubtitleMetadata(t *testing
 		delete(metadataCopy, "requested_subtitles")
 
 		result, err := app.MetadataParserParseForMediaItem(metadataCopy)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		subtitleFilepaths := *result.SubtitleFilepaths
 
@@ -328,9 +300,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 
 	t.Run("extracts the thumbnail filepath", func(t *testing.T) {
 		result, err := app.MetadataParserParseForMediaItem(metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		thumbnailPath := result.ThumbnailFilepath
 
@@ -345,9 +315,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 
 	t.Run("automatically appends `-thumb` to the thumbnail filename", func(t *testing.T) {
 		result, err := app.MetadataParserParseForMediaItem(metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		thumbnailPath := result.ThumbnailFilepath
 
@@ -374,9 +342,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 		}
 
 		result, err := app.MetadataParserParseForMediaItem(metadataCopy)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		thumbnailPath := result.ThumbnailFilepath
 		if thumbnailPath != nil {
@@ -393,9 +359,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 		metadataCopy["thumbnails"] = map[string]any{}
 
 		result, err := app.MetadataParserParseForMediaItem(metadataCopy)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		thumbnailPath := result.ThumbnailFilepath
 		if thumbnailPath != nil {
@@ -412,9 +376,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 		delete(metadataCopy, "thumbnails")
 
 		result, err := app.MetadataParserParseForMediaItem(metadataCopy)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		thumbnailPath := result.ThumbnailFilepath
 		if thumbnailPath != nil {
@@ -448,9 +410,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingInfojsonMetadata(t *testing
 
 	t.Run("extracts the metadata filepath", func(t *testing.T) {
 		result, err := app.MetadataParserParseForMediaItem(metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		metadataPath := result.MetadataFilepath
 
@@ -473,9 +433,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingInfojsonMetadata(t *testing
 		os.Remove(infojsonFilename)
 
 		result, err := app.MetadataParserParseForMediaItem(metadataCopy)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		metadataPath := result.MetadataFilepath
 		if metadataPath != nil {
@@ -492,9 +450,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingInfojsonMetadata(t *testing
 		metadataCopy["infojson_filename"] = nil
 
 		result, err := app.MetadataParserParseForMediaItem(metadataCopy)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		metadataPath := result.MetadataFilepath
 		if metadataPath != nil {

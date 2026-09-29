@@ -12,15 +12,12 @@ import (
 
 func TestRssFeedBuilder_Build(t *testing.T) {
 	ta := apptest.NewApp(t)
-	defer ta.App.DB.Close()
 
 	source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 	t.Run("returns an XML document", func(t *testing.T) {
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if !strings.Contains(res, `<?xml version="1.0" encoding="UTF-8"?>`) {
 			t.Errorf("expected XML declaration, got: %v", res)
@@ -30,9 +27,7 @@ func TestRssFeedBuilder_Build(t *testing.T) {
 	t.Run("escapes illegal characters", func(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{CustomName: store.Ptr("A & B")})
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if !strings.Contains(res, `<title>A &amp; B</title>`) {
 			t.Errorf("expected escaped ampersand in title, got: %v", res)
@@ -43,9 +38,7 @@ func TestRssFeedBuilder_Build(t *testing.T) {
 		goodMedia := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 0, "")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if strings.Contains(res, *goodMedia.Title) {
 			t.Errorf("media item should not be in output with limit 0")
@@ -54,9 +47,7 @@ func TestRssFeedBuilder_Build(t *testing.T) {
 
 	t.Run("can optionally specify a URL base", func(t *testing.T) {
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "http://example.com")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		expectedURL := "http://example.com/sources/" + *source.UUID + "/feed.xml"
 		if !strings.Contains(res, expectedURL) {
@@ -67,15 +58,12 @@ func TestRssFeedBuilder_Build(t *testing.T) {
 
 func TestRssFeedBuilder_Build_SourceXml(t *testing.T) {
 	ta := apptest.NewApp(t)
-	defer ta.App.DB.Close()
 
 	source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 	t.Run("returns XML for static source attributes", func(t *testing.T) {
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if !strings.Contains(res, "<title>"+source.CustomName+"</title>") {
 			t.Errorf("expected custom name in title")
@@ -96,9 +84,7 @@ func TestRssFeedBuilder_Build_SourceXml(t *testing.T) {
 
 	t.Run("returns the lastBuildDate and pubDate based off the source's timestamps", func(t *testing.T) {
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		lastBuildDate := formatRSSDate(source.UpdatedAt.Time)
 		pubDate := formatRSSDate(source.InsertedAt.Time)
@@ -113,9 +99,7 @@ func TestRssFeedBuilder_Build_SourceXml(t *testing.T) {
 
 	t.Run("returns a self-link", func(t *testing.T) {
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		expectedLink := `http://localhost:8945/sources/` + *source.UUID + `/feed.xml`
 		if !strings.Contains(res, expectedLink) {
@@ -127,9 +111,7 @@ func TestRssFeedBuilder_Build_SourceXml(t *testing.T) {
 		source := apptest.SourceWithMetadataAttachmentsFixture(t, ta, store.SourceParams{})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		parts := strings.Split(res, "<image>")
 		if len(parts) < 2 {
@@ -157,7 +139,6 @@ func TestRssFeedBuilder_Build_SourceXml(t *testing.T) {
 func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 	t.Run("only includes media persisted to disk", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		defer ta.App.DB.Close()
 
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		goodMedia := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
@@ -165,9 +146,7 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 		pendingMedia := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if goodMedia.Title != nil && !strings.Contains(res, "<title>"+*goodMedia.Title+"</title>") {
 			t.Errorf("expected good media title in output")
@@ -182,15 +161,12 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 
 	t.Run("returns XML for static media attributes", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		defer ta.App.DB.Close()
 
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Title: store.Ptr("Test Media Item"), Description: store.Ptr("Test Description")})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		parts := strings.Split(res, "<item>")
 		if len(parts) < 2 {
@@ -223,16 +199,13 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 
 	t.Run("returns pubDate based off the media's uploaded_at", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		defer ta.App.DB.Close()
 
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		uploadedAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 		apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(uploadedAt)})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		parts := strings.Split(res, "<item>")
 		if len(parts) < 2 {
@@ -247,15 +220,12 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 
 	t.Run("returns an enclosure tag with the media's stream URL", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		defer ta.App.DB.Close()
 
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaSizeBytes: store.Ptr(int64(1234))})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		parts := strings.Split(res, "<item>")
 		if len(parts) < 2 {
@@ -279,15 +249,12 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 
 	t.Run("returns image tags if the media has a thumbnail", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		defer ta.App.DB.Close()
 
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaSizeBytes: store.Ptr(int64(1234)), Title: store.Ptr("Test Media")})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		parts := strings.Split(res, "<item>")
 		if len(parts) < 2 {
@@ -306,16 +273,13 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 
 	t.Run("does not return image tags if the media does not have a thumbnail", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		defer ta.App.DB.Close()
 
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		os.Remove(*mediaItem.ThumbnailFilepath)
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		parts := strings.Split(res, "<item>")
 		if len(parts) < 2 {

@@ -11,7 +11,6 @@ import (
 
 func TestOpmlFeedBuilder_Build(t *testing.T) {
 	ta := apptest.NewApp(t)
-	defer ta.App.DB.Close()
 
 	source := apptest.SourceFixture(t, ta, store.SourceParams{})
 

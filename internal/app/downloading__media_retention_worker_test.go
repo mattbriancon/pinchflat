@@ -20,18 +20,12 @@ func TestMediaRetentionWorker_Perform(t *testing.T) {
 
 		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, store.Ptr(2))
 
-		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
-			t.Fatalf("PerformJob failed: %v", err)
-		}
+		must(t, ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}))
 
 		reloadedOld, err := ta.GetMediaItem(ctx, oldMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload old media item: %v", err)
-		}
+		must(t, err)
 		reloadedNew, err := ta.GetMediaItem(ctx, newMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload new media item: %v", err)
-		}
+		must(t, err)
 
 		if reloadedNew.PreventDownload {
 			t.Error("new media item should not have prevent_download set")
@@ -48,18 +42,12 @@ func TestMediaRetentionWorker_Perform(t *testing.T) {
 
 		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, store.Ptr(2))
 
-		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
-			t.Fatalf("PerformJob failed: %v", err)
-		}
+		must(t, ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}))
 
 		reloadedOld, err := ta.GetMediaItem(ctx, oldMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload old media item: %v", err)
-		}
+		must(t, err)
 		reloadedNew, err := ta.GetMediaItem(ctx, newMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload new media item: %v", err)
-		}
+		must(t, err)
 
 		if reloadedNew.CulledAt != nil {
 			t.Error("new media item should not have culled_at set")
@@ -83,18 +71,12 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 
 		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, store.Ptr(2))
 
-		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
-			t.Fatalf("PerformJob failed: %v", err)
-		}
+		must(t, ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}))
 
 		reloadedOld, err := ta.GetMediaItem(ctx, oldMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload old media item: %v", err)
-		}
+		must(t, err)
 		reloadedNew, err := ta.GetMediaItem(ctx, newMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload new media item: %v", err)
-		}
+		must(t, err)
 
 		if newMediaItem.MediaFilepath != nil && !fileExists(*newMediaItem.MediaFilepath) {
 			t.Error("new media item file should still exist")
@@ -121,26 +103,16 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 		justUnderTwoDaysAgo := apptest.NowMinus(2, "days").Add(1 * time.Minute)
 
 		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.MediaItemParams{MediaDownloadedAt: store.Ptr(justOverTwoDaysAgo)})
-		if err != nil {
-			t.Fatalf("update old media item: %v", err)
-		}
+		must(t, err)
 		_, err = ta.UpdateMediaItem(ctx, newMediaItem, store.MediaItemParams{MediaDownloadedAt: store.Ptr(justUnderTwoDaysAgo)})
-		if err != nil {
-			t.Fatalf("update new media item: %v", err)
-		}
+		must(t, err)
 
-		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
-			t.Fatalf("PerformJob failed: %v", err)
-		}
+		must(t, ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}))
 
 		reloadedOld, err := ta.GetMediaItem(ctx, oldMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload old media item: %v", err)
-		}
+		must(t, err)
 		reloadedNew, err := ta.GetMediaItem(ctx, newMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload new media item: %v", err)
-		}
+		must(t, err)
 
 		if newMediaItem.MediaFilepath != nil && !fileExists(*newMediaItem.MediaFilepath) {
 			t.Error("new media item file should still exist")
@@ -163,18 +135,12 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 
 		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, store.Ptr(2))
 
-		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
-			t.Fatalf("PerformJob failed: %v", err)
-		}
+		must(t, ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}))
 
 		reloadedOld, err := ta.GetMediaItem(ctx, oldMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload old media item: %v", err)
-		}
+		must(t, err)
 		reloadedNew, err := ta.GetMediaItem(ctx, newMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload new media item: %v", err)
-		}
+		must(t, err)
 
 		if reloadedNew.CulledAt != nil {
 			t.Error("new media item should not have culled_at set")
@@ -197,18 +163,12 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 
 		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, nil)
 
-		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
-			t.Fatalf("PerformJob failed: %v", err)
-		}
+		must(t, ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}))
 
 		reloadedOld, err := ta.GetMediaItem(ctx, oldMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload old media item: %v", err)
-		}
+		must(t, err)
 		reloadedNew, err := ta.GetMediaItem(ctx, newMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload new media item: %v", err)
-		}
+		must(t, err)
 
 		if newMediaItem.MediaFilepath != nil && !fileExists(*newMediaItem.MediaFilepath) {
 			t.Error("new media item file should still exist")
@@ -239,21 +199,15 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 		_, oldMediaItem, _ := prepareRecordsForRetentionDate(t, ta, store.Ptr(2))
 
 		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.MediaItemParams{PreventCulling: store.Ptr(true)})
-		if err != nil {
-			t.Fatalf("update media item: %v", err)
-		}
+		must(t, err)
 
-		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
-			t.Fatalf("PerformJob failed: %v", err)
-		}
+		must(t, ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}))
 
 		if oldMediaItem.MediaFilepath != nil && !fileExists(*oldMediaItem.MediaFilepath) {
 			t.Error("old media item file should still exist")
 		}
 		reloadedOld, err := ta.GetMediaItem(ctx, oldMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload old media item: %v", err)
-		}
+		must(t, err)
 		if reloadedOld.MediaFilepath == nil {
 			t.Error("old media item database entry should still have filepath")
 		}
@@ -270,18 +224,12 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 		_, oldMediaItem, _ := prepareRecordsForRetentionDate(t, ta, store.Ptr(2))
 
 		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-		if err != nil {
-			t.Fatalf("update media item: %v", err)
-		}
+		must(t, err)
 
-		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
-			t.Fatalf("PerformJob failed: %v", err)
-		}
+		must(t, ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}))
 
 		reloadedOld, err := ta.GetMediaItem(ctx, oldMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload old media item: %v", err)
-		}
+		must(t, err)
 		if reloadedOld.CulledAt != nil {
 			t.Error("old media item should not have culled_at set")
 		}
@@ -297,9 +245,7 @@ func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *tes
 
 		_, oldMediaItem, newMediaItem := prepareRecordsForSourceCutoffDate(t, ta, 2)
 
-		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
-			t.Fatalf("PerformJob failed: %v", err)
-		}
+		must(t, ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}))
 
 		if newMediaItem.MediaFilepath != nil && !fileExists(*newMediaItem.MediaFilepath) {
 			t.Error("new media item file should still exist")
@@ -308,13 +254,9 @@ func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *tes
 			t.Error("old media item file should be deleted")
 		}
 		reloadedNew, err := ta.GetMediaItem(ctx, newMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload new media item: %v", err)
-		}
+		must(t, err)
 		reloadedOld, err := ta.GetMediaItem(ctx, oldMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload old media item: %v", err)
-		}
+		must(t, err)
 		if reloadedNew.MediaFilepath == nil {
 			t.Error("new media item database entry should still have filepath")
 		}
@@ -332,26 +274,16 @@ func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *tes
 		_, oldMediaItem, newMediaItem := prepareRecordsForSourceCutoffDate(t, ta, 2)
 
 		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.MediaItemParams{UploadedAt: store.Ptr(apptest.NowMinus(2, "days"))})
-		if err != nil {
-			t.Fatalf("update old media item: %v", err)
-		}
+		must(t, err)
 		_, err = ta.UpdateMediaItem(ctx, newMediaItem, store.MediaItemParams{UploadedAt: store.Ptr(apptest.NowMinus(1, "day"))})
-		if err != nil {
-			t.Fatalf("update new media item: %v", err)
-		}
+		must(t, err)
 
-		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
-			t.Fatalf("PerformJob failed: %v", err)
-		}
+		must(t, ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}))
 
 		reloadedNew, err := ta.GetMediaItem(ctx, newMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload new media item: %v", err)
-		}
+		must(t, err)
 		reloadedOld, err := ta.GetMediaItem(ctx, oldMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload old media item: %v", err)
-		}
+		must(t, err)
 
 		if newMediaItem.MediaFilepath != nil && !fileExists(*newMediaItem.MediaFilepath) {
 			t.Error("new media item file should still exist")
@@ -382,18 +314,12 @@ func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *tes
 
 		_, oldMediaItem, newMediaItem := prepareRecordsForSourceCutoffDate(t, ta, 2)
 
-		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
-			t.Fatalf("PerformJob failed: %v", err)
-		}
+		must(t, ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}))
 
 		reloadedNew, err := ta.GetMediaItem(ctx, newMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload new media item: %v", err)
-		}
+		must(t, err)
 		reloadedOld, err := ta.GetMediaItem(ctx, oldMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload old media item: %v", err)
-		}
+		must(t, err)
 
 		if reloadedNew.CulledAt != nil {
 			t.Error("new media item should not have culled_at set")
@@ -417,9 +343,7 @@ func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *tes
 
 		_, oldMediaItem, newMediaItem := prepareRecordsForSourceCutoffDate(t, ta, nil)
 
-		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
-			t.Fatalf("PerformJob failed: %v", err)
-		}
+		must(t, ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}))
 
 		if newMediaItem.MediaFilepath != nil && !fileExists(*newMediaItem.MediaFilepath) {
 			t.Error("new media item file should still exist")
@@ -428,13 +352,9 @@ func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *tes
 			t.Error("old media item file should still exist")
 		}
 		reloadedNew, err := ta.GetMediaItem(ctx, newMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload new media item: %v", err)
-		}
+		must(t, err)
 		reloadedOld, err := ta.GetMediaItem(ctx, oldMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload old media item: %v", err)
-		}
+		must(t, err)
 		if reloadedNew.MediaFilepath == nil {
 			t.Error("new media item database entry should still have filepath")
 		}
@@ -459,21 +379,15 @@ func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *tes
 		_, oldMediaItem, _ := prepareRecordsForSourceCutoffDate(t, ta, 2)
 
 		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.MediaItemParams{PreventCulling: store.Ptr(true)})
-		if err != nil {
-			t.Fatalf("update media item: %v", err)
-		}
+		must(t, err)
 
-		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
-			t.Fatalf("PerformJob failed: %v", err)
-		}
+		must(t, ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}))
 
 		if oldMediaItem.MediaFilepath != nil && !fileExists(*oldMediaItem.MediaFilepath) {
 			t.Error("old media item file should still exist")
 		}
 		reloadedOld, err := ta.GetMediaItem(ctx, oldMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload old media item: %v", err)
-		}
+		must(t, err)
 		if reloadedOld.MediaFilepath == nil {
 			t.Error("old media item database entry should still have filepath")
 		}
@@ -491,18 +405,12 @@ func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *tes
 		_, oldMediaItem, _ := prepareRecordsForSourceCutoffDate(t, ta, 2)
 
 		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-		if err != nil {
-			t.Fatalf("update media item: %v", err)
-		}
+		must(t, err)
 
-		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
-			t.Fatalf("PerformJob failed: %v", err)
-		}
+		must(t, ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}))
 
 		reloadedOld, err := ta.GetMediaItem(ctx, oldMediaItem.ID)
-		if err != nil {
-			t.Fatalf("reload old media item: %v", err)
-		}
+		must(t, err)
 		if reloadedOld.CulledAt != nil {
 			t.Error("old media item should not have culled_at set")
 		}

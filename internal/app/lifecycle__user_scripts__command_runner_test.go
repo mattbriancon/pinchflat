@@ -17,9 +17,7 @@ func TestUserScriptsCommandRunner_Run(t *testing.T) {
 
 		// Create the user-scripts directory and lifecycle file
 		lifecycleDir := filepath.Join(ta.App.Config.ExtrasDirectory, "user-scripts")
-		if err := os.MkdirAll(lifecycleDir, 0o755); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.MkdirAll(lifecycleDir, 0o755))
 		lifecycleFile := filepath.Join(lifecycleDir, "lifecycle")
 
 		// Create a test file that will be touched by the script
@@ -28,9 +26,7 @@ func TestUserScriptsCommandRunner_Run(t *testing.T) {
 
 		// Write a script that touches the test file
 		scriptContent := "#!/bin/bash\ntouch " + testFilename + "\n"
-		if err := os.WriteFile(lifecycleFile, []byte(scriptContent), 0o755); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.WriteFile(lifecycleFile, []byte(scriptContent), 0o755))
 
 		// Verify the file doesn't exist yet
 		if _, err := os.Stat(testFilename); err == nil {
@@ -39,17 +35,13 @@ func TestUserScriptsCommandRunner_Run(t *testing.T) {
 
 		// Run the script
 		result, err := runner.RunWithResult(ta.Ctx, "media_downloaded", map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
+		must(t, err)
 		if result.NoExecutable {
 			t.Error("expected executable to be present")
 		}
 
 		// Verify the file was created
-		if _, err := os.Stat(testFilename); err != nil {
-			t.Fatalf("expected test file to be created, got error: %v", err)
-		}
+		mustOK(t)(os.Stat(testFilename))
 	})
 
 	t.Run("passes the event name to the script", func(t *testing.T) {
@@ -57,30 +49,22 @@ func TestUserScriptsCommandRunner_Run(t *testing.T) {
 		runner := &app.UserScriptsCommandRunner{App: ta.App}
 
 		lifecycleDir := filepath.Join(ta.App.Config.ExtrasDirectory, "user-scripts")
-		if err := os.MkdirAll(lifecycleDir, 0o755); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.MkdirAll(lifecycleDir, 0o755))
 		lifecycleFile := filepath.Join(lifecycleDir, "lifecycle")
 		tmpDir := ta.App.Config.TmpfileDirectory
 		eventNameFile := filepath.Join(tmpDir, "event_name")
 
 		scriptContent := "#!/bin/bash\necho $1 > " + eventNameFile + "\n"
-		if err := os.WriteFile(lifecycleFile, []byte(scriptContent), 0o755); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.WriteFile(lifecycleFile, []byte(scriptContent), 0o755))
 
 		result, err := runner.RunWithResult(ta.Ctx, "media_downloaded", map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
+		must(t, err)
 		if result.NoExecutable {
 			t.Error("expected executable to be present")
 		}
 
 		content, err := os.ReadFile(eventNameFile)
-		if err != nil {
-			t.Fatalf("expected event name file to be created, got error: %v", err)
-		}
+		must(t, err)
 		if strings.TrimSpace(string(content)) != "media_downloaded" {
 			t.Errorf("expected 'media_downloaded', got %q", strings.TrimSpace(string(content)))
 		}
@@ -91,30 +75,22 @@ func TestUserScriptsCommandRunner_Run(t *testing.T) {
 		runner := &app.UserScriptsCommandRunner{App: ta.App}
 
 		lifecycleDir := filepath.Join(ta.App.Config.ExtrasDirectory, "user-scripts")
-		if err := os.MkdirAll(lifecycleDir, 0o755); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.MkdirAll(lifecycleDir, 0o755))
 		lifecycleFile := filepath.Join(lifecycleDir, "lifecycle")
 		tmpDir := ta.App.Config.TmpfileDirectory
 		encodedDataFile := filepath.Join(tmpDir, "encoded_data")
 
 		scriptContent := "#!/bin/bash\necho $2 > " + encodedDataFile + "\n"
-		if err := os.WriteFile(lifecycleFile, []byte(scriptContent), 0o755); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.WriteFile(lifecycleFile, []byte(scriptContent), 0o755))
 
 		result, err := runner.RunWithResult(ta.Ctx, "media_downloaded", map[string]interface{}{"foo": "bar"})
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
+		must(t, err)
 		if result.NoExecutable {
 			t.Error("expected executable to be present")
 		}
 
 		content, err := os.ReadFile(encodedDataFile)
-		if err != nil {
-			t.Fatalf("expected encoded data file to be created, got error: %v", err)
-		}
+		must(t, err)
 		if strings.TrimSpace(string(content)) != `{"foo":"bar"}` {
 			t.Errorf("expected '{\"foo\":\"bar\"}', got %q", strings.TrimSpace(string(content)))
 		}
@@ -125,9 +101,7 @@ func TestUserScriptsCommandRunner_Run(t *testing.T) {
 		runner := &app.UserScriptsCommandRunner{App: ta.App}
 
 		result, err := runner.RunWithResult(ta.Ctx, "media_downloaded", map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
+		must(t, err)
 		if !result.NoExecutable {
 			t.Error("expected NoExecutable to be true")
 		}
@@ -138,19 +112,13 @@ func TestUserScriptsCommandRunner_Run(t *testing.T) {
 		runner := &app.UserScriptsCommandRunner{App: ta.App}
 
 		lifecycleDir := filepath.Join(ta.App.Config.ExtrasDirectory, "user-scripts")
-		if err := os.MkdirAll(lifecycleDir, 0o755); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.MkdirAll(lifecycleDir, 0o755))
 		lifecycleFile := filepath.Join(lifecycleDir, "lifecycle")
 
-		if err := os.WriteFile(lifecycleFile, []byte(""), 0o755); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.WriteFile(lifecycleFile, []byte(""), 0o755))
 
 		result, err := runner.RunWithResult(ta.Ctx, "media_downloaded", map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
+		must(t, err)
 		if !result.NoExecutable {
 			t.Error("expected NoExecutable to be true")
 		}
@@ -161,20 +129,14 @@ func TestUserScriptsCommandRunner_Run(t *testing.T) {
 		runner := &app.UserScriptsCommandRunner{App: ta.App}
 
 		lifecycleDir := filepath.Join(ta.App.Config.ExtrasDirectory, "user-scripts")
-		if err := os.MkdirAll(lifecycleDir, 0o755); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.MkdirAll(lifecycleDir, 0o755))
 		lifecycleFile := filepath.Join(lifecycleDir, "lifecycle")
 
 		scriptContent := "#!/bin/bash\nexit 1\n"
-		if err := os.WriteFile(lifecycleFile, []byte(scriptContent), 0o755); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.WriteFile(lifecycleFile, []byte(scriptContent), 0o755))
 
 		result, err := runner.RunWithResult(ta.Ctx, "media_downloaded", map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
+		must(t, err)
 		if result.NoExecutable {
 			t.Error("expected executable to be present")
 		}
@@ -188,20 +150,14 @@ func TestUserScriptsCommandRunner_Run(t *testing.T) {
 		runner := &app.UserScriptsCommandRunner{App: ta.App}
 
 		lifecycleDir := filepath.Join(ta.App.Config.ExtrasDirectory, "user-scripts")
-		if err := os.MkdirAll(lifecycleDir, 0o755); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.MkdirAll(lifecycleDir, 0o755))
 		lifecycleFile := filepath.Join(lifecycleDir, "lifecycle")
 
 		scriptContent := "#!/bin/bash\necho 'hello'\n"
-		if err := os.WriteFile(lifecycleFile, []byte(scriptContent), 0o755); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.WriteFile(lifecycleFile, []byte(scriptContent), 0o755))
 
 		result, err := runner.RunWithResult(ta.Ctx, "media_downloaded", map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
+		must(t, err)
 		if result.NoExecutable {
 			t.Error("expected executable to be present")
 		}
@@ -231,13 +187,9 @@ func TestUserScriptsCommandRunner_Run(t *testing.T) {
 		runner := &app.UserScriptsCommandRunner{App: ta.App}
 
 		lifecycleDir := filepath.Join(ta.App.Config.ExtrasDirectory, "user-scripts")
-		if err := os.MkdirAll(lifecycleDir, 0o755); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.MkdirAll(lifecycleDir, 0o755))
 		lifecycleFile := filepath.Join(lifecycleDir, "lifecycle")
-		if err := os.WriteFile(lifecycleFile, []byte("#!/bin/bash"), 0o755); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.WriteFile(lifecycleFile, []byte("#!/bin/bash"), 0o755))
 
 		// Try to pass a non-JSON-encodable value (a store.Changeset, but we'll use a channel which can't be JSON encoded)
 		_, err := runner.RunWithResult(ta.Ctx, "media_downloaded", make(chan int))

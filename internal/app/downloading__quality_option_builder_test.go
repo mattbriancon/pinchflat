@@ -70,9 +70,7 @@ func TestQualityOptionBuilder_BuildAudio(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{PreferredResolution: store.Ptr(store.MediaProfilePreferredResolutionAudio)})
 		updatedProfile, _, err := ta.App.UpdateMediaProfile(ta.Ctx, mediaProfile, store.MediaProfileParams{MediaContainer: store.Ptr("flac"), PreferredResolution: store.Ptr(store.MediaProfilePreferredResolutionAudio)})
-		if err != nil {
-			t.Fatalf("failed to update media profile: %v", err)
-		}
+		must(t, err)
 
 		res := ta.App.QualityOptionBuilderBuild(ta.Ctx, updatedProfile)
 		if !findOption(res, "audio_format", "flac") {
@@ -128,13 +126,9 @@ func TestQualityOptionBuilder_BuildNonAudio(t *testing.T) {
 	t.Run("includes custom quality options if specified", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		_, err := ta.App.SetSetting(ta.Ctx, "video_codec_preference", "av01")
-		if err != nil {
-			t.Fatalf("failed to set video_codec_preference: %v", err)
-		}
+		must(t, err)
 		_, err = ta.App.SetSetting(ta.Ctx, "audio_codec_preference", "aac")
-		if err != nil {
-			t.Fatalf("failed to set audio_codec_preference: %v", err)
-		}
+		must(t, err)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{PreferredResolution: store.Ptr(store.MediaProfilePreferredResolution1080p)})
 		res := ta.App.QualityOptionBuilderBuild(ta.Ctx, mediaProfile)
@@ -148,9 +142,7 @@ func TestQualityOptionBuilder_BuildNonAudio(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{PreferredResolution: store.Ptr(store.MediaProfilePreferredResolution480p)})
 		updatedProfile, _, err := ta.App.UpdateMediaProfile(ta.Ctx, mediaProfile, store.MediaProfileParams{MediaContainer: store.Ptr("mkv")})
-		if err != nil {
-			t.Fatalf("failed to update media profile: %v", err)
-		}
+		must(t, err)
 
 		res := ta.App.QualityOptionBuilderBuild(ta.Ctx, updatedProfile)
 		if !findOption(res, "remux_video", "mkv") {

@@ -23,9 +23,7 @@ func TestFastIndexingWorker_KickoffWithTask(t *testing.T) {
 		}
 
 		_, err := ta.App.FastIndexingWorkerKickoffWithTask(ta.Ctx, source, 0)
-		if err != nil {
-			t.Fatalf("kickoff failed: %v", err)
-		}
+		must(t, err)
 
 		workers = ta.Oban.Enqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
 		if len(workers) != 1 {
@@ -39,9 +37,7 @@ func TestFastIndexingWorker_KickoffWithTask(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(true)})
 
 		task, err := ta.App.FastIndexingWorkerKickoffWithTask(ta.Ctx, source, 0)
-		if err != nil {
-			t.Fatalf("kickoff failed: %v", err)
-		}
+		must(t, err)
 
 		if *task.SourceID != source.ID {
 			t.Errorf("task.SourceID=%d, want %d", *task.SourceID, source.ID)
@@ -62,9 +58,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 
 		spec := obanlite.NewJob(app.FastIndexingWorkerName, map[string]any{"id": source.ID})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), spec)
-		if err != nil {
-			t.Fatalf("insert failed: %v", err)
-		}
+		must(t, err)
 		if err := ta.App.FastIndexingWorkerPerform(ta.Ctx, job); err != nil {
 			t.Errorf("perform failed: %v", err)
 		}
@@ -81,9 +75,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 
 		spec := obanlite.NewJob(app.FastIndexingWorkerName, map[string]any{"id": source.ID})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), spec)
-		if err != nil {
-			t.Fatalf("insert failed: %v", err)
-		}
+		must(t, err)
 		if err := ta.App.FastIndexingWorkerPerform(ta.Ctx, job); err != nil {
 			t.Errorf("perform failed: %v", err)
 		}
@@ -105,17 +97,13 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 
 		spec := obanlite.NewJob(app.FastIndexingWorkerName, map[string]any{"id": source.ID})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), spec)
-		if err != nil {
-			t.Fatalf("insert failed: %v", err)
-		}
+		must(t, err)
 		if err := ta.App.FastIndexingWorkerPerform(ta.Ctx, job); err != nil {
 			t.Errorf("first perform failed: %v", err)
 		}
 
 		job2, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), spec)
-		if err != nil {
-			t.Fatalf("insert failed: %v", err)
-		}
+		must(t, err)
 		if err := ta.App.FastIndexingWorkerPerform(ta.Ctx, job2); err != nil {
 			t.Errorf("second perform failed: %v", err)
 		}
@@ -137,9 +125,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 
 		spec := obanlite.NewJob(app.FastIndexingWorkerName, map[string]any{"id": source.ID})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), spec)
-		if err != nil {
-			t.Fatalf("insert failed: %v", err)
-		}
+		must(t, err)
 		if err := ta.App.FastIndexingWorkerPerform(ta.Ctx, job); err != nil {
 			t.Errorf("perform failed: %v", err)
 		}
@@ -151,9 +137,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(false)})
 
 		err := ta.Oban.PerformJob(ta.Ctx, app.FastIndexingWorkerName, map[string]any{"id": source.ID})
-		if err != nil {
-			t.Fatalf("perform failed: %v", err)
-		}
+		must(t, err)
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName, Args: map[string]any{"id": source.ID}})
 		if len(jobs) != 0 {
@@ -167,9 +151,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 
 		spec := obanlite.NewJob(app.FastIndexingWorkerName, map[string]any{"id": 0})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), spec)
-		if err != nil {
-			t.Fatalf("insert failed: %v", err)
-		}
+		must(t, err)
 		if err := ta.App.FastIndexingWorkerPerform(ta.Ctx, job); err != nil {
 			t.Errorf("perform should not error for missing source, got %v", err)
 		}

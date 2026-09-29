@@ -35,9 +35,7 @@ func TestYtDlpMedia_Download(t *testing.T) {
 
 		result, err := ta.YtDlpMediaDownload(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if result == nil {
 			t.Fatal("expected non-nil result")
 		}
@@ -83,9 +81,7 @@ func TestYtDlpMedia_Download(t *testing.T) {
 
 		result, err := ta.YtDlpMediaDownload(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if title, ok := result["title"].(string); !ok || title != "Pinchflat Example Video" {
 			t.Errorf("expected title 'Pinchflat Example Video', got %v", result["title"])
 		}
@@ -118,9 +114,7 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 
 		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if result != "downloadable" {
 			t.Errorf("expected 'downloadable', got %q", result)
 		}
@@ -136,9 +130,7 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 
 		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if result != "downloadable" {
 			t.Errorf("expected 'downloadable', got %q", result)
 		}
@@ -154,9 +146,7 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 
 		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if result != "downloadable" {
 			t.Errorf("expected 'downloadable', got %q", result)
 		}
@@ -172,9 +162,7 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 
 		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if result != "ignorable" {
 			t.Errorf("expected 'ignorable', got %q", result)
 		}
@@ -190,9 +178,7 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 
 		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if result != "ignorable" {
 			t.Errorf("expected 'ignorable', got %q", result)
 		}
@@ -208,9 +194,7 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 
 		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if result != "ignorable" {
 			t.Errorf("expected 'ignorable', got %q", result)
 		}
@@ -324,9 +308,7 @@ func TestYtDlpMedia_GetMediaAttributes(t *testing.T) {
 
 		result, err := ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if result == nil {
 			t.Fatal("expected non-nil result")
 		}
@@ -398,9 +380,7 @@ func TestYtDlpMedia_GetMediaAttributes(t *testing.T) {
 
 func renderMetadata(t *testing.T, name string) string {
 	data, err := os.ReadFile(apptest.RepoPath(filepath.Join("testdata/support/files", name+".json")))
-	if err != nil {
-		t.Fatal(err)
-	}
+	must(t, err)
 	return string(data)
 }
 

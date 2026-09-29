@@ -30,9 +30,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		}
 
 		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{}, nil)
-		if err != nil {
-			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
-		}
+		must(t, err)
 
 		enqueuedJobs = ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 		if len(enqueuedJobs) != 1 {
@@ -47,9 +45,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		task, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{}, nil)
-		if err != nil {
-			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
-		}
+		must(t, err)
 
 		if task.MediaItemID == nil || *task.MediaItemID != mediaItem.ID {
 			t.Errorf("expected task.MediaItemID %d, got %v", mediaItem.ID, task.MediaItemID)
@@ -64,9 +60,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		jobArgs := map[string]any{"force": true}
 
 		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, jobArgs, nil)
-		if err != nil {
-			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
-		}
+		must(t, err)
 
 		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID, "force": true}})
 	})
@@ -78,9 +72,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{}, nil)
-		if err != nil {
-			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
-		}
+		must(t, err)
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
 		if len(jobs) != 1 {
@@ -101,9 +93,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		priority := 0
 
 		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{}, &priority)
-		if err != nil {
-			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
-		}
+		must(t, err)
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
 		if len(jobs) != 1 {
@@ -430,9 +420,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ctx := ta.Ctx
 
 		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": int64(0)})
-		if err != nil {
-			t.Fatalf("expected nil error for missing media item, got %v", err)
-		}
+		must(t, err)
 	})
 
 	t.Run("sets the no_force_overwrites runner option", func(t *testing.T) {

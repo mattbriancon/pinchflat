@@ -46,9 +46,7 @@ func TestMediaQualityUpgradeWorker_Perform(t *testing.T) {
 			})
 
 			err := ta.Oban.PerformJob(ctx, app.MediaQualityUpgradeWorkerName, map[string]any{})
-			if err != nil {
-				t.Fatalf("PerformJob failed: %v", err)
-			}
+			must(t, err)
 
 			enqueued := ta.Oban.Enqueued(t, obanlite.Match{
 				Worker: app.MediaDownloadWorkerName,

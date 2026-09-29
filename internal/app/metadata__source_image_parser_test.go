@@ -17,9 +17,7 @@ func TestSourceImageParserStoreSourceImages(t *testing.T) {
 		metadata := renderParsedChannelSourceMetadata()
 
 		result, err := app.SourceImageParserStoreSourceImages(baseDir, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if len(result) == 0 {
 			t.Error("expected result map to contain entries")
@@ -51,9 +49,7 @@ func TestSourceImageParserStoreSourceImages(t *testing.T) {
 		}
 
 		result, err := app.SourceImageParserStoreSourceImages(baseDir, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if _, exists := result["poster_filepath"]; !exists {
 			t.Error("expected poster_filepath in result")
@@ -77,9 +73,7 @@ func TestSourceImageParserStoreSourceImages(t *testing.T) {
 		}
 
 		result, err := app.SourceImageParserStoreSourceImages(baseDir, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if _, exists := result["fanart_filepath"]; !exists {
 			t.Error("expected fanart_filepath in result")
@@ -104,9 +98,7 @@ func TestSourceImageParserStoreSourceImages(t *testing.T) {
 		}
 
 		result, err := app.SourceImageParserStoreSourceImages(baseDir, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if len(result) != 0 {
 			t.Errorf("expected empty result, got %d items", len(result))
@@ -118,9 +110,7 @@ func TestSourceImageParserStoreSourceImages(t *testing.T) {
 		metadata := map[string]any{}
 
 		result, err := app.SourceImageParserStoreSourceImages(baseDir, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if len(result) != 0 {
 			t.Errorf("expected empty result for empty metadata, got %d items", len(result))
@@ -134,9 +124,7 @@ func TestSourceImageParserStoreSourceImages(t *testing.T) {
 		}
 
 		result, err := app.SourceImageParserStoreSourceImages(baseDir, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if len(result) != 0 {
 			t.Errorf("expected empty result for no thumbnails, got %d items", len(result))
@@ -165,9 +153,7 @@ func TestSourceImageParserStoreSourceImagesFallbacks(t *testing.T) {
 		}
 
 		result, err := app.SourceImageParserStoreSourceImages(baseDir, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if _, exists := result["poster_filepath"]; !exists {
 			t.Error("expected poster_filepath in result from fallback")
@@ -190,9 +176,7 @@ func TestSourceImageParserStoreSourceImagesFallbacks(t *testing.T) {
 		}
 
 		result, err := app.SourceImageParserStoreSourceImages(baseDir, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if len(result) != 0 {
 			t.Errorf("expected empty result, got %d items", len(result))
@@ -207,9 +191,7 @@ func TestSourceImageParserStoreSourceImagesFallbacks(t *testing.T) {
 		}
 
 		result, err := app.SourceImageParserStoreSourceImages(baseDir, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if len(result) != 0 {
 			t.Errorf("expected empty result, got %d items", len(result))
@@ -223,9 +205,7 @@ func TestSourceImageParserStoreSourceImagesFallbacks(t *testing.T) {
 		}
 
 		result, err := app.SourceImageParserStoreSourceImages(baseDir, metadata)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if len(result) != 0 {
 			t.Errorf("expected empty result, got %d items", len(result))
