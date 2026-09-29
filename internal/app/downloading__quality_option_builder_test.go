@@ -127,11 +127,11 @@ func TestQualityOptionBuilder_BuildNonAudio(t *testing.T) {
 
 	t.Run("includes custom quality options if specified", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		_, err := ta.App.SetSetting(ta.Ctx, store.KW{store.Opt("video_codec_preference", "av01")})
+		_, err := ta.App.SetSetting(ta.Ctx, "video_codec_preference", "av01")
 		if err != nil {
 			t.Fatalf("failed to set video_codec_preference: %v", err)
 		}
-		_, err = ta.App.SetSetting(ta.Ctx, store.KW{store.Opt("audio_codec_preference", "aac")})
+		_, err = ta.App.SetSetting(ta.Ctx, "audio_codec_preference", "aac")
 		if err != nil {
 			t.Fatalf("failed to set audio_codec_preference: %v", err)
 		}

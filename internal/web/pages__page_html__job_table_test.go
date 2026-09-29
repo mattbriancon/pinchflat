@@ -54,7 +54,7 @@ func createSourceJob(t testing.TB, c *webtest.Client, jobState string) (*store.S
 func homeClient(t testing.TB) *webtest.Client {
 	t.Helper()
 	c := webtest.New(t)
-	if _, err := c.App.SetSetting(c.Ctx, store.KW{store.Opt("onboarding", false)}); err != nil {
+	if _, err := c.App.SetSetting(c.Ctx, "onboarding", false); err != nil {
 		t.Fatalf("SettingsSet: %v", err)
 	}
 	return c

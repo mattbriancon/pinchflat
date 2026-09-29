@@ -135,7 +135,7 @@ func applyDefaultSettings(ctx context.Context, a *App) error {
 		return err
 	}
 
-	if _, err := a.SetSetting(ctx, store.KW{store.Opt("yt_dlp_version", ytDlpVersion)}); err != nil {
+	if _, err := a.SetSetting(ctx, "yt_dlp_version", ytDlpVersion); err != nil {
 		return err
 	}
 

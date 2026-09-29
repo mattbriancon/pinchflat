@@ -396,7 +396,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", "test_key")})
+		ta.SetSetting(ta.Ctx, "youtube_api_key", "test_key")
 
 		apiUsed := false
 		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
@@ -420,7 +420,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", "test_key")})
+		ta.SetSetting(ta.Ctx, "youtube_api_key", "test_key")
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			return apptest.MediaAttributesReturnFixture(), nil
@@ -453,7 +453,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", "test_key")})
+		ta.SetSetting(ta.Ctx, "youtube_api_key", "test_key")
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			return apptest.MediaAttributesReturnFixture(), nil
@@ -485,7 +485,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", nil)})
+		ta.SetSetting(ta.Ctx, "youtube_api_key", nil)
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			return apptest.MediaAttributesReturnFixture(), nil

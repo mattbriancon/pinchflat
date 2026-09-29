@@ -38,7 +38,7 @@ func TestSourceController_New(t *testing.T) {
 
 	t.Run("renders correct layout when onboarding", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SetSetting(c.Ctx, store.KW{store.Opt("onboarding", true)})
+		c.App.SetSetting(c.Ctx, "onboarding", true)
 
 		res := c.Get("/sources/new")
 
@@ -73,7 +73,7 @@ func TestSourceController_New(t *testing.T) {
 func TestSourceController_Create(t *testing.T) {
 	t.Run("redirects to show when data is valid", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SetSetting(c.Ctx, store.KW{store.Opt("onboarding", false)})
+		c.App.SetSetting(c.Ctx, "onboarding", false)
 		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
 		c.YtDlpMock.Run.ExpectN(1, func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "{\"channel\":\"test\",\"channel_id\":\"ch123\",\"playlist_id\":\"pl123\",\"playlist_title\":\"test\"}", nil
@@ -109,7 +109,7 @@ func TestSourceController_Create(t *testing.T) {
 
 	t.Run("redirects to onboarding when onboarding", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SetSetting(c.Ctx, store.KW{store.Opt("onboarding", true)})
+		c.App.SetSetting(c.Ctx, "onboarding", true)
 		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
 		c.YtDlpMock.Run.ExpectN(1, func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "{\"channel\":\"test\",\"channel_id\":\"ch123\",\"playlist_id\":\"pl123\",\"playlist_title\":\"test\"}", nil
@@ -128,7 +128,7 @@ func TestSourceController_Create(t *testing.T) {
 
 	t.Run("renders correct layout on error when onboarding", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SetSetting(c.Ctx, store.KW{store.Opt("onboarding", true)})
+		c.App.SetSetting(c.Ctx, "onboarding", true)
 
 		res := c.Post("/sources", "source", store.Attrs{
 			"original_url":     nil,

@@ -26,7 +26,7 @@ func TestSettingsSet(t *testing.T) {
 
 	t.Run("updates setting", func(t *testing.T) {
 		t.Parallel()
-		val, err := ts.SetSetting(ts.Ctx, store.KW{store.Opt("onboarding", true)})
+		val, err := ts.SetSetting(ts.Ctx, "onboarding", true)
 		if err != nil {
 			t.Fatalf("SettingsSet failed: %v", err)
 		}
@@ -45,7 +45,7 @@ func TestSettingsSet(t *testing.T) {
 
 	t.Run("errors on invalid key", func(t *testing.T) {
 		t.Parallel()
-		_, err := ts.SetSetting(ts.Ctx, store.KW{store.Opt("foo", "bar")})
+		_, err := ts.SetSetting(ts.Ctx, "foo", "bar")
 		if err == nil {
 			t.Fatalf("expected error")
 		}
@@ -56,7 +56,7 @@ func TestSettingsSet(t *testing.T) {
 
 	t.Run("errors on invalid value", func(t *testing.T) {
 		t.Parallel()
-		_, err := ts.SetSetting(ts.Ctx, store.KW{store.Opt("onboarding", "bar")})
+		_, err := ts.SetSetting(ts.Ctx, "onboarding", "bar")
 		if err == nil {
 			t.Fatalf("expected error")
 		}
@@ -71,7 +71,7 @@ func TestSettingsGet(t *testing.T) {
 
 	t.Run("returns value", func(t *testing.T) {
 		t.Parallel()
-		_, err := ts.SetSetting(ts.Ctx, store.KW{store.Opt("onboarding", false)})
+		_, err := ts.SetSetting(ts.Ctx, "onboarding", false)
 		if err != nil {
 			t.Fatalf("setup failed: %v", err)
 		}
@@ -102,7 +102,7 @@ func TestSettingsGetBang(t *testing.T) {
 
 	t.Run("returns value", func(t *testing.T) {
 		t.Parallel()
-		_, err := ts.SetSetting(ts.Ctx, store.KW{store.Opt("onboarding", false)})
+		_, err := ts.SetSetting(ts.Ctx, "onboarding", false)
 		if err != nil {
 			t.Fatalf("setup failed: %v", err)
 		}

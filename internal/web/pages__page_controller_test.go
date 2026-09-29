@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
 
@@ -24,7 +23,7 @@ func TestPageController_Home(t *testing.T) {
 
 		t.Run("displays the onboarding page when onboarding is forced", func(t *testing.T) {
 			c := webtest.New(t)
-			c.App.SetSetting(c.Ctx, store.KW{store.Opt("onboarding", false)})
+			c.App.SetSetting(c.Ctx, "onboarding", false)
 
 			res := c.Get("/?onboarding=1")
 			html := res.HTML(t, http.StatusOK)
@@ -50,7 +49,7 @@ func TestPageController_Home(t *testing.T) {
 
 		t.Run("displays the home page when not onboarding", func(t *testing.T) {
 			c := webtest.New(t)
-			c.App.SetSetting(c.Ctx, store.KW{store.Opt("onboarding", false)})
+			c.App.SetSetting(c.Ctx, "onboarding", false)
 
 			res := c.Get("/")
 			html := res.HTML(t, http.StatusOK)

@@ -17,7 +17,7 @@ func (s *Server) PageControllerHome(w http.ResponseWriter, r *http.Request) {
 	forceOnboarding := onboardingParam == "1"
 
 	if doneOnboarding {
-		if _, err := s.App.SetSetting(ctx, store.KW{store.Opt("onboarding", false)}); err != nil {
+		if _, err := s.App.SetSetting(ctx, "onboarding", false); err != nil {
 			s.Fail(w, r, err)
 			return
 		}
@@ -108,7 +108,7 @@ func queryPage(r *http.Request, name string) int {
 
 // renderOnboardingPage renders the onboarding checklist page.
 func renderOnboardingPage(s *Server, ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	if _, err := s.App.SetSetting(ctx, store.KW{store.Opt("onboarding", true)}); err != nil {
+	if _, err := s.App.SetSetting(ctx, "onboarding", true); err != nil {
 		s.Fail(w, r, err)
 		return
 	}

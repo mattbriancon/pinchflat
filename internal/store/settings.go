@@ -59,14 +59,7 @@ func (s *Store) UpdateSetting(ctx context.Context, setting *Setting, p SettingPa
 }
 
 // SetSetting sets a single named setting (Settings.set/1).
-func (s *Store) SetSetting(ctx context.Context, kw KW) (any, error) {
-	if len(kw) != 1 {
-		return nil, fmt.Errorf("SetSetting: expected exactly one keyword argument, got %d", len(kw))
-	}
-
-	attr := kw[0].Key
-	value := kw[0].Value
-
+func (s *Store) SetSetting(ctx context.Context, attr string, value any) (any, error) {
 	setting, err := s.GetSettingsRecord(ctx)
 	if err != nil {
 		return nil, err

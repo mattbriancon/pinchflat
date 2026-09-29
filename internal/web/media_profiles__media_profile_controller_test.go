@@ -61,7 +61,7 @@ func TestMediaProfileController_New(t *testing.T) {
 
 	t.Run("renders correct layout when onboarding", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SetSetting(c.Ctx, store.KW{store.Opt("onboarding", true)})
+		c.App.SetSetting(c.Ctx, "onboarding", true)
 
 		res := c.Get("/media_profiles/new")
 		html := res.HTML(t, http.StatusOK)
@@ -98,7 +98,7 @@ func TestMediaProfileController_New(t *testing.T) {
 func TestMediaProfileController_Create(t *testing.T) {
 	t.Run("redirects to show when data is valid", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SetSetting(c.Ctx, store.KW{store.Opt("onboarding", false)})
+		c.App.SetSetting(c.Ctx, "onboarding", false)
 
 		attrs := store.Attrs{
 			"name":                 "test profile",
@@ -144,7 +144,7 @@ func TestMediaProfileController_Create(t *testing.T) {
 
 	t.Run("redirects to onboarding when onboarding", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SetSetting(c.Ctx, store.KW{store.Opt("onboarding", true)})
+		c.App.SetSetting(c.Ctx, "onboarding", true)
 
 		attrs := store.Attrs{
 			"name":                 "test profile",
@@ -161,7 +161,7 @@ func TestMediaProfileController_Create(t *testing.T) {
 
 	t.Run("renders correct layout on error when onboarding", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SetSetting(c.Ctx, store.KW{store.Opt("onboarding", true)})
+		c.App.SetSetting(c.Ctx, "onboarding", true)
 
 		attrs := store.Attrs{
 			"name":                 nil,

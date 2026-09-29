@@ -188,7 +188,7 @@ func TestPreJobStartupTasks_ApplyDefaultSettings(t *testing.T) {
 	ta := apptest.NewApp(t)
 
 	os.RemoveAll(ta.Config.TmpfileDirectory)
-	ta.SetSetting(ta.Ctx, store.KW{store.Opt("yt_dlp_version", nil)})
+	ta.SetSetting(ta.Ctx, "yt_dlp_version", nil)
 
 	val, _ := ta.GetSetting(ta.Ctx, "yt_dlp_version")
 	if val != nil {

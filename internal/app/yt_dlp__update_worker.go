@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
-	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 const UpdateWorkerName = "Pinchflat.YtDlp.UpdateWorker"
@@ -36,6 +35,6 @@ func (a *App) UpdateWorkerPerform(ctx context.Context, job *obanlite.Job) error 
 		return err
 	}
 
-	_, err = a.SetSetting(ctx, store.KW{store.Opt("yt_dlp_version", version)})
+	_, err = a.SetSetting(ctx, "yt_dlp_version", version)
 	return err
 }
