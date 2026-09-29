@@ -6,8 +6,22 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
+
+// sourceForm builds the source form: source's values, overlaid with the raw
+// submitted params when redisplaying after a failed submit.
+func sourceForm(source *store.Source, submitted store.Attrs, errs map[string][]string) *Form {
+	values := map[string]any{}
+	for _, f := range store.SourceFormFields() {
+		values[f] = store.SourceFieldValue(source, f)
+	}
+	for k, v := range submitted {
+		values[k] = v
+	}
+	return NewForm("source", values, errs)
+}
 
 // SourceControllerIndex renders the sources index page.
 func (s *Server) SourceControllerIndex(w http.ResponseWriter, r *http.Request) {
@@ -47,23 +61,22 @@ func (s *Server) SourceControllerNew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mediaProfiles, _ := s.App.ListMediaProfiles(ctx)
-	changeset := s.App.SourcesChangeSource(ctx, source, store.Attrs{}, "")
 
 	layout := OnboardingLayout(ctx)
-	s.Render(w, r, http.StatusOK, layout, SourceHTMLNew(changeset, mediaProfiles))
+	s.Render(w, r, http.StatusOK, layout, SourceHTMLNew(sourceForm(source, nil, nil), mediaProfiles))
 }
 
 // SourceControllerCreate creates a new source.
 func (s *Server) SourceControllerCreate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	sourceParams := ParseForm(r, "source")
+	attrs := ParseForm(r, "source")
 
-	source, err := s.App.SourcesCreateSource(ctx, sourceParams, store.KW{})
+	source, err := s.App.SourcesCreateSource(ctx, store.ParseSourceParams(attrs), store.KW{})
 	if err != nil {
-		if cs, ok := store.AsChangesetError(err); ok {
+		if errs, ok := store.AsValidationErrors(err); ok {
 			mediaProfiles, _ := s.App.ListMediaProfiles(ctx)
 			layout := OnboardingLayout(ctx)
-			s.Render(w, r, http.StatusOK, layout, SourceHTMLNew(cs, mediaProfiles))
+			s.Render(w, r, http.StatusOK, layout, SourceHTMLNew(sourceForm(store.NewSource(), attrs, errs), mediaProfiles))
 			return
 		}
 		s.Fail(w, r, err)
@@ -124,9 +137,8 @@ func (s *Server) SourceControllerEdit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mediaProfiles, _ := s.App.ListMediaProfiles(ctx)
-	changeset := s.App.SourcesChangeSource(ctx, source, store.Attrs{}, "")
 
-	s.Render(w, r, http.StatusOK, LayoutApp, SourceHTMLEdit(source, changeset, mediaProfiles))
+	s.Render(w, r, http.StatusOK, LayoutApp, SourceHTMLEdit(source, sourceForm(source, nil, nil), mediaProfiles))
 }
 
 // SourceControllerUpdate updates a source.
@@ -136,14 +148,14 @@ func (s *Server) SourceControllerUpdate(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	sourceParams := ParseForm(r, "source")
+	attrs := ParseForm(r, "source")
 
-	updated, err := s.App.SourcesUpdateSource(ctx, source, sourceParams, store.KW{})
+	updated, err := s.App.SourcesUpdateSource(ctx, source, store.ParseSourceParams(attrs), store.KW{})
 	if err != nil {
-		if cs, ok := store.AsChangesetError(err); ok {
+		if errs, ok := store.AsValidationErrors(err); ok {
 			// Re-render form with errors, passing the original loaded source
 			mediaProfiles, _ := s.App.ListMediaProfiles(ctx)
-			s.Render(w, r, http.StatusOK, LayoutApp, SourceHTMLEdit(source, cs, mediaProfiles))
+			s.Render(w, r, http.StatusOK, LayoutApp, SourceHTMLEdit(source, sourceForm(source, attrs, errs), mediaProfiles))
 			return
 		}
 		s.Fail(w, r, err)
@@ -164,8 +176,8 @@ func (s *Server) SourceControllerDelete(w http.ResponseWriter, r *http.Request) 
 	deleteFiles := r.URL.Query().Get("delete_files") == "true"
 
 	// Mark for deletion
-	_, err := s.App.SourcesUpdateSource(ctx, source, store.Attrs{
-		"marked_for_deletion_at": time.Now().UTC(),
+	_, err := s.App.SourcesUpdateSource(ctx, source, store.SourceParams{
+		MarkedForDeletionAt: store.Ptr(db.UTCDateTime{Time: time.Now().UTC()}),
 	}, store.KW{})
 	if err != nil {
 		s.Fail(w, r, err)

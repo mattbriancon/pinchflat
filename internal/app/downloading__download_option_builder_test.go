@@ -83,7 +83,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingOutputOptions(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-		ta.App.SourcesUpdateSource(ta.Ctx, mediaItem.Source, store.Attrs{"output_path_template_override": "override.%(ext)s"}, store.KW{})
+		ta.App.SourcesUpdateSource(ta.Ctx, mediaItem.Source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, store.KW{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
@@ -407,7 +407,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"download_thumbnail": true})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
-		ta.App.SourcesUpdateSource(ta.Ctx, source, store.Attrs{"output_path_template_override": "override.%(ext)s"}, store.KW{})
+		ta.App.SourcesUpdateSource(ta.Ctx, source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, store.KW{})
 		source, _ = ta.App.PreloadSourceMediaProfile(ta.Ctx, source)
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
@@ -776,7 +776,7 @@ func TestDownloadOptionBuilder_BuildOutputPathFor(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-		updatedSource, _ := ta.App.SourcesUpdateSource(ta.Ctx, mediaItem.Source, store.Attrs{"output_path_template_override": "override.%(ext)s"}, store.KW{})
+		updatedSource, _ := ta.App.SourcesUpdateSource(ta.Ctx, mediaItem.Source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, store.KW{})
 
 		path := ta.App.DownloadOptionBuilderBuildOutputPathForSource(ta.Ctx, updatedSource)
 

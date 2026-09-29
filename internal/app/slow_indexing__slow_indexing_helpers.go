@@ -113,9 +113,7 @@ func (a *App) SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx contex
 	}
 
 	// Update source's last_indexed_at
-	if _, err := a.SourcesUpdateSource(ctx, source, store.Attrs{
-		"last_indexed_at": db.Now(),
-	}, store.KW{}); err != nil {
+	if _, err := a.SourcesUpdateSource(ctx, source, store.SourceParams{LastIndexedAt: store.Ptr(db.Now())}, store.KW{}); err != nil {
 		return nil, err
 	}
 

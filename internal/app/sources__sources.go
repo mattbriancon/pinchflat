@@ -22,38 +22,66 @@ func (a *App) SourcesOutputPathTemplate(ctx context.Context, source *store.Sourc
 	return source.MediaProfile.OutputPathTemplate
 }
 
-// CreateSource/1 and CreateSource/2
-func (a *App) SourcesCreateSource(ctx context.Context, attrs store.Attrs, opts store.KW) (*store.Source, error) {
+// CreateSource/1 and CreateSource/2. Invalid params come back as a
+// store.ValidationErrors error.
+func (a *App) SourcesCreateSource(ctx context.Context, p store.SourceParams, opts store.KW) (*store.Source, error) {
 	runPostCommitTasks := opts.GetOr("run_post_commit_tasks", true).(bool)
+	blank := store.NewSource()
 
-	// Initial validation
-	cs := a.SourcesChangeSource(ctx, store.NewSource(), attrs, "initial")
-	if !cs.Valid() {
-		return store.Insert[store.Source](ctx, a.Q(ctx), cs)
+	// Fail fast before asking yt-dlp anything.
+	if errs := p.Validate(blank, "initial"); len(errs) > 0 {
+		return nil, store.ValidationErrors(errs)
 	}
 
-	// Build full changeset with API call
-	cs = sourcesChangeSourceFromURL(ctx, a, store.NewSource(), attrs)
-	cs = sourcesChangeIndexingFrequency(cs)
+	p, err := sourcesParamsFromURL(ctx, a, blank, p)
+	if err != nil {
+		return nil, err
+	}
+	source, errs, err := a.CreateSource(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+	if len(errs) > 0 {
+		return nil, store.ValidationErrors(errs)
+	}
 
-	return sourcesCommitAndHandleTasks(ctx, a, cs, runPostCommitTasks)
+	if runPostCommitTasks {
+		// A new source always gets indexed and has its metadata fetched.
+		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{}, store.KW{})
+		if source.FastIndex {
+			_, _ = a.FastIndexingHelpersKickoffIndexingTask(ctx, source)
+		}
+		_, _ = a.SourceMetadataStorageWorkerKickoffWithTask(ctx, source, store.KW{})
+	}
+	return source, nil
 }
 
-// UpdateSource/2 and UpdateSource/3
-func (a *App) SourcesUpdateSource(ctx context.Context, source *store.Source, attrs store.Attrs, opts store.KW) (*store.Source, error) {
+// UpdateSource/2 and UpdateSource/3. Invalid params come back as a
+// store.ValidationErrors error.
+func (a *App) SourcesUpdateSource(ctx context.Context, source *store.Source, p store.SourceParams, opts store.KW) (*store.Source, error) {
 	runPostCommitTasks := opts.GetOr("run_post_commit_tasks", true).(bool)
 
-	// Initial validation
-	cs := a.SourcesChangeSource(ctx, source, attrs, "initial")
-	if !cs.Valid() {
-		return store.Update[store.Source](ctx, a.Q(ctx), cs)
+	// Fail fast before asking yt-dlp anything.
+	if errs := p.Validate(source, "initial"); len(errs) > 0 {
+		return nil, store.ValidationErrors(errs)
 	}
 
-	// Build full changeset with API call
-	cs = sourcesChangeSourceFromURL(ctx, a, source, attrs)
-	cs = sourcesChangeIndexingFrequency(cs)
+	p, err := sourcesParamsFromURL(ctx, a, source, p)
+	if err != nil {
+		return nil, err
+	}
+	updated, changes, errs, err := a.UpdateSource(ctx, source, p)
+	if err != nil {
+		return nil, err
+	}
+	if len(errs) > 0 {
+		return nil, store.ValidationErrors(errs)
+	}
 
-	return sourcesCommitAndHandleTasks(ctx, a, cs, runPostCommitTasks)
+	if runPostCommitTasks {
+		sourcesHandleUpdateTasks(ctx, a, changes)
+	}
+	return updated, nil
 }
 
 // DeleteSource/1 and DeleteSource/2
@@ -87,216 +115,150 @@ func (a *App) SourcesDeleteSource(ctx context.Context, source *store.Source, opt
 	return source, nil
 }
 
-// ChangeSource/2 and ChangeSource/3
-func (a *App) SourcesChangeSource(ctx context.Context, source *store.Source, attrs store.Attrs, validationStage string) *store.Changeset {
-	if validationStage == "" {
-		validationStage = "pre_insert"
-	}
-	return store.SourceChangeset(source, attrs, validationStage)
-}
-
 // --- Private helpers ---
 
-// sourcesChangeSourceFromURL builds a fresh, fully (pre_insert) validated
-// changeset from attrs and, if original_url changed, fetches source details
-// from the URL to fill in collection_type/collection_id/collection_name.
-func sourcesChangeSourceFromURL(ctx context.Context, a *App, source *store.Source, attrs store.Attrs) *store.Changeset {
-	changeset := a.SourcesChangeSource(ctx, source, attrs, "pre_insert")
+// sourcesParamsFromURL fills in collection_type/collection_id/collection_name
+// from the URL if original_url is changing, and bumps the index frequency for
+// fast indexing. Problems talking to yt-dlp come back as a
+// store.ValidationErrors error.
+func sourcesParamsFromURL(ctx context.Context, a *App, existing *store.Source, p store.SourceParams) (store.SourceParams, error) {
+	if p.Changed(existing)["original_url"] {
+		applied := p.Apply(existing)
+		shouldUseCookies := applied.CookieBehaviour == store.SourceCookieBehaviourAllOperations
+		addlOpts := store.KW{store.Opt("use_cookies", shouldUseCookies), store.Opt("skip_sleep_interval", true)}
 
-	if !changeset.HasChange("original_url") {
-		return changeset
-	}
-
-	cookieBehaviour := changeset.GetField("cookie_behaviour").(store.SourceCookieBehaviour)
-	shouldUseCookies := cookieBehaviour == store.SourceCookieBehaviourAllOperations
-	addlOpts := store.KW{store.Opt("use_cookies", shouldUseCookies), store.Opt("skip_sleep_interval", true)}
-
-	sourceDetails, err := a.MediaCollectionGetSourceDetails(ctx, changeset.GetChange("original_url").(string), store.KW{}, addlOpts)
-	if err != nil {
-		var errMsg string
-		switch e := err.(type) {
-		case *fsutil.CommandError:
-			errMsg = e.Output
-		default:
-			errMsg = err.Error()
+		fail := func(msg string) (store.SourceParams, error) {
+			errs := p.Validate(existing, "pre_insert")
+			errs["original_url"] = append(errs["original_url"], msg)
+			return p, store.ValidationErrors(errs)
 		}
-		changeset.AddError("original_url", "could not fetch source details from URL", map[string]any{"error": errMsg})
-		return changeset
+
+		sourceDetails, err := a.MediaCollectionGetSourceDetails(ctx, applied.OriginalURL, store.KW{}, addlOpts)
+		if err != nil {
+			return fail("could not fetch source details from URL")
+		}
+		collection, ok := sourcesExtractCollectionDetails(sourceDetails)
+		if !ok {
+			return fail("could not fetch source details from URL")
+		}
+		// Fetched details win over any user-supplied values.
+		p = p.WithCollection(collection.Type, collection.ID, collection.Name)
 	}
 
-	// Parse the response
-	collectionChanges := sourcesExtractCollectionDetails(sourceDetails)
-	if collectionChanges == nil {
-		changeset.AddError("original_url", "could not fetch source details from URL")
-		return changeset
+	if p.Apply(existing).FastIndex {
+		p = p.WithIndexFrequencyMinutes(store.SourceIndexFrequencyWhenFastIndexing())
 	}
+	return p, nil
+}
 
-	// Elixir rebuilds a brand new (pre_insert validated) changeset from attrs
-	// merged with the fetched collection_type/collection_id/collection_name,
-	// rather than patching the changeset that was built (and validated)
-	// before those fields were known. Merging like this also lets the fetched
-	// details win over any conflicting user-supplied values, same as
-	// Map.merge(changes, collection_changes).
-	mergedAttrs := store.Attrs{}
-	for k, v := range attrs {
-		mergedAttrs[k] = v
-	}
-	for k, v := range collectionChanges {
-		mergedAttrs[k] = v
-	}
-
-	return a.SourcesChangeSource(ctx, source, mergedAttrs, "pre_insert")
+// sourceCollection is the collection details yt-dlp reports for a source URL.
+type sourceCollection struct {
+	Type     store.SourceCollectionType
+	ID, Name *string
 }
 
 // sourcesExtractCollectionDetails determines if the source is a channel or
 // playlist. channel_id/playlist_id may be nil (e.g. a playlist has no
-// channel_id), so this compares the raw (possibly-nil) interface values the
-// same way Elixir's `==` does, rather than requiring both to be strings.
-func sourcesExtractCollectionDetails(details map[string]any) map[string]any {
+// channel_id), so this compares the raw (possibly-nil) values the same way
+// Elixir's `==` does.
+func sourcesExtractCollectionDetails(details map[string]any) (sourceCollection, bool) {
 	playlistID := details["playlist_id"]
 	channelID := details["channel_id"]
 
 	if playlistID == nil && channelID == nil {
-		return nil
+		return sourceCollection{}, false
+	}
+	str := func(v any) *string {
+		s, ok := v.(string)
+		if !ok {
+			return nil
+		}
+		return &s
 	}
 
 	if playlistID == channelID {
-		return map[string]any{
-			"collection_type": store.SourceCollectionTypeChannel,
-			"collection_id":   channelID,
-			"collection_name": details["channel_name"],
-		}
+		return sourceCollection{store.SourceCollectionTypeChannel, str(channelID), str(details["channel_name"])}, true
 	}
-
-	return map[string]any{
-		"collection_type": store.SourceCollectionTypePlaylist,
-		"collection_id":   playlistID,
-		"collection_name": details["playlist_name"],
-	}
+	return sourceCollection{store.SourceCollectionTypePlaylist, str(playlistID), str(details["playlist_name"])}, true
 }
 
-// sourcesChangeIndexingFrequency adjusts frequency if fast_index is enabled
-func sourcesChangeIndexingFrequency(changeset *store.Changeset) *store.Changeset {
-	fastIndex := changeset.GetField("fast_index").(bool)
-	if fastIndex {
-		changeset.PutChange("index_frequency_minutes", store.SourceIndexFrequencyWhenFastIndexing())
+// taskAction is what an update means for a kind of pending task.
+type taskAction int
+
+const (
+	taskNone taskAction = iota
+	taskEnqueue
+	taskDequeue
+)
+
+// sourcesMediaAction decides what to do with pending download tasks.
+func sourcesMediaAction(c store.SourceChanges) taskAction {
+	switch {
+	case c.Changed["download_media"] && c.After.DownloadMedia && c.After.Enabled,
+		c.Changed["enabled"] && c.After.Enabled && c.After.DownloadMedia:
+		return taskEnqueue
+	case c.Changed["download_media"] && !c.After.DownloadMedia,
+		c.Changed["enabled"] && !c.After.Enabled:
+		return taskDequeue
 	}
-	return changeset
+	return taskNone
 }
 
-// sourcesCommitAndHandleTasks inserts/updates and runs post-commit tasks
-func sourcesCommitAndHandleTasks(ctx context.Context, a *App, changeset *store.Changeset, runTasks bool) (*store.Source, error) {
-	var source *store.Source
-	var err error
-
-	if changeset.Data.(*store.Source).ID == 0 {
-		source, err = store.Insert[store.Source](ctx, a.Q(ctx), changeset)
-	} else {
-		source, err = store.Update[store.Source](ctx, a.Q(ctx), changeset)
+// sourcesSlowIndexingAction decides what to do with the slow indexing task.
+func sourcesSlowIndexingAction(c store.SourceChanges) taskAction {
+	switch {
+	case c.Changed["index_frequency_minutes"] && c.After.IndexFrequencyMinutes > 0 && c.After.Enabled,
+		c.Changed["enabled"] && c.After.Enabled && c.After.IndexFrequencyMinutes > 0:
+		return taskEnqueue
+	case c.Changed["index_frequency_minutes"],
+		c.Changed["enabled"] && !c.After.Enabled:
+		return taskDequeue
 	}
-
-	if err != nil || !runTasks {
-		return source, err
-	}
-
-	// Run post-commit tasks
-	sourcesHandleMediaTasks(ctx, a, changeset, source)
-	sourcesHandleIndexingTasks(ctx, a, changeset, source)
-	sourcesHandleMetadataStorageTasks(ctx, a, changeset, source)
-
-	return source, nil
+	return taskNone
 }
 
-// sourcesHandleMediaTasks enqueues/dequeues download tasks based on changes
-func sourcesHandleMediaTasks(ctx context.Context, a *App, changeset *store.Changeset, source *store.Source) {
-	// If the changeset is new (not persisted), do nothing
-	if changeset.Data.(*store.Source).ID == 0 {
-		return
+// sourcesFastIndexingAction decides what to do with the fast indexing task.
+func sourcesFastIndexingAction(c store.SourceChanges) taskAction {
+	switch {
+	case c.Changed["fast_index"] && c.After.FastIndex && c.After.Enabled,
+		c.Changed["enabled"] && c.After.Enabled && c.After.FastIndex:
+		return taskEnqueue
+	case c.Changed["fast_index"] && !c.After.FastIndex,
+		c.Changed["enabled"] && !c.After.Enabled:
+		return taskDequeue
 	}
+	return taskNone
+}
 
-	currentChanges := changeset.Changes
-	applied := changeset.Apply().(*store.Source)
+// sourcesHandleUpdateTasks enqueues/dequeues tasks based on what changed.
+func sourcesHandleUpdateTasks(ctx context.Context, a *App, c store.SourceChanges) {
+	source := c.After
 
-	case1 := currentChanges["download_media"] != nil && currentChanges["download_media"].(bool) == true &&
-		applied.Enabled == true
-	case2 := currentChanges["enabled"] != nil && currentChanges["enabled"].(bool) == true &&
-		applied.DownloadMedia == true
-	case3 := currentChanges["download_media"] != nil && currentChanges["download_media"].(bool) == false
-	case4 := currentChanges["enabled"] != nil && currentChanges["enabled"].(bool) == false
-
-	if case1 || case2 {
+	switch sourcesMediaAction(c) {
+	case taskEnqueue:
 		_ = a.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{})
-	} else if case3 || case4 {
+	case taskDequeue:
 		_ = a.DownloadingHelpersDequeuePendingDownloadTasks(ctx, source)
 	}
-}
 
-// sourcesHandleIndexingTasks kicks off indexing tasks when needed
-func sourcesHandleIndexingTasks(ctx context.Context, a *App, changeset *store.Changeset, source *store.Source) {
-	// If new, kick off indexing tasks
-	if changeset.Data.(*store.Source).ID == 0 {
+	switch sourcesSlowIndexingAction(c) {
+	case taskEnqueue:
 		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{}, store.KW{})
-		if changeset.GetField("fast_index").(bool) {
-			_, _ = a.FastIndexingHelpersKickoffIndexingTask(ctx, source)
-		}
-		return
-	}
-
-	// If persisted, only update if conditions changed
-	sourcesUpdateSlowIndexingTask(ctx, a, changeset, source)
-	sourcesUpdateFastIndexingTask(ctx, a, changeset, source)
-}
-
-// sourcesUpdateSlowIndexingTask manages slow indexing based on changes
-func sourcesUpdateSlowIndexingTask(ctx context.Context, a *App, changeset *store.Changeset, source *store.Source) {
-	currentChanges := changeset.Changes
-	applied := changeset.Apply().(*store.Source)
-
-	case1 := currentChanges["index_frequency_minutes"] != nil &&
-		currentChanges["index_frequency_minutes"].(int) > 0 && applied.Enabled == true
-	case2 := currentChanges["enabled"] != nil && currentChanges["enabled"].(bool) == true &&
-		applied.IndexFrequencyMinutes > 0
-	case3 := currentChanges["index_frequency_minutes"] != nil
-	case4 := currentChanges["enabled"] != nil && currentChanges["enabled"].(bool) == false
-
-	if case1 || case2 {
-		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{}, store.KW{})
-	} else if case3 || case4 {
+	case taskDequeue:
 		// Elixir's SlowIndexingHelpers.delete_indexing_tasks/2 deletes both
 		// the fast- and slow-indexing pending tasks, not just the slow one.
 		_ = a.SlowIndexingHelpersDeleteIndexingTasks(ctx, source, store.KW{store.Opt("include_executing", true)})
 	}
-}
 
-// sourcesUpdateFastIndexingTask manages fast indexing based on changes
-func sourcesUpdateFastIndexingTask(ctx context.Context, a *App, changeset *store.Changeset, source *store.Source) {
-	currentChanges := changeset.Changes
-	applied := changeset.Apply().(*store.Source)
-
-	case1 := currentChanges["fast_index"] != nil && currentChanges["fast_index"].(bool) == true &&
-		applied.Enabled == true
-	case2 := currentChanges["enabled"] != nil && currentChanges["enabled"].(bool) == true &&
-		applied.FastIndex == true
-	case3 := currentChanges["fast_index"] != nil && currentChanges["fast_index"].(bool) == false
-	case4 := currentChanges["enabled"] != nil && currentChanges["enabled"].(bool) == false
-
-	if case1 || case2 {
+	switch sourcesFastIndexingAction(c) {
+	case taskEnqueue:
 		_, _ = a.FastIndexingHelpersKickoffIndexingTask(ctx, source)
-	} else if case3 || case4 {
+	case taskDequeue:
 		_ = a.DeletePendingTasksFor(ctx, source, store.Ptr("FastIndexingWorker"), store.KW{store.Opt("include_executing", true)})
 	}
-}
 
-// sourcesHandleMetadataStorageTasks kicks off metadata storage if needed
-func sourcesHandleMetadataStorageTasks(ctx context.Context, a *App, changeset *store.Changeset, source *store.Source) {
-	// If new, always fetch metadata
-	if changeset.Data.(*store.Source).ID == 0 {
-		_, _ = a.SourceMetadataStorageWorkerKickoffWithTask(ctx, source, store.KW{})
-		return
-	}
-
-	// If persisted, only fetch if original_url changed
-	if changeset.HasChange("original_url") {
+	// Only refetch metadata if the URL changed.
+	if c.Changed["original_url"] {
 		_, _ = a.SourceMetadataStorageWorkerKickoffWithTask(ctx, source, store.KW{})
 	}
 }
