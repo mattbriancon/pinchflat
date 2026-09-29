@@ -15,7 +15,7 @@ import (
 // parseIDParam parses the named route param as an int64, or returns
 // (0, false) when it's missing or not a valid id.
 func parseIDParam(r *http.Request, param string) (int64, bool) {
-	id, err := strconv.ParseInt(URLParam(r, param), 10, 64)
+	id, err := strconv.ParseInt(r.PathValue(param), 10, 64)
 	return id, err == nil
 }
 

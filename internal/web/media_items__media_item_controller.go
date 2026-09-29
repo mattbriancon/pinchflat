@@ -159,7 +159,7 @@ func (s *Server) MediaItemControllerForceDownload(w http.ResponseWriter, r *http
 // Uses UUID instead of ID to avoid enumeration attacks since streaming is a public endpoint.
 func (s *Server) MediaItemControllerStream(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	uuid := URLParam(r, "uuid")
+	uuid := r.PathValue("uuid")
 
 	mediaItem, err := store.One[store.MediaItem](ctx, s.App.Q(ctx), store.SQ.Select("*").From("media_items").Where(sq.Eq{"uuid": uuid}))
 	if err != nil || mediaItem == nil {

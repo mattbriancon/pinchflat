@@ -35,7 +35,7 @@ func (s *Server) PodcastControllerOpmlFeed(w http.ResponseWriter, r *http.Reques
 // PodcastControllerRssFeed: rss_feed(conn, %{"uuid" => uuid})
 func (s *Server) PodcastControllerRssFeed(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	uuid := URLParam(r, "uuid")
+	uuid := r.PathValue("uuid")
 
 	// Fetch source by UUID: Repo.get_by!(Source, uuid: uuid)
 	q := store.SourcesQueryNew().Where(sq.Eq{"s.uuid": uuid})
@@ -63,7 +63,7 @@ func (s *Server) PodcastControllerRssFeed(w http.ResponseWriter, r *http.Request
 // PodcastControllerFeedImage: feed_image(conn, %{"uuid" => uuid})
 func (s *Server) PodcastControllerFeedImage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	uuid := URLParam(r, "uuid")
+	uuid := r.PathValue("uuid")
 
 	// Fetch source by UUID: Repo.get_by!(Source, uuid: uuid)
 	q := store.SourcesQueryNew().Where(sq.Eq{"s.uuid": uuid})
@@ -102,7 +102,7 @@ func (s *Server) PodcastControllerFeedImage(w http.ResponseWriter, r *http.Reque
 // PodcastControllerEpisodeImage: episode_image(conn, %{"uuid" => uuid})
 func (s *Server) PodcastControllerEpisodeImage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	uuid := URLParam(r, "uuid")
+	uuid := r.PathValue("uuid")
 
 	// Fetch media item by UUID: Repo.get_by!(MediaItem, uuid: uuid)
 	q := store.MediaQueryNew().Where(sq.Eq{"mi.uuid": uuid})
