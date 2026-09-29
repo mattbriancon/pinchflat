@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/mattbriancon/pinchflat/internal/db"
@@ -30,27 +31,14 @@ var SQ = sq.StatementBuilder.PlaceholderFormat(sq.Question)
 // Qualify with a table alias by passing it (e.g. Columns[Source]("s")).
 func Columns[T Schema](alias ...string) []string {
 	var zero T
-	t := reflect.TypeOf(zero)
 	var out []string
-	var walk func(t reflect.Type)
-	walk = func(t reflect.Type) {
-		for i := 0; i < t.NumField(); i++ {
-			f := t.Field(i)
-			if f.Anonymous && f.Type.Kind() == reflect.Struct && f.Tag.Get("db") == "" {
-				walk(f.Type)
-				continue
-			}
-			name := strings.Split(f.Tag.Get("db"), ",")[0]
-			if name == "" || name == "-" || isVirtual(f.Tag.Get("db")) {
-				continue
-			}
-			if len(alias) > 0 && alias[0] != "" {
-				name = alias[0] + "." + name + ` AS "` + name + `"`
-			}
-			out = append(out, name)
+	for _, c := range columnsOf(reflect.TypeOf(zero)) {
+		name := c.name
+		if len(alias) > 0 && alias[0] != "" {
+			name = alias[0] + "." + name + ` AS "` + name + `"`
 		}
+		out = append(out, name)
 	}
-	walk(t)
 	return out
 }
 
@@ -138,62 +126,47 @@ func Exec(ctx context.Context, q db.Querier, query sq.Sqlizer) (int64, error) {
 	return res.RowsAffected()
 }
 
-// Insert validates and inserts a changeset over *T (Repo.insert/1). All
-// columns are written (like Ecto), timestamps set, and any cast has_one
-// assoc inserted after. Invalid changesets and mapped unique violations
-// return *ChangesetError with Action "insert".
-func Insert[T Schema](ctx context.Context, q db.Querier, cs *Changeset) (*T, error) {
-	cs.Action = "insert"
-	if !cs.Valid() {
-		return nil, &ChangesetError{cs}
-	}
-	rec := cs.Apply().(*T)
+// Insert stamps rec's inserted_at/updated_at (unless already set), writes
+// every column (like Ecto) and sets rec.ID. A UNIQUE violation on a known
+// index comes back as ValidationErrors.
+func Insert[T Schema](ctx context.Context, q db.Querier, rec *T) error {
+	return insertRow(ctx, q, rec, "")
+}
+
+// insertRow is Insert with an optional trailing clause (ON CONFLICT ...) and
+// its arguments.
+func insertRow[T Schema](ctx context.Context, q db.Querier, rec *T, suffix string, suffixArgs ...any) error {
 	now := db.Now()
 	setTimestamp(rec, "inserted_at", now, true)
 	setTimestamp(rec, "updated_at", now, true)
 
 	cols, vals := columnValues(rec, true)
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s) RETURNING id", (*rec).TableName(),
-		quoteCols(cols), strings.TrimSuffix(strings.Repeat("?, ", len(cols)), ", "))
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)%s RETURNING id", (*rec).TableName(),
+		quoteCols(cols), strings.TrimSuffix(strings.Repeat("?, ", len(cols)), ", "), suffix)
 	var id int64
-	if err := q.GetContext(ctx, &id, query, vals...); err != nil {
-		return nil, cs.mapConstraintError((*rec).TableName(), err)
+	if err := q.GetContext(ctx, &id, query, append(vals, suffixArgs...)...); err != nil {
+		return uniqueViolation((*rec).TableName(), err)
 	}
 	setID(rec, id)
-	if err := saveAssocs(ctx, q, cs, rec); err != nil {
-		return nil, err
-	}
-	return rec, nil
+	return nil
 }
 
-// Update applies a changeset (Repo.update/1): only changed columns plus
-// updated_at are written; with no changes nothing is written.
-func Update[T Schema](ctx context.Context, q db.Querier, cs *Changeset) (*T, error) {
-	cs.Action = "update"
-	if !cs.Valid() {
-		return nil, &ChangesetError{cs}
+// Update writes the named columns of rec plus updated_at (Repo.update/1);
+// with no columns nothing is written. A UNIQUE violation on a known index
+// comes back as ValidationErrors.
+func Update[T Schema](ctx context.Context, q db.Querier, rec *T, cols ...string) error {
+	if len(cols) == 0 {
+		return nil
 	}
-	rec := cs.Apply().(*T)
-	if len(cs.Changes) > 0 {
-		now := db.Now()
-		setTimestamp(rec, "updated_at", now, false)
-		set := map[string]any{}
-		all := fieldsOf(reflect.TypeOf(rec).Elem())
-		for field := range cs.Changes {
-			set[field] = fieldValue(rec, all[field])
-		}
-		if _, ok := all["updated_at"]; ok {
-			set["updated_at"] = fieldValue(rec, all["updated_at"])
-		}
-		_, err := Exec(ctx, q, SQ.Update((*rec).TableName()).SetMap(set).Where(sq.Eq{"id": idOf(rec)}))
-		if err != nil {
-			return nil, cs.mapConstraintError((*rec).TableName(), err)
-		}
+	setTimestamp(rec, "updated_at", db.Now(), false)
+	set := map[string]any{}
+	for _, c := range append(cols, "updated_at") {
+		set[c] = columnValue(rec, c)
 	}
-	if err := saveAssocs(ctx, q, cs, rec); err != nil {
-		return nil, err
+	if _, err := Exec(ctx, q, SQ.Update((*rec).TableName()).SetMap(set).Where(sq.Eq{"id": idOf(rec)})); err != nil {
+		return uniqueViolation((*rec).TableName(), err)
 	}
-	return rec, nil
+	return nil
 }
 
 // Delete deletes a record by id (Repo.delete/1).
@@ -208,122 +181,106 @@ func Delete[T Schema](ctx context.Context, q db.Querier, rec *T) error {
 	return nil
 }
 
-func saveAssocs(ctx context.Context, q db.Querier, cs *Changeset, parent any) error {
-	if len(cs.assocs) == 0 {
-		return nil
-	}
-	pid := idOf(parent)
-	fk := strings.TrimSuffix(parent.(Schema).TableName(), "s") + "_id"
-	for name, child := range cs.assocs {
-		if !child.Valid() {
-			return &ChangesetError{cs}
-		}
-		child.PutChange(fk, pid)
-		rec := child.Apply()
-		table := rec.(Schema).TableName()
-		now := db.Now()
-		if idOf(rec) == 0 {
-			setTimestamp(rec, "inserted_at", now, true)
-			setTimestamp(rec, "updated_at", now, true)
-			cols, vals := columnValues(rec, true)
-			query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s) RETURNING id", table, quoteCols(cols),
-				strings.TrimSuffix(strings.Repeat("?, ", len(cols)), ", "))
-			var id int64
-			if err := q.GetContext(ctx, &id, query, vals...); err != nil {
-				return child.mapConstraintError(table, err)
-			}
-			setID(rec, id)
-		} else if len(child.Changes) > 0 {
-			setTimestamp(rec, "updated_at", now, false)
-			cols, vals := columnValues(rec, false)
-			set := map[string]any{}
-			for i, c := range cols {
-				set[c] = vals[i]
-			}
-			if _, err := Exec(ctx, q, SQ.Update(table).SetMap(set).Where(sq.Eq{"id": idOf(rec)})); err != nil {
-				return child.mapConstraintError(table, err)
-			}
-		}
-		// Point the parent's association field at the saved child.
-		pv := reflect.ValueOf(parent).Elem()
-		for i := 0; i < pv.NumField(); i++ {
-			f := pv.Type().Field(i)
-			if strings.EqualFold(f.Name, snakeToCamel(name)) && f.Type == reflect.TypeOf(rec) {
-				pv.Field(i).Set(reflect.ValueOf(rec))
-			}
-		}
-	}
-	return nil
-}
-
 var (
 	uniqueColsRe  = regexp.MustCompile(`UNIQUE constraint failed: ([\w.]+(?:, [\w.]+)*)`)
 	uniqueIndexRe = regexp.MustCompile(`UNIQUE constraint failed: index '(\w+)'`)
 )
 
-// mapConstraintError turns a UNIQUE violation into a changeset error when a
-// matching UniqueConstraint was declared, like Ecto. Otherwise the raw
-// error is returned (Ecto would raise).
-func (cs *Changeset) mapConstraintError(table string, err error) error {
+// uniqueErrorFields maps each unique index the app reports to the field its
+// "has already been taken" error is keyed under.
+var uniqueErrorFields = map[string]string{
+	"sources_collection_id_media_profile_id_title_filter_regex_index": "original_url",
+	"source_metadata_source_id_index":                                 "metadata.source_id",
+	"media_items_media_id_source_id_index":                            "media_id",
+	"media_metadata_media_item_id_index":                              "metadata.media_item_id",
+	"media_profiles_name_index":                                       "name",
+}
+
+// uniqueViolation turns a SQLite UNIQUE violation on one of
+// uniqueErrorFields' indexes into ValidationErrors (Ecto's unique_constraint).
+// Any other error is returned as is (Ecto would raise).
+func uniqueViolation(table string, err error) error {
 	msg := err.Error()
-	var name string
+	var index string
 	if m := uniqueIndexRe.FindStringSubmatch(msg); m != nil {
-		name = m[1]
+		index = m[1]
 	} else if m := uniqueColsRe.FindStringSubmatch(msg); m != nil {
 		var cols []string
 		for _, c := range strings.Split(m[1], ", ") {
 			cols = append(cols, c[strings.IndexByte(c, '.')+1:])
 		}
-		name = table + "_" + strings.Join(cols, "_") + "_index"
-	} else {
-		return err
+		index = table + "_" + strings.Join(cols, "_") + "_index"
 	}
-	for _, u := range cs.uniques {
-		if table+"_"+strings.Join(u.columns, "_")+"_index" == name {
-			cs.AddError(u.field, u.message, map[string]any{"constraint": "unique", "constraint_name": name})
-			return &ChangesetError{cs}
-		}
+	if field, ok := uniqueErrorFields[index]; ok {
+		return ValidationErrors{field: {"has already been taken"}}
 	}
 	return err
 }
 
+// column is a db column of a schema struct and the index of its field.
+type column struct {
+	name  string
+	index []int
+}
+
+var columnCache sync.Map // reflect.Type -> []column
+
+// columnsOf lists t's db columns in field order. Fields tagged db:"-", virtual
+// or without a db tag are skipped; untagged embedded structs are flattened.
+func columnsOf(t reflect.Type) []column {
+	if c, ok := columnCache.Load(t); ok {
+		return c.([]column)
+	}
+	var out []column
+	var walk func(t reflect.Type, prefix []int)
+	walk = func(t reflect.Type, prefix []int) {
+		for i := 0; i < t.NumField(); i++ {
+			f := t.Field(i)
+			idx := append(append([]int{}, prefix...), i)
+			if f.Anonymous && f.Type.Kind() == reflect.Struct && f.Tag.Get("db") == "" {
+				walk(f.Type, idx)
+				continue
+			}
+			name := strings.Split(f.Tag.Get("db"), ",")[0]
+			if name == "" || name == "-" || isVirtual(f.Tag.Get("db")) {
+				continue
+			}
+			out = append(out, column{name, idx})
+		}
+	}
+	walk(t, nil)
+	columnCache.Store(t, out)
+	return out
+}
+
 func columnValues(rec any, skipZeroID bool) ([]string, []any) {
-	fields := fieldsOf(reflect.TypeOf(rec).Elem())
 	var cols []string
 	var vals []any
-	for _, name := range orderedColumns(reflect.TypeOf(rec).Elem()) {
-		fi := fields[name]
-		if name == "id" && skipZeroID && idOf(rec) == 0 {
+	rv := reflect.ValueOf(rec).Elem()
+	for _, c := range columnsOf(rv.Type()) {
+		if c.name == "id" && skipZeroID && idOf(rec) == 0 {
 			continue
 		}
-		cols = append(cols, name)
-		vals = append(vals, fieldValue(rec, fi))
+		cols = append(cols, c.name)
+		vals = append(vals, fieldValue(rv.FieldByIndex(c.index)))
 	}
 	return cols, vals
 }
 
-func orderedColumns(t reflect.Type) []string {
-	var out []string
-	var walk func(t reflect.Type)
-	walk = func(t reflect.Type) {
-		for i := 0; i < t.NumField(); i++ {
-			f := t.Field(i)
-			if f.Anonymous && f.Type.Kind() == reflect.Struct && f.Tag.Get("db") == "" {
-				walk(f.Type)
-				continue
-			}
-			name := strings.Split(f.Tag.Get("db"), ",")[0]
-			if name != "" && name != "-" && !isVirtual(f.Tag.Get("db")) {
-				out = append(out, name)
-			}
+// columnValue is rec's value for one column.
+func columnValue(rec any, name string) any {
+	rv := reflect.ValueOf(rec).Elem()
+	for _, c := range columnsOf(rv.Type()) {
+		if c.name == name {
+			return fieldValue(rv.FieldByIndex(c.index))
 		}
 	}
-	walk(t)
-	return out
+	panic(fmt.Sprintf("%T has no column %q", rec, name))
 }
 
-func fieldValue(rec any, fi fieldInfo) any {
-	fv := reflect.ValueOf(rec).Elem().FieldByIndex(fi.index)
+// fieldValue is the value to write for a field: nil pointers come back as
+// untyped nil (NULL).
+func fieldValue(fv reflect.Value) any {
 	if fv.Kind() == reflect.Pointer && fv.IsNil() {
 		return nil
 	}
@@ -350,28 +307,20 @@ func setID(rec any, id int64) {
 	reflect.ValueOf(rec).Elem().FieldByName("ID").SetInt(id)
 }
 
+// setTimestamp stamps a db.UTCDateTime column with now (only when it is still
+// zero, if onlyIfZero).
 func setTimestamp(rec any, col string, now db.UTCDateTime, onlyIfZero bool) {
-	fi, ok := fieldsOf(reflect.TypeOf(rec).Elem())[col]
-	if !ok {
-		return
-	}
-	f := reflect.ValueOf(rec).Elem().FieldByIndex(fi.index)
-	if onlyIfZero {
-		if t, ok := f.Interface().(db.UTCDateTime); ok && !t.IsZero() {
+	rv := reflect.ValueOf(rec).Elem()
+	for _, c := range columnsOf(rv.Type()) {
+		if c.name != col {
+			continue
+		}
+		f := rv.FieldByIndex(c.index)
+		if t, ok := f.Interface().(db.UTCDateTime); ok && onlyIfZero && !t.IsZero() {
 			return
 		}
+		f.Set(reflect.ValueOf(now))
 	}
-	setField(f, now)
-}
-
-func snakeToCamel(s string) string {
-	parts := strings.Split(s, "_")
-	for i, p := range parts {
-		if p != "" {
-			parts[i] = strings.ToUpper(p[:1]) + p[1:]
-		}
-	}
-	return strings.Join(parts, "")
 }
 
 // isVirtual reports a `db:"name,virtual"` tag: a field that queries may

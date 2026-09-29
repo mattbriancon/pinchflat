@@ -185,7 +185,7 @@ func (s *Server) MediaProfileControllerDelete(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	s.App.MediaProfileDeletionWorkerKickoff(ctx, profile, store.Attrs{"delete_files": deleteFiles})
+	s.App.MediaProfileDeletionWorkerKickoff(ctx, profile, map[string]any{"delete_files": deleteFiles})
 
 	s.PutFlash(w, r, "info", "Media Profile deletion started. This may take a while to complete.")
 	s.Redirect(w, r, P(ctx, "/media_profiles"))

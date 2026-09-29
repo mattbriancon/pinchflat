@@ -21,24 +21,6 @@ type Setting struct {
 
 func (Setting) TableName() string { return "settings" }
 
-var settingAllowedFields = []string{
-	"onboarding",
-	"yt_dlp_version",
-	"video_codec_preference",
-	"audio_codec_preference",
-	"youtube_api_key",
-	"extractor_sleep_interval_seconds",
-	"download_throughput_limit",
-	"restrict_filenames",
-}
-
-var settingRequiredFields = []string{
-	"onboarding",
-	"video_codec_preference",
-	"audio_codec_preference",
-	"extractor_sleep_interval_seconds",
-}
-
 // SettingParams are the typed parameters for updating a Setting.
 // Nil pointer fields mean the value was not submitted.
 type SettingParams struct {
@@ -144,11 +126,18 @@ func (p SettingParams) Validate(existing *Setting) map[string][]string {
 	return errs
 }
 
-// SettingChangeset/2 (kept for backwards compatibility until final cleanup agent removes it)
-func SettingChangeset(setting *Setting, attrs Attrs) *Changeset {
-	return Cast(setting, attrs, settingAllowedFields).
-		ValidateRequired(settingRequiredFields...).
-		ValidateNumber("extractor_sleep_interval_seconds", NumberOpts{
-			GreaterThanOrEqualTo: Num(0),
-		})
+// apply returns a copy of existing with p applied and the columns that
+// changed.
+func (p SettingParams) apply(existing *Setting) (*Setting, changes) {
+	next := *existing
+	c := changes{}
+	setValue(c, "onboarding", &next.Onboarding, p.Onboarding)
+	setString(c, "video_codec_preference", &next.VideoCodecPreference, p.VideoCodecPreference)
+	setString(c, "audio_codec_preference", &next.AudioCodecPreference, p.AudioCodecPreference)
+	setValue(c, "extractor_sleep_interval_seconds", &next.ExtractorSleepIntervalSeconds, p.ExtractorSleepIntervalSeconds)
+	setNullableString(c, "yt_dlp_version", &next.YtDlpVersion, p.YtDlpVersion, false)
+	setNullableString(c, "youtube_api_key", &next.YoutubeAPIKey, p.YoutubeAPIKey, false)
+	setNullableString(c, "download_throughput_limit", &next.DownloadThroughputLimit, p.DownloadThroughputLimit, false)
+	setNullable(c, "restrict_filenames", &next.RestrictFilenames, p.RestrictFilenames, false)
+	return &next, c
 }

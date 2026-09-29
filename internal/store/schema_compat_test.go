@@ -6,6 +6,7 @@ package store_test
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -70,6 +71,25 @@ outer:
 	return out
 }
 
+// structColumns is every db-tagged column of a schema struct and its value
+// (nil for a NULL pointer).
+func structColumns(rec any) map[string]any {
+	rv := reflect.ValueOf(rec).Elem()
+	out := map[string]any{}
+	for i := 0; i < rv.NumField(); i++ {
+		tag := strings.Split(rv.Type().Field(i).Tag.Get("db"), ",")
+		if tag[0] == "" || tag[0] == "-" || (len(tag) > 1 && tag[1] == "virtual") {
+			continue
+		}
+		if f := rv.Field(i); f.Kind() == reflect.Pointer && f.IsNil() {
+			out[tag[0]] = nil
+		} else {
+			out[tag[0]] = f.Interface()
+		}
+	}
+	return out
+}
+
 func checkSchema[T store.Schema](t *testing.T) {
 	var zero T
 	table := zero.TableName()
@@ -99,15 +119,8 @@ func checkSchema[T store.Schema](t *testing.T) {
 		// except legacy uploaded_at values, which are rewritten in
 		// Ecto's current format.
 		for _, rec := range recs {
-			cs := store.Change(rec, nil)
-			for _, c := range want {
-				cs.Changes[c] = cs.GetField(c)
-			}
-			set := map[string]any{}
-			for c, v := range cs.Changes {
-				set[c] = v
-			}
-			id := cs.GetField("id")
+			set := structColumns(rec)
+			id := set["id"]
 			if _, err := store.Exec(ctx, d, store.SQ.Update(table).SetMap(set).Where(sq.Eq{"id": id})); err != nil {
 				t.Fatalf("write back %s %v: %v", table, id, err)
 			}

@@ -25,29 +25,41 @@ func randInt(max int) int {
 	return rand.Intn(max)
 }
 
-// SourceFixture creates a Source with sensible defaults, merging in attrs.
-func SourceFixture(t testing.TB, ts *TestStore, attrs store.Attrs) *store.Source {
+// SourceFixture creates a Source with sensible defaults for whatever p
+// leaves unset.
+func SourceFixture(t testing.TB, ts *TestStore, p store.SourceParams) *store.Source {
 	t.Helper()
-	defaults := store.Attrs{
-		"enabled":                 true,
-		"collection_name":         "Source #" + strconv.Itoa(randInt(1000000)+1),
-		"collection_id":           randBase64(12),
-		"collection_type":         "channel",
-		"custom_name":             "Cool and good internal name!",
-		"description":             "This is a description",
-		"original_url":            "https://www.youtube.com/@" + randBase64(12),
-		"media_profile_id":        MediaProfileFixture(t, ts, store.MediaProfileParams{}).ID,
-		"index_frequency_minutes": 60,
+	if p.Enabled == nil {
+		p.Enabled = store.Ptr(true)
 	}
-
-	// Merge attrs into defaults
-	for k, v := range attrs {
-		defaults[k] = v
+	if p.CollectionName == nil {
+		p.CollectionName = store.Ptr("Source #" + strconv.Itoa(randInt(1000000)+1))
+	}
+	if p.CollectionID == nil {
+		p.CollectionID = store.Ptr(randBase64(12))
+	}
+	if p.CollectionType == nil {
+		p.CollectionType = store.Ptr(store.SourceCollectionTypeChannel)
+	}
+	if p.CustomName == nil {
+		p.CustomName = store.Ptr("Cool and good internal name!")
+	}
+	if p.Description == nil {
+		p.Description = store.Ptr("This is a description")
+	}
+	if p.OriginalURL == nil {
+		p.OriginalURL = store.Ptr("https://www.youtube.com/@" + randBase64(12))
+	}
+	if p.MediaProfileID == nil && p.Clear&store.ClearMediaProfileID == 0 {
+		p.MediaProfileID = store.Ptr(MediaProfileFixture(t, ts, store.MediaProfileParams{}).ID)
+	}
+	if p.IndexFrequencyMinutes == nil && p.Clear&store.ClearIndexFrequencyMinutes == 0 {
+		p.IndexFrequencyMinutes = store.Ptr(60)
 	}
 
 	// Like Elixir: a pre_insert insert, not
 	// Sources.create_source (which would kick off indexing jobs).
-	source, errs, err := ts.CreateSource(ts.Ctx, store.ParseSourceParams(defaults))
+	source, errs, err := ts.CreateSource(ts.Ctx, p)
 	if err != nil || len(errs) > 0 {
 		t.Fatalf("SourceFixture: %v %v", err, errs)
 	}
@@ -101,7 +113,7 @@ func SourceAttributesReturnFixture() string {
 }
 
 // SourceDetailsReturnFixture returns the JSON string for source details.
-func SourceDetailsReturnFixture(attrs store.Attrs) string {
+func SourceDetailsReturnFixture(attrs map[string]any) string {
 	channelID := randBase64(12)
 
 	defaults := map[string]any{

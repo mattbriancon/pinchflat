@@ -20,7 +20,7 @@ import (
 // SlowIndexingHelpers provides methods for performing slow indexing tasks.
 
 // SlowIndexingHelpersKickoffIndexingTask/3
-func (a *App) SlowIndexingHelpersKickoffIndexingTask(ctx context.Context, source *store.Source, jobArgs store.Attrs) (*store.Task, error) {
+func (a *App) SlowIndexingHelpersKickoffIndexingTask(ctx context.Context, source *store.Source, jobArgs map[string]any) (*store.Task, error) {
 	jobOffsetSeconds := 0
 	force := false
 	if jobArgs != nil {
@@ -39,7 +39,7 @@ func (a *App) SlowIndexingHelpersKickoffIndexingTask(ctx context.Context, source
 	}
 
 	// Prepare job arguments
-	args := store.Attrs{"id": source.ID}
+	args := map[string]any{"id": source.ID}
 	if jobArgs != nil {
 		for k, v := range jobArgs {
 			args[k] = v
@@ -90,12 +90,8 @@ func (a *App) SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx contex
 	for _, mediaAttrs := range mediaAttributes {
 		mediaItem, err := a.UpsertMediaItemFromYtDlp(ctx, source, mediaAttrs)
 		if err != nil {
-			// Return changeset errors
-			if csErr, ok := err.(*store.ChangesetError); ok {
-				result = append(result, csErr.Changeset)
-			} else {
-				result = append(result, err)
-			}
+			// Return validation errors, like any other error
+			result = append(result, err)
 		} else {
 			result = append(result, mediaItem)
 		}

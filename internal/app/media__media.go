@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
@@ -125,4 +127,19 @@ func (a *App) mediaDeleteInternalMetadataFiles(ctx context.Context, mediaItem *s
 		_ = fsutil.DeleteFileAndRemoveEmptyDirs(path)
 	}
 	return nil
+}
+
+// ComputeAndSaveMediaFilesize fetches the on-disk size of a media item's
+// file and saves it to the database.
+func (a *App) ComputeAndSaveMediaFilesize(ctx context.Context, mediaItem *store.MediaItem) (*store.MediaItem, error) {
+	if mediaItem.MediaFilepath == nil {
+		return nil, fmt.Errorf("media_filepath is nil")
+	}
+
+	stat, err := os.Stat(*mediaItem.MediaFilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return a.UpdateMediaItem(ctx, mediaItem, store.MediaItemParams{MediaSizeBytes: store.Ptr(stat.Size())})
 }

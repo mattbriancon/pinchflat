@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
 
@@ -71,53 +72,6 @@ const (
 	ClearFilepaths = ClearMediaFilepath | ClearThumbnailFilepath | ClearMetadataFilepath | ClearNfoFilepath
 )
 
-// mediaItemColumn is one submitted column: its name and its value (nil for
-// NULL).
-type mediaItemColumn struct {
-	name string
-	val  any
-}
-
-func mediaItemCol[T any](cols []mediaItemColumn, name string, v *T, clear bool) []mediaItemColumn {
-	switch {
-	case clear:
-		return append(cols, mediaItemColumn{name, nil})
-	case v != nil:
-		return append(cols, mediaItemColumn{name, *v})
-	}
-	return cols
-}
-
-// columns lists the submitted columns in the order the changeset applies them.
-func (p MediaItemParams) columns() []mediaItemColumn {
-	var c []mediaItemColumn
-	c = mediaItemCol(c, "playlist_index", p.PlaylistIndex, false)
-	c = mediaItemCol(c, "title", p.Title, p.Clear&ClearTitle != 0)
-	c = mediaItemCol(c, "media_id", p.MediaID, false)
-	c = mediaItemCol(c, "description", p.Description, p.Clear&ClearDescription != 0)
-	c = mediaItemCol(c, "original_url", p.OriginalURL, false)
-	c = mediaItemCol(c, "livestream", p.Livestream, p.Clear&ClearLivestream != 0)
-	c = mediaItemCol(c, "source_id", p.SourceID, false)
-	c = mediaItemCol(c, "short_form_content", p.ShortFormContent, p.Clear&ClearShortFormContent != 0)
-	c = mediaItemCol(c, "uploaded_at", p.UploadedAt, p.Clear&ClearUploadedAt != 0)
-	c = mediaItemCol(c, "upload_date_index", p.UploadDateIndex, false)
-	c = mediaItemCol(c, "duration_seconds", p.DurationSeconds, false)
-	c = mediaItemCol(c, "predicted_media_filepath", p.PredictedMediaFilepath, false)
-	c = mediaItemCol(c, "media_downloaded_at", p.MediaDownloadedAt, false)
-	c = mediaItemCol(c, "media_filepath", p.MediaFilepath, p.Clear&ClearMediaFilepath != 0)
-	c = mediaItemCol(c, "media_size_bytes", p.MediaSizeBytes, false)
-	c = mediaItemCol(c, "subtitle_filepaths", p.SubtitleFilepaths, false)
-	c = mediaItemCol(c, "thumbnail_filepath", p.ThumbnailFilepath, p.Clear&ClearThumbnailFilepath != 0)
-	c = mediaItemCol(c, "metadata_filepath", p.MetadataFilepath, p.Clear&ClearMetadataFilepath != 0)
-	c = mediaItemCol(c, "nfo_filepath", p.NfoFilepath, p.Clear&ClearNfoFilepath != 0)
-	c = mediaItemCol(c, "last_error", p.LastError, p.Clear&ClearLastError != 0)
-	c = mediaItemCol(c, "prevent_download", p.PreventDownload, false)
-	c = mediaItemCol(c, "prevent_culling", p.PreventCulling, p.Clear&ClearPreventCulling != 0)
-	c = mediaItemCol(c, "culled_at", p.CulledAt, p.Clear&ClearCulledAt != 0)
-	c = mediaItemCol(c, "media_redownloaded_at", p.MediaRedownloadedAt, false)
-	return c
-}
-
 // MediaMetadataParams is the input for a media item's metadata row. Both
 // filepaths are required once the row exists.
 type MediaMetadataParams struct {
@@ -125,70 +79,33 @@ type MediaMetadataParams struct {
 	ThumbnailFilepath *string
 }
 
-// ParseMediaItemParams reads the fields a media item form can submit from
-// values (keyed by bare field name; the last value wins, like Plug). Blank
-// strings are stored as NULL and blank booleans as false, except where the
-// column is nullable or required, which Validate then reports. Unparseable
-// booleans are reported in the returned error map.
-func ParseMediaItemParams(values url.Values) (MediaItemParams, map[string][]string) {
+// ParseMediaItemParams reads the media_item[...] fields a media item form can
+// submit. Blank strings are stored as NULL and blank booleans as false, except
+// where the column is nullable or required, which Validate then reports.
+// Unparseable booleans are reported in the returned error map.
+func ParseMediaItemParams(form url.Values) (MediaItemParams, map[string][]string) {
 	var p MediaItemParams
-	errs := map[string][]string{}
+	f := newFormReader(form, "media_item")
 
-	last := func(field string) (string, bool) {
-		vals := values[field]
-		if len(vals) == 0 {
-			return "", false
-		}
-		return vals[len(vals)-1], true
-	}
-	for field, dst := range map[string]**string{
-		"title": &p.Title, "description": &p.Description, "media_id": &p.MediaID,
-		"original_url": &p.OriginalURL, "media_filepath": &p.MediaFilepath,
-		"thumbnail_filepath": &p.ThumbnailFilepath, "metadata_filepath": &p.MetadataFilepath,
-		"nfo_filepath": &p.NfoFilepath, "predicted_media_filepath": &p.PredictedMediaFilepath,
-		"last_error": &p.LastError,
-	} {
-		if raw, ok := last(field); ok {
-			*dst = &raw
-		}
-	}
-	for field, b := range map[string]struct {
-		dst   **bool
-		clear MediaItemClear
-	}{
-		"livestream":         {&p.Livestream, ClearLivestream},
-		"short_form_content": {&p.ShortFormContent, ClearShortFormContent},
-		"prevent_download":   {&p.PreventDownload, 0},
-		"prevent_culling":    {&p.PreventCulling, ClearPreventCulling},
-	} {
-		raw, ok := last(field)
-		if !ok {
-			continue
-		}
-		switch strings.ToLower(raw) {
-		case "true", "1", "on":
-			*b.dst = Ptr(true)
-		case "false", "0", "off":
-			*b.dst = Ptr(false)
-		default:
-			if strings.TrimSpace(raw) != "" {
-				errs[field] = append(errs[field], "is invalid")
-			} else if b.clear != 0 {
-				p.Clear |= b.clear
-			} else {
-				*b.dst = Ptr(false)
-			}
-		}
-	}
-	return p, errs
-}
+	f.str("title", &p.Title)
+	f.str("description", &p.Description)
+	f.str("media_id", &p.MediaID)
+	f.str("original_url", &p.OriginalURL)
+	f.str("media_filepath", &p.MediaFilepath)
+	f.str("thumbnail_filepath", &p.ThumbnailFilepath)
+	f.str("metadata_filepath", &p.MetadataFilepath)
+	f.str("nfo_filepath", &p.NfoFilepath)
+	f.str("predicted_media_filepath", &p.PredictedMediaFilepath)
+	f.str("last_error", &p.LastError)
 
-// castString mirrors how a submitted string is stored: blank becomes NULL.
-func castString(s *string) *string {
-	if s == nil || strings.TrimSpace(*s) == "" {
-		return nil
-	}
-	return s
+	b, st := f.boolean("livestream")
+	setOrClear(&p.Livestream, b, st, &p.Clear, ClearLivestream)
+	b, st = f.boolean("short_form_content")
+	setOrClear(&p.ShortFormContent, b, st, &p.Clear, ClearShortFormContent)
+	b, st = f.boolean("prevent_culling")
+	setOrClear(&p.PreventCulling, b, st, &p.Clear, ClearPreventCulling)
+	f.boolOrFalse("prevent_download", &p.PreventDownload)
+	return p, f.errs
 }
 
 const blank = "can't be blank"
@@ -221,7 +138,7 @@ func (p MediaItemParams) validate(existing *MediaItem) map[string][]string {
 	// uploaded_at) only fail when explicitly cleared.
 	title := existing.Title
 	if p.Title != nil {
-		title = castString(p.Title)
+		title = p.Title
 	}
 	if p.Clear&ClearTitle != 0 {
 		title = nil
@@ -252,8 +169,8 @@ func (p MediaItemParams) validate(existing *MediaItem) map[string][]string {
 
 	// Titles starting with "youtube video #" indicate a restriction by
 	// YouTube (see issue #549). Only a changed title is checked.
-	if p.Title != nil && p.Clear&ClearTitle == 0 {
-		if t := castString(p.Title); t != nil && !equalValues(existing.Title, *t) && strings.HasPrefix(*t, "youtube video #") {
+	if p.Title != nil && p.Clear&ClearTitle == 0 && !isBlank(*p.Title) {
+		if t := *p.Title; (existing.Title == nil || *existing.Title != t) && strings.HasPrefix(t, "youtube video #") {
 			add("title", "has invalid format")
 		}
 	}
@@ -284,100 +201,107 @@ func (p *MediaMetadataParams) validate(existing *MediaMetadata) map[string][]str
 	return errs
 }
 
-// putIfChanged records v as field's new value unless it equals the current one.
-func putIfChanged(cs *Changeset, field string, v any) {
-	cv, err := castValue(cs.fields[field], v)
+// apply returns a copy of existing with p applied and the columns that
+// changed. A missing uuid is generated.
+func (p MediaItemParams) apply(existing *MediaItem) (*MediaItem, changes) {
+	next := *existing
+	c := changes{}
+	clear := func(flag MediaItemClear) bool { return p.Clear&flag != 0 }
+
+	setValue(c, "playlist_index", &next.PlaylistIndex, p.PlaylistIndex)
+	setString(c, "media_id", &next.MediaID, p.MediaID)
+	setString(c, "original_url", &next.OriginalURL, p.OriginalURL)
+	setValue(c, "livestream", &next.Livestream, p.Livestream)
+	setValue(c, "source_id", &next.SourceID, p.SourceID)
+	setValue(c, "short_form_content", &next.ShortFormContent, p.ShortFormContent)
+	setTime(c, "uploaded_at", &next.UploadedAt, p.UploadedAt)
+	setValue(c, "upload_date_index", &next.UploadDateIndex, p.UploadDateIndex)
+	setValue(c, "prevent_download", &next.PreventDownload, p.PreventDownload)
+	if p.SubtitleFilepaths != nil && !reflect.DeepEqual(next.SubtitleFilepaths, *p.SubtitleFilepaths) {
+		c["subtitle_filepaths"] = true
+		next.SubtitleFilepaths = *p.SubtitleFilepaths
+	}
+
+	setNullableString(c, "title", &next.Title, p.Title, clear(ClearTitle))
+	setNullableString(c, "description", &next.Description, p.Description, clear(ClearDescription))
+	setNullableString(c, "predicted_media_filepath", &next.PredictedMediaFilepath, p.PredictedMediaFilepath, false)
+	setNullableString(c, "media_filepath", &next.MediaFilepath, p.MediaFilepath, clear(ClearMediaFilepath))
+	setNullableString(c, "thumbnail_filepath", &next.ThumbnailFilepath, p.ThumbnailFilepath, clear(ClearThumbnailFilepath))
+	setNullableString(c, "metadata_filepath", &next.MetadataFilepath, p.MetadataFilepath, clear(ClearMetadataFilepath))
+	setNullableString(c, "nfo_filepath", &next.NfoFilepath, p.NfoFilepath, clear(ClearNfoFilepath))
+	setNullableString(c, "last_error", &next.LastError, p.LastError, clear(ClearLastError))
+	setNullable(c, "duration_seconds", &next.DurationSeconds, p.DurationSeconds, false)
+	setNullable(c, "media_size_bytes", &next.MediaSizeBytes, p.MediaSizeBytes, false)
+	setNullable(c, "prevent_culling", &next.PreventCulling, p.PreventCulling, clear(ClearPreventCulling))
+	setNullableTime(c, "media_downloaded_at", &next.MediaDownloadedAt, p.MediaDownloadedAt, false)
+	setNullableTime(c, "culled_at", &next.CulledAt, p.CulledAt, clear(ClearCulledAt))
+	setNullableTime(c, "media_redownloaded_at", &next.MediaRedownloadedAt, p.MediaRedownloadedAt, false)
+
+	if next.UUID == nil {
+		next.UUID = Ptr(GenerateUUID())
+		c["uuid"] = true
+	}
+	return &next, c
+}
+
+// apply returns a copy of existing (nil for a new row) with p applied and the
+// columns that changed.
+func (p *MediaMetadataParams) apply(existing *MediaMetadata) (*MediaMetadata, changes) {
+	if existing == nil {
+		existing = NewMediaMetadata()
+	}
+	next := *existing
+	c := changes{}
+	setString(c, "metadata_filepath", &next.MetadataFilepath, p.MetadataFilepath)
+	setString(c, "thumbnail_filepath", &next.ThumbnailFilepath, p.ThumbnailFilepath)
+	return &next, c
+}
+
+// prepareMediaItem applies p to existing and validates the result. It returns
+// the new record and its changed columns; invalid params come back as
+// ValidationErrors.
+func (s *Store) prepareMediaItem(ctx context.Context, existing *MediaItem, p MediaItemParams) (*MediaItem, changes, error) {
+	next, c := p.apply(existing)
+	if err := s.setUploadDateIndex(ctx, existing, next, c); err != nil {
+		return nil, nil, err
+	}
+	if errs := p.Validate(existing); len(errs) > 0 {
+		return nil, nil, ValidationErrors(errs)
+	}
+	return next, c, nil
+}
+
+// saveMediaMetadata inserts or updates the media item's metadata row and
+// points parent.Metadata at it.
+func (s *Store) saveMediaMetadata(ctx context.Context, parent *MediaItem, p *MediaMetadataParams, current *MediaMetadata) error {
+	rec, c := p.apply(current)
+	rec.MediaItemID = parent.ID
+	var err error
+	if rec.ID == 0 {
+		err = Insert(ctx, s.Q(ctx), rec)
+	} else {
+		err = Update(ctx, s.Q(ctx), rec, c.list()...)
+	}
 	if err != nil {
-		cs.AddError(field, "is invalid", map[string]any{"validation": "cast"})
-		return
+		return err
 	}
-	if equalValues(cs.dataValue(field), cv) {
-		return
-	}
-	cs.Changes[field] = cv
-}
-
-// mediaItemChangeset applies p to mediaItem the way Insert and Update expect:
-// changed columns, the metadata row, the generated uuid and upload_date_index,
-// and p's validation errors.
-func (s *Store) mediaItemChangeset(ctx context.Context, mediaItem *MediaItem, p MediaItemParams) (*Changeset, error) {
-	cs := Change(mediaItem, nil)
-	for _, c := range p.columns() {
-		putIfChanged(cs, c.name, c.val)
-	}
-
-	if p.Metadata != nil {
-		md := mediaItem.Metadata
-		if md == nil {
-			md = NewMediaMetadata()
-		}
-		child := Change(md, nil)
-		if p.Metadata.MetadataFilepath != nil {
-			putIfChanged(child, "metadata_filepath", *p.Metadata.MetadataFilepath)
-		}
-		if p.Metadata.ThumbnailFilepath != nil {
-			putIfChanged(child, "thumbnail_filepath", *p.Metadata.ThumbnailFilepath)
-		}
-		for field, msgs := range p.Metadata.validate(mediaItem.Metadata) {
-			for _, m := range msgs {
-				child.AddError(field, m, map[string]any{"validation": "required"})
-			}
-		}
-		child.UniqueConstraint([]string{"media_item_id"}, "media_item_id")
-		cs.assocs = map[string]*Changeset{"metadata": child}
-	}
-
-	cs.DynamicDefault("uuid", func(*Changeset) any { return GenerateUUID() })
-	if err := mediaItemUpdateUploadDateIndex(ctx, s, cs); err != nil {
-		return nil, err
-	}
-	for field, msgs := range p.validate(mediaItem) {
-		for _, m := range msgs {
-			cs.AddError(field, m)
-		}
-	}
-	cs.UniqueConstraint([]string{"media_id", "source_id"}, "")
-	return cs, nil
-}
-
-// mediaItemUpdateUploadDateIndex computes upload_date_index. Run it on new
-// records no matter what. The method we delegate to will handle the case where
-// `uploaded_at` is unchanged.
-func mediaItemUpdateUploadDateIndex(ctx context.Context, s *Store, cs *Changeset) error {
-	data, _ := cs.Data.(*MediaItem)
-	if data != nil && data.ID == 0 {
-		return mediaItemDoUpdateUploadDateIndex(ctx, s, cs)
-	}
-
-	// For the update case, we only want to recalculate if the day itself has
-	// changed. For instance, this is useful in the migration from
-	// `upload_date` to `uploaded_at`.
-	if cs.HasChange("uploaded_at") {
-		if newUploadedAt, ok := cs.GetChange("uploaded_at").(db.UTCDateTime); ok && mediaItemSameDate(data.UploadedAt.Time, newUploadedAt.Time) {
-			return nil
-		}
-		return mediaItemDoUpdateUploadDateIndex(ctx, s, cs)
-	}
-
-	// If the record is persisted and the `uploaded_at` field is not being
-	// changed, we don't need to recalculate the index.
+	parent.Metadata = rec
 	return nil
 }
 
-func mediaItemSameDate(a, b time.Time) bool {
-	ay, am, ad := a.UTC().Date()
-	by, bm, bd := b.UTC().Date()
-	return ay == by && am == bm && ad == bd
-}
-
-func mediaItemDoUpdateUploadDateIndex(ctx context.Context, s *Store, cs *Changeset) error {
-	uploadedAt, ok := cs.GetChange("uploaded_at").(db.UTCDateTime)
-	if !ok {
+// setUploadDateIndex computes upload_date_index for next when uploaded_at
+// changed. New records are always computed; for an update we only want to
+// recalculate if the day itself has changed. For instance, this is useful in
+// the migration from `upload_date` to `uploaded_at`.
+func (s *Store) setUploadDateIndex(ctx context.Context, existing, next *MediaItem, c changes) error {
+	if !c["uploaded_at"] {
+		return nil
+	}
+	if existing.ID != 0 && mediaItemSameDate(existing.UploadedAt.Time, next.UploadedAt.Time) {
 		return nil
 	}
 
-	sourceID, _ := cs.GetField("source_id").(int64)
-	source, err := MustOne[Source](ctx, s.Q(ctx), From[Source]().Where(sq.Eq{"sources.id": sourceID}))
+	source, err := MustOne[Source](ctx, s.Q(ctx), From[Source]().Where(sq.Eq{"sources.id": next.SourceID}))
 	if err != nil {
 		return err
 	}
@@ -394,7 +318,7 @@ func mediaItemDoUpdateUploadDateIndex(ctx context.Context, s *Store, cs *Changes
 		changeDirection = -1
 	}
 	q := MediaQueryNew().
-		Where(sq.And{MediaQueryUploadDateMatches(uploadedAt.Time), MediaQueryForSource(source.ID)}).
+		Where(sq.And{MediaQueryUploadDateMatches(next.UploadedAt.Time), MediaQueryForSource(source.ID)}).
 		Map(func(b sq.SelectBuilder) sq.SelectBuilder {
 			return b.RemoveColumns().Column(aggregator + "(mi.upload_date_index) AS agg")
 		})
@@ -404,10 +328,16 @@ func mediaItemDoUpdateUploadDateIndex(ctx context.Context, s *Store, cs *Changes
 		return err
 	}
 
-	if !currentMax.Valid {
-		cs.PutChange("upload_date_index", defaultIndex)
-	} else {
-		cs.PutChange("upload_date_index", int(currentMax.Int64)+changeDirection)
+	index := defaultIndex
+	if currentMax.Valid {
+		index = int(currentMax.Int64) + changeDirection
 	}
+	setValue(c, "upload_date_index", &next.UploadDateIndex, &index)
 	return nil
+}
+
+func mediaItemSameDate(a, b time.Time) bool {
+	ay, am, ad := a.UTC().Date()
+	by, bm, bd := b.UTC().Date()
+	return ay == by && am == bm && ad == bd
 }

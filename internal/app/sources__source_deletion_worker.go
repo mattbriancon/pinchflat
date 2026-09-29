@@ -15,7 +15,7 @@ var sourceDeletionWorkerOpts = obanlite.WorkerOpts{
 }
 
 // SourceDeletionWorker.kickoff/1, kickoff/2, kickoff/3
-func (a *App) SourceDeletionWorkerKickoff(ctx context.Context, source *store.Source, jobArgs store.Attrs) (*obanlite.Job, error) {
+func (a *App) SourceDeletionWorkerKickoff(ctx context.Context, source *store.Source, jobArgs map[string]any) (*obanlite.Job, error) {
 	// Build args: {id: source.id} merged with jobArgs
 	args := make(map[string]any)
 	args["id"] = source.ID

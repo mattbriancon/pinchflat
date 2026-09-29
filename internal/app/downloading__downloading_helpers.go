@@ -27,7 +27,7 @@ func (a *App) DownloadingHelpersEnqueuePendingDownloadTasks(ctx context.Context,
 	for _, mi := range mediaItems {
 		// Elixir uses Enum.each, which discards the return value of
 		// kickoff_with_task (including any {:error, ...}); mirror that here.
-		_, _ = a.MediaDownloadWorkerKickoffWithTask(ctx, mi, store.Attrs{}, priority)
+		_, _ = a.MediaDownloadWorkerKickoffWithTask(ctx, mi, map[string]any{}, priority)
 	}
 
 	return nil
@@ -66,7 +66,7 @@ func (a *App) DownloadingHelpersKickoffDownloadIfPending(ctx context.Context, me
 	if mediaItem.Source.DownloadMedia && isPending {
 		slog.Info(fmt.Sprintf("Kicking off download for media item #%d (%s)", mediaItem.ID, mediaItem.MediaID))
 
-		return a.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, priority)
+		return a.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{}, priority)
 	}
 
 	return nil, ErrShouldNotDownload
@@ -87,9 +87,9 @@ func (a *App) DownloadingHelpersKickoffRedownloadForExistingMedia(ctx context.Co
 
 	results := make([]interface{}, 0)
 	for _, mi := range mediaItems {
-		task, err := a.MediaDownloadWorkerKickoffWithTask(ctx, mi, store.Attrs{}, nil)
+		task, err := a.MediaDownloadWorkerKickoffWithTask(ctx, mi, map[string]any{}, nil)
 		if err != nil {
-			results = append(results, store.Attrs{"error": err})
+			results = append(results, map[string]any{"error": err})
 		} else {
 			results = append(results, task)
 		}

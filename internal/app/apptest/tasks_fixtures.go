@@ -6,35 +6,25 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-// TaskFixture creates a Task with sensible defaults, merging in attrs.
-func TaskFixture(t testing.TB, ta *TestApp, attrs store.Attrs) *store.Task {
+// TaskParams overrides the defaults of TaskFixture.
+type TaskParams struct {
+	JobID       *int64
+	SourceID    *int64
+	MediaItemID *int64
+}
+
+// TaskFixture creates a Task with sensible defaults for whatever p leaves
+// unset: a new job, and a new source.
+func TaskFixture(t testing.TB, ta *TestApp, p TaskParams) *store.Task {
 	t.Helper()
-	sourceID := int64(SourceFixture(t, ta, store.Attrs{}).ID)
-	jobID := int64(JobFixture(t, ta).ID)
-
-	// Check if attrs override defaults
-	if v, ok := attrs["job_id"]; ok {
-		jobID = v.(int64)
+	if p.JobID == nil {
+		p.JobID = store.Ptr(int64(JobFixture(t, ta).ID))
+	}
+	if p.SourceID == nil {
+		p.SourceID = store.Ptr(SourceFixture(t, ta, store.SourceParams{}).ID)
 	}
 
-	var finalSourceID, finalMediaItemID *int64
-	if v, ok := attrs["source_id"]; ok {
-		if id, ok := v.(int64); ok {
-			finalSourceID = &id
-		} else {
-			finalSourceID = &sourceID
-		}
-	} else {
-		finalSourceID = &sourceID
-	}
-
-	if v, ok := attrs["media_item_id"]; ok {
-		if id, ok := v.(int64); ok {
-			finalMediaItemID = &id
-		}
-	}
-
-	task, err := ta.CreateTask(ta.Ctx, jobID, finalSourceID, finalMediaItemID)
+	task, err := ta.CreateTask(ta.Ctx, *p.JobID, p.SourceID, p.MediaItemID)
 	if err != nil {
 		t.Fatalf("TaskFixture: %v", err)
 	}

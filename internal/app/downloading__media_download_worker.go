@@ -28,9 +28,9 @@ var mediaDownloadWorkerOpts = obanlite.WorkerOpts{
 }
 
 // MediaDownloadWorkerKickoffWithTask/3. A nil priority keeps the worker default.
-func (a *App) MediaDownloadWorkerKickoffWithTask(ctx context.Context, mediaItem *store.MediaItem, jobArgs store.Attrs, priority *int) (*store.Task, error) {
+func (a *App) MediaDownloadWorkerKickoffWithTask(ctx context.Context, mediaItem *store.MediaItem, jobArgs map[string]any, priority *int) (*store.Task, error) {
 	// Build job args: start with {id: mediaItem.id} and merge jobArgs
-	args := store.Attrs{"id": mediaItem.ID}
+	args := map[string]any{"id": mediaItem.ID}
 	for k, v := range jobArgs {
 		args[k] = v
 	}
