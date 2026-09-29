@@ -3,7 +3,6 @@ package store
 import (
 	"net/url"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
@@ -42,131 +41,51 @@ type MediaProfileParams struct {
 	ClearRedownloadDelayDays bool
 }
 
-// mediaProfileBlank reports whether a submitted string counts as empty: like Ecto,
-// only leading whitespace is considered.
-func mediaProfileBlank(s string) bool {
-	return strings.TrimLeft(s, " \t\n\v\f\r\u0085 ") == ""
-}
-
-func mediaProfileParseBool(s string) (bool, bool) {
-	if mediaProfileBlank(s) {
-		return false, true
-	}
-	switch strings.ToLower(s) {
-	case "true", "1", "on":
-		return true, true
-	case "false", "0", "off":
-		return false, true
-	}
-	return false, false
-}
-
-func mediaProfileParseEnum[T ~string](s string, allowed ...T) (*T, bool) {
-	if mediaProfileBlank(s) {
-		v := T("")
-		return &v, true
-	}
-	for _, a := range allowed {
-		if string(a) == s {
-			return &a, true
-		}
-	}
-	return nil, false
-}
-
 // ParseMediaProfileParams reads the media_profile[...] fields of a submitted
 // form. The returned map has an "is invalid" message for each field that
 // could not be converted; those fields are left nil.
 func ParseMediaProfileParams(form url.Values) (MediaProfileParams, map[string][]string) {
 	var p MediaProfileParams
-	errs := map[string][]string{}
-	get := func(field string) (string, bool) {
-		vs := form["media_profile["+field+"]"]
-		if len(vs) == 0 {
-			return "", false
-		}
-		return vs[len(vs)-1], true
-	}
-	invalid := func(field string) { errs[field] = append(errs[field], "is invalid") }
-	str := func(field string, dst **string) {
-		if s, ok := get(field); ok {
-			if mediaProfileBlank(s) {
-				s = ""
-			}
-			*dst = &s
-		}
-	}
-	boolean := func(field string, dst **bool) {
-		if s, ok := get(field); ok {
-			if b, ok := mediaProfileParseBool(s); ok {
-				*dst = &b
-			} else {
-				invalid(field)
-			}
-		}
-	}
+	f := newFormReader(form, "media_profile")
 
-	str("name", &p.Name)
-	str("output_path_template", &p.OutputPathTemplate)
-	str("sub_langs", &p.SubLangs)
-	str("audio_track", &p.AudioTrack)
-	str("media_container", &p.MediaContainer)
-	boolean("download_subs", &p.DownloadSubs)
-	boolean("download_auto_subs", &p.DownloadAutoSubs)
-	boolean("embed_subs", &p.EmbedSubs)
-	boolean("download_thumbnail", &p.DownloadThumbnail)
-	boolean("embed_thumbnail", &p.EmbedThumbnail)
-	boolean("download_source_images", &p.DownloadSourceImages)
-	boolean("download_metadata", &p.DownloadMetadata)
-	boolean("embed_metadata", &p.EmbedMetadata)
-	boolean("download_nfo", &p.DownloadNfo)
+	f.str("name", &p.Name)
+	f.str("output_path_template", &p.OutputPathTemplate)
+	f.str("sub_langs", &p.SubLangs)
+	f.str("audio_track", &p.AudioTrack)
+	f.str("media_container", &p.MediaContainer)
+	f.boolOrFalse("download_subs", &p.DownloadSubs)
+	f.boolOrFalse("download_auto_subs", &p.DownloadAutoSubs)
+	f.boolOrFalse("embed_subs", &p.EmbedSubs)
+	f.boolOrFalse("download_thumbnail", &p.DownloadThumbnail)
+	f.boolOrFalse("embed_thumbnail", &p.EmbedThumbnail)
+	f.boolOrFalse("download_source_images", &p.DownloadSourceImages)
+	f.boolOrFalse("download_metadata", &p.DownloadMetadata)
+	f.boolOrFalse("embed_metadata", &p.EmbedMetadata)
+	f.boolOrFalse("download_nfo", &p.DownloadNfo)
 
-	if s, ok := get("sponsorblock_behaviour"); ok {
-		if v, ok := mediaProfileParseEnum(s, MediaProfileSponsorblockBehaviourDisabled, MediaProfileSponsorblockBehaviourMark, MediaProfileSponsorblockBehaviourRemove); ok {
-			p.SponsorblockBehaviour = v
-		} else {
-			invalid("sponsorblock_behaviour")
-		}
-	}
-	if s, ok := get("shorts_behaviour"); ok {
-		if v, ok := mediaProfileParseEnum(s, MediaProfileShortsBehaviourInclude, MediaProfileShortsBehaviourExclude, MediaProfileShortsBehaviourOnly); ok {
-			p.ShortsBehaviour = v
-		} else {
-			invalid("shorts_behaviour")
-		}
-	}
-	if s, ok := get("livestream_behaviour"); ok {
-		if v, ok := mediaProfileParseEnum(s, MediaProfileLivestreamBehaviourInclude, MediaProfileLivestreamBehaviourExclude, MediaProfileLivestreamBehaviourOnly); ok {
-			p.LivestreamBehaviour = v
-		} else {
-			invalid("livestream_behaviour")
-		}
-	}
-	if s, ok := get("preferred_resolution"); ok {
-		if v, ok := mediaProfileParseEnum(s,
-			MediaProfilePreferredResolution4320p, MediaProfilePreferredResolution2160p, MediaProfilePreferredResolution1440p,
-			MediaProfilePreferredResolution1080p, MediaProfilePreferredResolution720p, MediaProfilePreferredResolution480p,
-			MediaProfilePreferredResolution360p, MediaProfilePreferredResolutionAudio); ok {
-			p.PreferredResolution = v
-		} else {
-			invalid("preferred_resolution")
-		}
-	}
-	if s, ok := get("redownload_delay_days"); ok {
-		if mediaProfileBlank(s) {
-			p.ClearRedownloadDelayDays = true
-		} else if n, err := strconv.Atoi(strings.TrimSpace(s)); err == nil {
-			p.RedownloadDelayDays = &n
-		} else {
-			invalid("redownload_delay_days")
-		}
+	enumeration(f, "sponsorblock_behaviour", &p.SponsorblockBehaviour,
+		MediaProfileSponsorblockBehaviourDisabled, MediaProfileSponsorblockBehaviourMark, MediaProfileSponsorblockBehaviourRemove)
+	enumeration(f, "shorts_behaviour", &p.ShortsBehaviour,
+		MediaProfileShortsBehaviourInclude, MediaProfileShortsBehaviourExclude, MediaProfileShortsBehaviourOnly)
+	enumeration(f, "livestream_behaviour", &p.LivestreamBehaviour,
+		MediaProfileLivestreamBehaviourInclude, MediaProfileLivestreamBehaviourExclude, MediaProfileLivestreamBehaviourOnly)
+	enumeration(f, "preferred_resolution", &p.PreferredResolution,
+		MediaProfilePreferredResolution4320p, MediaProfilePreferredResolution2160p, MediaProfilePreferredResolution1440p,
+		MediaProfilePreferredResolution1080p, MediaProfilePreferredResolution720p, MediaProfilePreferredResolution480p,
+		MediaProfilePreferredResolution360p, MediaProfilePreferredResolutionAudio)
+
+	switch n, st := f.integer("redownload_delay_days"); st {
+	case fieldSet:
+		p.RedownloadDelayDays = &n
+	case fieldBlank:
+		p.ClearRedownloadDelayDays = true
 	}
 	if cats := form["media_profile[sponsorblock_categories][]"]; len(cats) > 0 {
 		p.SponsorblockCategories = &cats
-	} else if _, ok := get("sponsorblock_categories"); ok {
-		invalid("sponsorblock_categories")
+	} else if _, ok := f.get("sponsorblock_categories"); ok {
+		f.invalid("sponsorblock_categories")
 	}
-	return p, errs
+	return p, f.errs
 }
 
 // Validate returns the validation errors of applying p to existing (field

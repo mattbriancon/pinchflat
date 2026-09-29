@@ -272,8 +272,8 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailForCookieUsage(t *testing.
 			return "", nil
 		})
 
-		source := apptest.SourceFixture(t, ta, store.Attrs{
-			"cookie_behaviour": store.SourceCookieBehaviourAllOperations,
+		source := apptest.SourceFixture(t, ta, store.SourceParams{
+			CookieBehaviour: store.Ptr(store.SourceCookieBehaviour(store.SourceCookieBehaviourAllOperations)),
 		})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
@@ -298,8 +298,8 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailForCookieUsage(t *testing.
 			return "", nil
 		})
 
-		source := apptest.SourceFixture(t, ta, store.Attrs{
-			"cookie_behaviour": store.SourceCookieBehaviourWhenNeeded,
+		source := apptest.SourceFixture(t, ta, store.SourceParams{
+			CookieBehaviour: store.Ptr(store.SourceCookieBehaviour(store.SourceCookieBehaviourWhenNeeded)),
 		})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
@@ -324,8 +324,8 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailForCookieUsage(t *testing.
 			return "", nil
 		})
 
-		source := apptest.SourceFixture(t, ta, store.Attrs{
-			"cookie_behaviour": store.SourceCookieBehaviourDisabled,
+		source := apptest.SourceFixture(t, ta, store.SourceParams{
+			CookieBehaviour: store.Ptr(store.SourceCookieBehaviour(store.SourceCookieBehaviourDisabled)),
 		})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)

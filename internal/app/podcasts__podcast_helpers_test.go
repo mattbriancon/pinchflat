@@ -13,8 +13,8 @@ func TestPodcastHelpers_OpmlSources(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("returns sources not marked for deletion", func(t *testing.T) {
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		apptest.SourceFixture(t, ta, store.Attrs{"marked_for_deletion_at": apptest.Now()})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
+		apptest.SourceFixture(t, ta, store.SourceParams{MarkedForDeletionAt: store.Ptr(apptest.Now())})
 
 		found, err := ta.PodcastHelpersOpmlSources(ta.Ctx)
 		if err != nil {
@@ -38,7 +38,7 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("returns media items with files that exist on-disk", func(t *testing.T) {
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		goodMedia := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaFilepath: store.Ptr("/tmp/existing_file.mp3")})
 
@@ -56,7 +56,7 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 	})
 
 	t.Run("lets you specify a limit", func(t *testing.T) {
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 
 		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, 0)
@@ -70,7 +70,7 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 	})
 
 	t.Run("orders by upload date where newest is first", func(t *testing.T) {
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		oldest := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.NowMinus(2, "day"))})
 		current := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.Now())})
@@ -95,7 +95,7 @@ func TestPodcastHelpers_SelectCoverImage(t *testing.T) {
 	defer ta.App.DB.Close()
 
 	t.Run("returns a source's poster, if present", func(t *testing.T) {
-		source := apptest.SourceWithMetadataAttachmentsFixture(t, ta, store.Attrs{})
+		source := apptest.SourceWithMetadataAttachmentsFixture(t, ta, store.SourceParams{})
 
 		res, err := ta.PodcastHelpersSelectCoverImage(ta.Ctx, source, []*store.MediaItem{})
 		if err != nil {
@@ -108,7 +108,7 @@ func TestPodcastHelpers_SelectCoverImage(t *testing.T) {
 	})
 
 	t.Run("falls back to a source's fanart, if present", func(t *testing.T) {
-		source := apptest.SourceWithMetadataAttachmentsFixture(t, ta, store.Attrs{})
+		source := apptest.SourceWithMetadataAttachmentsFixture(t, ta, store.SourceParams{})
 
 		// Remove poster file
 		os.Remove(*source.Metadata.PosterFilepath)
@@ -124,7 +124,7 @@ func TestPodcastHelpers_SelectCoverImage(t *testing.T) {
 	})
 
 	t.Run("falls back to a media item's thumbnail, if present", func(t *testing.T) {
-		source := apptest.SourceWithMetadataAttachmentsFixture(t, ta, store.Attrs{})
+		source := apptest.SourceWithMetadataAttachmentsFixture(t, ta, store.SourceParams{})
 		mediaItem := apptest.MediaItemWithMetadataAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 
 		// Remove source image files
@@ -142,7 +142,7 @@ func TestPodcastHelpers_SelectCoverImage(t *testing.T) {
 	})
 
 	t.Run("returns error if no artwork can be found", func(t *testing.T) {
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		_, err := ta.PodcastHelpersSelectCoverImage(ta.Ctx, source, []*store.MediaItem{})
 		if err == nil {

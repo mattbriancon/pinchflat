@@ -24,19 +24,3 @@ func (Task) TableName() string { return "tasks" }
 func NewTask() *Task {
 	return &Task{}
 }
-
-var taskAllowedFields = []string{
-	"job_id",
-	"source_id",
-	"media_item_id",
-}
-
-var taskRequiredFields = []string{
-	"job_id",
-}
-
-// TaskChangeset/2
-func TaskChangeset(task *Task, attrs Attrs) *Changeset {
-	return Cast(task, attrs, taskAllowedFields).
-		ValidateRequired(taskRequiredFields...)
-}

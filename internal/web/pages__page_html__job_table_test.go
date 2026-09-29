@@ -18,9 +18,9 @@ import (
 // createMediaItemJob is create_media_item_job/1.
 func createMediaItemJob(t testing.TB, c *webtest.Client, jobState string) (*store.Source, *store.MediaItem, *store.Task) {
 	t.Helper()
-	source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+	source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 	mediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-	task, err := c.App.MediaDownloadWorkerKickoffWithTask(c.Ctx, mediaItem, store.Attrs{}, nil)
+	task, err := c.App.MediaDownloadWorkerKickoffWithTask(c.Ctx, mediaItem, map[string]any{}, nil)
 	if err != nil {
 		t.Fatalf("MediaDownloadWorkerKickoffWithTask: %v", err)
 	}
@@ -36,7 +36,7 @@ func createMediaItemJob(t testing.TB, c *webtest.Client, jobState string) (*stor
 // createSourceJob is create_source_job/1.
 func createSourceJob(t testing.TB, c *webtest.Client, jobState string) (*store.Source, *store.Task) {
 	t.Helper()
-	source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+	source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 	task, err := c.App.FastIndexingWorkerKickoffWithTask(c.Ctx, source, 0)
 	if err != nil {
 		t.Fatalf("FastIndexingWorkerKickoffWithTask: %v", err)

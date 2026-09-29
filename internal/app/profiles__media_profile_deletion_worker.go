@@ -15,7 +15,7 @@ var mediaProfileDeletionWorkerOpts = obanlite.WorkerOpts{
 }
 
 // MediaProfileDeletionWorker.kickoff/1, kickoff/2, kickoff/3
-func (a *App) MediaProfileDeletionWorkerKickoff(ctx context.Context, profile *store.MediaProfile, jobArgs store.Attrs) (*obanlite.Job, error) {
+func (a *App) MediaProfileDeletionWorkerKickoff(ctx context.Context, profile *store.MediaProfile, jobArgs map[string]any) (*obanlite.Job, error) {
 	// Build args: {id: profile.id} merged with jobArgs
 	args := make(map[string]any)
 	args["id"] = profile.ID

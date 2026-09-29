@@ -13,7 +13,7 @@ func TestOpmlFeedBuilder_Build(t *testing.T) {
 	ta := apptest.NewApp(t)
 	defer ta.App.DB.Close()
 
-	source := apptest.SourceFixture(t, ta, store.Attrs{})
+	source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 	t.Run("returns an XML document", func(t *testing.T) {
 		res := app.OpmlFeedBuilderBuild("http://example.com", []*store.Source{source})
@@ -24,7 +24,7 @@ func TestOpmlFeedBuilder_Build(t *testing.T) {
 	})
 
 	t.Run("escapes illegal characters", func(t *testing.T) {
-		source := apptest.SourceFixture(t, ta, store.Attrs{"custom_name": "A & B"})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{CustomName: store.Ptr("A & B")})
 		res := app.OpmlFeedBuilderBuild("http://example.com", []*store.Source{source})
 
 		if !strings.Contains(res, `A &amp; B`) {

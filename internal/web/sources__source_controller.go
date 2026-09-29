@@ -3,22 +3,36 @@ package web
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // sourceForm builds the source form: source's values, overlaid with the raw
-// submitted params when redisplaying after a failed submit.
-func sourceForm(source *store.Source, submitted store.Attrs, errs map[string][]string) *Form {
-	values := map[string]any{}
-	for _, f := range store.SourceFormFields() {
-		values[f] = store.SourceFieldValue(source, f)
+// submitted form when redisplaying after a failed submit.
+func sourceForm(source *store.Source, submitted url.Values, errs map[string][]string) *Form {
+	values := map[string]any{
+		"enabled":                       source.Enabled,
+		"custom_name":                   source.CustomName,
+		"original_url":                  source.OriginalURL,
+		"media_profile_id":              source.MediaProfileID,
+		"index_frequency_minutes":       source.IndexFrequencyMinutes,
+		"fast_index":                    source.FastIndex,
+		"download_media":                source.DownloadMedia,
+		"cookie_behaviour":              source.CookieBehaviour,
+		"download_cutoff_date":          source.DownloadCutoffDate,
+		"retention_period_days":         source.RetentionPeriodDays,
+		"min_duration_seconds":          source.MinDurationSeconds,
+		"max_duration_seconds":          source.MaxDurationSeconds,
+		"title_filter_regex":            source.TitleFilterRegex,
+		"output_path_template_override": source.OutputPathTemplateOverride,
 	}
-	for k, v := range submitted {
-		values[k] = v
+	for field := range values {
+		if vs := submitted["source["+field+"]"]; len(vs) > 0 {
+			values[field] = vs[len(vs)-1]
+		}
 	}
 	return NewForm("source", values, errs)
 }
@@ -69,14 +83,14 @@ func (s *Server) SourceControllerNew(w http.ResponseWriter, r *http.Request) {
 // SourceControllerCreate creates a new source.
 func (s *Server) SourceControllerCreate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	attrs := ParseForm(r, "source")
+	_ = r.ParseForm()
 
-	source, err := s.App.SourcesCreateSource(ctx, store.ParseSourceParams(attrs), true)
+	source, err := s.App.SourcesCreateSource(ctx, store.ParseSourceParams(r.PostForm), true)
 	if err != nil {
 		if errs, ok := store.AsValidationErrors(err); ok {
 			mediaProfiles, _ := s.App.ListMediaProfiles(ctx)
 			layout := OnboardingLayout(ctx)
-			s.Render(w, r, http.StatusOK, layout, SourceHTMLNew(sourceForm(store.NewSource(), attrs, errs), mediaProfiles))
+			s.Render(w, r, http.StatusOK, layout, SourceHTMLNew(sourceForm(store.NewSource(), r.PostForm, errs), mediaProfiles))
 			return
 		}
 		s.Fail(w, r, err)
@@ -148,14 +162,14 @@ func (s *Server) SourceControllerUpdate(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	attrs := ParseForm(r, "source")
+	_ = r.ParseForm()
 
-	updated, err := s.App.SourcesUpdateSource(ctx, source, store.ParseSourceParams(attrs), true)
+	updated, err := s.App.SourcesUpdateSource(ctx, source, store.ParseSourceParams(r.PostForm), true)
 	if err != nil {
 		if errs, ok := store.AsValidationErrors(err); ok {
 			// Re-render form with errors, passing the original loaded source
 			mediaProfiles, _ := s.App.ListMediaProfiles(ctx)
-			s.Render(w, r, http.StatusOK, LayoutApp, SourceHTMLEdit(source, sourceForm(source, attrs, errs), mediaProfiles))
+			s.Render(w, r, http.StatusOK, LayoutApp, SourceHTMLEdit(source, sourceForm(source, r.PostForm, errs), mediaProfiles))
 			return
 		}
 		s.Fail(w, r, err)
@@ -177,7 +191,7 @@ func (s *Server) SourceControllerDelete(w http.ResponseWriter, r *http.Request) 
 
 	// Mark for deletion
 	_, err := s.App.SourcesUpdateSource(ctx, source, store.SourceParams{
-		MarkedForDeletionAt: store.Ptr(db.UTCDateTime{Time: time.Now().UTC()}),
+		MarkedForDeletionAt: store.Ptr(time.Now().UTC()),
 	}, true)
 	if err != nil {
 		s.Fail(w, r, err)
@@ -185,7 +199,7 @@ func (s *Server) SourceControllerDelete(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Kickoff deletion worker
-	_, _ = s.App.SourceDeletionWorkerKickoff(ctx, source, store.Attrs{
+	_, _ = s.App.SourceDeletionWorkerKickoff(ctx, source, map[string]any{
 		"delete_files": deleteFiles,
 	})
 
@@ -227,7 +241,7 @@ func (s *Server) SourceControllerForceRedownload(w http.ResponseWriter, r *http.
 // SourceControllerForceIndex forces an indexing task.
 func (s *Server) SourceControllerForceIndex(w http.ResponseWriter, r *http.Request) {
 	s.sourceForceAction(w, r, "Index enqueued.", func(ctx context.Context, source *store.Source) error {
-		_, err := s.App.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{"force": true})
+		_, err := s.App.SlowIndexingHelpersKickoffIndexingTask(ctx, source, map[string]any{"force": true})
 		return err
 	})
 }

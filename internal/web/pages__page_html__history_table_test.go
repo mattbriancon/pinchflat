@@ -16,13 +16,13 @@ import (
 
 func downloadedMediaItem(t testing.TB, c *webtest.Client, customName string) *store.MediaItem {
 	t.Helper()
-	source := apptest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": customName})
+	source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{CustomName: store.Ptr(customName)})
 	return apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Title: store.Ptr(customName)})
 }
 
 func pendingMediaItem(t testing.TB, c *webtest.Client, customName string) *store.MediaItem {
 	t.Helper()
-	source := apptest.SourceFixture(t, c.TestApp, store.Attrs{"custom_name": customName})
+	source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{CustomName: store.Ptr(customName)})
 	return apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Title: store.Ptr(customName), Clear: store.ClearMediaFilepath})
 }
 

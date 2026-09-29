@@ -45,9 +45,9 @@ func TestSourceEnableToggle_InitialRendering(t *testing.T) {
 func TestSourceEnableToggle_Update(t *testing.T) {
 	t.Run("updates the source's enabled status and redirects to /sources by default", func(t *testing.T) {
 		c := webtest.New(t)
-		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{"enabled": true})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{Enabled: store.Ptr(true)})
 
-		res := c.Post(fmt.Sprintf("/sources/%d/enabled", source.ID), "source", store.Attrs{"enabled": false})
+		res := c.Post(fmt.Sprintf("/sources/%d/enabled", source.ID), "source", map[string]any{"enabled": false})
 
 		if res.Status != 303 {
 			t.Fatalf("expected a 303, got %d", res.Status)
@@ -67,7 +67,7 @@ func TestSourceEnableToggle_Update(t *testing.T) {
 
 	t.Run("redirects back to a same-origin Referer under BASE_ROUTE_PATH", func(t *testing.T) {
 		c := webtest.New(t)
-		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{"enabled": true})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{Enabled: store.Ptr(true)})
 
 		req := httptest.NewRequest("POST", fmt.Sprintf("/sources/%d/enabled", source.ID), strings.NewReader("source[enabled]=false"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -84,7 +84,7 @@ func TestSourceEnableToggle_Update(t *testing.T) {
 
 	t.Run("ignores a cross-origin Referer", func(t *testing.T) {
 		c := webtest.New(t)
-		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{"enabled": true})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{Enabled: store.Ptr(true)})
 
 		req := httptest.NewRequest("POST", fmt.Sprintf("/sources/%d/enabled", source.ID), strings.NewReader("source[enabled]=false"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")

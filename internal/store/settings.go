@@ -19,42 +19,10 @@ func (s *Store) UpdateSetting(ctx context.Context, setting *Setting, p SettingPa
 		return nil, errs, nil
 	}
 
-	// Build the Attrs map from non-nil params
-	attrs := Attrs{}
-	if p.Onboarding != nil {
-		attrs["onboarding"] = *p.Onboarding
-	}
-	if p.YtDlpVersion != nil {
-		attrs["yt_dlp_version"] = *p.YtDlpVersion
-	}
-	if p.VideoCodecPreference != nil {
-		attrs["video_codec_preference"] = *p.VideoCodecPreference
-	}
-	if p.AudioCodecPreference != nil {
-		attrs["audio_codec_preference"] = *p.AudioCodecPreference
-	}
-	if p.YoutubeAPIKey != nil {
-		attrs["youtube_api_key"] = *p.YoutubeAPIKey
-	}
-	if p.ExtractorSleepIntervalSeconds != nil {
-		attrs["extractor_sleep_interval_seconds"] = *p.ExtractorSleepIntervalSeconds
-	}
-	if p.DownloadThroughputLimit != nil {
-		attrs["download_throughput_limit"] = *p.DownloadThroughputLimit
-	}
-	if p.RestrictFilenames != nil {
-		attrs["restrict_filenames"] = *p.RestrictFilenames
-	}
-
-	cs := SettingChangeset(setting, attrs)
-	updated, err := Update[Setting](ctx, s.Q(ctx), cs)
-	if err != nil {
-		if cs, ok := AsChangesetError(err); ok {
-			return nil, cs.ErrorMap(), nil
-		}
+	updated, changed := p.apply(setting)
+	if err := Update(ctx, s.Q(ctx), updated, changed.list()...); err != nil {
 		return nil, nil, err
 	}
-
 	return updated, nil, nil
 }
 

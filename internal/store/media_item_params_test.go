@@ -78,17 +78,17 @@ func TestParseMediaItemParams(t *testing.T) {
 		wantErrors map[string][]string
 	}{
 		{"nothing submitted", url.Values{}, store.MediaItemParams{}, map[string][]string{}},
-		{"strings", url.Values{"title": {"a", "New Title"}, "description": {""}},
+		{"strings", url.Values{"media_item[title]": {"a", "New Title"}, "media_item[description]": {""}},
 			store.MediaItemParams{Title: store.Ptr("New Title"), Description: store.Ptr("")}, map[string][]string{}},
-		{"blank required booleans are cleared", url.Values{"livestream": {""}, "short_form_content": {" "}},
+		{"blank required booleans are cleared", url.Values{"media_item[livestream]": {""}, "media_item[short_form_content]": {" "}},
 			store.MediaItemParams{Clear: store.ClearLivestream | store.ClearShortFormContent}, map[string][]string{}},
-		{"toggles on and off", url.Values{"prevent_download": {"false", "on"}, "prevent_culling": {"false"}},
+		{"toggles on and off", url.Values{"media_item[prevent_download]": {"false", "on"}, "media_item[prevent_culling]": {"false"}},
 			store.MediaItemParams{PreventDownload: store.Ptr(true), PreventCulling: store.Ptr(false)}, map[string][]string{}},
-		{"blank prevent_download is false", url.Values{"prevent_download": {""}},
+		{"blank prevent_download is false", url.Values{"media_item[prevent_download]": {""}},
 			store.MediaItemParams{PreventDownload: store.Ptr(false)}, map[string][]string{}},
-		{"blank prevent_culling is NULL", url.Values{"prevent_culling": {" "}},
+		{"blank prevent_culling is NULL", url.Values{"media_item[prevent_culling]": {" "}},
 			store.MediaItemParams{Clear: store.ClearPreventCulling}, map[string][]string{}},
-		{"unparseable toggle", url.Values{"prevent_download": {"maybe"}},
+		{"unparseable toggle", url.Values{"media_item[prevent_download]": {"maybe"}},
 			store.MediaItemParams{}, map[string][]string{"prevent_download": {"is invalid"}}},
 	}
 	for _, tt := range tests {

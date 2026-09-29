@@ -40,7 +40,7 @@ func MediaItemFixture(t testing.TB, ts *TestStore, p store.MediaItemParams) *sto
 		p.MediaFilepath = store.Ptr("/video/" + randomVideoName())
 	}
 	if p.SourceID == nil {
-		p.SourceID = store.Ptr(SourceFixture(t, ts, store.Attrs{}).ID)
+		p.SourceID = store.Ptr(SourceFixture(t, ts, store.SourceParams{}).ID)
 	}
 	if p.UploadedAt == nil && p.Clear&store.ClearUploadedAt == 0 {
 		p.UploadedAt = store.Ptr(time.Now().UTC())

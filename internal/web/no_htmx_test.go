@@ -25,7 +25,7 @@ func TestNoHTMX(t *testing.T) {
 	if _, err := c.App.SetSetting(c.Ctx, "onboarding", false); err != nil {
 		t.Fatalf("SettingsSet: %v", err)
 	}
-	source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+	source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 	apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 	apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 

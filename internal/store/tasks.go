@@ -56,23 +56,13 @@ func (s *Store) GetTaskBang(ctx context.Context, id int64) (*Task, error) {
 	return task, nil
 }
 
-// CreateTask creates a task with typed parameters.
+// CreateTask creates a task for job and, optionally, a source or media item.
 func (s *Store) CreateTask(ctx context.Context, jobID int64, sourceID, mediaItemID *int64) (*Task, error) {
-	task := NewTask()
-	attrs := Attrs{"job_id": jobID}
-	if sourceID != nil {
-		attrs["source_id"] = *sourceID
-	}
-	if mediaItemID != nil {
-		attrs["media_item_id"] = *mediaItemID
-	}
-
-	cs := TaskChangeset(task, attrs)
-	t, err := Insert[Task](ctx, s.Q(ctx), cs)
-	if err != nil {
+	task := &Task{JobID: jobID, SourceID: sourceID, MediaItemID: mediaItemID}
+	if err := Insert(ctx, s.Q(ctx), task); err != nil {
 		return nil, err
 	}
-	return t, nil
+	return task, nil
 }
 
 // CreateTaskWithRecord creates a task attached to job and record.
@@ -145,9 +135,4 @@ func (s *Store) DeletePendingTasksFor(ctx context.Context, record any, workerNam
 	}
 
 	return s.DeleteTasksFor(ctx, record, workerName, jobStates)
-}
-
-// ChangeTask builds a changeset for task from attrs.
-func (s *Store) ChangeTask(ctx context.Context, task *Task, attrs Attrs) *Changeset {
-	return TaskChangeset(task, attrs)
 }

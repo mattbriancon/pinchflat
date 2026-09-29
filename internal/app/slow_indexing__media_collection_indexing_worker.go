@@ -23,9 +23,9 @@ var mediaCollectionIndexingWorkerOpts = obanlite.WorkerOpts{
 }
 
 // MediaCollectionIndexingWorkerKickoffWithTask/3
-func (a *App) MediaCollectionIndexingWorkerKickoffWithTask(ctx context.Context, source *store.Source, jobArgs store.Attrs) (*store.Task, error) {
+func (a *App) MediaCollectionIndexingWorkerKickoffWithTask(ctx context.Context, source *store.Source, jobArgs map[string]any) (*store.Task, error) {
 	// Build arguments
-	args := store.Attrs{"id": source.ID}
+	args := map[string]any{"id": source.ID}
 	if jobArgs != nil {
 		for k, v := range jobArgs {
 			args[k] = v
@@ -108,7 +108,7 @@ func mediaCollectionIndexingWorkerRescheduleIndexing(ctx context.Context, a *App
 
 	spec := obanlite.JobSpec{
 		Worker:     MediaCollectionIndexingWorkerName,
-		Args:       store.Attrs{"id": source.ID},
+		Args:       map[string]any{"id": source.ID},
 		ScheduleIn: nextRunIn,
 	}
 
@@ -137,7 +137,7 @@ func mediaCollectionIndexingWorkerMaybeEnqueueFastIndexingTask(ctx context.Conte
 
 	spec := obanlite.JobSpec{
 		Worker:     FastIndexingWorkerName,
-		Args:       store.Attrs{"id": source.ID},
+		Args:       map[string]any{"id": source.ID},
 		ScheduleIn: nextRunIn,
 	}
 

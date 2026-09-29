@@ -145,7 +145,7 @@ func applyDefaultSettings(ctx context.Context, a *App) error {
 // runAppInitScript/0
 // Elixir ignores the script's exit code, so a non-zero exit must not stop boot.
 func runAppInitScript(ctx context.Context, a *App) error {
-	err := a.UserScripts.Run(ctx, "app_init", store.Attrs{})
+	err := a.UserScripts.Run(ctx, "app_init", map[string]any{})
 	var cmdErr *cmdrun.Error
 	if errors.As(err, &cmdErr) {
 		slog.Warn("app_init user script exited non-zero", "status", cmdErr.Status)

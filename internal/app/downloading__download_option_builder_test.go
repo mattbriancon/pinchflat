@@ -15,7 +15,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingOutputOptions(t *testing.T) {
 	t.Run("it generates an expanded output path based on the given template", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -37,7 +37,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingOutputOptions(t *testing.T) {
 	t.Run("it respects custom output path options", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ source_custom_name }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -59,7 +59,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingOutputOptions(t *testing.T) {
 	t.Run("respects custom media_item-related output path options", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ media_upload_date_index }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -81,7 +81,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingOutputOptions(t *testing.T) {
 	t.Run("uses source's output override if present", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 		ta.App.SourcesUpdateSource(ta.Ctx, mediaItem.Source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, true)
@@ -107,7 +107,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingDefaultOptions(t *testing.T) {
 	t.Run("it includes default options", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -135,7 +135,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingDefaultOptions(t *testing.T) {
 	t.Run("includes override options if specified", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -161,7 +161,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 	t.Run("includes :write_subs option when specified", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSubs: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -182,7 +182,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 	t.Run("forces SRT format when download_subs is true", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSubs: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -204,8 +204,8 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile1 := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSubs: store.Ptr(true), DownloadAutoSubs: store.Ptr(true)})
 		mediaProfile2 := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedSubs: store.Ptr(true), DownloadAutoSubs: store.Ptr(true)})
-		source1 := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile1.ID})
-		source2 := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile2.ID})
+		source1 := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile1.ID)})
+		source2 := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile2.ID)})
 		mediaItem1 := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source1.ID)})
 		mediaItem2 := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source2.ID)})
 		mediaItem1, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem1)
@@ -236,7 +236,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 	t.Run("doesn't include :write_auto_subs option when download_subs and embed_subs is false", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSubs: store.Ptr(false), EmbedSubs: store.Ptr(false), DownloadAutoSubs: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -257,7 +257,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 	t.Run("includes :embed_subs option when specified", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedSubs: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -278,7 +278,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 	t.Run("doesn't include :embed_subs option when preferred_resolution is :audio", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedSubs: store.Ptr(true), PreferredResolution: store.Ptr(store.MediaProfilePreferredResolutionAudio)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -299,7 +299,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 	t.Run("includes sub_langs option when download_subs is true", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSubs: store.Ptr(true), SubLangs: store.Ptr("en")})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -320,7 +320,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 	t.Run("includes sub_langs option when embed_subs is true", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedSubs: store.Ptr(true), SubLangs: store.Ptr("en")})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -341,7 +341,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 	t.Run("doesn't include sub_langs option when neither downloading nor embedding", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedSubs: store.Ptr(false), DownloadSubs: store.Ptr(false), SubLangs: store.Ptr("en")})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -364,7 +364,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 	t.Run("includes :write_thumbnail option when specified", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadThumbnail: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -385,7 +385,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 	t.Run("appends -thumb to the thumbnail name when download_thumbnail is true", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadThumbnail: store.Ptr(true), OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -407,7 +407,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 	t.Run("appends -thumb to source's output path override, if present", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadThumbnail: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		ta.App.SourcesUpdateSource(ta.Ctx, source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, true)
 		source, _ = ta.App.PreloadSourceMediaProfile(ta.Ctx, source)
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
@@ -431,7 +431,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 	t.Run("converts thumbnail to jpg when download_thumbnail is true", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadThumbnail: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -452,7 +452,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 	t.Run("includes :embed_thumbnail option when specified", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedThumbnail: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -473,7 +473,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 	t.Run("convertes thumbnail to jpg when embed_thumbnail is true", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedThumbnail: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -494,7 +494,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 	t.Run("doesn't include these options when not specified", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedThumbnail: store.Ptr(false), DownloadThumbnail: store.Ptr(false)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -520,7 +520,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingMetadataOptions(t *testing.T) {
 	t.Run("includes :write_info_json option when specified", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadMetadata: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -544,7 +544,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingMetadataOptions(t *testing.T) {
 	t.Run("includes :embed_metadata option when specified", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedMetadata: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -565,7 +565,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingMetadataOptions(t *testing.T) {
 	t.Run("doesn't include these options when not specified", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedMetadata: store.Ptr(false), DownloadMetadata: store.Ptr(false)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -595,7 +595,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingMediaQualityAndFormatOptions(t *
 	t.Run("includes video options for video profiles", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -619,7 +619,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingMediaQualityAndFormatOptions(t *
 	t.Run("includes quality options for audio only", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{PreferredResolution: store.Ptr(store.MediaProfilePreferredResolutionAudio)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -652,7 +652,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSponsorblockOptions(t *testing.T
 			SponsorblockBehaviour:  store.Ptr(store.MediaProfileSponsorblockBehaviourRemove),
 			SponsorblockCategories: store.Ptr([]string{"sponsor", "intro"}),
 		})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -676,7 +676,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSponsorblockOptions(t *testing.T
 			SponsorblockBehaviour:  store.Ptr(store.MediaProfileSponsorblockBehaviourMark),
 			SponsorblockCategories: store.Ptr([]string{"sponsor", "intro"}),
 		})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -700,7 +700,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSponsorblockOptions(t *testing.T
 			SponsorblockBehaviour:  store.Ptr(store.MediaProfileSponsorblockBehaviourRemove),
 			SponsorblockCategories: store.Ptr([]string{}),
 		})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -721,7 +721,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSponsorblockOptions(t *testing.T
 	t.Run("does not include any sponsorblock options when disabled", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{SponsorblockBehaviour: store.Ptr(store.MediaProfileSponsorblockBehaviourDisabled)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -744,7 +744,7 @@ func TestDownloadOptionBuilder_BuildOutputPathFor(t *testing.T) {
 	t.Run("builds an output path for a media item", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -759,7 +759,7 @@ func TestDownloadOptionBuilder_BuildOutputPathFor(t *testing.T) {
 	t.Run("builds an output path for a source", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -774,7 +774,7 @@ func TestDownloadOptionBuilder_BuildOutputPathFor(t *testing.T) {
 	t.Run("uses source's output override if present", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 		updatedSource, _ := ta.App.SourcesUpdateSource(ta.Ctx, mediaItem.Source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, true)
@@ -792,7 +792,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 	newConfigMediaItem := func(t *testing.T, ta *apptest.TestApp) *store.MediaItem {
 		t.Helper()
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, err := ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 		if err != nil {

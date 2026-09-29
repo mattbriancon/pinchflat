@@ -29,7 +29,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 			t.Errorf("expected 0 enqueued jobs, got %d", len(enqueuedJobs))
 		}
 
-		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, nil)
+		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{}, nil)
 		if err != nil {
 			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
 		}
@@ -46,7 +46,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
-		task, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, nil)
+		task, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{}, nil)
 		if err != nil {
 			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
 		}
@@ -61,7 +61,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		ctx := ta.Ctx
 
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
-		jobArgs := store.Attrs{"force": true}
+		jobArgs := map[string]any{"force": true}
 
 		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, jobArgs, nil)
 		if err != nil {
@@ -77,7 +77,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
-		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, nil)
+		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{}, nil)
 		if err != nil {
 			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
 		}
@@ -100,7 +100,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		priority := 0
 
-		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, &priority)
+		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{}, &priority)
 		if err != nil {
 			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
 		}
@@ -493,7 +493,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return "{}", nil
 		})
 
-		source := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
@@ -608,7 +608,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingForcedDownloads(t *testing.T) {
 		ta := setup(t)
 		ctx := ta.Ctx
 
-		source := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		_, _ = ta.UpdateMediaItem(ctx, mediaItem, store.MediaItemParams{PreventDownload: store.Ptr(true)})
@@ -747,7 +747,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 			return "{}", nil
 		})
 
-		source := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaFilepath: store.Ptr("foo.mp4")})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})

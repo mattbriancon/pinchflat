@@ -18,7 +18,7 @@ func TestSourceMetadataStorageWorker_KickoffWithTask(t *testing.T) {
 	t.Run("enqueues a new worker for the source", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		if _, err := ta.SourceMetadataStorageWorkerKickoffWithTask(ta.Ctx, source); err != nil {
 			t.Errorf("SourceMetadataStorageWorkerKickoffWithTask failed: %v", err)
@@ -33,7 +33,7 @@ func TestSourceMetadataStorageWorker_KickoffWithTask(t *testing.T) {
 	t.Run("creates a new task for the source", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		task, err := ta.SourceMetadataStorageWorkerKickoffWithTask(ta.Ctx, source)
 		if err != nil {
@@ -52,11 +52,11 @@ func TestSourceMetadataStorageWorker_Perform(t *testing.T) {
 	t.Run("won't call itself in an infinite loop", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if action == "get_source_details" {
-				return apptest.SourceDetailsReturnFixture(store.Attrs{
+				return apptest.SourceDetailsReturnFixture(map[string]any{
 					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
 				}), nil
 			}
@@ -91,11 +91,11 @@ func TestSourceMetadataStorageWorker_PerformAttributeUpdates(t *testing.T) {
 	t.Run("the source description is saved", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"description": nil})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{Description: store.Ptr("")})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if action == "get_source_details" {
-				return apptest.SourceDetailsReturnFixture(store.Attrs{
+				return apptest.SourceDetailsReturnFixture(map[string]any{
 					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
 				}), nil
 			}
@@ -127,11 +127,11 @@ func TestSourceMetadataStorageWorker_PerformMetadataStorage(t *testing.T) {
 	t.Run("sets metadata location for source", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if action == "get_source_details" {
-				return apptest.SourceDetailsReturnFixture(store.Attrs{
+				return apptest.SourceDetailsReturnFixture(map[string]any{
 					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
 				}), nil
 			}
@@ -158,12 +158,12 @@ func TestSourceMetadataStorageWorker_PerformMetadataStorage(t *testing.T) {
 	t.Run("fetches and stores returned metadata for source", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		fileContents := `{"title": "test"}`
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if action == "get_source_details" {
-				return apptest.SourceDetailsReturnFixture(store.Attrs{
+				return apptest.SourceDetailsReturnFixture(map[string]any{
 					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
 				}), nil
 			}
@@ -191,11 +191,11 @@ func TestSourceMetadataStorageWorker_PerformMetadataStorage(t *testing.T) {
 	t.Run("sets metadata image location for source", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if action == "get_source_details" {
-				return apptest.SourceDetailsReturnFixture(store.Attrs{
+				return apptest.SourceDetailsReturnFixture(map[string]any{
 					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
 				}), nil
 			}
@@ -227,11 +227,11 @@ func TestSourceMetadataStorageWorker_PerformMetadataStorage(t *testing.T) {
 	t.Run("stores metadata images for source", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if action == "get_source_details" {
-				return apptest.SourceDetailsReturnFixture(store.Attrs{
+				return apptest.SourceDetailsReturnFixture(map[string]any{
 					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
 				}), nil
 			}
@@ -274,11 +274,11 @@ func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T)
 		t.Parallel()
 		ta := apptest.NewApp(t)
 		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSourceImages: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(profile.ID)})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if action == "get_source_details" {
-				return apptest.SourceDetailsReturnFixture(store.Attrs{
+				return apptest.SourceDetailsReturnFixture(map[string]any{
 					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
 				}), nil
 			}
@@ -339,11 +339,11 @@ func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T)
 				t.Parallel()
 				ta := apptest.NewApp(t)
 				profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSourceImages: store.Ptr(true)})
-				source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID, "collection_type": tt.collectionType})
+				source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(profile.ID), CollectionType: store.Ptr(store.SourceCollectionType(tt.collectionType))})
 
 				ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 					if action == "get_source_details" {
-						return apptest.SourceDetailsReturnFixture(store.Attrs{
+						return apptest.SourceDetailsReturnFixture(map[string]any{
 							"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
 						}), nil
 					}
@@ -370,11 +370,11 @@ func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T)
 		t.Parallel()
 		ta := apptest.NewApp(t)
 		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSourceImages: store.Ptr(false)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(profile.ID)})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if action == "get_source_details" {
-				return apptest.SourceDetailsReturnFixture(store.Attrs{
+				return apptest.SourceDetailsReturnFixture(map[string]any{
 					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
 				}), nil
 			}
@@ -404,11 +404,11 @@ func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T)
 		t.Parallel()
 		ta := apptest.NewApp(t)
 		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSourceImages: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(profile.ID)})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if action == "get_source_details" {
-				return apptest.SourceDetailsReturnFixture(store.Attrs{
+				return apptest.SourceDetailsReturnFixture(map[string]any{
 					"filename": filepath.Join(ta.Config.MediaDirectory, "foo", "bar.mp4"),
 				}), nil
 			}
@@ -451,7 +451,7 @@ func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T)
 				t.Parallel()
 				ta := apptest.NewApp(t)
 				profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSourceImages: store.Ptr(true)})
-				source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID, "cookie_behaviour": tt.cookieBehaviour})
+				source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(profile.ID), CookieBehaviour: store.Ptr(store.SourceCookieBehaviour(tt.cookieBehaviour))})
 
 				callCount := 0
 				ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
@@ -461,7 +461,7 @@ func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T)
 						t.Errorf("Expected use_cookies=%v in addl, got %v", tt.expectedCookies, useCookies)
 					}
 					if action == "get_source_details" {
-						return apptest.SourceDetailsReturnFixture(store.Attrs{
+						return apptest.SourceDetailsReturnFixture(map[string]any{
 							"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
 						}), nil
 					}
@@ -488,11 +488,11 @@ func TestSourceMetadataStorageWorker_PerformSeriesDirectory(t *testing.T) {
 	t.Run("sets the series directory based on the returned media filepath", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"series_directory": nil})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{SeriesDirectory: store.Ptr("")})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if action == "get_source_details" {
-				return apptest.SourceDetailsReturnFixture(store.Attrs{
+				return apptest.SourceDetailsReturnFixture(map[string]any{
 					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
 				}), nil
 			}
@@ -514,11 +514,11 @@ func TestSourceMetadataStorageWorker_PerformSeriesDirectory(t *testing.T) {
 	t.Run("does not set the series directory if it cannot be determined", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"series_directory": nil})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{SeriesDirectory: store.Ptr("")})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if action == "get_source_details" {
-				return apptest.SourceDetailsReturnFixture(store.Attrs{
+				return apptest.SourceDetailsReturnFixture(map[string]any{
 					"filename": filepath.Join(ta.Config.MediaDirectory, "foo", "bar.mp4"),
 				}), nil
 			}
@@ -553,7 +553,7 @@ func TestSourceMetadataStorageWorker_PerformSeriesDirectory(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
 				ta := apptest.NewApp(t)
-				source := apptest.SourceFixture(t, ta, store.Attrs{"series_directory": nil, "cookie_behaviour": tt.cookieBehaviour})
+				source := apptest.SourceFixture(t, ta, store.SourceParams{SeriesDirectory: store.Ptr(""), CookieBehaviour: store.Ptr(store.SourceCookieBehaviour(tt.cookieBehaviour))})
 
 				callCount := 0
 				ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
@@ -563,7 +563,7 @@ func TestSourceMetadataStorageWorker_PerformSeriesDirectory(t *testing.T) {
 						t.Errorf("Expected use_cookies=%v in addl, got %v", tt.expectedCookies, useCookies)
 					}
 					if action == "get_source_details" {
-						return apptest.SourceDetailsReturnFixture(store.Attrs{
+						return apptest.SourceDetailsReturnFixture(map[string]any{
 							"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
 						}), nil
 					}
@@ -590,11 +590,11 @@ func TestSourceMetadataStorageWorker_PerformNfo(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
 		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadNfo: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"nfo_filepath": nil, "media_profile_id": profile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{NfoFilepath: store.Ptr(""), MediaProfileID: store.Ptr(profile.ID)})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if action == "get_source_details" {
-				return apptest.SourceDetailsReturnFixture(store.Attrs{
+				return apptest.SourceDetailsReturnFixture(map[string]any{
 					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
 				}), nil
 			}
@@ -626,11 +626,11 @@ func TestSourceMetadataStorageWorker_PerformNfo(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
 		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadNfo: store.Ptr(false)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"nfo_filepath": nil, "media_profile_id": profile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{NfoFilepath: store.Ptr(""), MediaProfileID: store.Ptr(profile.ID)})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if action == "get_source_details" {
-				return apptest.SourceDetailsReturnFixture(store.Attrs{
+				return apptest.SourceDetailsReturnFixture(map[string]any{
 					"filename": filepath.Join(ta.Config.MediaDirectory, "Season 1", "bar.mp4"),
 				}), nil
 			}
@@ -653,11 +653,11 @@ func TestSourceMetadataStorageWorker_PerformNfo(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
 		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadNfo: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"nfo_filepath": nil, "media_profile_id": profile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{NfoFilepath: store.Ptr(""), MediaProfileID: store.Ptr(profile.ID)})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if action == "get_source_details" {
-				return apptest.SourceDetailsReturnFixture(store.Attrs{
+				return apptest.SourceDetailsReturnFixture(map[string]any{
 					"filename": filepath.Join(ta.Config.MediaDirectory, "foo", "bar.mp4"),
 				}), nil
 			}

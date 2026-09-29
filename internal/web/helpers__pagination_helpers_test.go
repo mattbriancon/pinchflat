@@ -11,7 +11,7 @@ import (
 func TestGetPaginationAttributes(t *testing.T) {
 	t.Run("returns the correct pagination attributes", func(t *testing.T) {
 		c := webtest.New(t)
-		apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+		apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		query := store.From[store.Source]("s")
 		attrs, err := c.Server.GetPaginationAttributes(c.Ctx, query, 1, 10)
@@ -38,8 +38,8 @@ func TestGetPaginationAttributes(t *testing.T) {
 
 	t.Run("returns the correct pagination attributes when there are multiple pages", func(t *testing.T) {
 		c := webtest.New(t)
-		apptest.SourceFixture(t, c.TestApp, store.Attrs{})
-		apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+		apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
+		apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		query := store.From[store.Source]("s")
 		attrs, err := c.Server.GetPaginationAttributes(c.Ctx, query, 1, 1)
@@ -66,8 +66,8 @@ func TestGetPaginationAttributes(t *testing.T) {
 
 	t.Run("returns the correct attributes when on a page other than the first", func(t *testing.T) {
 		c := webtest.New(t)
-		apptest.SourceFixture(t, c.TestApp, store.Attrs{})
-		apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+		apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
+		apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		query := store.From[store.Source]("s")
 		attrs, err := c.Server.GetPaginationAttributes(c.Ctx, query, 2, 1)

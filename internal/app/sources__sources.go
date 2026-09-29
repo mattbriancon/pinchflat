@@ -47,7 +47,7 @@ func (a *App) SourcesCreateSource(ctx context.Context, p store.SourceParams, run
 
 	if runPostCommitTasks {
 		// A new source always gets indexed and has its metadata fetched.
-		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{})
+		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, map[string]any{})
 		if source.FastIndex {
 			_, _ = a.FastIndexingHelpersKickoffIndexingTask(ctx, source)
 		}
@@ -139,11 +139,14 @@ func sourcesParamsFromURL(ctx context.Context, a *App, existing *store.Source, p
 			return fail("could not fetch source details from URL")
 		}
 		// Fetched details win over any user-supplied values.
-		p = p.WithCollection(collection.Type, collection.ID, collection.Name)
+		p.CollectionType = &collection.Type
+		p.CollectionID = store.Ptr(store.Deref(collection.ID))
+		p.CollectionName = store.Ptr(store.Deref(collection.Name))
 	}
 
 	if p.Apply(existing).FastIndex {
-		p = p.WithIndexFrequencyMinutes(store.SourceIndexFrequencyWhenFastIndexing())
+		p.IndexFrequencyMinutes = store.Ptr(store.SourceIndexFrequencyWhenFastIndexing())
+		p.Clear &^= store.ClearIndexFrequencyMinutes
 	}
 	return p, nil
 }
@@ -240,7 +243,7 @@ func sourcesHandleUpdateTasks(ctx context.Context, a *App, c store.SourceChanges
 
 	switch sourcesSlowIndexingAction(c) {
 	case taskEnqueue:
-		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{})
+		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, map[string]any{})
 	case taskDequeue:
 		// Elixir's SlowIndexingHelpers.delete_indexing_tasks/2 deletes both
 		// the fast- and slow-indexing pending tasks, not just the slow one.

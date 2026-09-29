@@ -69,7 +69,7 @@ func (a *App) SourceMetadataStorageWorkerPerform(ctx context.Context, job *obanl
 		return err
 	}
 
-	sourceMetadata, sourceImageAttrs, metadataImageAttrs, err := fetchSourceMetadataAndImages(ctx, a, seriesDirectory, source)
+	sourceMetadata, sourceImages, metadataImages, err := fetchSourceMetadataAndImages(ctx, a, seriesDirectory, source)
 	if err != nil {
 		return err
 	}
@@ -79,40 +79,45 @@ func (a *App) SourceMetadataStorageWorkerPerform(ctx context.Context, job *obanl
 		return err
 	}
 
-	var nfoFilepath any
+	// A missing series directory, nfo file or description is submitted blank,
+	// which clears the column.
+	seriesDir, _ := seriesDirectory.(string)
+	nfoFilepath := ""
 	if source.MediaProfile != nil && source.MediaProfile.DownloadNfo && seriesDirectory != nil {
-		nfoPath := filepath.Join(seriesDirectory.(string), "tvshow.nfo")
+		nfoPath := filepath.Join(seriesDir, "tvshow.nfo")
 		_, err := NfoBuilderBuildAndStoreForSource(nfoPath, sourceMetadata)
 		if err != nil {
 			return err
 		}
 		nfoFilepath = nfoPath
 	}
+	description, _ := sourceMetadata["description"].(string)
 
-	// Merge update attributes
-	updateAttrs := store.Attrs{
-		"series_directory": seriesDirectory,
-		"nfo_filepath":     nfoFilepath,
-		"description":      sourceMetadata["description"],
-		"metadata": map[string]any{
-			"metadata_filepath": sourceMetadataFilepath,
+	p := store.SourceParams{
+		SeriesDirectory: &seriesDir,
+		NfoFilepath:     &nfoFilepath,
+		Description:     &description,
+		Metadata: &store.SourceMetadata{
+			MetadataFilepath: sourceMetadataFilepath,
+			FanartFilepath:   imagePath(metadataImages, "fanart_filepath"),
+			PosterFilepath:   imagePath(metadataImages, "poster_filepath"),
+			BannerFilepath:   imagePath(metadataImages, "banner_filepath"),
 		},
+		FanartFilepath: imagePath(sourceImages, "fanart_filepath"),
+		PosterFilepath: imagePath(sourceImages, "poster_filepath"),
+		BannerFilepath: imagePath(sourceImages, "banner_filepath"),
 	}
-
-	// Merge metadata image attributes
-	for k, v := range metadataImageAttrs {
-		if metadata, ok := updateAttrs["metadata"].(map[string]any); ok {
-			metadata[k] = v
-		}
-	}
-
-	// Merge source image attributes
-	for k, v := range sourceImageAttrs {
-		updateAttrs[k] = v
-	}
-
-	_, err = a.SourcesUpdateSource(ctx, source, store.ParseSourceParams(updateAttrs), false)
+	_, err = a.SourcesUpdateSource(ctx, source, p, false)
 	return err
+}
+
+// imagePath is the stored path for an image attribute, or nil when there is
+// none (which leaves the column as it is).
+func imagePath(images map[string]string, attr string) *string {
+	if path, ok := images[attr]; ok && path != "" {
+		return &path
+	}
+	return nil
 }
 
 // determineSeriesDirectory/1
@@ -140,8 +145,9 @@ func determineSeriesDirectory(ctx context.Context, a *App, source *store.Source)
 	return seriesDirectory, nil
 }
 
-// fetchSourceMetadataAndImages/3
-func fetchSourceMetadataAndImages(ctx context.Context, a *App, seriesDirectory any, source *store.Source) (map[string]any, store.Attrs, store.Attrs, error) {
+// fetchSourceMetadataAndImages/3 returns the source's metadata, and the
+// image paths stored for the source and for its metadata.
+func fetchSourceMetadataAndImages(ctx context.Context, a *App, seriesDirectory any, source *store.Source) (map[string]any, map[string]string, map[string]string, error) {
 	metadataDirectory, err := a.MetadataFileHelpersMetadataDirectoryFor(ctx, source)
 	if err != nil {
 		return nil, nil, nil, err
@@ -152,28 +158,20 @@ func fetchSourceMetadataAndImages(ctx context.Context, a *App, seriesDirectory a
 		return nil, nil, nil, err
 	}
 
-	metadataImageAttrsRaw, err := SourceImageParserStoreSourceImages(metadataDirectory, metadata)
+	metadataImages, err := SourceImageParserStoreSourceImages(metadataDirectory, metadata)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	metadataImageAttrs := make(store.Attrs)
-	for k, v := range metadataImageAttrsRaw {
-		metadataImageAttrs[k] = v
-	}
-
-	sourceImageAttrs := store.Attrs{}
+	var sourceImages map[string]string
 	if source.MediaProfile != nil && source.MediaProfile.DownloadSourceImages && seriesDirectory != nil {
-		sourceImageAttrsRaw, err := SourceImageParserStoreSourceImages(seriesDirectory.(string), metadata)
+		sourceImages, err = SourceImageParserStoreSourceImages(seriesDirectory.(string), metadata)
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		for k, v := range sourceImageAttrsRaw {
-			sourceImageAttrs[k] = v
-		}
 	}
 
-	return metadata, sourceImageAttrs, metadataImageAttrs, nil
+	return metadata, sourceImages, metadataImages, nil
 }
 
 // fetchMetadataForSource/1

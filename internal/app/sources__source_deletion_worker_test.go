@@ -18,13 +18,13 @@ func TestSourceDeletionWorker_Kickoff(t *testing.T) {
 			return nil
 		})
 
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		if len(ta.Oban.Enqueued(t, obanlite.Match{Worker: app.SourceDeletionWorkerName})) != 0 {
 			t.Errorf("expected 0 enqueued initially")
 		}
 
-		job, err := ta.App.SourceDeletionWorkerKickoff(ta.Ctx, source, store.Attrs{})
+		job, err := ta.App.SourceDeletionWorkerKickoff(ta.Ctx, source, map[string]any{})
 		if err != nil {
 			t.Errorf("kickoff failed: %v", err)
 		}
@@ -44,8 +44,8 @@ func TestSourceDeletionWorker_Kickoff(t *testing.T) {
 			return nil
 		})
 
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		jobArgs := store.Attrs{"delete_files": true}
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
+		jobArgs := map[string]any{"delete_files": true}
 
 		job, err := ta.App.SourceDeletionWorkerKickoff(ta.Ctx, source, jobArgs)
 		if err != nil {
@@ -73,7 +73,7 @@ func TestSourceDeletionWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
 			SourceID: store.Ptr(source.ID),
 		})
@@ -105,7 +105,7 @@ func TestSourceDeletionWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
 			SourceID: store.Ptr(source.ID),
 		})

@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -88,14 +87,7 @@ func (s *Server) MediaItemControllerUpdate(w http.ResponseWriter, r *http.Reques
 	}
 
 	_ = r.ParseForm()
-	values := url.Values{}
-	for k, v := range r.Form {
-		if field, ok := strings.CutPrefix(k, "media_item["); ok {
-			values[strings.TrimSuffix(field, "]")] = v
-		}
-	}
-
-	params, errs := store.ParseMediaItemParams(values)
+	params, errs := store.ParseMediaItemParams(r.Form)
 	for field, msgs := range params.Validate(mediaItem) {
 		errs[field] = append(errs[field], msgs...)
 	}
@@ -106,8 +98,8 @@ func (s *Server) MediaItemControllerUpdate(w http.ResponseWriter, r *http.Reques
 
 	updated, err := s.App.UpdateMediaItem(ctx, mediaItem, params)
 	if err != nil {
-		if cs, ok := store.AsChangesetError(err); ok {
-			s.Render(w, r, http.StatusOK, LayoutApp, MediaItemsMediaItemHTMLEdit(mediaItem, mediaItemForm(mediaItem, params, cs.ErrorMap())))
+		if errs, ok := store.AsValidationErrors(err); ok {
+			s.Render(w, r, http.StatusOK, LayoutApp, MediaItemsMediaItemHTMLEdit(mediaItem, mediaItemForm(mediaItem, params, errs)))
 			return
 		}
 		s.Fail(w, r, err)
@@ -150,7 +142,7 @@ func (s *Server) MediaItemControllerForceDownload(w http.ResponseWriter, r *http
 		return
 	}
 
-	_, err := s.App.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{"force": true}, nil)
+	_, err := s.App.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{"force": true}, nil)
 	if err != nil {
 		// Allow duplicate job errors to pass through silently
 		if !strings.Contains(err.Error(), "duplicate") {
