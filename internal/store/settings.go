@@ -11,15 +11,9 @@ func (s *Store) GetSettingsRecord(ctx context.Context) (*Setting, error) {
 	return One[Setting](ctx, s.Q(ctx), From[Setting]().Limit(1))
 }
 
-// UpdateSetting updates setting with attrs (deprecated; use UpdateSettingWithParams).
-func (s *Store) UpdateSetting(ctx context.Context, setting *Setting, attrs Attrs) (*Setting, error) {
-	cs := SettingChangeset(setting, attrs)
-	return Update[Setting](ctx, s.Q(ctx), cs)
-}
-
-// UpdateSettingWithParams updates setting with typed parameters.
+// UpdateSetting updates setting with typed parameters.
 // Returns the updated Setting, validation errors as a map, and any system error.
-func (s *Store) UpdateSettingWithParams(ctx context.Context, setting *Setting, p SettingParams) (*Setting, map[string][]string, error) {
+func (s *Store) UpdateSetting(ctx context.Context, setting *Setting, p SettingParams) (*Setting, map[string][]string, error) {
 	errs := p.Validate(setting)
 	if len(errs) > 0 {
 		return nil, errs, nil
@@ -52,7 +46,8 @@ func (s *Store) UpdateSettingWithParams(ctx context.Context, setting *Setting, p
 		attrs["restrict_filenames"] = *p.RestrictFilenames
 	}
 
-	updated, err := s.UpdateSetting(ctx, setting, attrs)
+	cs := SettingChangeset(setting, attrs)
+	updated, err := Update[Setting](ctx, s.Q(ctx), cs)
 	if err != nil {
 		if cs, ok := AsChangesetError(err); ok {
 			return nil, cs.ErrorMap(), nil
@@ -77,18 +72,81 @@ func (s *Store) SetSetting(ctx context.Context, kw KW) (any, error) {
 		return nil, err
 	}
 
+	if !settingsFieldExists(attr) {
+		return nil, fmt.Errorf("invalid_key")
+	}
+
+	// Build SettingParams from the single attribute
+	p := SettingParams{}
+	switch attr {
+	case "onboarding":
+		if b, ok := value.(bool); ok {
+			p.Onboarding = &b
+		} else {
+			return nil, fmt.Errorf("invalid value for %s: expected bool", attr)
+		}
+	case "yt_dlp_version":
+		if s, ok := value.(string); ok {
+			p.YtDlpVersion = &s
+		} else {
+			return nil, fmt.Errorf("invalid value for %s: expected string", attr)
+		}
+	case "video_codec_preference":
+		if s, ok := value.(string); ok {
+			p.VideoCodecPreference = &s
+		} else {
+			return nil, fmt.Errorf("invalid value for %s: expected string", attr)
+		}
+	case "audio_codec_preference":
+		if s, ok := value.(string); ok {
+			p.AudioCodecPreference = &s
+		} else {
+			return nil, fmt.Errorf("invalid value for %s: expected string", attr)
+		}
+	case "youtube_api_key":
+		if s, ok := value.(string); ok {
+			p.YoutubeAPIKey = &s
+		} else {
+			return nil, fmt.Errorf("invalid value for %s: expected string", attr)
+		}
+	case "extractor_sleep_interval_seconds":
+		if i, ok := value.(int); ok {
+			p.ExtractorSleepIntervalSeconds = &i
+		} else {
+			return nil, fmt.Errorf("invalid value for %s: expected int", attr)
+		}
+	case "download_throughput_limit":
+		if s, ok := value.(string); ok {
+			p.DownloadThroughputLimit = &s
+		} else {
+			return nil, fmt.Errorf("invalid value for %s: expected string", attr)
+		}
+	case "restrict_filenames":
+		if b, ok := value.(bool); ok {
+			p.RestrictFilenames = &b
+		} else {
+			return nil, fmt.Errorf("invalid value for %s: expected bool", attr)
+		}
+	}
+
 	// Try to update the setting
-	updated, err := s.UpdateSetting(ctx, setting, Attrs{attr: value})
+	updated, errs, err := s.UpdateSetting(ctx, setting, p)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(errs) > 0 {
+		// Return the first error encountered
+		for _, msgs := range errs {
+			if len(msgs) > 0 {
+				return nil, fmt.Errorf("%s", msgs[0])
+			}
+		}
 	}
 
 	// {:ok, %{^attr => _}} -> {:ok, value}: any struct key succeeds and
 	// returns the value passed in; unknown keys are {:error, :invalid_key}.
 	_ = updated
-	if !settingsFieldExists(attr) {
-		return nil, fmt.Errorf("invalid_key")
-	}
 	return value, nil
 }
 
@@ -115,11 +173,6 @@ func (s *Store) GetSettingBang(ctx context.Context, name string) (any, error) {
 		return nil, fmt.Errorf("Setting `%s` not found", name)
 	}
 	return val, nil
-}
-
-// ChangeSetting builds a changeset for setting from attrs.
-func (s *Store) ChangeSetting(ctx context.Context, setting *Setting, attrs Attrs) *Changeset {
-	return SettingChangeset(setting, attrs)
 }
 
 // settingsGetField retrieves a field value from a Setting struct by field name
