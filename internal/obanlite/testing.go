@@ -92,7 +92,7 @@ func (o *Oban) PerformJob(ctx context.Context, worker string, args any) error {
 func (o *Oban) PerformExisting(ctx context.Context, id int64) (*Job, error) {
 	var job Job
 	err := o.db.GetContext(ctx, &job, `UPDATE oban_jobs SET state = 'executing', attempted_at = ?, attempt = attempt + 1
-		WHERE id = ? RETURNING `+jobColumns, nowUsec(), id)
+		WHERE id = ? RETURNING `+JobColumns, nowUsec(), id)
 	if err != nil {
 		return nil, err
 	}

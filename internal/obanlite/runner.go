@@ -191,7 +191,7 @@ func (o *Oban) fetch(ctx context.Context, queue string, demand int) ([]*Job, err
 			WHERE state = 'available' AND queue = ? AND attempt < max_attempts
 			ORDER BY priority ASC, scheduled_at ASC, id ASC
 			LIMIT ?)
-		RETURNING `+jobColumns, nowUsec(), o.node, queue, demand)
+		RETURNING `+JobColumns, nowUsec(), o.node, queue, demand)
 	return jobs, err
 }
 

@@ -156,7 +156,7 @@ func (o *Oban) Insert(ctx context.Context, q db.Querier, spec JobSpec) (*Job, er
 		vals = append(vals, *scheduledAt)
 	}
 	query := fmt.Sprintf(`INSERT INTO oban_jobs (%s) VALUES (%s) RETURNING %s`,
-		strings.Join(cols, ", "), strings.TrimSuffix(strings.Repeat("?, ", len(cols)), ", "), jobColumns)
+		strings.Join(cols, ", "), strings.TrimSuffix(strings.Repeat("?, ", len(cols)), ", "), JobColumns)
 
 	job := &Job{}
 	if err := q.QueryRowxContext(ctx, query, vals...).StructScan(job); err != nil {
@@ -218,7 +218,7 @@ func (o *Oban) fetchUnique(ctx context.Context, q db.Querier, u *UniqueOpts, wor
 	}
 
 	job := &Job{}
-	err := q.QueryRowxContext(ctx, `SELECT `+jobColumns+` FROM oban_jobs WHERE `+strings.Join(where, " AND ")+` LIMIT 1`, params...).StructScan(job)
+	err := q.QueryRowxContext(ctx, `SELECT `+JobColumns+` FROM oban_jobs WHERE `+strings.Join(where, " AND ")+` LIMIT 1`, params...).StructScan(job)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -272,7 +272,7 @@ func (o *Oban) CancelJob(ctx context.Context, id int64) error {
 // GetJob loads a job by id.
 func (o *Oban) GetJob(ctx context.Context, id int64) (*Job, error) {
 	job := &Job{}
-	if err := o.db.GetContext(ctx, job, `SELECT `+jobColumns+` FROM oban_jobs WHERE id = ?`, id); err != nil {
+	if err := o.db.GetContext(ctx, job, `SELECT `+JobColumns+` FROM oban_jobs WHERE id = ?`, id); err != nil {
 		return nil, err
 	}
 	return job, nil
@@ -280,7 +280,7 @@ func (o *Oban) GetJob(ctx context.Context, id int64) (*Job, error) {
 
 // Jobs returns jobs matching an optional SQL condition, newest first.
 func (o *Oban) Jobs(ctx context.Context, where string, args ...any) ([]*Job, error) {
-	q := `SELECT ` + jobColumns + ` FROM oban_jobs`
+	q := `SELECT ` + JobColumns + ` FROM oban_jobs`
 	if where != "" {
 		q += ` WHERE ` + where
 	}

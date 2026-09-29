@@ -54,8 +54,8 @@ type Job struct {
 	Conflict bool `db:"-"`
 }
 
-// jobColumns is the column list for SELECTs into Job.
-const jobColumns = `id, state, queue, worker, args, meta, tags, errors, attempt, max_attempts, priority,
+// JobColumns is the column list for SELECTs into Job.
+const JobColumns = `id, state, queue, worker, args, meta, tags, errors, attempt, max_attempts, priority,
 	inserted_at, scheduled_at, attempted_at, attempted_by, cancelled_at, completed_at, discarded_at`
 
 // DecodeArgs unmarshals the job's args into v (a struct with json tags or a map).

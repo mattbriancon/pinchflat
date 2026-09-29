@@ -119,8 +119,7 @@ func (st *Store) PreloadMediaProfileSources(ctx context.Context, p *MediaProfile
 // PreloadTaskJob loads task.job.
 func (st *Store) PreloadTaskJob(ctx context.Context, t *Task) (*Task, error) {
 	var job obanlite.Job
-	err := st.Q(ctx).GetContext(ctx, &job, `SELECT id, state, queue, worker, args, meta, tags, errors, attempt, max_attempts, priority,
-		inserted_at, scheduled_at, attempted_at, attempted_by, cancelled_at, completed_at, discarded_at FROM oban_jobs WHERE id = ?`, t.JobID)
+	err := st.Q(ctx).GetContext(ctx, &job, `SELECT `+obanlite.JobColumns+` FROM oban_jobs WHERE id = ?`, t.JobID)
 	if err != nil {
 		return t, err
 	}
@@ -134,29 +133,20 @@ func (st *Store) PreloadTasksJobs(ctx context.Context, tasks []*Task) error {
 		return nil
 	}
 
-	// Collect job IDs from tasks
-	jobIDs := make([]interface{}, len(tasks))
+	jobIDs := make([]any, len(tasks))
 	for i, t := range tasks {
 		jobIDs[i] = t.JobID
 	}
-
-	// Load all jobs in one query
-	jobs, err := All[obanlite.Job](ctx, st.Q(ctx),
-		SQ.Select("id", "state", "queue", "worker", "args", "meta", "tags", "errors", "attempt", "max_attempts", "priority",
-			"inserted_at", "scheduled_at", "attempted_at", "attempted_by", "cancelled_at", "completed_at", "discarded_at").
-			From("oban_jobs").
-			Where(sq.Eq{"id": jobIDs}))
+	jobs, err := All[obanlite.Job](ctx, st.Q(ctx), SQ.Select(obanlite.JobColumns).From("oban_jobs").Where(sq.Eq{"id": jobIDs}))
 	if err != nil {
 		return err
 	}
 
-	// Create a map for fast lookup
 	jobMap := make(map[int64]*obanlite.Job)
 	for _, job := range jobs {
 		jobMap[job.ID] = job
 	}
 
-	// Attach jobs to tasks
 	for _, t := range tasks {
 		if job, ok := jobMap[t.JobID]; ok {
 			t.Job = job
