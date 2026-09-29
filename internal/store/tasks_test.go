@@ -185,9 +185,8 @@ func TestTasks_CreateTask(t *testing.T) {
 	t.Run("creation with valid data creates a task", func(t *testing.T) {
 		ts := storetest.NewStore(t)
 		job := storetest.JobFixture(t, ts)
-		attrs := store.Attrs{"job_id": job.ID}
 
-		task, err := ts.CreateTask(ts.Ctx, attrs)
+		task, err := ts.CreateTask(ts.Ctx, job.ID, nil, nil)
 		if err != nil {
 			t.Fatalf("TasksCreateTask failed: %v", err)
 		}
@@ -199,15 +198,20 @@ func TestTasks_CreateTask(t *testing.T) {
 		}
 	})
 
-	t.Run("creation with invalid data returns error changeset", func(t *testing.T) {
+	t.Run("creation with valid source_id creates a task", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		invalidAttrs := store.Attrs{"job_id": nil}
-		task, err := ts.CreateTask(ts.Ctx, invalidAttrs)
-		if err == nil {
-			t.Fatalf("expected error, got nil")
+		job := storetest.JobFixture(t, ts)
+		source := storetest.SourceFixture(t, ts, store.Attrs{})
+
+		task, err := ts.CreateTask(ts.Ctx, job.ID, &source.ID, nil)
+		if err != nil {
+			t.Fatalf("TasksCreateTask failed: %v", err)
 		}
-		if task != nil {
-			t.Errorf("expected nil task, got %v", task)
+		if task == nil {
+			t.Fatalf("expected store.Task, got nil")
+		}
+		if task.SourceID == nil || *task.SourceID != source.ID {
+			t.Errorf("expected source_id %d, got %v", source.ID, task.SourceID)
 		}
 	})
 

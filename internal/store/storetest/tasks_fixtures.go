@@ -9,17 +9,32 @@ import (
 // TaskFixture creates a Task with sensible defaults, merging in attrs.
 func TaskFixture(t testing.TB, ts *TestStore, attrs store.Attrs) *store.Task {
 	t.Helper()
-	defaults := store.Attrs{
-		"source_id": SourceFixture(t, ts, store.Attrs{}).ID,
-		"job_id":    JobFixture(t, ts).ID,
+	sourceID := int64(SourceFixture(t, ts, store.Attrs{}).ID)
+	jobID := int64(JobFixture(t, ts).ID)
+
+	// Check if attrs override defaults
+	if v, ok := attrs["job_id"]; ok {
+		jobID = v.(int64)
 	}
 
-	// Merge attrs into defaults
-	for k, v := range attrs {
-		defaults[k] = v
+	var finalSourceID, finalMediaItemID *int64
+	if v, ok := attrs["source_id"]; ok {
+		if id, ok := v.(int64); ok {
+			finalSourceID = &id
+		} else {
+			finalSourceID = &sourceID
+		}
+	} else {
+		finalSourceID = &sourceID
 	}
 
-	task, err := ts.CreateTask(ts.Ctx, defaults)
+	if v, ok := attrs["media_item_id"]; ok {
+		if id, ok := v.(int64); ok {
+			finalMediaItemID = &id
+		}
+	}
+
+	task, err := ts.CreateTask(ts.Ctx, jobID, finalSourceID, finalMediaItemID)
 	if err != nil {
 		t.Fatalf("TaskFixture: %v", err)
 	}
