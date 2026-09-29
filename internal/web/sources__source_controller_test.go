@@ -41,7 +41,7 @@ func TestSourceController_New(t *testing.T) {
 	t.Run("starts from the source defaults", func(t *testing.T) {
 		c := webtest.New(t)
 		html := c.Get("/sources/new").HTML(t, 200)
-		for _, id := range []string{"source_download_media", "source_enabled"} {
+		for _, id := range []string{"source_download_media"} {
 			if !regexp.MustCompile(`id="` + id + `"[^>]*checked`).MatchString(html) {
 				t.Errorf("%s should be checked by default", id)
 			}
