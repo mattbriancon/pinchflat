@@ -1,11 +1,5 @@
 package web
 
-import "github.com/mattbriancon/pinchflat/internal/store"
-
-templ SettingHTMLShow(changeset *store.Changeset) {
-	@SettingHTMLShowWithForm(FormFor(changeset, "setting"))
-}
-
 templ SettingHTMLShowWithForm(f *Form) {
 	<div class="page-header">
 		<div class="flex gap-3 items-center">
