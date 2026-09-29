@@ -76,22 +76,14 @@ func fixtureTmpDir() string {
 
 // RenderMetadataWithFixedPaths reads a JSON metadata file and fixes hardcoded paths to work in the test environment.
 func RenderMetadataWithFixedPaths(metadataName string) (string, error) {
-	jsonFilepath := filepath.Join(
-		dbtest.RepoRoot(),
-		"testdata",
-		"support",
-		"files",
-		metadataName+".json",
-	)
-
-	content, err := os.ReadFile(jsonFilepath)
+	content, err := RenderMetadata(metadataName)
 	if err != nil {
 		return "", err
 	}
 
 	// Parse the JSON and fix the thumbnail filepaths
 	var data map[string]any
-	if err := json.Unmarshal(content, &data); err != nil {
+	if err := json.Unmarshal([]byte(content), &data); err != nil {
 		return "", err
 	}
 
