@@ -306,15 +306,7 @@ func TestSources_CreateSource(t *testing.T) {
 
 	t.Run("creation enforces uniqueness of collection_id scoped to the media_profile and title regex", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		ta.YtDlpMock.Run.ExpectN(2, func(_, _ string, _ ytdlp.Args, _ string, _ ytdlp.CallOptions) (string, error) {
-			jsonStr, _ := db.EncodeJSON(map[string]any{
-				"channel":        "some channel name",
-				"channel_id":     "some_channel_id_12345678",
-				"playlist_id":    "some_channel_id_12345678",
-				"playlist_title": "some channel name - videos",
-			})
-			return jsonStr, nil
-		})
+		ta.YtDlpMock.Run.ExpectN(2, sourcesTestFixedChannelMock)
 
 		validOnceAttrs := newSourceAttrs(t, ta)
 		validOnceAttrs.TitleFilterRegex = store.Ptr("")
@@ -335,15 +327,7 @@ func TestSources_CreateSource(t *testing.T) {
 
 	t.Run("creation lets you duplicate collection_ids and profiles as long as the regex is different", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		ta.YtDlpMock.Run.ExpectN(2, func(_, _ string, _ ytdlp.Args, _ string, _ ytdlp.CallOptions) (string, error) {
-			jsonStr, _ := db.EncodeJSON(map[string]any{
-				"channel":        "some channel name",
-				"channel_id":     "some_channel_id_12345678",
-				"playlist_id":    "some_channel_id_12345678",
-				"playlist_title": "some channel name - videos",
-			})
-			return jsonStr, nil
-		})
+		ta.YtDlpMock.Run.ExpectN(2, sourcesTestFixedChannelMock)
 
 		validAttrs := newSourceAttrs(t, ta)
 		source1Attrs, source2Attrs := validAttrs, validAttrs
@@ -356,15 +340,7 @@ func TestSources_CreateSource(t *testing.T) {
 
 	t.Run("creation lets you duplicate collection_ids as long as the media profile is different", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		ta.YtDlpMock.Run.ExpectN(2, func(_, _ string, _ ytdlp.Args, _ string, _ ytdlp.CallOptions) (string, error) {
-			jsonStr, _ := db.EncodeJSON(map[string]any{
-				"channel":        "some channel name",
-				"channel_id":     "some_channel_id_12345678",
-				"playlist_id":    "some_channel_id_12345678",
-				"playlist_title": "some channel name - videos",
-			})
-			return jsonStr, nil
-		})
+		ta.YtDlpMock.Run.ExpectN(2, sourcesTestFixedChannelMock)
 
 		validAttrs := store.SourceParams{
 			OriginalURL:      store.Ptr("https://www.youtube.com/channel/abc123"),
@@ -402,24 +378,14 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 
 		_, err := ta.App.SourcesCreateSource(ta.Ctx, invalidSourceAttrs, true)
-		if err == nil {
-			t.Fatal("expected an error")
-		}
-		if _, ok := store.AsValidationErrors(err); !ok {
-			t.Fatalf("expected a validation error, got %T", err)
-		}
+		validationErrors(t, err)
 	})
 
 	t.Run("creation with invalid data fails fast and does not call the runner", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
 		_, err := ta.App.SourcesCreateSource(ta.Ctx, invalidSourceAttrs, true)
-		if err == nil {
-			t.Fatal("expected an error")
-		}
-		if _, ok := store.AsValidationErrors(err); !ok {
-			t.Fatalf("expected a validation error, got %T", err)
-		}
+		validationErrors(t, err)
 		if ta.YtDlpMock.Run.Calls() != 0 {
 			t.Errorf("expected the runner to not be called, got %d calls", ta.YtDlpMock.Run.Calls())
 		}
@@ -595,12 +561,7 @@ func TestSources_UpdateSource(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		_, err := ta.App.SourcesUpdateSource(ta.Ctx, src, invalidSourceAttrs, true)
-		if err == nil {
-			t.Fatal("expected an error")
-		}
-		if _, ok := store.AsValidationErrors(err); !ok {
-			t.Fatalf("expected a validation error, got %T: %v", err, err)
-		}
+		validationErrors(t, err)
 		if ta.YtDlpMock.Run.Calls() != 0 {
 			t.Errorf("expected the runner to not be called, got %d calls", ta.YtDlpMock.Run.Calls())
 		}
@@ -658,12 +619,7 @@ func TestSources_UpdateSource(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		_, err := ta.App.SourcesUpdateSource(ta.Ctx, src, invalidSourceAttrs, true)
-		if err == nil {
-			t.Fatal("expected an error")
-		}
-		if _, ok := store.AsValidationErrors(err); !ok {
-			t.Fatalf("expected a validation error, got %T: %v", err, err)
-		}
+		validationErrors(t, err)
 
 		reloaded, err := ta.App.GetSource(ta.Ctx, src.ID)
 		must(t, err)
@@ -1074,4 +1030,16 @@ func validationErrors(t *testing.T, err error) map[string][]string {
 		t.Fatalf("expected a validation error, got %T: %v", err, err)
 	}
 	return errs
+}
+
+// sourcesTestFixedChannelMock always returns the same channel, so repeated
+// creates collide on collection_id.
+func sourcesTestFixedChannelMock(_, _ string, _ ytdlp.Args, _ string, _ ytdlp.CallOptions) (string, error) {
+	jsonStr, _ := db.EncodeJSON(map[string]any{
+		"channel":        "some channel name",
+		"channel_id":     "some_channel_id_12345678",
+		"playlist_id":    "some_channel_id_12345678",
+		"playlist_title": "some channel name - videos",
+	})
+	return jsonStr, nil
 }
