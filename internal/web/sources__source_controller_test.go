@@ -9,6 +9,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 func TestSourceController_Index(t *testing.T) {
@@ -74,7 +75,7 @@ func TestSourceController_Create(t *testing.T) {
 		c := webtest.New(t)
 		c.App.SetSetting(c.Ctx, store.KW{store.Opt("onboarding", false)})
 		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
-		c.YtDlpMock.Run.ExpectN(1, func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		c.YtDlpMock.Run.ExpectN(1, func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "{\"channel\":\"test\",\"channel_id\":\"ch123\",\"playlist_id\":\"pl123\",\"playlist_title\":\"test\"}", nil
 		})
 
@@ -110,7 +111,7 @@ func TestSourceController_Create(t *testing.T) {
 		c := webtest.New(t)
 		c.App.SetSetting(c.Ctx, store.KW{store.Opt("onboarding", true)})
 		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
-		c.YtDlpMock.Run.ExpectN(1, func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		c.YtDlpMock.Run.ExpectN(1, func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "{\"channel\":\"test\",\"channel_id\":\"ch123\",\"playlist_id\":\"pl123\",\"playlist_title\":\"test\"}", nil
 		})
 
@@ -159,7 +160,7 @@ func TestSourceController_Update(t *testing.T) {
 	t.Run("redirects when data is valid", func(t *testing.T) {
 		c := webtest.New(t)
 		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
-		c.YtDlpMock.Run.ExpectN(1, func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		c.YtDlpMock.Run.ExpectN(1, func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "{\"channel\":\"test\",\"channel_id\":\"ch123\",\"playlist_id\":\"pl123\",\"playlist_title\":\"test\"}", nil
 		})
 
@@ -340,7 +341,7 @@ func TestSourceController_ForceIndex(t *testing.T) {
 	t.Run("deletes pending indexing tasks", func(t *testing.T) {
 		c := webtest.New(t)
 		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
-		task, err := c.App.SlowIndexingHelpersKickoffIndexingTask(c.Ctx, source, store.Attrs{}, store.KW{})
+		task, err := c.App.SlowIndexingHelpersKickoffIndexingTask(c.Ctx, source, store.Attrs{})
 		if err != nil {
 			t.Fatalf("kickoff failed: %v", err)
 		}

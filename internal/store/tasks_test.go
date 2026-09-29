@@ -492,7 +492,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 		source := storetest.SourceFixture(t, ts, store.Attrs{})
 		task := storetest.TaskFixture(t, ts, store.Attrs{"source_id": source.ID})
 
-		err := ts.DeletePendingTasksFor(ts.Ctx, source, nil, store.KW{})
+		err := ts.DeletePendingTasksFor(ts.Ctx, source, nil, false)
 		if err != nil {
 			t.Fatalf("TasksDeletePendingTasksFor failed: %v", err)
 		}
@@ -512,7 +512,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 		// Cancel the job to make it non-pending
 		ts.Oban.CancelJob(ts.Ctx, task.JobID)
 
-		err := ts.DeletePendingTasksFor(ts.Ctx, source, nil, store.KW{})
+		err := ts.DeletePendingTasksFor(ts.Ctx, source, nil, false)
 		if err != nil {
 			t.Fatalf("TasksDeletePendingTasksFor failed: %v", err)
 		}
@@ -533,7 +533,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 		// Cancel one task
 		ts.Oban.CancelJob(ts.Ctx, cancelledTask.JobID)
 
-		err := ts.DeletePendingTasksFor(ts.Ctx, mediaItem, nil, store.KW{})
+		err := ts.DeletePendingTasksFor(ts.Ctx, mediaItem, nil, false)
 		if err != nil {
 			t.Fatalf("TasksDeletePendingTasksFor failed: %v", err)
 		}
@@ -557,7 +557,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 		task := storetest.TaskFixture(t, ts, store.Attrs{"media_item_id": mediaItem.ID})
 
 		// Should not delete with FooBarWorker filter
-		err := ts.DeletePendingTasksFor(ts.Ctx, mediaItem, store.Ptr("FooBarWorker"), store.KW{})
+		err := ts.DeletePendingTasksFor(ts.Ctx, mediaItem, store.Ptr("FooBarWorker"), false)
 		if err != nil {
 			t.Fatalf("TasksDeletePendingTasksFor with FooBarWorker filter failed: %v", err)
 		}
@@ -567,7 +567,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 		}
 
 		// Should delete with TestJobWorker filter
-		err = ts.DeletePendingTasksFor(ts.Ctx, mediaItem, store.Ptr("TestJobWorker"), store.KW{})
+		err = ts.DeletePendingTasksFor(ts.Ctx, mediaItem, store.Ptr("TestJobWorker"), false)
 		if err != nil {
 			t.Fatalf("TasksDeletePendingTasksFor with TestJobWorker filter failed: %v", err)
 		}
@@ -589,7 +589,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 		}
 
 		// Should not delete with include_executing=false
-		err = ts.DeletePendingTasksFor(ts.Ctx, source, nil, store.KW{store.Opt("include_executing", false)})
+		err = ts.DeletePendingTasksFor(ts.Ctx, source, nil, false)
 		if err != nil {
 			t.Fatalf("first TasksDeletePendingTasksFor failed: %v", err)
 		}
@@ -599,7 +599,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 		}
 
 		// Should delete with include_executing=true
-		err = ts.DeletePendingTasksFor(ts.Ctx, source, nil, store.KW{store.Opt("include_executing", true)})
+		err = ts.DeletePendingTasksFor(ts.Ctx, source, nil, true)
 		if err != nil {
 			t.Fatalf("second TasksDeletePendingTasksFor failed: %v", err)
 		}

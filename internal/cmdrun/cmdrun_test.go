@@ -1,4 +1,4 @@
-package fsutil_test
+package cmdrun_test
 
 import (
 	"context"
@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
 )
 
-func TestRunCommand(t *testing.T) {
+func TestRun(t *testing.T) {
 	t.Run("runs the command and captures its output", func(t *testing.T) {
 		dir := t.TempDir()
-		output, status, err := fsutil.RunCommand(context.Background(), dir, "echo", []string{"output"}, fsutil.RunOptions{})
+		output, status, err := cmdrun.Run(context.Background(), dir, "echo", []string{"output"}, cmdrun.Options{})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -30,7 +30,7 @@ func TestRunCommand(t *testing.T) {
 
 	t.Run("sets the working directory", func(t *testing.T) {
 		dir := t.TempDir()
-		output, status, err := fsutil.RunCommand(context.Background(), dir, "pwd", []string{}, fsutil.RunOptions{})
+		output, status, err := cmdrun.Run(context.Background(), dir, "pwd", []string{}, cmdrun.Options{})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -44,7 +44,7 @@ func TestRunCommand(t *testing.T) {
 
 	t.Run("returns a non-zero status without an error", func(t *testing.T) {
 		dir := t.TempDir()
-		_, status, err := fsutil.RunCommand(context.Background(), dir, "/bin/false", nil, fsutil.RunOptions{})
+		_, status, err := cmdrun.Run(context.Background(), dir, "/bin/false", nil, cmdrun.Options{})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -55,7 +55,7 @@ func TestRunCommand(t *testing.T) {
 
 	t.Run("merges stderr into the output when requested", func(t *testing.T) {
 		dir := t.TempDir()
-		output, _, err := fsutil.RunCommand(context.Background(), dir, "sh", []string{"-c", "echo err 1>&2"}, fsutil.RunOptions{StderrToStdout: true})
+		output, _, err := cmdrun.Run(context.Background(), dir, "sh", []string{"-c", "echo err 1>&2"}, cmdrun.Options{StderrToStdout: true})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -65,17 +65,17 @@ func TestRunCommand(t *testing.T) {
 	})
 }
 
-// TestRunCommandCancellationKillsProcessGroup is a Go-only test: cancelling
+// TestRunCancellationKillsProcessGroup is a Go-only test: cancelling
 // the context must kill the command and its children (what
 // priv/cmd_wrapper.sh guaranteed in Elixir).
-func TestRunCommandCancellationKillsProcessGroup(t *testing.T) {
+func TestRunCancellationKillsProcessGroup(t *testing.T) {
 	dir := t.TempDir()
 	pidFile := filepath.Join(t.TempDir(), "child.pid")
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 	go func() {
 		// The child sleep outlives its parent shell unless the group is killed.
-		fsutil.RunCommand(ctx, dir, "sh", []string{"-c", "sleep 60 & echo $! > " + pidFile + "; wait"}, fsutil.RunOptions{})
+		cmdrun.Run(ctx, dir, "sh", []string{"-c", "sleep 60 & echo $! > " + pidFile + "; wait"}, cmdrun.Options{})
 		close(done)
 	}()
 	var pid int

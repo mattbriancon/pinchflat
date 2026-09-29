@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
@@ -145,7 +146,7 @@ func applyDefaultSettings(ctx context.Context, a *App) error {
 // Elixir ignores the script's exit code, so a non-zero exit must not stop boot.
 func runAppInitScript(ctx context.Context, a *App) error {
 	err := a.UserScripts.Run(ctx, "app_init", store.Attrs{})
-	var cmdErr *fsutil.CommandError
+	var cmdErr *cmdrun.Error
 	if errors.As(err, &cmdErr) {
 		slog.Warn("app_init user script exited non-zero", "status", cmdErr.Status)
 		return nil

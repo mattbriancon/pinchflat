@@ -1,6 +1,7 @@
 package app_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/mattbriancon/pinchflat/internal/app"
@@ -21,7 +22,7 @@ func TestFastIndexingWorker_KickoffWithTask(t *testing.T) {
 			t.Errorf("workers=%d, want 0 initially", len(workers))
 		}
 
-		_, err := ta.App.FastIndexingWorkerKickoffWithTask(ta.Ctx, source, store.KW{})
+		_, err := ta.App.FastIndexingWorkerKickoffWithTask(ta.Ctx, source, 0)
 		if err != nil {
 			t.Fatalf("kickoff failed: %v", err)
 		}
@@ -37,7 +38,7 @@ func TestFastIndexingWorker_KickoffWithTask(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
 
-		task, err := ta.App.FastIndexingWorkerKickoffWithTask(ta.Ctx, source, store.KW{})
+		task, err := ta.App.FastIndexingWorkerKickoffWithTask(ta.Ctx, source, 0)
 		if err != nil {
 			t.Fatalf("kickoff failed: %v", err)
 		}
@@ -55,7 +56,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			return "", nil
 		})
 
@@ -74,7 +75,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			return "", nil
 		})
 
@@ -98,7 +99,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers http.Header) (string, error) {
 			return "", nil
 		})
 
@@ -130,7 +131,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": false})
 
-		ta.HTTPMock.Get.ExpectN(0, func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.ExpectN(0, func(url string, headers http.Header) (string, error) {
 			return "", nil
 		})
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"strings"
 	"sync"
 
@@ -63,7 +64,7 @@ func youtubeApiRequest(ctx context.Context, a *App, playlistID string) (map[stri
 	// Construct the URL with the API key
 	url := youtubeApiEndpointWithKey(playlistID, apiKey)
 
-	response, err := a.HTTP.Get(ctx, url, store.KW{store.Opt("accept", "application/json")}, nil)
+	response, err := a.HTTP.Get(ctx, url, http.Header{"Accept": {"application/json"}})
 	if err != nil {
 		slog.Error(fmt.Sprintf("Failed to fetch YouTube API: %v", err))
 		return nil, err

@@ -5,7 +5,8 @@ package web
 // this flat package.
 
 import (
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"fmt"
+
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
@@ -160,5 +161,5 @@ func mediaProfilesAudioOutputTemplate() string {
 // double_brace/1 (Pinchflat.Utils.StringUtils), used throughout the form and
 // output_template_help templates.
 func mediaProfilesBrace(s string) string {
-	return fsutil.DoubleBrace(s)
+	return fmt.Sprintf("{{ %s }}", s)
 }

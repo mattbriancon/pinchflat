@@ -14,6 +14,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/db/dbtest"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 func TestMedia_Schema(t *testing.T) {
@@ -31,7 +32,7 @@ func TestMedia_Schema(t *testing.T) {
 		}
 		metadata := mediaItem.Metadata
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, nil); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, false); err != nil {
 			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
 
@@ -887,7 +888,7 @@ func TestMedia_Search(t *testing.T) {
 	t.Run("searches based on title", func(t *testing.T) {
 		ta, mediaItemID := setup(t)
 
-		got, err := ta.Search(ta.Ctx, "quick", nil)
+		got, err := ta.Search(ta.Ctx, "quick", 0)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -899,7 +900,7 @@ func TestMedia_Search(t *testing.T) {
 	t.Run("searches based on description", func(t *testing.T) {
 		ta, mediaItemID := setup(t)
 
-		got, err := ta.Search(ta.Ctx, "lazy", nil)
+		got, err := ta.Search(ta.Ctx, "lazy", 0)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -911,7 +912,7 @@ func TestMedia_Search(t *testing.T) {
 	t.Run("adds a matching_search_term attribute with the relevant text", func(t *testing.T) {
 		ta, _ := setup(t)
 
-		got, err := ta.Search(ta.Ctx, "quick", nil)
+		got, err := ta.Search(ta.Ctx, "quick", 0)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -928,7 +929,7 @@ func TestMedia_Search(t *testing.T) {
 		ta, _ := setup(t)
 		apptest.MediaItemFixture(t, ta, store.Attrs{"title": "foobar baz", "description": nil})
 
-		got, err := ta.Search(ta.Ctx, "baz", nil)
+		got, err := ta.Search(ta.Ctx, "baz", 0)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -944,7 +945,7 @@ func TestMedia_Search(t *testing.T) {
 		ta, _ := setup(t)
 		apptest.MediaItemFixture(t, ta, store.Attrs{"title": "The small gray dog"})
 
-		got, err := ta.Search(ta.Ctx, "dog", store.KW{store.Opt("limit", 1)})
+		got, err := ta.Search(ta.Ctx, "dog", 1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -956,7 +957,7 @@ func TestMedia_Search(t *testing.T) {
 	t.Run("returns an empty list when the search term is blank", func(t *testing.T) {
 		ta, _ := setup(t)
 
-		got, err := ta.Search(ta.Ctx, "", nil)
+		got, err := ta.Search(ta.Ctx, "", 0)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -969,7 +970,7 @@ func TestMedia_Search(t *testing.T) {
 		ta, _ := setup(t)
 
 		// Go has no nil string; the "" case above covers Media.search(nil, _opts).
-		got, err := ta.Search(ta.Ctx, "", nil)
+		got, err := ta.Search(ta.Ctx, "", 0)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -981,13 +982,13 @@ func TestMedia_Search(t *testing.T) {
 	t.Run("doesn't blow up if there's an apostrophe or quotes in the search term", func(t *testing.T) {
 		ta, _ := setup(t)
 
-		if got, err := ta.Search(ta.Ctx, "don't expl'ode", nil); err != nil || len(got) != 0 {
+		if got, err := ta.Search(ta.Ctx, "don't expl'ode", 0); err != nil || len(got) != 0 {
 			t.Errorf("got %+v, err %v", got, err)
 		}
-		if got, err := ta.Search(ta.Ctx, `dont expl"o"de`, nil); err != nil || len(got) != 0 {
+		if got, err := ta.Search(ta.Ctx, `dont expl"o"de`, 0); err != nil || len(got) != 0 {
 			t.Errorf("got %+v, err %v", got, err)
 		}
-		if got, err := ta.Search(ta.Ctx, `dont explo"de`, nil); err != nil || len(got) != 0 {
+		if got, err := ta.Search(ta.Ctx, `dont explo"de`, 0); err != nil || len(got) != 0 {
 			t.Errorf("got %+v, err %v", got, err)
 		}
 	})
@@ -995,10 +996,10 @@ func TestMedia_Search(t *testing.T) {
 	t.Run("doesn't blow up if there is a trailing operand", func(t *testing.T) {
 		ta, _ := setup(t)
 
-		if got, err := ta.Search(ta.Ctx, "foo OR", nil); err != nil || len(got) != 0 {
+		if got, err := ta.Search(ta.Ctx, "foo OR", 0); err != nil || len(got) != 0 {
 			t.Errorf("got %+v, err %v", got, err)
 		}
-		if got, err := ta.Search(ta.Ctx, "foo AND", nil); err != nil || len(got) != 0 {
+		if got, err := ta.Search(ta.Ctx, "foo AND", 0); err != nil || len(got) != 0 {
 			t.Errorf("got %+v, err %v", got, err)
 		}
 	})
@@ -1279,7 +1280,7 @@ func TestMedia_DeleteMediaItem(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, nil); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, false); err != nil {
 			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
 		if _, err := ta.GetMediaItem(ta.Ctx, mediaItem.ID); err != store.ErrNotFound {
@@ -1292,7 +1293,7 @@ func TestMedia_DeleteMediaItem(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
 		task := apptest.TaskFixture(t, ta, store.Attrs{"media_item_id": mediaItem.ID})
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, nil); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, false); err != nil {
 			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
 		if _, err := store.Reload[store.Task](ta.Ctx, ta.Q(ta.Ctx), task); err != store.ErrNotFound {
@@ -1304,7 +1305,7 @@ func TestMedia_DeleteMediaItem(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, nil); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, false); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
 		if _, err := os.Stat(store.Deref(mediaItem.MediaFilepath)); err != nil {
@@ -1314,7 +1315,7 @@ func TestMedia_DeleteMediaItem(t *testing.T) {
 
 	t.Run("does delete the media item's metadata files", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "", nil
 		})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
@@ -1341,7 +1342,7 @@ func TestMedia_DeleteMediaItem(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, updated, nil); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, updated, false); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
 		if updated.Metadata == nil {
@@ -1363,7 +1364,7 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 		stubUserScript(ta)
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, store.KW{store.Opt("delete_files", true)}); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, true); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
 		if _, err := os.Stat(store.Deref(mediaItem.MediaFilepath)); err == nil {
@@ -1374,7 +1375,7 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 	t.Run("deletes the media item's metadata files", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		stubUserScript(ta)
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "", nil
 		})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
@@ -1401,7 +1402,7 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, updated, store.KW{store.Opt("delete_files", true)}); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, updated, true); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
 		if _, err := os.Stat(updated.Metadata.MetadataFilepath); err == nil {
@@ -1414,7 +1415,7 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 		stubUserScript(ta)
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, store.KW{store.Opt("delete_files", true)}); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, true); err != nil {
 			t.Fatalf("expected {:ok, %%store.MediaItem{}}, got error: %v", err)
 		}
 		if _, err := ta.GetMediaItem(ta.Ctx, mediaItem.ID); err != store.ErrNotFound {
@@ -1428,7 +1429,7 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
 		rootDirectory := filepath.Dir(store.Deref(mediaItem.MediaFilepath))
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, store.KW{store.Opt("delete_files", true)}); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, true); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
 		if _, err := os.Stat(rootDirectory); err == nil {
@@ -1445,7 +1446,7 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, store.KW{store.Opt("delete_files", true)}); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, true); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
 		if _, err := os.Stat(rootDirectory); err != nil {
@@ -1475,7 +1476,7 @@ func TestMedia_DeleteMediaItem_FileDeletion(t *testing.T) {
 			return nil
 		})
 
-		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, store.KW{store.Opt("delete_files", true)}); err != nil {
+		if _, err := ta.MediaDeleteMediaItem(ta.Ctx, mediaItem, true); err != nil {
 			t.Fatalf("expected {:ok, _}, got error: %v", err)
 		}
 	})
@@ -1532,7 +1533,7 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 	t.Run("does not delete the media item's metadata files", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		stubUserScript(ta)
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "", nil
 		})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
@@ -1574,7 +1575,7 @@ func TestMedia_DeleteMediaFiles(t *testing.T) {
 		}
 
 		// cleanup
-		ta.MediaDeleteMediaItem(ta.Ctx, updated, store.KW{store.Opt("delete_files", true)})
+		ta.MediaDeleteMediaItem(ta.Ctx, updated, true)
 	})
 
 	t.Run("can take additional attributes update media item", func(t *testing.T) {

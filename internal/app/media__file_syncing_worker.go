@@ -16,33 +16,12 @@ var fileSyncingWorkerOpts = obanlite.WorkerOpts{
 }
 
 // FileSyncingWorker.kickoff_with_task/2
-func (a *App) FileSyncingWorkerKickoffWithTask(ctx context.Context, source *store.Source, opts store.KW) (*store.Task, error) {
+func (a *App) FileSyncingWorkerKickoffWithTask(ctx context.Context, source *store.Source) (*store.Task, error) {
 	jobSpec := obanlite.JobSpec{
 		Worker: FileSyncingWorkerName,
 		Args: map[string]any{
 			"id": source.ID,
 		},
-	}
-
-	// Apply any options passed in (schedule_in, priority, etc)
-	for _, kv := range opts {
-		if kv.Flag {
-			continue
-		}
-		switch kv.Key {
-		case "schedule_in":
-			if scheduleIn, ok := kv.Value.(int); ok {
-				jobSpec.ScheduleIn = scheduleIn
-			}
-		case "priority":
-			if priority, ok := kv.Value.(int); ok {
-				jobSpec.Priority = &priority
-			}
-		case "max_attempts":
-			if maxAttempts, ok := kv.Value.(int); ok {
-				jobSpec.MaxAttempts = maxAttempts
-			}
-		}
 	}
 
 	return a.CreateJobWithTask(ctx, jobSpec, source)

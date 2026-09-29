@@ -71,7 +71,7 @@ func (s *Server) SourceControllerCreate(w http.ResponseWriter, r *http.Request) 
 	ctx := r.Context()
 	attrs := ParseForm(r, "source")
 
-	source, err := s.App.SourcesCreateSource(ctx, store.ParseSourceParams(attrs), store.KW{})
+	source, err := s.App.SourcesCreateSource(ctx, store.ParseSourceParams(attrs), true)
 	if err != nil {
 		if errs, ok := store.AsValidationErrors(err); ok {
 			mediaProfiles, _ := s.App.ListMediaProfiles(ctx)
@@ -150,7 +150,7 @@ func (s *Server) SourceControllerUpdate(w http.ResponseWriter, r *http.Request) 
 	}
 	attrs := ParseForm(r, "source")
 
-	updated, err := s.App.SourcesUpdateSource(ctx, source, store.ParseSourceParams(attrs), store.KW{})
+	updated, err := s.App.SourcesUpdateSource(ctx, source, store.ParseSourceParams(attrs), true)
 	if err != nil {
 		if errs, ok := store.AsValidationErrors(err); ok {
 			// Re-render form with errors, passing the original loaded source
@@ -178,7 +178,7 @@ func (s *Server) SourceControllerDelete(w http.ResponseWriter, r *http.Request) 
 	// Mark for deletion
 	_, err := s.App.SourcesUpdateSource(ctx, source, store.SourceParams{
 		MarkedForDeletionAt: store.Ptr(db.UTCDateTime{Time: time.Now().UTC()}),
-	}, store.KW{})
+	}, true)
 	if err != nil {
 		s.Fail(w, r, err)
 		return
@@ -187,7 +187,7 @@ func (s *Server) SourceControllerDelete(w http.ResponseWriter, r *http.Request) 
 	// Kickoff deletion worker
 	_, _ = s.App.SourceDeletionWorkerKickoff(ctx, source, store.Attrs{
 		"delete_files": deleteFiles,
-	}, store.KW{})
+	})
 
 	s.PutFlash(w, r, "info", "Source deletion started. This may take a while to complete.")
 	s.Redirect(w, r, P(ctx, "/sources"))
@@ -212,7 +212,7 @@ func (s *Server) sourceForceAction(w http.ResponseWriter, r *http.Request, msg s
 // SourceControllerForceDownloadPending forces pending media downloads.
 func (s *Server) SourceControllerForceDownloadPending(w http.ResponseWriter, r *http.Request) {
 	s.sourceForceAction(w, r, "Forcing download of pending media items.", func(ctx context.Context, source *store.Source) error {
-		return s.App.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{})
+		return s.App.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil)
 	})
 }
 
@@ -227,7 +227,7 @@ func (s *Server) SourceControllerForceRedownload(w http.ResponseWriter, r *http.
 // SourceControllerForceIndex forces an indexing task.
 func (s *Server) SourceControllerForceIndex(w http.ResponseWriter, r *http.Request) {
 	s.sourceForceAction(w, r, "Index enqueued.", func(ctx context.Context, source *store.Source) error {
-		_, err := s.App.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{"force": true}, store.KW{})
+		_, err := s.App.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{"force": true})
 		return err
 	})
 }
@@ -235,7 +235,7 @@ func (s *Server) SourceControllerForceIndex(w http.ResponseWriter, r *http.Reque
 // SourceControllerForceMetadataRefresh forces a metadata refresh.
 func (s *Server) SourceControllerForceMetadataRefresh(w http.ResponseWriter, r *http.Request) {
 	s.sourceForceAction(w, r, "Metadata refresh enqueued.", func(ctx context.Context, source *store.Source) error {
-		_, err := s.App.SourceMetadataStorageWorkerKickoffWithTask(ctx, source, store.KW{})
+		_, err := s.App.SourceMetadataStorageWorkerKickoffWithTask(ctx, source)
 		return err
 	})
 }
@@ -243,7 +243,7 @@ func (s *Server) SourceControllerForceMetadataRefresh(w http.ResponseWriter, r *
 // SourceControllerSyncFilesOnDisk forces a file sync.
 func (s *Server) SourceControllerSyncFilesOnDisk(w http.ResponseWriter, r *http.Request) {
 	s.sourceForceAction(w, r, "File sync enqueued.", func(ctx context.Context, source *store.Source) error {
-		_, err := s.App.FileSyncingWorkerKickoffWithTask(ctx, source, store.KW{})
+		_, err := s.App.FileSyncingWorkerKickoffWithTask(ctx, source)
 		return err
 	})
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 // output_path_template/1
@@ -24,8 +25,7 @@ func (a *App) SourcesOutputPathTemplate(ctx context.Context, source *store.Sourc
 
 // CreateSource/1 and CreateSource/2. Invalid params come back as a
 // store.ValidationErrors error.
-func (a *App) SourcesCreateSource(ctx context.Context, p store.SourceParams, opts store.KW) (*store.Source, error) {
-	runPostCommitTasks := opts.GetOr("run_post_commit_tasks", true).(bool)
+func (a *App) SourcesCreateSource(ctx context.Context, p store.SourceParams, runPostCommitTasks bool) (*store.Source, error) {
 	blank := store.NewSource()
 
 	// Fail fast before asking yt-dlp anything.
@@ -47,19 +47,18 @@ func (a *App) SourcesCreateSource(ctx context.Context, p store.SourceParams, opt
 
 	if runPostCommitTasks {
 		// A new source always gets indexed and has its metadata fetched.
-		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{}, store.KW{})
+		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{})
 		if source.FastIndex {
 			_, _ = a.FastIndexingHelpersKickoffIndexingTask(ctx, source)
 		}
-		_, _ = a.SourceMetadataStorageWorkerKickoffWithTask(ctx, source, store.KW{})
+		_, _ = a.SourceMetadataStorageWorkerKickoffWithTask(ctx, source)
 	}
 	return source, nil
 }
 
 // UpdateSource/2 and UpdateSource/3. Invalid params come back as a
 // store.ValidationErrors error.
-func (a *App) SourcesUpdateSource(ctx context.Context, source *store.Source, p store.SourceParams, opts store.KW) (*store.Source, error) {
-	runPostCommitTasks := opts.GetOr("run_post_commit_tasks", true).(bool)
+func (a *App) SourcesUpdateSource(ctx context.Context, source *store.Source, p store.SourceParams, runPostCommitTasks bool) (*store.Source, error) {
 
 	// Fail fast before asking yt-dlp anything.
 	if errs := p.Validate(source, "initial"); len(errs) > 0 {
@@ -85,9 +84,7 @@ func (a *App) SourcesUpdateSource(ctx context.Context, source *store.Source, p s
 }
 
 // DeleteSource/1 and DeleteSource/2
-func (a *App) SourcesDeleteSource(ctx context.Context, source *store.Source, opts store.KW) (*store.Source, error) {
-	deleteFiles := opts.Bool("delete_files")
-
+func (a *App) SourcesDeleteSource(ctx context.Context, source *store.Source, deleteFiles bool) (*store.Source, error) {
 	// Delete tasks (of any state, matching Elixir's Tasks.delete_tasks_for
 	// default of Oban.Job.states()).
 	_ = a.DeleteTasksFor(ctx, source, nil, obanlite.AllStates)
@@ -95,7 +92,7 @@ func (a *App) SourcesDeleteSource(ctx context.Context, source *store.Source, opt
 	// Delete media items
 	mediaItems, _ := store.All[store.MediaItem](ctx, a.Q(ctx), store.MediaQueryNew().Where(store.MediaQueryForSource(source.ID)))
 	for _, item := range mediaItems {
-		_, _ = a.MediaDeleteMediaItem(ctx, item, opts)
+		_, _ = a.MediaDeleteMediaItem(ctx, item, deleteFiles)
 	}
 
 	// Delete source files if requested
@@ -125,7 +122,7 @@ func sourcesParamsFromURL(ctx context.Context, a *App, existing *store.Source, p
 	if p.Changed(existing)["original_url"] {
 		applied := p.Apply(existing)
 		shouldUseCookies := applied.CookieBehaviour == store.SourceCookieBehaviourAllOperations
-		addlOpts := store.KW{store.Opt("use_cookies", shouldUseCookies), store.Opt("skip_sleep_interval", true)}
+		callOpts := ytdlp.CallOptions{UseCookies: shouldUseCookies, SkipSleepInterval: true}
 
 		fail := func(msg string) (store.SourceParams, error) {
 			errs := p.Validate(existing, "pre_insert")
@@ -133,7 +130,7 @@ func sourcesParamsFromURL(ctx context.Context, a *App, existing *store.Source, p
 			return p, store.ValidationErrors(errs)
 		}
 
-		sourceDetails, err := a.MediaCollectionGetSourceDetails(ctx, applied.OriginalURL, store.KW{}, addlOpts)
+		sourceDetails, err := a.MediaCollectionGetSourceDetails(ctx, applied.OriginalURL, nil, callOpts)
 		if err != nil {
 			return fail("could not fetch source details from URL")
 		}
@@ -236,30 +233,30 @@ func sourcesHandleUpdateTasks(ctx context.Context, a *App, c store.SourceChanges
 
 	switch sourcesMediaAction(c) {
 	case taskEnqueue:
-		_ = a.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{})
+		_ = a.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil)
 	case taskDequeue:
 		_ = a.DownloadingHelpersDequeuePendingDownloadTasks(ctx, source)
 	}
 
 	switch sourcesSlowIndexingAction(c) {
 	case taskEnqueue:
-		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{}, store.KW{})
+		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{})
 	case taskDequeue:
 		// Elixir's SlowIndexingHelpers.delete_indexing_tasks/2 deletes both
 		// the fast- and slow-indexing pending tasks, not just the slow one.
-		_ = a.SlowIndexingHelpersDeleteIndexingTasks(ctx, source, store.KW{store.Opt("include_executing", true)})
+		_ = a.SlowIndexingHelpersDeleteIndexingTasks(ctx, source, true)
 	}
 
 	switch sourcesFastIndexingAction(c) {
 	case taskEnqueue:
 		_, _ = a.FastIndexingHelpersKickoffIndexingTask(ctx, source)
 	case taskDequeue:
-		_ = a.DeletePendingTasksFor(ctx, source, store.Ptr("FastIndexingWorker"), store.KW{store.Opt("include_executing", true)})
+		_ = a.DeletePendingTasksFor(ctx, source, store.Ptr("FastIndexingWorker"), true)
 	}
 
 	// Only refetch metadata if the URL changed.
 	if c.Changed["original_url"] {
-		_, _ = a.SourceMetadataStorageWorkerKickoffWithTask(ctx, source, store.KW{})
+		_, _ = a.SourceMetadataStorageWorkerKickoffWithTask(ctx, source)
 	}
 }
 

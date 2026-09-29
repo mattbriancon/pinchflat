@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/mattbriancon/pinchflat/internal/app"
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
@@ -18,7 +19,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingOutputOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		expected := filepath.Join(ta.Config.MediaDirectory, "%(title)S.%(ext)s")
 		found := false
@@ -40,7 +41,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingOutputOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		expected := filepath.Join(ta.Config.MediaDirectory, mediaItem.Source.CustomName+".%(ext)s")
 		found := false
@@ -62,7 +63,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingOutputOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		expected := filepath.Join(ta.Config.MediaDirectory, "99.%(ext)s")
 		found := false
@@ -83,10 +84,10 @@ func TestDownloadOptionBuilder_Build_WhenTestingOutputOptions(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-		ta.App.SourcesUpdateSource(ta.Ctx, mediaItem.Source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, store.KW{})
+		ta.App.SourcesUpdateSource(ta.Ctx, mediaItem.Source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, true)
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		expected := filepath.Join(ta.Config.MediaDirectory, "override.%(ext)s")
 		found := false
@@ -110,7 +111,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingDefaultOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		hasNoProgress := false
 		hasForceOverwrites := false
@@ -138,7 +139,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingDefaultOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{store.Opt("overwrite_behaviour", "no_force_overwrites")})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{OverwriteBehaviour: "no_force_overwrites"})
 
 		hasForceOverwrites := false
 		hasNoForceOverwrites := false
@@ -164,7 +165,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -185,7 +186,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -210,8 +211,8 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 		mediaItem1, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem1)
 		mediaItem2, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem2)
 
-		res1, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem1, store.KW{})
-		res2, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem2, store.KW{})
+		res1, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem1, app.DownloadOverrides{})
+		res2, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem2, app.DownloadOverrides{})
 
 		found1 := false
 		found2 := false
@@ -239,7 +240,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -260,7 +261,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -281,7 +282,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -302,7 +303,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -323,7 +324,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -344,7 +345,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -367,7 +368,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -388,7 +389,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		expected := "thumbnail:" + filepath.Join(ta.Config.MediaDirectory, "%(title)S-thumb.%(ext)s")
 		found := false
@@ -407,12 +408,12 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadThumbnail: store.Ptr(true)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
-		ta.App.SourcesUpdateSource(ta.Ctx, source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, store.KW{})
+		ta.App.SourcesUpdateSource(ta.Ctx, source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, true)
 		source, _ = ta.App.PreloadSourceMediaProfile(ta.Ctx, source)
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		expected := "thumbnail:" + filepath.Join(ta.Config.MediaDirectory, "override-thumb.%(ext)s")
 		found := false
@@ -434,7 +435,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -455,7 +456,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -476,7 +477,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -497,7 +498,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		hasWriteThumbnail := false
 		hasEmbedThumbnail := false
@@ -523,7 +524,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingMetadataOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		hasWriteInfoJson := false
 		hasCleanInfoJson := false
@@ -547,7 +548,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingMetadataOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -568,7 +569,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingMetadataOptions(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		hasWriteInfoJson := false
 		hasCleanInfoJson := false
@@ -598,7 +599,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingMediaQualityAndFormatOptions(t *
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		hasFormatSort := false
 		hasRemuxVideo := false
@@ -622,7 +623,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingMediaQualityAndFormatOptions(t *
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		hasExtractAudio := false
 		hasFormatSort := false
@@ -655,7 +656,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSponsorblockOptions(t *testing.T
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -679,7 +680,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSponsorblockOptions(t *testing.T
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -703,7 +704,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSponsorblockOptions(t *testing.T
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		hasSponsorblock := false
 		for _, kv := range res {
@@ -724,7 +725,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingSponsorblockOptions(t *testing.T
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		hasSponsorblock := false
 		for _, kv := range res {
@@ -776,7 +777,7 @@ func TestDownloadOptionBuilder_BuildOutputPathFor(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-		updatedSource, _ := ta.App.SourcesUpdateSource(ta.Ctx, mediaItem.Source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, store.KW{})
+		updatedSource, _ := ta.App.SourcesUpdateSource(ta.Ctx, mediaItem.Source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, true)
 
 		path := ta.App.DownloadOptionBuilderBuildOutputPathForSource(ta.Ctx, updatedSource)
 
@@ -809,7 +810,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 			t.Fatalf("write config: %v", err)
 		}
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -832,7 +833,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 			t.Fatalf("write config: %v", err)
 		}
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -855,7 +856,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 			t.Fatalf("write config: %v", err)
 		}
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -878,7 +879,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 			t.Fatalf("write config: %v", err)
 		}
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -896,7 +897,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 		ta := apptest.NewApp(t)
 		mediaItem := newConfigMediaItem(t, ta)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -919,7 +920,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 			t.Fatalf("write config: %v", err)
 		}
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		found := false
 		for _, kv := range res {
@@ -949,7 +950,7 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 			}
 		}
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, store.KW{})
+		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
 
 		var gotOrder []string
 		for _, kv := range res {

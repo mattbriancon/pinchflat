@@ -7,20 +7,14 @@ import (
 )
 
 // DeleteMediaProfile/1 and DeleteMediaProfile/2
-func (a *App) ProfilesDeleteMediaProfile(ctx context.Context, profile *store.MediaProfile, opts store.KW) (*store.MediaProfile, error) {
-	deleteFiles := opts.GetOr("delete_files", false).(bool)
-
+func (a *App) ProfilesDeleteMediaProfile(ctx context.Context, profile *store.MediaProfile, deleteFiles bool) (*store.MediaProfile, error) {
 	sources, err := a.ListSourcesFor(ctx, profile)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, source := range sources {
-		deleteOpts := store.KW{}
-		if deleteFiles {
-			deleteOpts = append(deleteOpts, store.Opt("delete_files", true))
-		}
-		if _, err := a.SourcesDeleteSource(ctx, source, deleteOpts); err != nil {
+		if _, err := a.SourcesDeleteSource(ctx, source, deleteFiles); err != nil {
 			return nil, err
 		}
 	}

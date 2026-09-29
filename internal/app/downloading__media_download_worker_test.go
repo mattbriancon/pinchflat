@@ -2,6 +2,7 @@ package app_test
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
@@ -27,7 +29,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 			t.Errorf("expected 0 enqueued jobs, got %d", len(enqueuedJobs))
 		}
 
-		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, store.KW{})
+		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, nil)
 		if err != nil {
 			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
 		}
@@ -44,7 +46,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
-		task, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, store.KW{})
+		task, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, nil)
 		if err != nil {
 			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
 		}
@@ -61,7 +63,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		jobArgs := store.Attrs{"force": true}
 
-		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, jobArgs, store.KW{})
+		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, jobArgs, nil)
 		if err != nil {
 			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
 		}
@@ -75,7 +77,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 
-		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, store.KW{})
+		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, nil)
 		if err != nil {
 			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
 		}
@@ -98,7 +100,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
 		priority := 0
 
-		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, store.KW{store.Opt("priority", priority)})
+		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, &priority)
 		if err != nil {
 			t.Fatalf("MediaDownloadWorkerKickoffWithTask failed: %v", err)
 		}
@@ -121,7 +123,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 	setup := func(t *testing.T) *apptest.TestApp {
 		ta := apptest.NewApp(t)
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -139,7 +141,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers http.Header) (string, error) {
 			return "", nil
 		})
 
@@ -204,7 +206,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -233,7 +235,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -263,7 +265,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -290,7 +292,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -317,7 +319,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -344,7 +346,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -372,7 +374,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ctx := ta.Ctx
 
 		callCount := 0
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			defer func() { callCount++ }()
 
 			if action == "get_downloadable_status" {
@@ -440,7 +442,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		noForceOverwritesCalled := false
 		forceOverwritesCalled := false
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -484,7 +486,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ctx := ta.Ctx
 
 		downloadCalled := false
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "download" {
 				downloadCalled = true
 			}
@@ -506,7 +508,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ctx := ta.Ctx
 
 		downloadCalled := false
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "download" {
 				downloadCalled = true
 			}
@@ -528,7 +530,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ctx := ta.Ctx
 
 		downloadCalled := false
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "download" {
 				downloadCalled = true
 			}
@@ -550,7 +552,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingNonDownloadableMedia(t *testing.
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return `{"live_status": "is_live"}`, nil
 			}
@@ -577,7 +579,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingForcedDownloads(t *testing.T) {
 	setup := func(t *testing.T) *apptest.TestApp {
 		ta := apptest.NewApp(t)
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -595,7 +597,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingForcedDownloads(t *testing.T) {
 			return nil
 		})
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers http.Header) (string, error) {
 			return "", nil
 		})
 
@@ -638,7 +640,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingForcedDownloads(t *testing.T) {
 		forceOverwritesCalled := false
 		noForceOverwritesCalled := false
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -681,7 +683,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 	setup := func(t *testing.T) *apptest.TestApp {
 		ta := apptest.NewApp(t)
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -699,7 +701,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 			return nil
 		})
 
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers http.Header) (string, error) {
 			return "", nil
 		})
 
@@ -738,7 +740,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 		ctx := ta.Ctx
 
 		downloadCalled := false
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "download" {
 				downloadCalled = true
 			}
@@ -760,7 +762,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 		ctx := ta.Ctx
 
 		downloadCalled := false
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "download" {
 				downloadCalled = true
 			}
@@ -784,7 +786,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 		forceOverwritesCalled := false
 		noForceOverwritesCalled := false
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -826,7 +828,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(3, func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -870,7 +872,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 		preDownloadCalled := false
 		preDownloadMediaItem := (*store.MediaItem)(nil)
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -915,7 +917,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 
 		downloadCalled := false
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "download" {
 				downloadCalled = true
 			}
@@ -949,7 +951,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 
 		downloadCalled := false
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}
@@ -998,7 +1000,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 		postDownloadCalled := false
 		postDownloadMediaItem := (*store.MediaItem)(nil)
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if action == "get_downloadable_status" {
 				return "{}", nil
 			}

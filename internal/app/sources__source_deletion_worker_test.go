@@ -24,7 +24,7 @@ func TestSourceDeletionWorker_Kickoff(t *testing.T) {
 			t.Errorf("expected 0 enqueued initially")
 		}
 
-		job, err := ta.App.SourceDeletionWorkerKickoff(ta.Ctx, source, store.Attrs{}, store.KW{})
+		job, err := ta.App.SourceDeletionWorkerKickoff(ta.Ctx, source, store.Attrs{})
 		if err != nil {
 			t.Errorf("kickoff failed: %v", err)
 		}
@@ -47,7 +47,7 @@ func TestSourceDeletionWorker_Kickoff(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		jobArgs := store.Attrs{"delete_files": true}
 
-		job, err := ta.App.SourceDeletionWorkerKickoff(ta.Ctx, source, jobArgs, store.KW{})
+		job, err := ta.App.SourceDeletionWorkerKickoff(ta.Ctx, source, jobArgs)
 		if err != nil {
 			t.Errorf("kickoff failed: %v", err)
 		}

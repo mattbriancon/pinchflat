@@ -97,7 +97,7 @@ func start(s Settings) error {
 	}
 
 	a := &app.App{Store: &store.Store{DB: d, Oban: obanlite.New(d)}, Config: s.Core}
-	a.YtDlp = app.NewYtDlpCommandRunner(a)
+	a.YtDlp = app.NewYtDlpRunner(a)
 	a.UserScripts = &app.UserScriptsCommandRunner{App: a}
 	a.HTTP = &app.HTTPClientImpl{}
 	a.RegisterWorkers()

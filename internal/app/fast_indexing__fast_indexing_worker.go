@@ -21,14 +21,12 @@ var fastIndexingWorkerOpts = obanlite.WorkerOpts{
 }
 
 // FastIndexingWorkerKickoffWithTask/2
-func (a *App) FastIndexingWorkerKickoffWithTask(ctx context.Context, source *store.Source, opts store.KW) (*store.Task, error) {
+func (a *App) FastIndexingWorkerKickoffWithTask(ctx context.Context, source *store.Source, scheduleIn int) (*store.Task, error) {
 	jobSpec := obanlite.JobSpec{
 		Worker: FastIndexingWorkerName,
 		Args:   map[string]any{"id": source.ID},
-	}
 
-	if scheduleIn, ok := opts.Get("schedule_in"); ok {
-		jobSpec.ScheduleIn = scheduleIn.(int)
+		ScheduleIn: scheduleIn,
 	}
 
 	return a.CreateJobWithTask(ctx, jobSpec, source)
@@ -71,7 +69,7 @@ func fastIndexingWorkerPerformIndexing(ctx context.Context, a *App, source *stor
 func fastIndexingWorkerRescheduleIndexing(ctx context.Context, a *App, source *store.Source) error {
 	nextRunInSeconds := store.SourceFastIndexFrequency() * 60
 
-	_, err := a.FastIndexingWorkerKickoffWithTask(ctx, source, store.KW{store.Opt("schedule_in", nextRunInSeconds)})
+	_, err := a.FastIndexingWorkerKickoffWithTask(ctx, source, nextRunInSeconds)
 	if err != nil {
 		if err.Error() == "duplicate_job" {
 			return nil

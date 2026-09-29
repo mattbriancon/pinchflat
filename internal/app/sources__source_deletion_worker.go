@@ -15,7 +15,7 @@ var sourceDeletionWorkerOpts = obanlite.WorkerOpts{
 }
 
 // SourceDeletionWorker.kickoff/1, kickoff/2, kickoff/3
-func (a *App) SourceDeletionWorkerKickoff(ctx context.Context, source *store.Source, jobArgs store.Attrs, jobOpts store.KW) (*obanlite.Job, error) {
+func (a *App) SourceDeletionWorkerKickoff(ctx context.Context, source *store.Source, jobArgs store.Attrs) (*obanlite.Job, error) {
 	// Build args: {id: source.id} merged with jobArgs
 	args := make(map[string]any)
 	args["id"] = source.ID
@@ -27,32 +27,6 @@ func (a *App) SourceDeletionWorkerKickoff(ctx context.Context, source *store.Sou
 	spec := obanlite.JobSpec{
 		Worker: SourceDeletionWorkerName,
 		Args:   args,
-	}
-
-	// Apply jobOpts to spec
-	for _, kv := range jobOpts {
-		switch kv.Key {
-		case "priority":
-			if v, ok := kv.Value.(int); ok {
-				spec.Priority = &v
-			}
-		case "max_attempts":
-			if v, ok := kv.Value.(int); ok {
-				spec.MaxAttempts = v
-			}
-		case "schedule_in":
-			if v, ok := kv.Value.(int); ok {
-				spec.ScheduleIn = v
-			}
-		case "tags":
-			if v, ok := kv.Value.([]string); ok {
-				spec.Tags = v
-			}
-		case "unique":
-			if v, ok := kv.Value.(*obanlite.UniqueOpts); ok {
-				spec.Unique = v
-			}
-		}
 	}
 
 	return a.Oban.Insert(ctx, a.Q(ctx), spec)
@@ -78,6 +52,6 @@ func (a *App) SourceDeletionWorkerPerform(ctx context.Context, job *obanlite.Job
 		return err
 	}
 
-	_, err = a.SourcesDeleteSource(ctx, source, store.KW{store.Opt("delete_files", deleteFiles)})
+	_, err = a.SourcesDeleteSource(ctx, source, deleteFiles)
 	return err
 }

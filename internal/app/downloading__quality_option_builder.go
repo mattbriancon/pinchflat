@@ -5,19 +5,20 @@ import (
 	"strings"
 
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 // QualityOptionBuilder builds quality-related options for yt-dlp.
 
 // QualityOptionBuilderBuild/1
-func (a *App) QualityOptionBuilderBuild(ctx context.Context, mediaProfile *store.MediaProfile) store.KW {
+func (a *App) QualityOptionBuilderBuild(ctx context.Context, mediaProfile *store.MediaProfile) ytdlp.Args {
 	if mediaProfile.PreferredResolution == store.MediaProfilePreferredResolutionAudio {
 		return qualityOptionBuilderBuildAudio(ctx, a, mediaProfile)
 	}
 	return qualityOptionBuilderBuildVideo(ctx, a, mediaProfile)
 }
 
-func qualityOptionBuilderBuildAudio(ctx context.Context, a *App, mediaProfile *store.MediaProfile) store.KW {
+func qualityOptionBuilderBuildAudio(ctx context.Context, a *App, mediaProfile *store.MediaProfile) ytdlp.Args {
 	audioCodec, _ := a.GetSetting(ctx, "audio_codec_preference")
 	audioCodecStr := audioCodec.(string)
 
@@ -26,15 +27,14 @@ func qualityOptionBuilderBuildAudio(ctx context.Context, a *App, mediaProfile *s
 		container = *mediaProfile.MediaContainer
 	}
 
-	return store.KW{
-		store.Flag("extract_audio"),
-		store.Opt("format_sort", "+acodec:"+audioCodecStr),
-		store.Opt("audio_format", container),
-		store.Opt("format", qualityOptionBuilderBuildFormatString(mediaProfile)),
-	}
+	return ytdlp.Args{}.
+		Flag("extract_audio").
+		Opt("format_sort", "+acodec:"+audioCodecStr).
+		Opt("audio_format", container).
+		Opt("format", qualityOptionBuilderBuildFormatString(mediaProfile))
 }
 
-func qualityOptionBuilderBuildVideo(ctx context.Context, a *App, mediaProfile *store.MediaProfile) store.KW {
+func qualityOptionBuilderBuildVideo(ctx context.Context, a *App, mediaProfile *store.MediaProfile) ytdlp.Args {
 	videoCodec, _ := a.GetSetting(ctx, "video_codec_preference")
 	audioCodec, _ := a.GetSetting(ctx, "audio_codec_preference")
 	videoCodecStr := videoCodec.(string)
@@ -49,11 +49,10 @@ func qualityOptionBuilderBuildVideo(ctx context.Context, a *App, mediaProfile *s
 		container = *mediaProfile.MediaContainer
 	}
 
-	return store.KW{
-		store.Opt("remux_video", container),
-		store.Opt("format_sort", "res:"+resolutionDigits+",+codec:"+videoCodecStr+":"+audioCodecStr),
-		store.Opt("format", qualityOptionBuilderBuildFormatString(mediaProfile)),
-	}
+	return ytdlp.Args{}.
+		Opt("remux_video", container).
+		Opt("format_sort", "res:"+resolutionDigits+",+codec:"+videoCodecStr+":"+audioCodecStr).
+		Opt("format", qualityOptionBuilderBuildFormatString(mediaProfile))
 }
 
 func qualityOptionBuilderBuildFormatString(mediaProfile *store.MediaProfile) string {

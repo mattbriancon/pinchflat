@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
@@ -16,7 +15,7 @@ func OpmlFeedBuilderBuild(urlBase string, sources []*store.Source) string {
 	for _, source := range sources {
 		sourceRoute := opmlFeedBuilderSourceRoute(urlBase, source)
 		// Each item is an Elixir heredoc, so it ends with a newline.
-		outline := fmt.Sprintf("<outline type=\"rss\" text=\"%s\" xmlUrl=\"%s\" />\n", fsutil.XMLSafe(source.CustomName), fsutil.XMLSafe(sourceRoute))
+		outline := fmt.Sprintf("<outline type=\"rss\" text=\"%s\" xmlUrl=\"%s\" />\n", xmlSafe(source.CustomName), xmlSafe(sourceRoute))
 		sourcesXML = append(sourcesXML, outline)
 	}
 

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
 	"github.com/mattbriancon/pinchflat/internal/db/dbtest"
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
@@ -56,7 +56,7 @@ func TestRunnerRun(t *testing.T) {
 
 	t.Run("includes the media url as the first argument", func(t *testing.T) {
 		runner := newTestRunner(t, ytdlp.Settings{})
-		output, err := runner.Run(context.Background(), mediaURL, "foo", []string{"--ignore-errors"}, "", ytdlp.CallOptions{})
+		output, err := runner.Run(context.Background(), mediaURL, "foo", ytdlp.Args{}.Flag("ignore_errors"), "", ytdlp.CallOptions{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -86,7 +86,7 @@ func TestRunnerRun(t *testing.T) {
 		if output != "" {
 			t.Errorf("expected empty output on error, got %q", output)
 		}
-		if cmdErr, ok := err.(*fsutil.CommandError); !ok || cmdErr.Status != 1 {
+		if cmdErr, ok := err.(*cmdrun.Error); !ok || cmdErr.Status != 1 {
 			t.Errorf("expected CommandError with status 1, got %T: %v", err, err)
 		}
 	})

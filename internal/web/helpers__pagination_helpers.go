@@ -7,7 +7,6 @@ import (
 	"math"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
@@ -31,7 +30,7 @@ func (s *Server) GetPaginationAttributes(ctx context.Context, query sq.SelectBui
 	}
 
 	totalPages := int(math.Max(math.Ceil(float64(totalRecordCount)/float64(recordsPerPage)), 1))
-	clampedPage := fsutil.Clamp(page, 1, totalPages)
+	clampedPage := clamp(page, 1, totalPages)
 
 	return &PaginationAttributes{
 		Page:             clampedPage,
@@ -40,4 +39,9 @@ func (s *Server) GetPaginationAttributes(ctx context.Context, query sq.SelectBui
 		Limit:            recordsPerPage,
 		Offset:           (clampedPage - 1) * recordsPerPage,
 	}, nil
+}
+
+// clamp clamps num between minimum and maximum.
+func clamp(num, minimum, maximum int) int {
+	return min(max(num, minimum), maximum)
 }

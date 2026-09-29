@@ -7,8 +7,8 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/app"
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
-	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 func TestYtDlpMedia_Download(t *testing.T) {
@@ -16,24 +16,24 @@ func TestYtDlpMedia_Download(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if action != "download" {
 				t.Errorf("expected action 'download', got %q", action)
 			}
-			if len(opts) != 1 || !opts.Contains(store.Flag("no_simulate")) {
+			if len(opts) != 1 || !opts.Contains(ytdlp.Arg{Key: "no_simulate", Flag: true}) {
 				t.Errorf("expected opts to be [:no_simulate], got %v", opts)
 			}
 			if ot != "after_move:%()j" {
 				t.Errorf("expected output template 'after_move:%%()j', got %q", ot)
 			}
-			if len(addl) != 0 {
+			if addl != (ytdlp.CallOptions{}) {
 				t.Errorf("expected empty addl, got %v", addl)
 			}
 
 			return renderMetadata(t, "media_metadata"), nil
 		})
 
-		result, err := ta.YtDlpMediaDownload(ta.Ctx, mediaURL, store.KW{}, store.KW{})
+		result, err := ta.YtDlpMediaDownload(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -47,41 +47,41 @@ func TestYtDlpMedia_Download(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			hasNoSimulate := opts.Contains(store.Flag("no_simulate"))
-			hasCustom := opts.Contains(store.Flag("custom_arg"))
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			hasNoSimulate := opts.Contains(ytdlp.Arg{Key: "no_simulate", Flag: true})
+			hasCustom := opts.Contains(ytdlp.Arg{Key: "custom_arg", Flag: true})
 			if !hasNoSimulate || !hasCustom {
 				t.Errorf("expected opts to contain [:no_simulate, :custom_arg], got %v", opts)
 			}
 			return "{}", nil
 		})
 
-		ta.YtDlpMediaDownload(ta.Ctx, mediaURL, store.KW{store.Flag("custom_arg")}, store.KW{})
+		ta.YtDlpMediaDownload(ta.Ctx, mediaURL, ytdlp.Args{}.Flag("custom_arg"), ytdlp.CallOptions{})
 	})
 
 	t.Run("passes along additional options", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			if !addl.Contains(store.Opt("addl_arg", true)) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if !addl.UseCookies {
 				t.Errorf("expected addl to contain addl_arg: true, got %v", addl)
 			}
 			return "{}", nil
 		})
 
-		ta.YtDlpMediaDownload(ta.Ctx, mediaURL, store.KW{}, store.KW{store.Opt("addl_arg", true)})
+		ta.YtDlpMediaDownload(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{UseCookies: true})
 	})
 
 	t.Run("parses and returns the generated file as JSON", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return renderMetadata(t, "media_metadata"), nil
 		})
 
-		result, err := ta.YtDlpMediaDownload(ta.Ctx, mediaURL, store.KW{}, store.KW{})
+		result, err := ta.YtDlpMediaDownload(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -95,11 +95,11 @@ func TestYtDlpMedia_Download(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			return "", &fsutil.CommandError{Output: "something", Status: 1}
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			return "", &cmdrun.Error{Output: "something", Status: 1}
 		})
 
-		_, err := ta.YtDlpMediaDownload(ta.Ctx, mediaURL, store.KW{}, store.KW{})
+		_, err := ta.YtDlpMediaDownload(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
 
 		if err == nil {
 			t.Fatal("expected an error")
@@ -112,11 +112,11 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return `{"live_status":"not_live"}`, nil
 		})
 
-		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, store.KW{})
+		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -130,11 +130,11 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return `{"live_status":"was_live"}`, nil
 		})
 
-		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, store.KW{})
+		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -148,11 +148,11 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return `{"live_status":null}`, nil
 		})
 
-		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, store.KW{})
+		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -166,11 +166,11 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return `{"live_status":"is_live"}`, nil
 		})
 
-		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, store.KW{})
+		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -184,11 +184,11 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return `{"live_status":"is_upcoming"}`, nil
 		})
 
-		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, store.KW{})
+		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -202,11 +202,11 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return `{"live_status":"post_live"}`, nil
 		})
 
-		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, store.KW{})
+		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -220,11 +220,11 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return `{"live_status":"what_tha"}`, nil
 		})
 
-		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, store.KW{})
+		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
 		if err == nil {
 			t.Fatal("expected an error")
@@ -238,14 +238,14 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			if !addl.Contains(store.Opt("addl_arg", true)) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if !addl.UseCookies {
 				t.Errorf("expected addl to contain addl_arg: true, got %v", addl)
 			}
 			return `{"live_status":"not_live"}`, nil
 		})
 
-		ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, store.KW{store.Opt("addl_arg", true)})
+		ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{UseCookies: true})
 	})
 }
 
@@ -254,13 +254,8 @@ func TestYtDlpMedia_DownloadThumbnail(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			expectedOpts := store.KW{
-				store.Flag("no_simulate"),
-				store.Flag("skip_download"),
-				store.Flag("write_thumbnail"),
-				store.Opt("convert_thumbnail", "jpg"),
-			}
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			expectedOpts := ytdlp.Args{}.Flag("no_simulate").Flag("skip_download").Flag("write_thumbnail").Opt("convert_thumbnail", "jpg")
 			if !optsEqual(opts, expectedOpts) {
 				t.Errorf("expected opts %v, got %v", expectedOpts, opts)
 			}
@@ -270,47 +265,47 @@ func TestYtDlpMedia_DownloadThumbnail(t *testing.T) {
 			return "", nil
 		})
 
-		ta.YtDlpMediaDownloadThumbnail(ta.Ctx, mediaURL, store.KW{}, store.KW{})
+		ta.YtDlpMediaDownloadThumbnail(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
 	})
 
 	t.Run("passes along custom command args", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			hasCustom := opts.Contains(store.Flag("custom_arg"))
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			hasCustom := opts.Contains(ytdlp.Arg{Key: "custom_arg", Flag: true})
 			if !hasCustom {
 				t.Errorf("expected opts to contain :custom_arg, got %v", opts)
 			}
 			return "{}", nil
 		})
 
-		ta.YtDlpMediaDownloadThumbnail(ta.Ctx, mediaURL, store.KW{store.Flag("custom_arg")}, store.KW{})
+		ta.YtDlpMediaDownloadThumbnail(ta.Ctx, mediaURL, ytdlp.Args{}.Flag("custom_arg"), ytdlp.CallOptions{})
 	})
 
 	t.Run("passes along additional options", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			if !addl.Contains(store.Opt("addl_arg", true)) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if !addl.UseCookies {
 				t.Errorf("expected addl to contain addl_arg: true, got %v", addl)
 			}
 			return "{}", nil
 		})
 
-		ta.YtDlpMediaDownloadThumbnail(ta.Ctx, mediaURL, store.KW{}, store.KW{store.Opt("addl_arg", true)})
+		ta.YtDlpMediaDownloadThumbnail(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{UseCookies: true})
 	})
 
 	t.Run("returns errors", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			return "", &fsutil.CommandError{Output: "something", Status: 1}
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			return "", &cmdrun.Error{Output: "something", Status: 1}
 		})
 
-		_, err := ta.YtDlpMediaDownloadThumbnail(ta.Ctx, mediaURL, store.KW{}, store.KW{})
+		_, err := ta.YtDlpMediaDownloadThumbnail(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
 
 		if err == nil {
 			t.Fatal("expected an error")
@@ -323,11 +318,11 @@ func TestYtDlpMedia_GetMediaAttributes(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return mediaAttributesReturnFixture(), nil
 		})
 
-		result, err := ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, store.KW{}, store.KW{})
+		result, err := ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -344,8 +339,8 @@ func TestYtDlpMedia_GetMediaAttributes(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			if !opts.Contains(store.Flag("simulate")) || !opts.Contains(store.Flag("skip_download")) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if !opts.Contains(ytdlp.Arg{Key: "simulate", Flag: true}) || !opts.Contains(ytdlp.Arg{Key: "skip_download", Flag: true}) {
 				t.Errorf("expected opts to contain [:simulate, :skip_download], got %v", opts)
 			}
 			if ot != app.YtDlpMediaIndexingOutputTemplate() {
@@ -354,46 +349,46 @@ func TestYtDlpMedia_GetMediaAttributes(t *testing.T) {
 			return mediaAttributesReturnFixture(), nil
 		})
 
-		ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, store.KW{}, store.KW{})
+		ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
 	})
 
 	t.Run("passes along additional command options", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			if !opts.Contains(store.Flag("simulate")) || !opts.Contains(store.Flag("skip_download")) || !opts.Contains(store.Flag("custom_arg")) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if !opts.Contains(ytdlp.Arg{Key: "simulate", Flag: true}) || !opts.Contains(ytdlp.Arg{Key: "skip_download", Flag: true}) || !opts.Contains(ytdlp.Arg{Key: "custom_arg", Flag: true}) {
 				t.Errorf("expected opts to contain [:simulate, :skip_download, :custom_arg], got %v", opts)
 			}
 			return mediaAttributesReturnFixture(), nil
 		})
 
-		ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, store.KW{store.Flag("custom_arg")}, store.KW{})
+		ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, ytdlp.Args{}.Flag("custom_arg"), ytdlp.CallOptions{})
 	})
 
 	t.Run("passes along additional options", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			if !addl.Contains(store.Opt("addl_arg", true)) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if !addl.UseCookies {
 				t.Errorf("expected addl to contain addl_arg: true, got %v", addl)
 			}
 			return mediaAttributesReturnFixture(), nil
 		})
 
-		ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, store.KW{}, store.KW{store.Opt("addl_arg", true)})
+		ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{UseCookies: true})
 	})
 
 	t.Run("returns the error straight through when the command fails", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			return "", &fsutil.CommandError{Output: "Big issue", Status: 1}
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			return "", &cmdrun.Error{Output: "Big issue", Status: 1}
 		})
 
-		_, err := ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, store.KW{}, store.KW{})
+		_, err := ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
 
 		if err == nil {
 			t.Fatal("expected an error")
@@ -425,7 +420,7 @@ func mediaAttributesReturnFixture() string {
 	}`
 }
 
-func optsEqual(a, b store.KW) bool {
+func optsEqual(a, b ytdlp.Args) bool {
 	if len(a) != len(b) {
 		return false
 	}

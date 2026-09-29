@@ -7,9 +7,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 // MediaDownloader is the integration layer for downloading media.
@@ -32,8 +34,8 @@ type MediaDownloaderError struct {
 func (e *MediaDownloaderError) Error() string { return e.Reason + ": " + e.Message }
 
 // download_for_media_item/2
-func (a *App) MediaDownloaderDownloadForMediaItem(ctx context.Context, mediaItem *store.MediaItem, overrideOpts store.KW) (*MediaDownloaderResult, error) {
-	result, err := mediaDownloaderAttemptDownloadAndUpdateForMediaItem(ctx, a, mediaItem, overrideOpts)
+func (a *App) MediaDownloaderDownloadForMediaItem(ctx context.Context, mediaItem *store.MediaItem, overrides DownloadOverrides) (*MediaDownloaderResult, error) {
+	result, err := mediaDownloaderAttemptDownloadAndUpdateForMediaItem(ctx, a, mediaItem, overrides)
 
 	if err != nil {
 		// This is an error result, return it as is
@@ -46,11 +48,11 @@ func (a *App) MediaDownloaderDownloadForMediaItem(ctx context.Context, mediaItem
 
 // --- Private helpers ---
 
-func mediaDownloaderAttemptDownloadAndUpdateForMediaItem(ctx context.Context, a *App, mediaItem *store.MediaItem, overrideOpts store.KW) (*MediaDownloaderResult, error) {
+func mediaDownloaderAttemptDownloadAndUpdateForMediaItem(ctx context.Context, a *App, mediaItem *store.MediaItem, overrides DownloadOverrides) (*MediaDownloaderResult, error) {
 	outputFilepath, _ := fsutil.GenerateTmpfile(a.Config.TmpfileDirectory, "json")
 	mediaWithPreloads, _ := a.PreloadMediaItemFull(ctx, mediaItem)
 
-	parsedJSON, dlErr := mediaDownloaderDownloadWithOptions(ctx, a, mediaItem.OriginalURL, mediaWithPreloads, outputFilepath, overrideOpts)
+	parsedJSON, dlErr := mediaDownloaderDownloadWithOptions(ctx, a, mediaItem.OriginalURL, mediaWithPreloads, outputFilepath, overrides)
 
 	if dlErr == nil {
 		// Success
@@ -74,7 +76,7 @@ func mediaDownloaderAttemptDownloadAndUpdateForMediaItem(ctx context.Context, a 
 	}
 
 	// Check if it's a command error (yt-dlp error)
-	cmdErr, isCommandError := dlErr.(*fsutil.CommandError)
+	cmdErr, isCommandError := dlErr.(*cmdrun.Error)
 	if isCommandError {
 		errMsg := cmdErr.Output
 		slog.Error(fmt.Sprintf("yt-dlp download error for media item #%d: %v", mediaWithPreloads.ID, dlErr))
@@ -165,20 +167,19 @@ func mediaDownloaderDetermineNfoFilepath(parsedJSON map[string]any, downloadNfo 
 	return store.Ptr(result)
 }
 
-func mediaDownloaderDownloadWithOptions(ctx context.Context, a *App, url string, itemWithPreloads *store.MediaItem, outputFilepath string, overrideOpts store.KW) (map[string]any, error) {
-	opts, _ := a.DownloadOptionBuilderBuild(ctx, itemWithPreloads, overrideOpts)
-	forceUseCookies := overrideOpts.GetOr("force_use_cookies", false).(bool)
+func mediaDownloaderDownloadWithOptions(ctx context.Context, a *App, url string, itemWithPreloads *store.MediaItem, outputFilepath string, overrides DownloadOverrides) (map[string]any, error) {
+	opts, _ := a.DownloadOptionBuilderBuild(ctx, itemWithPreloads, overrides)
 	sourceUsesCookies := store.UseCookies(itemWithPreloads.Source, "downloading")
-	shouldUseCookies := forceUseCookies || sourceUsesCookies
+	shouldUseCookies := overrides.ForceUseCookies || sourceUsesCookies
 
-	runnerOpts := store.KW{store.Opt("output_filepath", outputFilepath), store.Opt("use_cookies", shouldUseCookies)}
+	runnerOpts := ytdlp.CallOptions{OutputFilepath: outputFilepath, UseCookies: shouldUseCookies}
 
 	// Check downloadable status
 	statusStr, statusErr := a.YtDlpMediaGetDownloadableStatus(ctx, url, runnerOpts)
 	if statusErr != nil {
 		if !shouldUseCookies {
 			// Try with cookies if it might help
-			return mediaDownloaderMaybeRetryWithCookies(ctx, a, url, itemWithPreloads, outputFilepath, overrideOpts, statusErr)
+			return mediaDownloaderMaybeRetryWithCookies(ctx, a, url, itemWithPreloads, outputFilepath, overrides, statusErr)
 		}
 		return nil, statusErr
 	}
@@ -196,15 +197,15 @@ func mediaDownloaderDownloadWithOptions(ctx context.Context, a *App, url string,
 
 	// If there was an error and we're not using cookies, maybe retry with cookies
 	if !shouldUseCookies {
-		return mediaDownloaderMaybeRetryWithCookies(ctx, a, url, itemWithPreloads, outputFilepath, overrideOpts, err)
+		return mediaDownloaderMaybeRetryWithCookies(ctx, a, url, itemWithPreloads, outputFilepath, overrides, err)
 	}
 
 	return nil, err
 }
 
-func mediaDownloaderMaybeRetryWithCookies(ctx context.Context, a *App, url string, itemWithPreloads *store.MediaItem, outputFilepath string, overrideOpts store.KW, err error) (map[string]any, error) {
+func mediaDownloaderMaybeRetryWithCookies(ctx context.Context, a *App, url string, itemWithPreloads *store.MediaItem, outputFilepath string, overrides DownloadOverrides, err error) (map[string]any, error) {
 	source := itemWithPreloads.Source
-	cmdErr, isCommandError := err.(*fsutil.CommandError)
+	cmdErr, isCommandError := err.(*cmdrun.Error)
 	if !isCommandError {
 		return nil, err
 	}
@@ -214,10 +215,8 @@ func mediaDownloaderMaybeRetryWithCookies(ctx context.Context, a *App, url strin
 
 	if store.UseCookies(source, "error_recovery") && messageContainsCookieError {
 		// Retry with cookies
-		newOverrideOpts := make(store.KW, len(overrideOpts))
-		copy(newOverrideOpts, overrideOpts)
-		newOverrideOpts = append(newOverrideOpts, store.Opt("force_use_cookies", true))
-		return mediaDownloaderDownloadWithOptions(ctx, a, url, itemWithPreloads, outputFilepath, newOverrideOpts)
+		overrides.ForceUseCookies = true
+		return mediaDownloaderDownloadWithOptions(ctx, a, url, itemWithPreloads, outputFilepath, overrides)
 	}
 
 	return nil, err

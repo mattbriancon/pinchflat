@@ -2,15 +2,17 @@ package app_test
 
 import (
 	"encoding/json"
+	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/mattbriancon/pinchflat/internal/app"
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
 	"github.com/mattbriancon/pinchflat/internal/db"
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 // parseWorkerID extracts an int64 ID from a worker arg value that may be json.Number, int64, or float64.
@@ -86,10 +88,10 @@ func TestFastIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 // Helper to set up standard mocks for IndexAndKickoffDownloads tests.
 func setupDownloadIndexMocks(t *testing.T, ta *apptest.TestApp, rssResp string) {
 	t.Helper()
-	ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+	ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 		return apptest.MediaAttributesReturnFixture(), nil
 	})
-	ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+	ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 		return rssResp, nil
 	})
 }
@@ -138,7 +140,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 			"media_id":  "test_1",
 		})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			return "<yt:videoId>test_1</yt:videoId>", nil
 		})
 
@@ -232,10 +234,10 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			return "{}", nil
 		})
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			return "<yt:videoId>test_1</yt:videoId>", nil
 		})
 
@@ -254,10 +256,10 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
-			return "", &fsutil.CommandError{Output: "error", Status: 1}
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
+			return "", &cmdrun.Error{Output: "error", Status: 1}
 		})
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			return "<yt:videoId>test_1</yt:videoId>", nil
 		})
 
@@ -277,7 +279,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 
 		optionsChecked := false
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			if val, ok := opts.Get("output"); !ok || val == nil {
 				t.Error("missing output option")
 			}
@@ -294,7 +296,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 			optionsChecked = true
 			return apptest.MediaAttributesReturnFixture(), nil
 		})
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			return "<yt:videoId>test_1</yt:videoId>", nil
 		})
 
@@ -314,7 +316,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{ShortsBehaviour: store.Ptr(store.MediaProfileShortsBehaviourExclude)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			output := map[string]any{
 				"id":           "video2",
 				"title":        "Video 2",
@@ -329,7 +331,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 			jsonStr, _ := db.EncodeJSON(output)
 			return jsonStr, nil
 		})
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			return "<yt:videoId>test_1</yt:videoId>", nil
 		})
 
@@ -363,8 +365,8 @@ func TestFastIndexingHelpers_CookieBehavior(t *testing.T) {
 			source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": tt.behavior})
 
 			cookieChecked := false
-			ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
-				val, ok := addlOpts.Get("use_cookies")
+			ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
+				val, ok := addlOpts.UseCookies, true
 				if !ok || val != tt.expectedCook {
 					t.Errorf("use_cookies=%v, want %v", val, tt.expectedCook)
 				}
@@ -372,7 +374,7 @@ func TestFastIndexingHelpers_CookieBehavior(t *testing.T) {
 				return apptest.MediaAttributesReturnFixture(), nil
 			})
 
-			ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+			ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 				return "<yt:videoId>test_1</yt:videoId>", nil
 			})
 
@@ -397,7 +399,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", "test_key")})
 
 		apiUsed := false
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			if strings.Contains(url, "youtube.googleapis.com/youtube/v3/playlistItems") {
 				apiUsed = true
 			}
@@ -420,11 +422,11 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", "test_key")})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			return apptest.MediaAttributesReturnFixture(), nil
 		})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			if strings.Contains(url, "youtube.googleapis.com") {
 				response := map[string]any{
 					"items": []map[string]any{
@@ -453,15 +455,15 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", "test_key")})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			return apptest.MediaAttributesReturnFixture(), nil
 		})
 
 		callCount := 0
-		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Stub(func(url string, headers http.Header) (string, error) {
 			callCount++
 			if callCount == 1 && strings.Contains(url, "youtube.googleapis.com") {
-				return "", &fsutil.CommandError{Output: "API failed", Status: 1}
+				return "", &cmdrun.Error{Output: "API failed", Status: 1}
 			}
 			if strings.Contains(url, "youtube.com/feeds") {
 				return "<yt:videoId>test_1</yt:videoId>", nil
@@ -485,12 +487,12 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", nil)})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, outputTemplate string, addlOpts ytdlp.CallOptions) (string, error) {
 			return apptest.MediaAttributesReturnFixture(), nil
 		})
 
 		rssUsed := false
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			if strings.Contains(url, "youtube.com/feeds/videos.xml") {
 				rssUsed = true
 			}

@@ -18,7 +18,7 @@ func TestFileSyncingWorker_KickoffWithTask(t *testing.T) {
 	}
 
 	source := apptest.SourceFixture(t, ta, store.Attrs{})
-	task, err := ta.FileSyncingWorkerKickoffWithTask(ta.Ctx, source, store.KW{})
+	task, err := ta.FileSyncingWorkerKickoffWithTask(ta.Ctx, source)
 	if err != nil {
 		t.Fatalf("KickoffWithTask failed: %v", err)
 	}

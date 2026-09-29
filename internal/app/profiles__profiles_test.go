@@ -208,7 +208,7 @@ func TestProfiles_DeleteMediaProfile(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 
-		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, store.KW{})
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, false)
 		if err != nil {
 			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
 		}
@@ -227,7 +227,7 @@ func TestProfiles_DeleteMediaProfile(t *testing.T) {
 			"media_profile_id": mediaProfile.ID,
 		})
 
-		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, store.KW{})
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, false)
 		if err != nil {
 			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
 		}
@@ -249,7 +249,7 @@ func TestProfiles_DeleteMediaProfile(t *testing.T) {
 			"source_id": source.ID,
 		})
 
-		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, store.KW{})
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, false)
 		if err != nil {
 			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
 		}
@@ -271,7 +271,7 @@ func TestProfiles_DeleteMediaProfile(t *testing.T) {
 			"source_id": source.ID,
 		})
 
-		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, store.KW{})
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, false)
 		if err != nil {
 			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
 		}
@@ -298,7 +298,7 @@ func TestProfiles_DeleteMediaProfile_WhenDeletingFiles(t *testing.T) {
 			"source_id": source.ID,
 		})
 
-		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, store.KW{store.Opt("delete_files", true)})
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, true)
 		if err != nil {
 			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
 		}
@@ -336,7 +336,7 @@ func TestProfiles_DeleteMediaProfile_WhenDeletingFiles(t *testing.T) {
 
 		mediaFilepath := *mediaItem.MediaFilepath
 
-		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, store.KW{store.Opt("delete_files", true)})
+		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, true)
 		if err != nil {
 			t.Fatalf("ProfilesDeleteMediaProfile failed: %v", err)
 		}

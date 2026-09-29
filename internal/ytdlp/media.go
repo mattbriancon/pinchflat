@@ -128,18 +128,22 @@ func parseUploadedAt(response map[string]any) *time.Time {
 		return nil
 	}
 
-	parsedTime, err := parseUploadDate(uploadDate)
+	parsedTime, err := ParseUploadDate(uploadDate)
 	if err != nil {
 		return nil
 	}
 	return &parsedTime
 }
 
-// parseUploadDate parses a yt-dlp "YYYYMMDD" upload_date into midnight UTC.
-func parseUploadDate(uploadDate string) (time.Time, error) {
+// ParseUploadDate parses a yt-dlp "YYYYMMDD" upload_date into midnight UTC.
+func ParseUploadDate(uploadDate string) (time.Time, error) {
 	if len(uploadDate) < 8 {
-		return time.Time{}, fmt.Errorf("invalid upload date: %s", uploadDate)
+		return time.Time{}, fmt.Errorf("Invalid upload date: %s", uploadDate)
 	}
 	year, month, day := uploadDate[0:4], uploadDate[4:6], uploadDate[6:8]
-	return time.Parse("2006-01-02T15:04:05Z", fmt.Sprintf("%s-%s-%sT00:00:00Z", year, month, day))
+	dt, err := time.Parse("2006-01-02T15:04:05Z", fmt.Sprintf("%s-%s-%sT00:00:00Z", year, month, day))
+	if err != nil {
+		return time.Time{}, fmt.Errorf("Invalid upload date: %s", uploadDate)
+	}
+	return dt, nil
 }

@@ -20,7 +20,7 @@ Phase 2 makes it ordinary Go and deletes whatever the Go version doesn't need.
 2. **Package split.** Break up `internal/core` along its real dependencies:
    - `internal/store`: entity types (Source, MediaItem, MediaProfile, Task, Setting, metadata rows), their queries and CRUD, plus settings. It depends only on `db`.
    - `internal/ytdlp`: the yt-dlp runner, option formatting and the `Media` parsing.
-   - `internal/fsutil`: filesystem and command helpers (the old `utils__*`).
+   - `internal/fsutil`: filesystem helpers, and `internal/cmdrun`: running external commands (the old `utils__*`).
    - `internal/app`: the workflows (indexing, downloading, metadata, lifecycle scripts, podcasts, boot, workers) on top of those.
    Names become Go names: `SourcesGetSource` → `store.GetSource`, and `FilesystemUtilsExistsAndNonempty` → `fsutil.ExistsAndNonEmpty`.
 3. **Typed data instead of maps.**

@@ -7,12 +7,13 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 // FastIndexingHelpersKickoffIndexingTask/1
 func (a *App) FastIndexingHelpersKickoffIndexingTask(ctx context.Context, source *store.Source) (*store.Task, error) {
-	_ = a.DeletePendingTasksFor(ctx, source, store.Ptr(FastIndexingWorkerName), store.KW{store.Flag("include_executing")})
-	return a.FastIndexingWorkerKickoffWithTask(ctx, source, store.KW{})
+	_ = a.DeletePendingTasksFor(ctx, source, store.Ptr(FastIndexingWorkerName), false)
+	return a.FastIndexingWorkerKickoffWithTask(ctx, source, 0)
 }
 
 // FastIndexingHelpersIndexAndKickoffDownloads/1
@@ -55,7 +56,7 @@ func (a *App) FastIndexingHelpersIndexAndKickoffDownloads(ctx context.Context, s
 			continue
 		}
 
-		_, err = a.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.KW{store.Opt("priority", 0)})
+		_, err = a.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.Ptr(0))
 		if err != nil {
 			slog.Error("Error kicking off download", "media_item_id", mediaItem.ID, "error", err)
 		}
@@ -65,7 +66,7 @@ func (a *App) FastIndexingHelpersIndexAndKickoffDownloads(ctx context.Context, s
 
 	// Pick up any stragglers. Intentionally has a lower priority than the per-media item
 	// kickoff above
-	_ = a.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{store.Opt("priority", 1)})
+	_ = a.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.Ptr(1))
 
 	return maybeNewMediaItems, nil
 }
@@ -96,10 +97,10 @@ func fastIndexingHelpersCreateMediaItemFromMediaID(ctx context.Context, a *App, 
 	// should be using :indexing.
 	shouldUseCookies := store.UseCookies(source, "metadata")
 
-	commandOpts := store.KW{store.Opt("output", a.DownloadOptionBuilderBuildOutputPathForSource(ctx, source))}
-	commandOpts = append(commandOpts, a.DownloadOptionBuilderBuildQualityOptionsForSource(ctx, source)...)
+	args := ytdlp.Args{}.Opt("output", a.DownloadOptionBuilderBuildOutputPathForSource(ctx, source))
+	args = append(args, a.DownloadOptionBuilderBuildQualityOptionsForSource(ctx, source)...)
 
-	ytDlpMedia, err := a.YtDlpMediaGetMediaAttributes(ctx, url, commandOpts, store.KW{store.Opt("use_cookies", shouldUseCookies)})
+	ytDlpMedia, err := a.YtDlpMediaGetMediaAttributes(ctx, url, args, ytdlp.CallOptions{UseCookies: shouldUseCookies})
 	if err != nil {
 		return nil, err
 	}

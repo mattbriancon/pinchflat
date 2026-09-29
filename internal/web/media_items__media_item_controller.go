@@ -119,7 +119,7 @@ func (s *Server) MediaItemControllerForceDownload(w http.ResponseWriter, r *http
 		return
 	}
 
-	_, err := s.App.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{"force": true}, store.KW{})
+	_, err := s.App.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{"force": true}, nil)
 	if err != nil {
 		// Allow duplicate job errors to pass through silently
 		if !strings.Contains(err.Error(), "duplicate") {

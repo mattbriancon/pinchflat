@@ -1,10 +1,6 @@
-package fsutil_test
+package app
 
-import (
-	"testing"
-
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
-)
+import "testing"
 
 func TestXMLSafe(t *testing.T) {
 	cases := []struct {
@@ -18,7 +14,7 @@ func TestXMLSafe(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := fsutil.XMLSafe(tc.input); got != tc.want {
+			if got := xmlSafe(tc.input); got != tc.want {
 				t.Errorf("got %q, want %q", got, tc.want)
 			}
 		})

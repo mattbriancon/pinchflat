@@ -207,7 +207,7 @@ func TestMediaItemController_ForceDownload(t *testing.T) {
 			c := webtest.New(t)
 			mediaItem := createMediaItem(t, c)
 
-			c.App.MediaDownloadWorkerKickoffWithTask(c.Ctx, mediaItem, store.Attrs{"force": true}, store.KW{})
+			c.App.MediaDownloadWorkerKickoffWithTask(c.Ctx, mediaItem, store.Attrs{"force": true}, nil)
 
 			c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", store.Attrs{})
 

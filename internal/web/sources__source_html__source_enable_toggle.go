@@ -19,7 +19,7 @@ func (s *Server) SourceEnableToggleUpdate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	_, _ = s.App.SourcesUpdateSource(ctx, source, store.ParseSourceParams(sourceParams), store.KW{})
+	_, _ = s.App.SourcesUpdateSource(ctx, source, store.ParseSourceParams(sourceParams), true)
 
 	s.redirectBack(w, r, P(ctx, "/sources"))
 }

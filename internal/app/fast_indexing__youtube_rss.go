@@ -23,7 +23,7 @@ func (a *App) YoutubeRssGetRecentMediaIDs(ctx context.Context, source *store.Sou
 	slog.Debug(fmt.Sprintf("Fetching recent media IDs from YouTube RSS feed for source: %s", source.CollectionID))
 
 	url := youtubeRssURLForSource(source)
-	response, err := a.HTTP.Get(ctx, url, nil, nil)
+	response, err := a.HTTP.Get(ctx, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to fetch RSS feed")
 	}

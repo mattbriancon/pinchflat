@@ -59,18 +59,17 @@ func (s *Store) PendingDownload(ctx context.Context, mediaItem *MediaItem) (bool
 
 // Search finds media items matching searchTerm.
 //
+// A limit <= 0 means the default of 50 results.
+//
 // Has explicit handling for blank search terms because SQLite doesn't like
 // empty MATCH clauses.
-func (s *Store) Search(ctx context.Context, searchTerm string, opts KW) ([]*MediaItem, error) {
+func (s *Store) Search(ctx context.Context, searchTerm string, limit int) ([]*MediaItem, error) {
 	if searchTerm == "" {
 		return []*MediaItem{}, nil
 	}
 
-	limit := 50
-	if v, ok := opts.Get("limit"); ok {
-		if n, ok := v.(int); ok {
-			limit = n
-		}
+	if limit <= 0 {
+		limit = 50
 	}
 
 	term := searchTerm

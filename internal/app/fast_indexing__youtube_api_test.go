@@ -1,6 +1,7 @@
 package app_test
 
 import (
+	"net/http"
 	"strings"
 	"testing"
 
@@ -42,19 +43,19 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", "key1, key2")})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			if !strings.Contains(url, "key=key1") {
 				t.Errorf("url missing key1: %s", url)
 			}
 			return "{}", nil
 		})
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			if !strings.Contains(url, "key=key2") {
 				t.Errorf("url missing key2: %s", url)
 			}
 			return "{}", nil
 		})
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			if !strings.Contains(url, "key=key1") {
 				t.Errorf("url missing key1: %s", url)
 			}
@@ -72,7 +73,7 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", "key1, key2")})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			apiBase := "https://youtube.googleapis.com/youtube/v3/playlistItems"
 			expectedURL := apiBase + "?part=contentDetails&maxResults=50&playlistId=" + source.CollectionID + "&key=key1"
 
@@ -80,8 +81,8 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 				t.Errorf("url=%s, want %s", url, expectedURL)
 			}
 
-			accept, ok := headers.Get("accept")
-			if !ok || accept != "application/json" {
+			accept := headers.Get("accept")
+			if accept != "application/json" {
 				t.Errorf("accept=%v, want application/json", accept)
 			}
 
@@ -100,7 +101,7 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{"collection_id": "UC_ABC123"})
 		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", "key1, key2")})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			if !strings.Contains(url, "playlistId=UU_ABC123&") {
 				t.Errorf("url missing converted ID: %s", url)
 			}
@@ -119,7 +120,7 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", "key1, key2")})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			return "{}", nil
 		})
 
@@ -138,7 +139,7 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", "key1, key2")})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			return `{"items":[{"contentDetails":{"videoId":"test_1"}},{"contentDetails":{"videoId":"test_2"}}]}`, nil
 		})
 
@@ -157,7 +158,7 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		ta.SetSetting(ta.Ctx, store.KW{store.Opt("youtube_api_key", "key1, key2")})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
+		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			return "", ErrTest
 		})
 

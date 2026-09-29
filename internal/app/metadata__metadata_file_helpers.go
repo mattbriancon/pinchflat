@@ -10,11 +10,11 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 // MetadataFileHelpersMetadataDirectoryFor/1
@@ -121,38 +121,15 @@ func (a *App) MetadataFileHelpersDownloadAndStoreThumbnailFor(ctx context.Contex
 		return nil, err
 	}
 
-	commandOpts := store.KW{
-		store.Opt("output", ytDlpFilepath),
-	}
+	args := ytdlp.Args{}.Opt("output", ytDlpFilepath)
+	callOpts := ytdlp.CallOptions{UseCookies: store.UseCookies(mediaItemWithPreloads.Source, "metadata")}
 
-	addlOpts := store.KW{
-		store.Opt("use_cookies", store.UseCookies(mediaItemWithPreloads.Source, "metadata")),
-	}
-
-	_, err = a.YtDlpMediaDownloadThumbnail(ctx, mediaItemWithPreloads.OriginalURL, commandOpts, addlOpts)
+	_, err = a.YtDlpMediaDownloadThumbnail(ctx, mediaItemWithPreloads.OriginalURL, args, callOpts)
 	if err != nil {
 		return nil, nil
 	}
 
 	return &realFilepath, nil
-}
-
-// MetadataFileHelpersParseUploadDate/1
-func MetadataFileHelpersParseUploadDate(uploadDate string) (time.Time, error) {
-	if len(uploadDate) < 8 {
-		return time.Time{}, fmt.Errorf("Invalid upload date: %s", uploadDate)
-	}
-
-	year := uploadDate[0:4]
-	month := uploadDate[4:6]
-	day := uploadDate[6:8]
-
-	dt, err := time.Parse("2006-01-02T15:04:05Z", fmt.Sprintf("%s-%s-%sT00:00:00Z", year, month, day))
-	if err != nil {
-		return time.Time{}, fmt.Errorf("Invalid upload date: %s", uploadDate)
-	}
-
-	return dt, nil
 }
 
 // MetadataFileHelpersSeriesDirectoryFromMediaFilepath/1

@@ -11,7 +11,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/a-h/templ"
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
@@ -70,11 +69,11 @@ func (s *Server) mediaItemTableFetch(ctx context.Context, r *http.Request, sourc
 		return nil, err
 	}
 
-	totalPages := fsutil.Clamp((filteredRecordCount+mediaItemTableLimit-1)/mediaItemTableLimit, 1, 1<<30)
+	totalPages := clamp((filteredRecordCount+mediaItemTableLimit-1)/mediaItemTableLimit, 1, 1<<30)
 	if filteredRecordCount == 0 {
 		totalPages = 1
 	}
-	page = fsutil.Clamp(page, 1, totalPages)
+	page = clamp(page, 1, totalPages)
 	offset := (page - 1) * mediaItemTableLimit
 
 	recordsQuery := filtered.Map(func(b sq.SelectBuilder) sq.SelectBuilder {

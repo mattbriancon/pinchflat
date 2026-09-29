@@ -1,6 +1,9 @@
+// Package fsutil holds small, dependency-free filesystem helpers.
 package fsutil
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"io"
 	"os"
 	"path/filepath"
@@ -35,7 +38,7 @@ func SameFile(path1, path2 string) bool {
 // dir, in a two-level directory named from a random string, and returns its
 // path.
 func GenerateTmpfile(dir string, ext string) (string, error) {
-	name := RandomString(64)
+	name := randomString(64)
 	path := filepath.Join(dir, name[0:2], name[2:4], name+"."+ext)
 	if err := WriteFileAll(path, ""); err != nil {
 		return "", err
@@ -93,4 +96,18 @@ func removeEmptyDirs(dir string) {
 		return
 	}
 	removeEmptyDirs(filepath.Dir(dir))
+}
+
+// randomString returns a random lower-case hex string of the given length.
+func randomString(length int) string {
+	randomBytes := make([]byte, (length+1)/2)
+	if _, err := rand.Read(randomBytes); err != nil {
+		return ""
+	}
+
+	hexStr := hex.EncodeToString(randomBytes)
+	if len(hexStr) > length {
+		return hexStr[:length]
+	}
+	return hexStr
 }

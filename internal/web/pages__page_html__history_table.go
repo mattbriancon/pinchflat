@@ -6,7 +6,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/mattbriancon/pinchflat/internal/app"
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
@@ -22,7 +21,7 @@ func historyTableFetch(ctx context.Context, app *app.App, mediaState string, pag
 		return nil, 0, 0, 0, err
 	}
 	totalPages = int(math.Max(math.Ceil(float64(totalRecordCount)/float64(historyTableLimit)), 1))
-	clampedPage = fsutil.Clamp(page, 1, totalPages)
+	clampedPage = clamp(page, 1, totalPages)
 
 	offset := (clampedPage - 1) * historyTableLimit
 	records, err = store.All[store.MediaItem](ctx, app.Q(ctx),

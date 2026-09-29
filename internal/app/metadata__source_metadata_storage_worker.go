@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math/rand/v2"
 	"path/filepath"
 
-	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 const SourceMetadataStorageWorkerName = "Pinchflat.Metadata.SourceMetadataStorageWorker"
@@ -20,7 +21,7 @@ var sourceMetadataStorageWorkerOpts = obanlite.WorkerOpts{
 }
 
 // SourceMetadataStorageWorkerKickoffWithTask/2
-func (a *App) SourceMetadataStorageWorkerKickoffWithTask(ctx context.Context, source *store.Source, opts store.KW) (*store.Task, error) {
+func (a *App) SourceMetadataStorageWorkerKickoffWithTask(ctx context.Context, source *store.Source) (*store.Task, error) {
 	jobSpec := obanlite.JobSpec{
 		Worker: SourceMetadataStorageWorkerName,
 		Args:   map[string]any{"id": source.ID},
@@ -110,7 +111,7 @@ func (a *App) SourceMetadataStorageWorkerPerform(ctx context.Context, job *obanl
 		updateAttrs[k] = v
 	}
 
-	_, err = a.SourcesUpdateSource(ctx, source, store.ParseSourceParams(updateAttrs), store.KW{store.Opt("run_post_commit_tasks", false)})
+	_, err = a.SourcesUpdateSource(ctx, source, store.ParseSourceParams(updateAttrs), false)
 	return err
 }
 
@@ -118,10 +119,10 @@ func (a *App) SourceMetadataStorageWorkerPerform(ctx context.Context, job *obanl
 func determineSeriesDirectory(ctx context.Context, a *App, source *store.Source) (any, error) {
 	outputPath := a.DownloadOptionBuilderBuildOutputPathForSource(ctx, source)
 
-	runnerOpts := store.KW{store.Opt("output", outputPath)}
-	addlOpts := store.KW{store.Opt("use_cookies", store.UseCookies(source, "metadata"))}
+	args := ytdlp.Args{}.Opt("output", outputPath)
+	callOpts := ytdlp.CallOptions{UseCookies: store.UseCookies(source, "metadata")}
 
-	sourceDetails, err := a.MediaCollectionGetSourceDetails(ctx, source.OriginalURL, runnerOpts, addlOpts)
+	sourceDetails, err := a.MediaCollectionGetSourceDetails(ctx, source.OriginalURL, args, callOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -178,23 +179,17 @@ func fetchSourceMetadataAndImages(ctx context.Context, a *App, seriesDirectory a
 // fetchMetadataForSource/1
 func fetchMetadataForSource(ctx context.Context, a *App, source *store.Source) (map[string]any, error) {
 	tmpDir := a.Config.TmpfileDirectory
-	tmpOutputPath := filepath.Join(tmpDir, fsutil.RandomString(16), "source_image.%(ext)s")
+	tmpOutputPath := filepath.Join(tmpDir, fmt.Sprintf("%016x", rand.Uint64()), "source_image.%(ext)s")
 
-	baseOpts := store.KW{
-		store.Opt("convert_thumbnails", "jpg"),
-		store.Opt("output", tmpOutputPath),
-	}
-
-	shouldUseCookies := store.UseCookies(source, "metadata")
-
-	var opts store.KW
+	args := ytdlp.Args{}.Opt("convert_thumbnails", "jpg").Opt("output", tmpOutputPath)
 	if source.CollectionType == store.SourceCollectionTypeChannel {
-		opts = append(baseOpts, store.Flag("write_all_thumbnails"), store.Opt("playlist_items", 0))
+		args = args.Flag("write_all_thumbnails").Opt("playlist_items", 0)
 	} else {
-		opts = append(baseOpts, store.Flag("write_thumbnail"), store.Opt("playlist_items", 1))
+		args = args.Flag("write_thumbnail").Opt("playlist_items", 1)
 	}
 
-	metadata, err := a.MediaCollectionGetSourceMetadata(ctx, source.OriginalURL, opts, store.KW{store.Opt("use_cookies", shouldUseCookies)})
+	callOpts := ytdlp.CallOptions{UseCookies: store.UseCookies(source, "metadata")}
+	metadata, err := a.MediaCollectionGetSourceMetadata(ctx, source.OriginalURL, args, callOpts)
 	if err != nil {
 		return nil, err
 	}

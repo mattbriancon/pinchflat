@@ -9,6 +9,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
@@ -16,7 +17,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 1})
 
-		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{}, store.KW{})
+		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -40,7 +41,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 			"last_indexed_at":         apptest.NowMinus(5, "minutes"),
 		})
 
-		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{}, store.KW{})
+		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -70,7 +71,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 			"last_indexed_at":         apptest.NowMinus(60, "minutes"),
 		})
 
-		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{}, store.KW{})
+		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -97,7 +98,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 			"last_indexed_at":         nil,
 		})
 
-		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{}, store.KW{})
+		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -124,7 +125,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 			"last_indexed_at":         apptest.NowMinus(5, "minutes"),
 		})
 
-		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{"force": true}, store.KW{})
+		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{"force": true})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -148,7 +149,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 1})
 
-		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{}, store.KW{})
+		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -173,7 +174,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 			"job_id":    job.ID,
 		})
 
-		_, err = ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{}, store.KW{})
+		_, err = ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -205,7 +206,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 			t.Fatalf("failed to set job state: %v", err)
 		}
 
-		_, err = ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{}, store.KW{})
+		_, err = ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -222,7 +223,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 1})
 		jobArgs := store.Attrs{"force": true}
 
-		_, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, jobArgs, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, jobArgs)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -230,25 +231,6 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID, "force": true}})
 		if len(jobs) == 0 {
 			t.Fatal("expected job to be enqueued with force argument")
-		}
-	})
-
-	t.Run("can be called with additional job options", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 1})
-		jobOpts := store.KW{store.Opt("max_attempts", 5)}
-
-		_, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, store.Attrs{}, jobOpts)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID}})
-		if len(jobs) != 1 {
-			t.Fatalf("expected 1 job, got %d", len(jobs))
-		}
-		if jobs[0].MaxAttempts != 5 {
-			t.Errorf("expected MaxAttempts to be 5, got %d", jobs[0].MaxAttempts)
 		}
 	})
 }
@@ -274,7 +256,7 @@ func TestSlowIndexingHelpers_DeleteIndexingTasks(t *testing.T) {
 			t.Fatal("expected job to be enqueued")
 		}
 
-		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, store.KW{})
+		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -305,7 +287,7 @@ func TestSlowIndexingHelpers_DeleteIndexingTasks(t *testing.T) {
 			t.Fatal("expected job to be enqueued")
 		}
 
-		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, store.KW{})
+		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -340,7 +322,7 @@ func TestSlowIndexingHelpers_DeleteIndexingTasks(t *testing.T) {
 			t.Fatalf("unexpected error reloading task: %v", err)
 		}
 
-		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, store.KW{})
+		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -375,7 +357,7 @@ func TestSlowIndexingHelpers_DeleteIndexingTasks(t *testing.T) {
 			t.Fatalf("unexpected error reloading task: %v", err)
 		}
 
-		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, store.KW{store.Opt("include_executing", true)})
+		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, true)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -392,11 +374,11 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -418,11 +400,11 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -440,16 +422,16 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		_, err = ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err = ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -471,16 +453,16 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		source1 := apptest.SourceFixture(t, ta, store.Attrs{})
 		source2 := apptest.SourceFixture(t, ta, store.Attrs{})
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		result1, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source1, store.KW{})
+		result1, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source1, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		result2, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source2, store.KW{})
+		result2, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source2, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -507,16 +489,16 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 
-		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		result1, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		result1, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		result2, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		result2, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -555,11 +537,11 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 			t.Errorf("expected last_indexed_at to be nil initially, got %v", source.LastIndexedAt)
 		}
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -584,11 +566,11 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -604,11 +586,11 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		source := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -628,11 +610,11 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 
 		response := `{"id":"video3","title":"Video 3","live_status":"not_live","description":"desc3","original_url":null,"aspect_ratio":null,"duration":null,"upload_date":null}`
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return response, nil
 		})
 
-		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -652,11 +634,11 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		// This is a disallowed title - see store.MediaItem changeset or issue #549
 		response := `{"id":"video1","title":"youtube video #123","original_url":"https://example.com/video1","live_status":"not_live","description":"desc1","aspect_ratio":1.67,"duration":12.34,"upload_date":"20210101"}`
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return response, nil
 		})
 
-		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -673,7 +655,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			output, hasOutput := opts.Get("output")
 			if !hasOutput {
 				t.Error("expected output option to be set")
@@ -689,7 +671,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -701,14 +683,14 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_Cookies(t *tes
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "all_operations"})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			if !addl.Bool("use_cookies") {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if !addl.UseCookies {
 				t.Error("expected use_cookies to be true in addl opts")
 			}
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -718,14 +700,14 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_Cookies(t *tes
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "when_needed"})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			if !addl.Bool("use_cookies") {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if !addl.UseCookies {
 				t.Error("expected use_cookies to be true in addl opts")
 			}
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -735,14 +717,14 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_Cookies(t *tes
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "disabled"})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			if addl.Bool("use_cookies") {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if addl.UseCookies {
 				t.Error("expected use_cookies to be false in addl opts")
 			}
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -755,9 +737,9 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		pollInterval := ta.App.Config.FileWatcherPollInterval
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			filepath, _ := addl.Get("output_filepath")
-			if err := os.WriteFile(filepath.(string), []byte(apptest.SourceAttributesReturnFixture()), 0644); err != nil {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			filepath := addl.OutputFilepath
+			if err := os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644); err != nil {
 				t.Fatalf("failed to write file: %v", err)
 			}
 			time.Sleep(pollInterval * 2)
@@ -774,7 +756,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 			t.Fatalf("expected 0 media items before indexing, got %d", len(countBefore))
 		}
 
-		_, err = ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err = ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -793,9 +775,9 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		pollInterval := ta.App.Config.FileWatcherPollInterval
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			filepath, _ := addl.Get("output_filepath")
-			if err := os.WriteFile(filepath.(string), []byte(apptest.SourceAttributesReturnFixture()), 0644); err != nil {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			filepath := addl.OutputFilepath
+			if err := os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644); err != nil {
 				t.Fatalf("failed to write file: %v", err)
 			}
 			time.Sleep(pollInterval * 2)
@@ -807,7 +789,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 			t.Fatalf("expected no download jobs enqueued before indexing, got %d", len(before))
 		}
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -823,16 +805,16 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 		source := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
 		pollInterval := ta.App.Config.FileWatcherPollInterval
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			filepath, _ := addl.Get("output_filepath")
-			if err := os.WriteFile(filepath.(string), []byte(apptest.SourceAttributesReturnFixture()), 0644); err != nil {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			filepath := addl.OutputFilepath
+			if err := os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644); err != nil {
 				t.Fatalf("failed to write file: %v", err)
 			}
 			time.Sleep(pollInterval * 2)
 			return "", nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -849,17 +831,17 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 		pollInterval := ta.App.Config.FileWatcherPollInterval
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			filepath, _ := addl.Get("output_filepath")
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			filepath := addl.OutputFilepath
 			contents := `{"id":"video2","title":"Video 2","original_url":"https://example.com/shorts/video2","live_status":"is_live","description":"desc2","aspect_ratio":1.67,"duration":345.67,"upload_date":"20210101"}`
-			if err := os.WriteFile(filepath.(string), []byte(contents), 0644); err != nil {
+			if err := os.WriteFile(filepath, []byte(contents), 0644); err != nil {
 				t.Fatalf("failed to write file: %v", err)
 			}
 			time.Sleep(pollInterval * 2)
 			return "", nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -875,9 +857,9 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		pollInterval := ta.App.Config.FileWatcherPollInterval
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			filepath, _ := addl.Get("output_filepath")
-			if err := os.WriteFile(filepath.(string), []byte(apptest.SourceAttributesReturnFixture()), 0644); err != nil {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			filepath := addl.OutputFilepath
+			if err := os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644); err != nil {
 				t.Fatalf("failed to write file: %v", err)
 			}
 			time.Sleep(pollInterval * 2)
@@ -887,7 +869,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -911,16 +893,16 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		pollInterval := ta.App.Config.FileWatcherPollInterval
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-			filepath, _ := addl.Get("output_filepath")
-			if err := os.WriteFile(filepath.(string), []byte("INVALID"), 0644); err != nil {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			filepath := addl.OutputFilepath
+			if err := os.WriteFile(filepath, []byte("INVALID"), 0644); err != nil {
 				t.Fatalf("failed to write file: %v", err)
 			}
 			time.Sleep(pollInterval * 2)
 			return "", nil
 		})
 
-		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -938,7 +920,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 			"last_indexed_at": apptest.Now(),
 		})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			hasBreakOnExisting := false
 			hasDownloadArchive := false
 
@@ -961,7 +943,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -974,7 +956,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 			"last_indexed_at": apptest.Now(),
 		})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			for _, opt := range opts {
 				if opt.Key == "break_on_existing" {
 					t.Error("expected no break_on_existing in opts for playlist")
@@ -987,7 +969,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1000,7 +982,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 			"last_indexed_at": nil,
 		})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			for _, opt := range opts {
 				if opt.Key == "break_on_existing" {
 					t.Error("expected no break_on_existing in opts")
@@ -1013,7 +995,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1025,7 +1007,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 			"collection_type": "channel",
 		})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			for _, opt := range opts {
 				if opt.Key == "break_on_existing" {
 					t.Error("expected no break_on_existing in opts when forced")
@@ -1038,7 +1020,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{store.Opt("was_forced", true)})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, true)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1060,7 +1042,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 		}
 		lastMediaItem := mediaItems[len(mediaItems)-1]
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			archiveFile, _ := opts.Get("download_archive")
 			contents, err := os.ReadFile(archiveFile.(string))
 			if err != nil {
@@ -1074,7 +1056,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 
-		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{})
+		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1092,14 +1074,14 @@ func TestSlowIndexingHelpers_IndexAndEnqueuePreloadsMediaProfile(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if _, ok := opts.Get("format_sort"); !ok {
 				t.Error("expected the media profile's quality options")
 			}
 			return "", nil
 		})
 
-		if _, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, store.KW{}); err != nil {
+		if _, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})

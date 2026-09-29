@@ -138,9 +138,7 @@ func (s *Store) DeleteTasksFor(ctx context.Context, record any, workerName *stri
 
 // DeletePendingTasksFor deletes record's pending (available/scheduled/
 // retryable, plus executing when requested) tasks.
-func (s *Store) DeletePendingTasksFor(ctx context.Context, record any, workerName *string, opts KW) error {
-	includeExecuting := opts.Bool("include_executing")
-
+func (s *Store) DeletePendingTasksFor(ctx context.Context, record any, workerName *string, includeExecuting bool) error {
 	jobStates := []string{obanlite.StateAvailable, obanlite.StateScheduled, obanlite.StateRetryable}
 	if includeExecuting {
 		jobStates = append(jobStates, obanlite.StateExecuting)

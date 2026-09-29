@@ -19,7 +19,7 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
+		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
 		}
 
@@ -33,7 +33,7 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		_ = apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": "some/filepath.mp4"})
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
+		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
 		}
 
@@ -55,7 +55,7 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 			t.Errorf("expected 0 tasks, got %d", len(tasks))
 		}
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
+		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
 		}
 
@@ -74,7 +74,7 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
+		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
 		}
 
@@ -88,7 +88,7 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
+		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
 		}
 
@@ -109,7 +109,7 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
 		priority := 1
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{store.Opt("priority", priority)}); err != nil {
+		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, &priority); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
 		}
 
@@ -127,7 +127,7 @@ func TestDownloadingHelpers_DequeuePendingDownloadTasks(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
+		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
 		}
 		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
@@ -160,7 +160,7 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 		ta, mediaItem := setup(t)
 		ctx := ta.Ctx
 
-		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.KW{})
+		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, nil)
 		if err != nil {
 			t.Fatalf("DownloadingHelpersKickoffDownloadIfPending failed: %v", err)
 		}
@@ -172,7 +172,7 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 		ta, mediaItem := setup(t)
 		ctx := ta.Ctx
 
-		task, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.KW{})
+		task, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, nil)
 		if err != nil {
 			t.Fatalf("DownloadingHelpersKickoffDownloadIfPending failed: %v", err)
 		}
@@ -197,7 +197,7 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
-		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.KW{})
+		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, nil)
 		if err == nil {
 			t.Fatalf("expected error, got nil")
 		}
@@ -216,7 +216,7 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
 
-		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.KW{})
+		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, nil)
 		if err == nil {
 			t.Fatalf("expected error, got nil")
 		}
@@ -232,7 +232,7 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 		ctx := ta.Ctx
 
 		priority := 1
-		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.KW{store.Opt("priority", priority)})
+		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, &priority)
 		if err != nil {
 			t.Fatalf("DownloadingHelpersKickoffDownloadIfPending failed: %v", err)
 		}

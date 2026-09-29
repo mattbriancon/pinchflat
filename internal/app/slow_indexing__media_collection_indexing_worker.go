@@ -23,7 +23,7 @@ var mediaCollectionIndexingWorkerOpts = obanlite.WorkerOpts{
 }
 
 // MediaCollectionIndexingWorkerKickoffWithTask/3
-func (a *App) MediaCollectionIndexingWorkerKickoffWithTask(ctx context.Context, source *store.Source, jobArgs store.Attrs, jobOpts store.KW) (*store.Task, error) {
+func (a *App) MediaCollectionIndexingWorkerKickoffWithTask(ctx context.Context, source *store.Source, jobArgs store.Attrs) (*store.Task, error) {
 	// Build arguments
 	args := store.Attrs{"id": source.ID}
 	if jobArgs != nil {
@@ -36,14 +36,6 @@ func (a *App) MediaCollectionIndexingWorkerKickoffWithTask(ctx context.Context, 
 	spec := obanlite.JobSpec{
 		Worker: MediaCollectionIndexingWorkerName,
 		Args:   args,
-	}
-
-	// Apply job options
-	if scheduleIn, ok := jobOpts.Get("schedule_in"); ok {
-		spec.ScheduleIn = scheduleIn.(int)
-	}
-	if maxAttempts, ok := jobOpts.Get("max_attempts"); ok {
-		spec.MaxAttempts = maxAttempts.(int)
 	}
 
 	return a.CreateJobWithTask(ctx, spec, source)
@@ -107,9 +99,7 @@ func (a *App) MediaCollectionIndexingWorkerPerform(ctx context.Context, job *oba
 // Private helpers
 
 func mediaCollectionIndexingWorkerPerformIndexing(ctx context.Context, a *App, source *store.Source, wasForced bool) error {
-	_, err := a.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx, source, store.KW{
-		store.Opt("was_forced", wasForced),
-	})
+	_, err := a.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx, source, wasForced)
 	return err
 }
 
@@ -139,7 +129,7 @@ func mediaCollectionIndexingWorkerMaybeEnqueueFastIndexingTask(ctx context.Conte
 	}
 
 	// Delete existing fast indexing tasks
-	if err := a.DeletePendingTasksFor(ctx, source, stringPtr("FastIndexingWorker"), store.KW{}); err != nil {
+	if err := a.DeletePendingTasksFor(ctx, source, stringPtr("FastIndexingWorker"), false); err != nil {
 		return err
 	}
 
