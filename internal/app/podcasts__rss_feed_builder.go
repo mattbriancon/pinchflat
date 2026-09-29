@@ -15,16 +15,14 @@ import (
 
 // RssFeedBuilder builds RSS feeds for sources and their media items.
 
-// RssFeedBuilderBuild/2
-func (a *App) RssFeedBuilderBuild(ctx context.Context, source *store.Source, opts store.KW) (string, error) {
-	limit := opts.GetOr("limit", 2000).(int)
-	urlBase := opts.GetOr("url_base", "").(string)
+// RssFeedBuilderBuild/2. urlBase defaults to http://localhost:8945 when empty.
+func (a *App) RssFeedBuilderBuild(ctx context.Context, source *store.Source, limit int, urlBase string) (string, error) {
 	if urlBase == "" {
 		urlBase = "http://localhost:8945"
 	}
 
 	// Get persisted media items
-	mediaItems, err := a.PodcastHelpersPersistedMediaItemsFor(ctx, source, store.KW{store.Opt("limit", limit)})
+	mediaItems, err := a.PodcastHelpersPersistedMediaItemsFor(ctx, source, limit)
 	if err != nil {
 		return "", err
 	}

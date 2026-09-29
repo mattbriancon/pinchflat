@@ -7,6 +7,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 // output_path_template/1
@@ -23,9 +24,7 @@ func (a *App) SourcesOutputPathTemplate(ctx context.Context, source *store.Sourc
 }
 
 // CreateSource/1 and CreateSource/2
-func (a *App) SourcesCreateSource(ctx context.Context, attrs store.Attrs, opts store.KW) (*store.Source, error) {
-	runPostCommitTasks := opts.GetOr("run_post_commit_tasks", true).(bool)
-
+func (a *App) SourcesCreateSource(ctx context.Context, attrs store.Attrs, runPostCommitTasks bool) (*store.Source, error) {
 	// Initial validation
 	cs := a.SourcesChangeSource(ctx, store.NewSource(), attrs, "initial")
 	if !cs.Valid() {
@@ -40,9 +39,7 @@ func (a *App) SourcesCreateSource(ctx context.Context, attrs store.Attrs, opts s
 }
 
 // UpdateSource/2 and UpdateSource/3
-func (a *App) SourcesUpdateSource(ctx context.Context, source *store.Source, attrs store.Attrs, opts store.KW) (*store.Source, error) {
-	runPostCommitTasks := opts.GetOr("run_post_commit_tasks", true).(bool)
-
+func (a *App) SourcesUpdateSource(ctx context.Context, source *store.Source, attrs store.Attrs, runPostCommitTasks bool) (*store.Source, error) {
 	// Initial validation
 	cs := a.SourcesChangeSource(ctx, source, attrs, "initial")
 	if !cs.Valid() {
@@ -57,9 +54,7 @@ func (a *App) SourcesUpdateSource(ctx context.Context, source *store.Source, att
 }
 
 // DeleteSource/1 and DeleteSource/2
-func (a *App) SourcesDeleteSource(ctx context.Context, source *store.Source, opts store.KW) (*store.Source, error) {
-	deleteFiles := opts.Bool("delete_files")
-
+func (a *App) SourcesDeleteSource(ctx context.Context, source *store.Source, deleteFiles bool) (*store.Source, error) {
 	// Delete tasks (of any state, matching Elixir's Tasks.delete_tasks_for
 	// default of Oban.Job.states()).
 	_ = a.DeleteTasksFor(ctx, source, nil, obanlite.AllStates)
@@ -67,7 +62,7 @@ func (a *App) SourcesDeleteSource(ctx context.Context, source *store.Source, opt
 	// Delete media items
 	mediaItems, _ := store.All[store.MediaItem](ctx, a.Q(ctx), store.MediaQueryNew().Where(store.MediaQueryForSource(source.ID)))
 	for _, item := range mediaItems {
-		_, _ = a.MediaDeleteMediaItem(ctx, item, opts)
+		_, _ = a.MediaDeleteMediaItem(ctx, item, deleteFiles)
 	}
 
 	// Delete source files if requested
@@ -109,9 +104,9 @@ func sourcesChangeSourceFromURL(ctx context.Context, a *App, source *store.Sourc
 
 	cookieBehaviour := changeset.GetField("cookie_behaviour").(store.SourceCookieBehaviour)
 	shouldUseCookies := cookieBehaviour == store.SourceCookieBehaviourAllOperations
-	addlOpts := store.KW{store.Opt("use_cookies", shouldUseCookies), store.Opt("skip_sleep_interval", true)}
+	callOpts := ytdlp.CallOptions{UseCookies: shouldUseCookies, SkipSleepInterval: true}
 
-	sourceDetails, err := a.MediaCollectionGetSourceDetails(ctx, changeset.GetChange("original_url").(string), store.KW{}, addlOpts)
+	sourceDetails, err := a.MediaCollectionGetSourceDetails(ctx, changeset.GetChange("original_url").(string), nil, callOpts)
 	if err != nil {
 		var errMsg string
 		switch e := err.(type) {
@@ -225,7 +220,7 @@ func sourcesHandleMediaTasks(ctx context.Context, a *App, changeset *store.Chang
 	case4 := currentChanges["enabled"] != nil && currentChanges["enabled"].(bool) == false
 
 	if case1 || case2 {
-		_ = a.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{})
+		_ = a.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil)
 	} else if case3 || case4 {
 		_ = a.DownloadingHelpersDequeuePendingDownloadTasks(ctx, source)
 	}
@@ -235,7 +230,7 @@ func sourcesHandleMediaTasks(ctx context.Context, a *App, changeset *store.Chang
 func sourcesHandleIndexingTasks(ctx context.Context, a *App, changeset *store.Changeset, source *store.Source) {
 	// If new, kick off indexing tasks
 	if changeset.Data.(*store.Source).ID == 0 {
-		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{}, store.KW{})
+		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{})
 		if changeset.GetField("fast_index").(bool) {
 			_, _ = a.FastIndexingHelpersKickoffIndexingTask(ctx, source)
 		}
@@ -260,11 +255,11 @@ func sourcesUpdateSlowIndexingTask(ctx context.Context, a *App, changeset *store
 	case4 := currentChanges["enabled"] != nil && currentChanges["enabled"].(bool) == false
 
 	if case1 || case2 {
-		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{}, store.KW{})
+		_, _ = a.SlowIndexingHelpersKickoffIndexingTask(ctx, source, store.Attrs{})
 	} else if case3 || case4 {
 		// Elixir's SlowIndexingHelpers.delete_indexing_tasks/2 deletes both
 		// the fast- and slow-indexing pending tasks, not just the slow one.
-		_ = a.SlowIndexingHelpersDeleteIndexingTasks(ctx, source, store.KW{store.Opt("include_executing", true)})
+		_ = a.SlowIndexingHelpersDeleteIndexingTasks(ctx, source, true)
 	}
 }
 
@@ -283,7 +278,7 @@ func sourcesUpdateFastIndexingTask(ctx context.Context, a *App, changeset *store
 	if case1 || case2 {
 		_, _ = a.FastIndexingHelpersKickoffIndexingTask(ctx, source)
 	} else if case3 || case4 {
-		_ = a.DeletePendingTasksFor(ctx, source, store.Ptr("FastIndexingWorker"), store.KW{store.Opt("include_executing", true)})
+		_ = a.DeletePendingTasksFor(ctx, source, store.Ptr("FastIndexingWorker"), true)
 	}
 }
 
@@ -291,13 +286,13 @@ func sourcesUpdateFastIndexingTask(ctx context.Context, a *App, changeset *store
 func sourcesHandleMetadataStorageTasks(ctx context.Context, a *App, changeset *store.Changeset, source *store.Source) {
 	// If new, always fetch metadata
 	if changeset.Data.(*store.Source).ID == 0 {
-		_, _ = a.SourceMetadataStorageWorkerKickoffWithTask(ctx, source, store.KW{})
+		_, _ = a.SourceMetadataStorageWorkerKickoffWithTask(ctx, source)
 		return
 	}
 
 	// If persisted, only fetch if original_url changed
 	if changeset.HasChange("original_url") {
-		_, _ = a.SourceMetadataStorageWorkerKickoffWithTask(ctx, source, store.KW{})
+		_, _ = a.SourceMetadataStorageWorkerKickoffWithTask(ctx, source)
 	}
 }
 

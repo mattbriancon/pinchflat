@@ -24,7 +24,7 @@ func TestMediaProfileDeletionWorker_Kickoff(t *testing.T) {
 			t.Errorf("expected 0 enqueued initially")
 		}
 
-		job, err := ta.App.MediaProfileDeletionWorkerKickoff(ta.Ctx, profile, store.Attrs{}, store.KW{})
+		job, err := ta.App.MediaProfileDeletionWorkerKickoff(ta.Ctx, profile, store.Attrs{})
 		if err != nil {
 			t.Errorf("kickoff failed: %v", err)
 		}
@@ -47,7 +47,7 @@ func TestMediaProfileDeletionWorker_Kickoff(t *testing.T) {
 		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
 		jobArgs := store.Attrs{"delete_files": true}
 
-		job, err := ta.App.MediaProfileDeletionWorkerKickoff(ta.Ctx, profile, jobArgs, store.KW{})
+		job, err := ta.App.MediaProfileDeletionWorkerKickoff(ta.Ctx, profile, jobArgs)
 		if err != nil {
 			t.Errorf("kickoff failed: %v", err)
 		}

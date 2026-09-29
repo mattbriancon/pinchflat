@@ -14,7 +14,7 @@ var ErrShouldNotDownload = errors.New("should_not_download")
 // DownloadingHelpers provides helper methods for downloading media.
 
 // DownloadingHelpersEnqueuePendingDownloadTasks/2
-func (a *App) DownloadingHelpersEnqueuePendingDownloadTasks(ctx context.Context, source *store.Source, jobOpts store.KW) error {
+func (a *App) DownloadingHelpersEnqueuePendingDownloadTasks(ctx context.Context, source *store.Source, priority *int) error {
 	if !source.DownloadMedia {
 		return nil
 	}
@@ -27,7 +27,7 @@ func (a *App) DownloadingHelpersEnqueuePendingDownloadTasks(ctx context.Context,
 	for _, mi := range mediaItems {
 		// Elixir uses Enum.each, which discards the return value of
 		// kickoff_with_task (including any {:error, ...}); mirror that here.
-		_, _ = a.MediaDownloadWorkerKickoffWithTask(ctx, mi, store.Attrs{}, jobOpts)
+		_, _ = a.MediaDownloadWorkerKickoffWithTask(ctx, mi, store.Attrs{}, priority)
 	}
 
 	return nil
@@ -41,7 +41,7 @@ func (a *App) DownloadingHelpersDequeuePendingDownloadTasks(ctx context.Context,
 	}
 
 	for _, mi := range mediaItems {
-		err := a.DeletePendingTasksFor(ctx, mi, nil, store.KW{})
+		err := a.DeletePendingTasksFor(ctx, mi, nil, false)
 		if err != nil {
 			return err
 		}
@@ -51,7 +51,7 @@ func (a *App) DownloadingHelpersDequeuePendingDownloadTasks(ctx context.Context,
 }
 
 // DownloadingHelpersKickoffDownloadIfPending/2
-func (a *App) DownloadingHelpersKickoffDownloadIfPending(ctx context.Context, mediaItem *store.MediaItem, jobOpts store.KW) (*store.Task, error) {
+func (a *App) DownloadingHelpersKickoffDownloadIfPending(ctx context.Context, mediaItem *store.MediaItem, priority *int) (*store.Task, error) {
 	// Preload the source
 	mediaItem, err := a.mediaPreloadSource(ctx, mediaItem)
 	if err != nil {
@@ -66,7 +66,7 @@ func (a *App) DownloadingHelpersKickoffDownloadIfPending(ctx context.Context, me
 	if mediaItem.Source.DownloadMedia && isPending {
 		slog.Info(fmt.Sprintf("Kicking off download for media item #%d (%s)", mediaItem.ID, mediaItem.MediaID))
 
-		return a.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, jobOpts)
+		return a.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, priority)
 	}
 
 	return nil, ErrShouldNotDownload
@@ -87,7 +87,7 @@ func (a *App) DownloadingHelpersKickoffRedownloadForExistingMedia(ctx context.Co
 
 	results := make([]interface{}, 0)
 	for _, mi := range mediaItems {
-		task, err := a.MediaDownloadWorkerKickoffWithTask(ctx, mi, store.Attrs{}, store.KW{})
+		task, err := a.MediaDownloadWorkerKickoffWithTask(ctx, mi, store.Attrs{}, nil)
 		if err != nil {
 			results = append(results, store.Attrs{"error": err})
 		} else {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 func TestQualityOptionBuilder_Build(t *testing.T) {
@@ -169,7 +170,7 @@ func TestQualityOptionBuilder_BuildNonAudio(t *testing.T) {
 }
 
 // findOption searches for an option with a specific key and value.
-func findOption(options store.KW, key, value string) bool {
+func findOption(options ytdlp.Args, key, value string) bool {
 	for _, opt := range options {
 		if opt.Key == key && opt.Value == value {
 			return true
@@ -179,7 +180,7 @@ func findOption(options store.KW, key, value string) bool {
 }
 
 // hasFlag checks if an option with a specific key and store.Flag set to true exists.
-func hasFlag(options store.KW, key string) bool {
+func hasFlag(options ytdlp.Args, key string) bool {
 	for _, opt := range options {
 		if opt.Key == key && opt.Flag {
 			return true
@@ -189,7 +190,7 @@ func hasFlag(options store.KW, key string) bool {
 }
 
 // hasKey checks if any option with a specific key exists.
-func hasKey(options store.KW, key string) bool {
+func hasKey(options ytdlp.Args, key string) bool {
 	for _, opt := range options {
 		if opt.Key == key {
 			return true

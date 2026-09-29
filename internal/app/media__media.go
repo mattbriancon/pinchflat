@@ -13,9 +13,7 @@ import (
 // Deletes a media_item, its associated tasks, and our internal metadata
 // files. Can optionally delete the media_item's media files (media,
 // thumbnail, subtitles, etc).
-func (a *App) MediaDeleteMediaItem(ctx context.Context, mediaItem *store.MediaItem, opts store.KW) (*store.MediaItem, error) {
-	deleteFiles := opts.Bool("delete_files")
-
+func (a *App) MediaDeleteMediaItem(ctx context.Context, mediaItem *store.MediaItem, deleteFiles bool) (*store.MediaItem, error) {
 	if err := a.DeleteTasksFor(ctx, mediaItem, nil, obanlite.AllStates); err != nil {
 		return nil, err
 	}

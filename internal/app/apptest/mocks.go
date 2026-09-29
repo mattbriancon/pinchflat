@@ -2,13 +2,14 @@ package apptest
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 // YtDlpRunFunc is the signature of YtDlpRunner.Run without ctx.
-type YtDlpRunFunc func(url, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error)
+type YtDlpRunFunc func(url, action string, args ytdlp.Args, outputTemplate string, opts ytdlp.CallOptions) (string, error)
 
 // YtDlpMock replaces YtDlpRunnerMock.
 type YtDlpMock struct {
@@ -27,8 +28,8 @@ func NewYtDlpMock(t testing.TB) *YtDlpMock {
 
 type ytDlpRunner struct{ m *YtDlpMock }
 
-func (r ytDlpRunner) Run(_ context.Context, url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
-	return r.m.Run.next()(url, action, opts, ot, addl)
+func (r ytDlpRunner) Run(_ context.Context, url, action string, args ytdlp.Args, ot string, opts ytdlp.CallOptions) (string, error) {
+	return r.m.Run.next()(url, action, args, ot, opts)
 }
 func (r ytDlpRunner) Version(context.Context) (string, error) { return r.m.Version.next()() }
 func (r ytDlpRunner) Update(context.Context) (string, error)  { return r.m.Update.next()() }
@@ -50,15 +51,15 @@ func (r userScriptRunner) Run(_ context.Context, event string, data any) error {
 
 // HTTPMock replaces HTTPClientMock.
 type HTTPMock struct {
-	Get *Mock[func(url string, headers, opts store.KW) (string, error)]
+	Get *Mock[func(url string, headers http.Header) (string, error)]
 }
 
 func NewHTTPMock(t testing.TB) *HTTPMock {
-	return &HTTPMock{Get: newMock[func(string, store.KW, store.KW) (string, error)](t, "HTTPClientMock.get")}
+	return &HTTPMock{Get: newMock[func(string, http.Header) (string, error)](t, "HTTPClientMock.get")}
 }
 
 type httpClient struct{ m *HTTPMock }
 
-func (c httpClient) Get(_ context.Context, url string, headers, opts store.KW) (string, error) {
-	return c.m.Get.next()(url, headers, opts)
+func (c httpClient) Get(_ context.Context, url string, headers http.Header) (string, error) {
+	return c.m.Get.next()(url, headers)
 }

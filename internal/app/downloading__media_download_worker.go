@@ -27,8 +27,8 @@ var mediaDownloadWorkerOpts = obanlite.WorkerOpts{
 	Tags: []string{"media_item", "media_fetching", "show_in_dashboard"},
 }
 
-// MediaDownloadWorkerKickoffWithTask/3
-func (a *App) MediaDownloadWorkerKickoffWithTask(ctx context.Context, mediaItem *store.MediaItem, jobArgs store.Attrs, jobOpts store.KW) (*store.Task, error) {
+// MediaDownloadWorkerKickoffWithTask/3. A nil priority keeps the worker default.
+func (a *App) MediaDownloadWorkerKickoffWithTask(ctx context.Context, mediaItem *store.MediaItem, jobArgs store.Attrs, priority *int) (*store.Task, error) {
 	// Build job args: start with {id: mediaItem.id} and merge jobArgs
 	args := store.Attrs{"id": mediaItem.ID}
 	for k, v := range jobArgs {
@@ -37,22 +37,9 @@ func (a *App) MediaDownloadWorkerKickoffWithTask(ctx context.Context, mediaItem 
 
 	// Create job spec
 	spec := obanlite.JobSpec{
-		Worker: MediaDownloadWorkerName,
-		Args:   args,
-	}
-
-	// Handle job options (like priority)
-	if priority, ok := jobOpts.Get("priority"); ok {
-		if p, ok := priority.(int); ok {
-			spec.Priority = &p
-		}
-	}
-
-	// If schedule_in is specified, add it
-	if schedIn, ok := jobOpts.Get("schedule_in"); ok {
-		if s, ok := schedIn.(int); ok {
-			spec.ScheduleIn = s
-		}
+		Worker:   MediaDownloadWorkerName,
+		Args:     args,
+		Priority: priority,
 	}
 
 	// Create the job with task
@@ -146,10 +133,8 @@ func (a *App) downloadMediaAndScheduleJobs(ctx context.Context, mediaItem *store
 		overwriteBehavior = "no_force_overwrites"
 	}
 
-	overrideOpts := store.KW{store.Opt("overwrite_behaviour", overwriteBehavior)}
-
 	// Download media
-	result, downloadErr := a.MediaDownloaderDownloadForMediaItem(ctx, mediaItem, overrideOpts)
+	result, downloadErr := a.MediaDownloaderDownloadForMediaItem(ctx, mediaItem, DownloadOverrides{OverwriteBehaviour: overwriteBehavior})
 
 	// Success case: {:ok, downloaded_media_item}
 	if downloadErr == nil && result != nil && !result.Recovered {

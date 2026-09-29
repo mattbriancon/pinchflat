@@ -7,34 +7,29 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 // MediaCollectionGetMediaAttributesForCollection/3
-func (a *App) MediaCollectionGetMediaAttributesForCollection(ctx context.Context, url string, commandOpts store.KW, addlOpts store.KW) ([]*YtDlpMedia, error) {
+func (a *App) MediaCollectionGetMediaAttributesForCollection(ctx context.Context, url string, args ytdlp.Args, opts ytdlp.CallOptions, fileListener func(outputFilepath string)) ([]*YtDlpMedia, error) {
 	// ignore_no_formats_error is necessary because yt-dlp will error out if
 	// the first video has not released yet (ie: is a premier). We don't care about
 	// available formats since we're just getting the media details
-	allCommandOpts := append(
-		store.KW{store.Flag("simulate"), store.Flag("skip_download"), store.Flag("ignore_no_formats_error"), store.Flag("no_warnings")},
-		commandOpts...,
-	)
+	allArgs := ytdlp.Args{}.Flag("simulate").Flag("skip_download").Flag("ignore_no_formats_error").Flag("no_warnings")
+	allArgs = append(allArgs, args...)
 
-	useCookies := addlOpts.Bool("use_cookies")
-	outputTemplate := YtDlpMediaIndexingOutputTemplate()
+	// The output file is created here so fileListener can start following it
+	// before yt-dlp starts writing.
 	outputFilepath, err := fsutil.GenerateTmpfile(a.Config.TmpfileDirectory, "json")
 	if err != nil {
 		return nil, err
 	}
-
-	fileListenerHandler, ok := addlOpts.Get("file_listener_handler")
-	if ok && fileListenerHandler != nil {
-		if handler, ok := fileListenerHandler.(func(string)); ok {
-			handler(outputFilepath)
-		}
+	if fileListener != nil {
+		fileListener(outputFilepath)
 	}
+	opts.OutputFilepath = outputFilepath
 
-	runnerOpts := store.KW{store.Opt("output_filepath", outputFilepath), store.Opt("use_cookies", useCookies)}
-	output, err := a.YtDlp.Run(ctx, url, "get_media_attributes_for_collection", allCommandOpts, outputTemplate, runnerOpts)
+	output, err := a.YtDlp.Run(ctx, url, "get_media_attributes_for_collection", allArgs, YtDlpMediaIndexingOutputTemplate(), opts)
 	if err != nil {
 		return nil, err
 	}
@@ -61,21 +56,15 @@ func (a *App) MediaCollectionGetMediaAttributesForCollection(ctx context.Context
 }
 
 // MediaCollectionGetSourceDetails/3
-func (a *App) MediaCollectionGetSourceDetails(ctx context.Context, sourceURL string, commandOpts store.KW, addlOpts store.KW) (map[string]any, error) {
+func (a *App) MediaCollectionGetSourceDetails(ctx context.Context, sourceURL string, args ytdlp.Args, opts ytdlp.CallOptions) (map[string]any, error) {
 	// ignore_no_formats_error is necessary because yt-dlp will error out if
 	// the first video has not released yet (ie: is a premier). We don't care about
 	// available formats since we're just getting the source details
-	defaultOpts := store.KW{
-		store.Flag("simulate"),
-		store.Flag("skip_download"),
-		store.Flag("ignore_no_formats_error"),
-		store.Opt("playlist_end", 1),
-	}
-
-	allCommandOpts := append(defaultOpts, commandOpts...)
+	allArgs := ytdlp.Args{}.Flag("simulate").Flag("skip_download").Flag("ignore_no_formats_error").Opt("playlist_end", 1)
+	allArgs = append(allArgs, args...)
 	outputTemplate := "%(.{channel,channel_id,playlist_id,playlist_title,filename})j"
 
-	output, err := a.YtDlp.Run(ctx, sourceURL, "get_source_details", allCommandOpts, outputTemplate, addlOpts)
+	output, err := a.YtDlp.Run(ctx, sourceURL, "get_source_details", allArgs, outputTemplate, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -89,17 +78,18 @@ func (a *App) MediaCollectionGetSourceDetails(ctx context.Context, sourceURL str
 }
 
 // MediaCollectionGetSourceMetadata/3
-func (a *App) MediaCollectionGetSourceMetadata(ctx context.Context, sourceURL string, commandOpts store.KW, addlOpts store.KW) (map[string]any, error) {
+func (a *App) MediaCollectionGetSourceMetadata(ctx context.Context, sourceURL string, args ytdlp.Args, opts ytdlp.CallOptions) (map[string]any, error) {
 	// Validate that playlist_items is present
-	if _, ok := commandOpts.Get("playlist_items"); !ok {
+	if _, ok := args.Get("playlist_items"); !ok {
 		slog.Error("playlist_items is required in commandOpts")
 		return nil, ErrMissingPlaylistItems{}
 	}
 
-	allCommandOpts := append(store.KW{store.Flag("skip_download")}, commandOpts...)
+	allArgs := ytdlp.Args{}.Flag("skip_download")
+	allArgs = append(allArgs, args...)
 	outputTemplate := "playlist:%()j"
 
-	output, err := a.YtDlp.Run(ctx, sourceURL, "get_source_metadata", allCommandOpts, outputTemplate, addlOpts)
+	output, err := a.YtDlp.Run(ctx, sourceURL, "get_source_metadata", allArgs, outputTemplate, opts)
 	if err != nil {
 		return nil, err
 	}

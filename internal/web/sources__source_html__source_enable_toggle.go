@@ -2,8 +2,6 @@ package web
 
 import (
 	"net/http"
-
-	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // SourceEnableToggleUpdate is POST /sources/{id}/enabled: it persists the
@@ -19,7 +17,7 @@ func (s *Server) SourceEnableToggleUpdate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	_, _ = s.App.SourcesUpdateSource(ctx, source, sourceParams, store.KW{})
+	_, _ = s.App.SourcesUpdateSource(ctx, source, sourceParams, true)
 
 	s.redirectBack(w, r, P(ctx, "/sources"))
 }

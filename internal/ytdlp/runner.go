@@ -68,7 +68,7 @@ type Runner struct {
 //	1   = any other error
 //
 // A non-0/101 status is returned as *fsutil.CommandError.
-func (r *Runner) Run(ctx context.Context, url string, action string, args []string, outputTemplate string, opts CallOptions) (string, error) {
+func (r *Runner) Run(ctx context.Context, url string, action string, args Args, outputTemplate string, opts CallOptions) (string, error) {
 	slog.Debug("Running yt-dlp command for action: " + action)
 
 	outputFilepath := opts.OutputFilepath
@@ -80,7 +80,7 @@ func (r *Runner) Run(ctx context.Context, url string, action string, args []stri
 		}
 	}
 
-	allArgs := append([]string{}, args...)
+	allArgs := args.Strings()
 	allArgs = append(allArgs, r.cookieFileArgs(opts.UseCookies)...)
 	settings := r.settings(ctx)
 	allArgs = append(allArgs, rateLimitArgs(settings, opts.SkipSleepInterval)...)

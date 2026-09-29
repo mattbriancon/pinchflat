@@ -14,7 +14,7 @@ func (s *Server) SearchControllerShow(w http.ResponseWriter, r *http.Request) {
 		searchTerm = ""
 	}
 
-	searchResults, err := s.App.Search(ctx, searchTerm, store.KW{})
+	searchResults, err := s.App.Search(ctx, searchTerm, 0)
 	if err != nil {
 		s.Fail(w, r, err)
 		return

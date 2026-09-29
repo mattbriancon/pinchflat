@@ -48,10 +48,7 @@ func (s *Server) PodcastControllerRssFeed(w http.ResponseWriter, r *http.Request
 	urlBase := PageOf(ctx).BaseURL
 
 	// Build RSS XML
-	xml, err := s.App.RssFeedBuilderBuild(ctx, source, store.KW{
-		store.Opt("limit", 2000),
-		store.Opt("url_base", urlBase),
-	})
+	xml, err := s.App.RssFeedBuilderBuild(ctx, source, 2000, urlBase)
 	if err != nil {
 		s.Fail(w, r, err)
 		return

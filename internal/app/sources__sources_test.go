@@ -14,6 +14,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 var invalidSourceAttrs = store.Attrs{"name": nil, "collection_id": nil}
@@ -39,11 +40,11 @@ func sourcesTestChannelReturn() string {
 	return jsonStr
 }
 
-func sourcesTestPlaylistMock(_ string, _ string, _ store.KW, _ string, _ store.KW) (string, error) {
+func sourcesTestPlaylistMock(_ string, _ string, _ ytdlp.Args, _ string, _ ytdlp.CallOptions) (string, error) {
 	return sourcesTestPlaylistReturn(), nil
 }
 
-func sourcesTestChannelMock(_ string, _ string, _ store.KW, _ string, _ store.KW) (string, error) {
+func sourcesTestChannelMock(_ string, _ string, _ ytdlp.Args, _ string, _ ytdlp.CallOptions) (string, error) {
 	return sourcesTestChannelReturn(), nil
 }
 
@@ -64,7 +65,7 @@ func TestSources_Schema(t *testing.T) {
 			t.Fatal("expected source to have metadata")
 		}
 
-		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, false); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
 		}
 
@@ -231,7 +232,7 @@ func TestSources_CreateSource(t *testing.T) {
 			"original_url":     "https://www.youtube.com/channel/abc123",
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -252,7 +253,7 @@ func TestSources_CreateSource(t *testing.T) {
 			"uuid":             "some_uuid",
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -272,7 +273,7 @@ func TestSources_CreateSource(t *testing.T) {
 			"original_url":     "https://www.youtube.com/channel/abc123",
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -295,7 +296,7 @@ func TestSources_CreateSource(t *testing.T) {
 			"original_url":     "https://www.youtube.com/playlist?list=abc123",
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -310,7 +311,7 @@ func TestSources_CreateSource(t *testing.T) {
 	t.Run("adds an error if the runner fails", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
-		ta.YtDlpMock.Run.Expect(func(_, _ string, _ store.KW, _ string, _ store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(_, _ string, _ ytdlp.Args, _ string, _ ytdlp.CallOptions) (string, error) {
 			return "", &fsutil.CommandError{Output: "some error", Status: 1}
 		})
 
@@ -320,7 +321,7 @@ func TestSources_CreateSource(t *testing.T) {
 			"original_url":     "https://www.youtube.com/channel/abc123",
 		}
 
-		_, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		_, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -336,7 +337,7 @@ func TestSources_CreateSource(t *testing.T) {
 	t.Run("adds an error if the runner succeeds but the result was invalid JSON", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
-		ta.YtDlpMock.Run.Expect(func(_, _ string, _ store.KW, _ string, _ store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(_, _ string, _ ytdlp.Args, _ string, _ ytdlp.CallOptions) (string, error) {
 			return "store.Not JSON", nil
 		})
 
@@ -346,7 +347,7 @@ func TestSources_CreateSource(t *testing.T) {
 			"original_url":     "https://www.youtube.com/channel/abc123",
 		}
 
-		_, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		_, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -371,7 +372,7 @@ func TestSources_CreateSource(t *testing.T) {
 			"custom_name":      "some custom name",
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -391,7 +392,7 @@ func TestSources_CreateSource(t *testing.T) {
 			"original_url":     "https://www.youtube.com/channel/abc123",
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -403,7 +404,7 @@ func TestSources_CreateSource(t *testing.T) {
 	t.Run("creation enforces uniqueness of collection_id scoped to the media_profile and title regex", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
-		ta.YtDlpMock.Run.ExpectN(2, func(_, _ string, _ store.KW, _ string, _ store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(_, _ string, _ ytdlp.Args, _ string, _ ytdlp.CallOptions) (string, error) {
 			jsonStr, _ := db.EncodeJSON(map[string]any{
 				"channel":        "some channel name",
 				"channel_id":     "some_channel_id_12345678",
@@ -420,10 +421,10 @@ func TestSources_CreateSource(t *testing.T) {
 			"title_filter_regex": nil,
 		}
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validOnceAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validOnceAttrs, true); err != nil {
 			t.Fatalf("first SourcesCreateSource: %v", err)
 		}
-		_, err := ta.App.SourcesCreateSource(ta.Ctx, validOnceAttrs, store.KW{})
+		_, err := ta.App.SourcesCreateSource(ta.Ctx, validOnceAttrs, true)
 		if err == nil {
 			t.Fatal("expected the second create to fail")
 		}
@@ -435,7 +436,7 @@ func TestSources_CreateSource(t *testing.T) {
 	t.Run("creation lets you duplicate collection_ids and profiles as long as the regex is different", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
-		ta.YtDlpMock.Run.ExpectN(2, func(_, _ string, _ store.KW, _ string, _ store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(_, _ string, _ ytdlp.Args, _ string, _ ytdlp.CallOptions) (string, error) {
 			jsonStr, _ := db.EncodeJSON(map[string]any{
 				"channel":        "some channel name",
 				"channel_id":     "some_channel_id_12345678",
@@ -460,10 +461,10 @@ func TestSources_CreateSource(t *testing.T) {
 		source1Attrs["title_filter_regex"] = "foo"
 		source2Attrs["title_filter_regex"] = "bar"
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, source1Attrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, source1Attrs, true); err != nil {
 			t.Fatalf("first SourcesCreateSource: %v", err)
 		}
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, source2Attrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, source2Attrs, true); err != nil {
 			t.Fatalf("second SourcesCreateSource: %v", err)
 		}
 	})
@@ -471,7 +472,7 @@ func TestSources_CreateSource(t *testing.T) {
 	t.Run("creation lets you duplicate collection_ids as long as the media profile is different", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
-		ta.YtDlpMock.Run.ExpectN(2, func(_, _ string, _ store.KW, _ string, _ store.KW) (string, error) {
+		ta.YtDlpMock.Run.ExpectN(2, func(_, _ string, _ ytdlp.Args, _ string, _ ytdlp.CallOptions) (string, error) {
 			jsonStr, _ := db.EncodeJSON(map[string]any{
 				"channel":        "some channel name",
 				"channel_id":     "some_channel_id_12345678",
@@ -495,10 +496,10 @@ func TestSources_CreateSource(t *testing.T) {
 		source1Attrs["media_profile_id"] = apptest.MediaProfileFixture(t, ta, store.Attrs{}).ID
 		source2Attrs["media_profile_id"] = apptest.MediaProfileFixture(t, ta, store.Attrs{}).ID
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, source1Attrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, source1Attrs, true); err != nil {
 			t.Fatalf("first SourcesCreateSource: %v", err)
 		}
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, source2Attrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, source2Attrs, true); err != nil {
 			t.Fatalf("second SourcesCreateSource: %v", err)
 		}
 	})
@@ -515,11 +516,11 @@ func TestSources_CreateSource(t *testing.T) {
 			"original_url":     "https://www.youtube.com/channel/abc123",
 		}
 
-		source1, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		source1, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("first SourcesCreateSource: %v", err)
 		}
-		source2, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		source2, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("second SourcesCreateSource: %v", err)
 		}
@@ -536,7 +537,7 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		_, err := ta.App.SourcesCreateSource(ta.Ctx, invalidSourceAttrs, store.KW{})
+		_, err := ta.App.SourcesCreateSource(ta.Ctx, invalidSourceAttrs, true)
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -549,7 +550,7 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		_, err := ta.App.SourcesCreateSource(ta.Ctx, invalidSourceAttrs, store.KW{})
+		_, err := ta.App.SourcesCreateSource(ta.Ctx, invalidSourceAttrs, true)
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -572,7 +573,7 @@ func TestSources_CreateSource(t *testing.T) {
 			"original_url":     "https://www.youtube.com/channel/abc123",
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -595,7 +596,7 @@ func TestSources_CreateSource(t *testing.T) {
 			"fast_index":       true,
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -618,7 +619,7 @@ func TestSources_CreateSource(t *testing.T) {
 			"fast_index":       false,
 		}
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true); err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
 
@@ -637,7 +638,7 @@ func TestSources_CreateSource(t *testing.T) {
 			"index_frequency_minutes": 0,
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -661,7 +662,7 @@ func TestSources_CreateSource(t *testing.T) {
 			"index_frequency_minutes": 0,
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -683,7 +684,7 @@ func TestSources_CreateSource(t *testing.T) {
 			"index_frequency_minutes": 0,
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -705,7 +706,7 @@ func TestSources_CreateSource(t *testing.T) {
 			"index_frequency_minutes": 0,
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{})
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -721,8 +722,8 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 	t.Run("sets use_cookies to true if the source has been set to use cookies", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
-		ta.YtDlpMock.Run.Expect(func(_, _ string, _ store.KW, _ string, addl store.KW) (string, error) {
-			if !addl.Bool("use_cookies") {
+		ta.YtDlpMock.Run.Expect(func(_, _ string, _ ytdlp.Args, _ string, addl ytdlp.CallOptions) (string, error) {
+			if !addl.UseCookies {
 				t.Error("expected use_cookies to be true")
 			}
 			return sourcesTestPlaylistReturn(), nil
@@ -735,7 +736,7 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 			"cookie_behaviour": "all_operations",
 		}
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true); err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
 	})
@@ -743,8 +744,8 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 	t.Run("does not set use_cookies if the source uses cookies when needed", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
-		ta.YtDlpMock.Run.Expect(func(_, _ string, _ store.KW, _ string, addl store.KW) (string, error) {
-			if addl.Bool("use_cookies") {
+		ta.YtDlpMock.Run.Expect(func(_, _ string, _ ytdlp.Args, _ string, addl ytdlp.CallOptions) (string, error) {
+			if addl.UseCookies {
 				t.Error("expected use_cookies to be false")
 			}
 			return sourcesTestPlaylistReturn(), nil
@@ -757,7 +758,7 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 			"cookie_behaviour": "when_needed",
 		}
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true); err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
 	})
@@ -765,8 +766,8 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 	t.Run("does not set use_cookies if the source has not been set to use cookies", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
-		ta.YtDlpMock.Run.Expect(func(_, _ string, _ store.KW, _ string, addl store.KW) (string, error) {
-			if addl.Bool("use_cookies") {
+		ta.YtDlpMock.Run.Expect(func(_, _ string, _ ytdlp.Args, _ string, addl ytdlp.CallOptions) (string, error) {
+			if addl.UseCookies {
 				t.Error("expected use_cookies to be false")
 			}
 			return sourcesTestPlaylistReturn(), nil
@@ -779,7 +780,7 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 			"cookie_behaviour": "disabled",
 		}
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true); err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
 	})
@@ -787,8 +788,8 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 	t.Run("skips sleep interval", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
-		ta.YtDlpMock.Run.Expect(func(_, _ string, _ store.KW, _ string, addl store.KW) (string, error) {
-			if !addl.Bool("skip_sleep_interval") {
+		ta.YtDlpMock.Run.Expect(func(_, _ string, _ ytdlp.Args, _ string, addl ytdlp.CallOptions) (string, error) {
+			if !addl.SkipSleepInterval {
 				t.Error("expected skip_sleep_interval to be true")
 			}
 			return sourcesTestPlaylistReturn(), nil
@@ -800,7 +801,7 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 			"original_url":     "https://www.youtube.com/channel/abc123",
 		}
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true); err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
 	})
@@ -818,7 +819,7 @@ func TestSources_CreateSourceWhenTestingOptions(t *testing.T) {
 			"original_url":     "https://www.youtube.com/channel/abc123",
 		}
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, store.KW{store.Opt("run_post_commit_tasks", false)}); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, false); err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
 
@@ -835,7 +836,7 @@ func TestSources_UpdateSource(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
 		updateAttrs := store.Attrs{"collection_name": "some updated name"}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{})
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -850,7 +851,7 @@ func TestSources_UpdateSource(t *testing.T) {
 
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
 
-		_, err := ta.App.SourcesUpdateSource(ta.Ctx, src, invalidSourceAttrs, store.KW{})
+		_, err := ta.App.SourcesUpdateSource(ta.Ctx, src, invalidSourceAttrs, true)
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -870,7 +871,7 @@ func TestSources_UpdateSource(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
 		updateAttrs := store.Attrs{"original_url": "https://www.youtube.com/channel/abc123"}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{})
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -890,7 +891,7 @@ func TestSources_UpdateSource(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
 		updateAttrs := store.Attrs{"original_url": "https://www.youtube.com/playlist?list=abc123"}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{})
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -909,7 +910,7 @@ func TestSources_UpdateSource(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
 		updateAttrs := store.Attrs{"custom_name": "some updated name"}
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		if ta.YtDlpMock.Run.Calls() != 0 {
@@ -923,7 +924,7 @@ func TestSources_UpdateSource(t *testing.T) {
 
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
 
-		_, err := ta.App.SourcesUpdateSource(ta.Ctx, src, invalidSourceAttrs, store.KW{})
+		_, err := ta.App.SourcesUpdateSource(ta.Ctx, src, invalidSourceAttrs, true)
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -948,7 +949,7 @@ func TestSources_UpdateSource(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
 		updateAttrs := store.Attrs{"original_url": "https://www.youtube.com/channel/cba321"}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{})
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -966,7 +967,7 @@ func TestSources_UpdateSource(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
 		updateAttrs := store.Attrs{"custom_name": "some new name"}
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 
@@ -984,7 +985,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		updateAttrs := store.Attrs{"download_media": true}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.AssertEnqueued(t, obanlite.Match{
@@ -1000,7 +1001,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{"download_media": true, "enabled": true})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": src.ID, "media_filepath": nil})
 		updateAttrs := store.Attrs{"download_media": false}
-		if err := ta.App.DownloadingHelpersEnqueuePendingDownloadTasks(ta.Ctx, src, store.KW{}); err != nil {
+		if err := ta.App.DownloadingHelpersEnqueuePendingDownloadTasks(ta.Ctx, src, nil); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks: %v", err)
 		}
 
@@ -1008,7 +1009,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 			Worker: app.MediaDownloadWorkerName,
 			Args:   map[string]any{"id": mediaItem.ID},
 		})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
@@ -1023,7 +1024,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		updateAttrs := store.Attrs{"download_media": true}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
@@ -1036,7 +1037,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{"download_media": true, "enabled": true})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": src.ID, "media_filepath": nil})
 		updateAttrs := store.Attrs{"enabled": false}
-		if err := ta.App.DownloadingHelpersEnqueuePendingDownloadTasks(ta.Ctx, src, store.KW{}); err != nil {
+		if err := ta.App.DownloadingHelpersEnqueuePendingDownloadTasks(ta.Ctx, src, nil); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks: %v", err)
 		}
 
@@ -1044,7 +1045,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 			Worker: app.MediaDownloadWorkerName,
 			Args:   map[string]any{"id": mediaItem.ID},
 		})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
@@ -1059,7 +1060,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		updateAttrs := store.Attrs{"enabled": true}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.AssertEnqueued(t, obanlite.Match{
@@ -1077,7 +1078,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		updateAttrs := store.Attrs{"enabled": true}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
@@ -1092,7 +1093,7 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
 		updateAttrs := store.Attrs{"index_frequency_minutes": 123}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{})
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -1112,7 +1113,7 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
 		updateAttrs := store.Attrs{"index_frequency_minutes": 0}
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 
@@ -1140,7 +1141,7 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		}
 		task2 := apptest.TaskFixture(t, ta, store.Attrs{"source_id": src.ID, "job_id": job2.ID})
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 
@@ -1160,7 +1161,7 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		task := apptest.TaskFixture(t, ta, store.Attrs{"source_id": src.ID})
 		updateAttrs := store.Attrs{"custom_name": "some updated name"}
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 
@@ -1186,7 +1187,7 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		}
 		task := apptest.TaskFixture(t, ta, store.Attrs{"source_id": src.ID, "job_id": job.ID})
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 
@@ -1203,7 +1204,7 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		updateAttrs := store.Attrs{"index_frequency_minutes": 123}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
@@ -1217,7 +1218,7 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		updateAttrs := store.Attrs{"enabled": true}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.AssertEnqueued(t, obanlite.Match{
@@ -1234,7 +1235,7 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		updateAttrs := store.Attrs{"enabled": true}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
@@ -1250,7 +1251,7 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		updateAttrs := store.Attrs{"fast_index": true}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.AssertEnqueued(t, obanlite.Match{
@@ -1275,7 +1276,7 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 			Worker: app.FastIndexingWorkerName,
 			Args:   map[string]any{"id": src.ID},
 		})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
@@ -1288,7 +1289,7 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
 		updateAttrs := store.Attrs{"index_frequency_minutes": 0}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{})
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -1304,7 +1305,7 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": false})
 		updateAttrs := store.Attrs{"index_frequency_minutes": 0}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{})
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -1326,7 +1327,7 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		}
 		task := apptest.TaskFixture(t, ta, store.Attrs{"source_id": src.ID, "job_id": job.ID})
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 
@@ -1343,7 +1344,7 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		updateAttrs := store.Attrs{"fast_index": true}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
@@ -1357,7 +1358,7 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		updateAttrs := store.Attrs{"enabled": true}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.AssertEnqueued(t, obanlite.Match{
@@ -1374,7 +1375,7 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		updateAttrs := store.Attrs{"enabled": true}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
@@ -1397,7 +1398,7 @@ func TestSources_UpdateSourceWhenTestingOptions(t *testing.T) {
 			"index_frequency_minutes": 100,
 		}
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{store.Opt("run_post_commit_tasks", false)}); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, false); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 
@@ -1414,7 +1415,7 @@ func TestSources_DeleteSource(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, false); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
 		}
 		if _, err := ta.App.GetSource(ta.Ctx, src.ID); err != store.ErrNotFound {
@@ -1440,7 +1441,7 @@ func TestSources_DeleteSource(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
 		task := apptest.TaskFixture(t, ta, store.Attrs{"source_id": src.ID})
 
-		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, false); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
 		}
 		if _, err := store.Get[store.Task](ta.Ctx, ta.Q(ta.Ctx), task.ID); err != store.ErrNotFound {
@@ -1455,7 +1456,7 @@ func TestSources_DeleteSource(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": src.ID})
 
-		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, false); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
 		}
 		if _, err := store.Get[store.MediaItem](ta.Ctx, ta.Q(ta.Ctx), mediaItem.ID); err != store.ErrNotFound {
@@ -1470,7 +1471,7 @@ func TestSources_DeleteSource(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": src.ID})
 
-		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, false); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
 		}
 		if _, err := os.Stat(*mediaItem.MediaFilepath); err != nil {
@@ -1494,7 +1495,7 @@ func TestSources_DeleteSource(t *testing.T) {
 		}
 		updateAttrs := store.Attrs{"metadata": store.Attrs{"metadata_filepath": metadataFilepath}}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, store.KW{})
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -1503,7 +1504,7 @@ func TestSources_DeleteSource(t *testing.T) {
 			t.Fatalf("PreloadSourceMetadata: %v", err)
 		}
 
-		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, updated, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, updated, false); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
 		}
 		if _, err := os.Stat(updated.Metadata.MetadataFilepath); !os.IsNotExist(err) {
@@ -1521,7 +1522,7 @@ func TestSources_DeleteSource(t *testing.T) {
 		}
 		src := apptest.SourceFixture(t, ta, store.Attrs{"nfo_filepath": filepath})
 
-		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, store.KW{}); err != nil {
+		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, false); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
 		}
 		if _, err := os.Stat(filepath); err != nil {
@@ -1540,7 +1541,7 @@ func TestSources_DeleteSourceWhenDeletingFiles(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": src.ID})
 
-		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, store.KW{store.Opt("delete_files", true)}); err != nil {
+		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, true); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
 		}
 
@@ -1560,7 +1561,7 @@ func TestSources_DeleteSourceWhenDeletingFiles(t *testing.T) {
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": src.ID})
 
-		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, store.KW{store.Opt("delete_files", true)}); err != nil {
+		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, true); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
 		}
 
@@ -1580,7 +1581,7 @@ func TestSources_DeleteSourceWhenDeletingFiles(t *testing.T) {
 		}
 		src := apptest.SourceFixture(t, ta, store.Attrs{"nfo_filepath": filepath})
 
-		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, store.KW{store.Opt("delete_files", true)}); err != nil {
+		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, true); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
 		}
 		if _, err := os.Stat(filepath); !os.IsNotExist(err) {

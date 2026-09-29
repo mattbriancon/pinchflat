@@ -12,10 +12,11 @@ import (
 type YtDlpMedia = ytdlp.Media
 
 // YtDlpMediaDownload/3
-func (a *App) YtDlpMediaDownload(ctx context.Context, url string, commandOpts store.KW, addlOpts store.KW) (map[string]any, error) {
-	allCommandOpts := append(store.KW{store.Flag("no_simulate")}, commandOpts...)
+func (a *App) YtDlpMediaDownload(ctx context.Context, url string, args ytdlp.Args, opts ytdlp.CallOptions) (map[string]any, error) {
+	allArgs := ytdlp.Args{}.Flag("no_simulate")
+	allArgs = append(allArgs, args...)
 
-	output, err := a.YtDlp.Run(ctx, url, "download", allCommandOpts, "after_move:%()j", addlOpts)
+	output, err := a.YtDlp.Run(ctx, url, "download", allArgs, "after_move:%()j", opts)
 	if err != nil {
 		return nil, err
 	}
@@ -29,10 +30,10 @@ func (a *App) YtDlpMediaDownload(ctx context.Context, url string, commandOpts st
 }
 
 // YtDlpMediaGetDownloadableStatus/2
-func (a *App) YtDlpMediaGetDownloadableStatus(ctx context.Context, url string, addlOpts store.KW) (string, error) {
-	commandOpts := store.KW{store.Flag("simulate"), store.Flag("skip_download")}
+func (a *App) YtDlpMediaGetDownloadableStatus(ctx context.Context, url string, opts ytdlp.CallOptions) (string, error) {
+	args := ytdlp.Args{}.Flag("simulate").Flag("skip_download")
 
-	output, err := a.YtDlp.Run(ctx, url, "get_downloadable_status", commandOpts, "%(.{live_status})j", addlOpts)
+	output, err := a.YtDlp.Run(ctx, url, "get_downloadable_status", args, "%(.{live_status})j", opts)
 	if err != nil {
 		return "", err
 	}
@@ -46,13 +47,11 @@ func (a *App) YtDlpMediaGetDownloadableStatus(ctx context.Context, url string, a
 }
 
 // YtDlpMediaDownloadThumbnail/3
-func (a *App) YtDlpMediaDownloadThumbnail(ctx context.Context, url string, commandOpts store.KW, addlOpts store.KW) (string, error) {
-	allCommandOpts := append(
-		store.KW{store.Flag("no_simulate"), store.Flag("skip_download"), store.Flag("write_thumbnail"), store.Opt("convert_thumbnail", "jpg")},
-		commandOpts...,
-	)
+func (a *App) YtDlpMediaDownloadThumbnail(ctx context.Context, url string, args ytdlp.Args, opts ytdlp.CallOptions) (string, error) {
+	allArgs := ytdlp.Args{}.Flag("no_simulate").Flag("skip_download").Flag("write_thumbnail").Opt("convert_thumbnail", "jpg")
+	allArgs = append(allArgs, args...)
 
-	output, err := a.YtDlp.Run(ctx, url, "download_thumbnail", allCommandOpts, "after_move:%()j", addlOpts)
+	output, err := a.YtDlp.Run(ctx, url, "download_thumbnail", allArgs, "after_move:%()j", opts)
 	if err != nil {
 		return "", err
 	}
@@ -61,11 +60,12 @@ func (a *App) YtDlpMediaDownloadThumbnail(ctx context.Context, url string, comma
 }
 
 // YtDlpMediaGetMediaAttributes/3
-func (a *App) YtDlpMediaGetMediaAttributes(ctx context.Context, url string, commandOpts store.KW, addlOpts store.KW) (*YtDlpMedia, error) {
-	allCommandOpts := append(store.KW{store.Flag("simulate"), store.Flag("skip_download")}, commandOpts...)
+func (a *App) YtDlpMediaGetMediaAttributes(ctx context.Context, url string, args ytdlp.Args, opts ytdlp.CallOptions) (*YtDlpMedia, error) {
+	allArgs := ytdlp.Args{}.Flag("simulate").Flag("skip_download")
+	allArgs = append(allArgs, args...)
 	outputTemplate := YtDlpMediaIndexingOutputTemplate()
 
-	output, err := a.YtDlp.Run(ctx, url, "get_media_attributes", allCommandOpts, outputTemplate, addlOpts)
+	output, err := a.YtDlp.Run(ctx, url, "get_media_attributes", allArgs, outputTemplate, opts)
 	if err != nil {
 		return nil, err
 	}

@@ -9,15 +9,26 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 // DownloadOptionBuilder builds options for yt-dlp based on media profile settings.
 
+// DownloadOverrides are the per-download knobs callers can set. The zero value
+// means: force overwrites, and use cookies only where the source says so.
+type DownloadOverrides struct {
+	// OverwriteBehaviour is the yt-dlp overwrite flag ("force_overwrites" or
+	// "no_force_overwrites"); "" means "force_overwrites".
+	OverwriteBehaviour string
+	// ForceUseCookies uses cookies regardless of the source's cookie behaviour.
+	ForceUseCookies bool
+}
+
 // DownloadOptionBuilderBuild/2
-func (a *App) DownloadOptionBuilderBuild(ctx context.Context, mediaItem *store.MediaItem, overrideOpts store.KW) (store.KW, error) {
+func (a *App) DownloadOptionBuilderBuild(ctx context.Context, mediaItem *store.MediaItem, overrides DownloadOverrides) (ytdlp.Args, error) {
 	mediaProfile := mediaItem.Source.MediaProfile
 
-	builtOptions := downloadOptionBuilderDefaultOptions(overrideOpts)
+	builtOptions := downloadOptionBuilderDefaultOptions(overrides)
 	builtOptions = append(builtOptions, downloadOptionBuilderSubtitleOptions(mediaProfile)...)
 	builtOptions = append(builtOptions, downloadOptionBuilderThumbnailOptions(ctx, a, mediaItem)...)
 	builtOptions = append(builtOptions, downloadOptionBuilderMetadataOptions(mediaProfile)...)
@@ -41,89 +52,91 @@ func (a *App) DownloadOptionBuilderBuildOutputPathForMediaItem(ctx context.Conte
 }
 
 // DownloadOptionBuilderBuildQualityOptionsForSource/1
-func (a *App) DownloadOptionBuilderBuildQualityOptionsForSource(ctx context.Context, source *store.Source) store.KW {
+func (a *App) DownloadOptionBuilderBuildQualityOptionsForSource(ctx context.Context, source *store.Source) ytdlp.Args {
 	return a.DownloadOptionBuilderBuildQualityOptionsForMediaItem(ctx, &store.MediaItem{Source: source})
 }
 
 // DownloadOptionBuilderBuildQualityOptionsForMediaItem/1
-func (a *App) DownloadOptionBuilderBuildQualityOptionsForMediaItem(ctx context.Context, mediaItem *store.MediaItem) store.KW {
+func (a *App) DownloadOptionBuilderBuildQualityOptionsForMediaItem(ctx context.Context, mediaItem *store.MediaItem) ytdlp.Args {
 	mediaProfile := mediaItem.Source.MediaProfile
 	return a.QualityOptionBuilderBuild(ctx, mediaProfile)
 }
 
 // --- Private helpers ---
 
-func downloadOptionBuilderDefaultOptions(overrideOpts store.KW) store.KW {
-	overwriteBehaviour := overrideOpts.GetOr("overwrite_behaviour", "force_overwrites")
-
-	return store.KW{
-		store.Flag("no_progress"),
-		store.KV{Key: overwriteBehaviour.(string), Flag: true},
-		// This makes the date metadata conform to what jellyfin expects
-		store.Opt("parse_metadata", "%(upload_date>%Y-%m-%d)s:(?P<meta_date>.+)"),
+func downloadOptionBuilderDefaultOptions(overrides DownloadOverrides) ytdlp.Args {
+	overwriteBehaviour := overrides.OverwriteBehaviour
+	if overwriteBehaviour == "" {
+		overwriteBehaviour = "force_overwrites"
 	}
+
+	return ytdlp.Args{}.
+		Flag("no_progress").
+		Flag(overwriteBehaviour).
+		// This makes the date metadata conform to what jellyfin expects
+		Opt("parse_metadata", "%(upload_date>%Y-%m-%d)s:(?P<meta_date>.+)")
 }
 
-func downloadOptionBuilderSubtitleOptions(mediaProfile *store.MediaProfile) store.KW {
-	var result store.KW
+func downloadOptionBuilderSubtitleOptions(mediaProfile *store.MediaProfile) ytdlp.Args {
+	var result ytdlp.Args
 
 	// Check download_subs
 	if mediaProfile.DownloadSubs {
-		result = append(result, store.Flag("write_subs"), store.Opt("convert_subs", "srt"))
+		result = result.Flag("write_subs").Opt("convert_subs", "srt")
 	}
 
 	// Check download_auto_subs with download_subs or embed_subs
 	if mediaProfile.DownloadAutoSubs && (mediaProfile.DownloadSubs || mediaProfile.EmbedSubs) {
-		result = append(result, store.Flag("write_auto_subs"))
+		result = result.Flag("write_auto_subs")
 	}
 
 	// Check embed_subs (but not if preferred_resolution is audio)
 	if mediaProfile.EmbedSubs && mediaProfile.PreferredResolution != store.MediaProfilePreferredResolutionAudio {
-		result = append(result, store.Flag("embed_subs"))
+		result = result.Flag("embed_subs")
 	}
 
 	// Check sub_langs with download_subs or embed_subs
 	if mediaProfile.SubLangs != "" && (mediaProfile.DownloadSubs || mediaProfile.EmbedSubs) {
-		result = append(result, store.Opt("sub_langs", mediaProfile.SubLangs))
+		result = result.Opt("sub_langs", mediaProfile.SubLangs)
 	}
 
 	return result
 }
 
-func downloadOptionBuilderThumbnailOptions(ctx context.Context, a *App, mediaItem *store.MediaItem) store.KW {
+func downloadOptionBuilderThumbnailOptions(ctx context.Context, a *App, mediaItem *store.MediaItem) ytdlp.Args {
 	mediaProfile := mediaItem.Source.MediaProfile
-	var result store.KW
+	var result ytdlp.Args
 
 	if mediaProfile.DownloadThumbnail {
 		thumbnailSaveLocation := downloadOptionBuilderDetermineThumbnailLocation(ctx, a, mediaItem)
-		result = append(result, store.Flag("write_thumbnail"), store.Opt("convert_thumbnail", "jpg"), store.Opt("output", "thumbnail:"+thumbnailSaveLocation))
+		result = result.Flag("write_thumbnail").Opt("convert_thumbnail", "jpg").Opt("output", "thumbnail:"+thumbnailSaveLocation)
 	}
 
 	if mediaProfile.EmbedThumbnail {
-		result = append(result, store.Flag("embed_thumbnail"), store.Opt("convert_thumbnail", "jpg"))
+		result = result.Flag("embed_thumbnail").Opt("convert_thumbnail", "jpg")
 	}
 
 	return result
 }
 
-func downloadOptionBuilderMetadataOptions(mediaProfile *store.MediaProfile) store.KW {
-	var result store.KW
+func downloadOptionBuilderMetadataOptions(mediaProfile *store.MediaProfile) ytdlp.Args {
+	var result ytdlp.Args
 
 	if mediaProfile.DownloadMetadata {
-		result = append(result, store.Flag("write_info_json"), store.Flag("clean_info_json"))
+		result = result.Flag("write_info_json").Flag("clean_info_json")
 	}
 
 	if mediaProfile.EmbedMetadata {
-		result = append(result, store.Flag("embed_metadata"))
+		result = result.Flag("embed_metadata")
 	}
 
 	return result
 }
 
-func downloadOptionBuilderSponsorblockOptions(mediaProfile *store.MediaProfile) store.KW {
+func downloadOptionBuilderSponsorblockOptions(mediaProfile *store.MediaProfile) ytdlp.Args {
 	categories := mediaProfile.SponsorblockCategories.V
 	if mediaProfile.SponsorblockBehaviour == nil || len(categories) == 0 {
-		return store.KW{}
+		return ytdlp.Args{}
 	}
 
 	behaviour := *mediaProfile.SponsorblockBehaviour
@@ -131,17 +144,17 @@ func downloadOptionBuilderSponsorblockOptions(mediaProfile *store.MediaProfile) 
 
 	switch behaviour {
 	case store.MediaProfileSponsorblockBehaviourRemove:
-		return store.KW{store.Opt("sponsorblock_remove", categoryStr)}
+		return ytdlp.Args{}.Opt("sponsorblock_remove", categoryStr)
 	case store.MediaProfileSponsorblockBehaviourMark:
-		return store.KW{store.Opt("sponsorblock_mark", categoryStr)}
+		return ytdlp.Args{}.Opt("sponsorblock_mark", categoryStr)
 	}
 
-	return store.KW{}
+	return ytdlp.Args{}
 }
 
-func downloadOptionBuilderOutputOptions(ctx context.Context, a *App, mediaItem *store.MediaItem) store.KW {
+func downloadOptionBuilderOutputOptions(ctx context.Context, a *App, mediaItem *store.MediaItem) ytdlp.Args {
 	outputPath := a.DownloadOptionBuilderBuildOutputPathForMediaItem(ctx, mediaItem)
-	return store.KW{store.Opt("output", outputPath)}
+	return ytdlp.Args{}.Opt("output", outputPath)
 }
 
 func downloadOptionBuilderBuildOutputPath(ctx context.Context, a *App, templateString string, mediaItem *store.MediaItem) string {
@@ -186,7 +199,7 @@ func downloadOptionBuilderDetermineThumbnailLocation(ctx context.Context, a *App
 	return downloadOptionBuilderBuildOutputPath(ctx, a, modifiedTemplate, mediaItem)
 }
 
-func (a *App) downloadOptionBuilderConfigFileOptions(ctx context.Context, mediaItem *store.MediaItem) store.KW {
+func (a *App) downloadOptionBuilderConfigFileOptions(ctx context.Context, mediaItem *store.MediaItem) ytdlp.Args {
 	baseDir := filepath.Join(a.Config.ExtrasDirectory, "yt-dlp-configs")
 
 	filenames := []string{
@@ -204,10 +217,10 @@ func (a *App) downloadOptionBuilderConfigFileOptions(ctx context.Context, mediaI
 		}
 	}
 
-	var result store.KW
+	var result ytdlp.Args
 	// Reverse order to get the right precedence
 	for i := len(configFilepaths) - 1; i >= 0; i-- {
-		result = append(result, store.Opt("config_locations", configFilepaths[i]))
+		result = result.Opt("config_locations", configFilepaths[i])
 	}
 
 	return result

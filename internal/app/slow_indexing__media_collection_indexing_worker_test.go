@@ -8,6 +8,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 func TestMediaCollectionIndexingWorker_KickoffWithTask(t *testing.T) {
@@ -20,7 +21,7 @@ func TestMediaCollectionIndexingWorker_KickoffWithTask(t *testing.T) {
 			t.Fatalf("expected 0 jobs initially, got %d", len(jobs))
 		}
 
-		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, store.Attrs{}, store.KW{})
+		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, store.Attrs{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -38,7 +39,7 @@ func TestMediaCollectionIndexingWorker_KickoffWithTask(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 
-		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, store.Attrs{}, store.KW{})
+		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, store.Attrs{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -53,7 +54,7 @@ func TestMediaCollectionIndexingWorker_KickoffWithTask(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 		jobArgs := store.Attrs{"force": true}
 
-		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, jobArgs, store.KW{})
+		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, jobArgs)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -66,28 +67,6 @@ func TestMediaCollectionIndexingWorker_KickoffWithTask(t *testing.T) {
 			t.Fatal("expected job to be enqueued with force argument")
 		}
 	})
-
-	t.Run("can be called with additional job options", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
-		jobOpts := store.KW{store.Opt("max_attempts", 5)}
-
-		task, err := ta.App.MediaCollectionIndexingWorkerKickoffWithTask(ta.Ctx, source, store.Attrs{}, jobOpts)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if task == nil {
-			t.Fatal("expected task, got nil")
-		}
-
-		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID}})
-		if len(jobs) != 1 {
-			t.Fatalf("expected 1 job, got %d", len(jobs))
-		}
-		if jobs[0].MaxAttempts != 5 {
-			t.Errorf("expected MaxAttempts to be 5, got %d", jobs[0].MaxAttempts)
-		}
-	})
 }
 
 func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
@@ -95,7 +74,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "", nil
 		})
 
@@ -120,7 +99,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			"last_indexed_at":         nil,
 		})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "", nil
 		})
 
@@ -145,7 +124,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			"last_indexed_at":         apptest.Now(),
 		})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "", nil
 		})
 
@@ -171,7 +150,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 			"last_indexed_at":         apptest.Now(),
 		})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			for _, opt := range opts {
 				if opt.Key == "break_on_existing" {
 					t.Error("expected no break_on_existing in opts")
@@ -225,7 +204,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": -1})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "", nil
 		})
 		err := ta.Oban.PerformJob(ta.Ctx, app.MediaCollectionIndexingWorkerName, map[string]any{"id": source.ID})
@@ -243,7 +222,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
@@ -270,7 +249,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 		apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
@@ -297,7 +276,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 		apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "media_id": "video1"})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
@@ -324,7 +303,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "", nil
 		})
 		beforeTime := apptest.Now()
@@ -349,7 +328,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "", nil
 		})
 		before, err := ta.App.ListTasksFor(ta.Ctx, source, store.Ptr("MediaCollectionIndexingWorker"), nil)
@@ -378,7 +357,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10, "fast_index": true})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "", nil
 		})
 		beforeTime := apptest.Now()
@@ -412,7 +391,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10, "fast_index": true})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "", nil
 		})
 		existingJob, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
@@ -447,7 +426,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10, "fast_index": false})
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "", nil
 		})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.App.Q(ta.Ctx), obanlite.JobSpec{
@@ -473,7 +452,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil
 		})
 		mediaItemMediaIDs := func() []string {

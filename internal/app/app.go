@@ -9,9 +9,11 @@ package app
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 // Config mirrors the :pinchflat application env (config/*.exs).
@@ -44,13 +46,12 @@ type App struct {
 
 // --- Behaviours (formerly Mox-mocked modules) ---
 
-// YtDlpRunner is Pinchflat.YtDlp.YtDlpCommandRunner.
+// YtDlpRunner runs yt-dlp; *ytdlp.Runner is the real implementation.
 type YtDlpRunner interface {
-	// Run runs yt-dlp against url for action (the atom in Elixir, e.g.
-	// "get_media_attributes_for_collection"), with CLI options, an output
-	// template and additional options (use_cookies, skip_sleep_interval,
-	// output_filepath). Failure returns *CommandError.
-	Run(ctx context.Context, url string, action string, opts store.KW, outputTemplate string, addlOpts store.KW) (string, error)
+	// Run runs yt-dlp against url for action (used for logging), with CLI
+	// args, an output template and per-call options. Failure returns
+	// *fsutil.CommandError.
+	Run(ctx context.Context, url string, action string, args ytdlp.Args, outputTemplate string, opts ytdlp.CallOptions) (string, error)
 	Version(ctx context.Context) (string, error)
 	Update(ctx context.Context) (string, error)
 }
@@ -63,5 +64,5 @@ type UserScriptRunner interface {
 
 // HTTPClient is Pinchflat.HTTP.HTTPBehaviour.
 type HTTPClient interface {
-	Get(ctx context.Context, url string, headers store.KW, opts store.KW) (string, error)
+	Get(ctx context.Context, url string, headers http.Header) (string, error)
 }

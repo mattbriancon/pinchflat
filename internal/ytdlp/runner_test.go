@@ -56,7 +56,7 @@ func TestRunnerRun(t *testing.T) {
 
 	t.Run("includes the media url as the first argument", func(t *testing.T) {
 		runner := newTestRunner(t, ytdlp.Settings{})
-		output, err := runner.Run(context.Background(), mediaURL, "foo", []string{"--ignore-errors"}, "", ytdlp.CallOptions{})
+		output, err := runner.Run(context.Background(), mediaURL, "foo", ytdlp.Args{}.Flag("ignore_errors"), "", ytdlp.CallOptions{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

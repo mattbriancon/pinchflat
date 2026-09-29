@@ -55,7 +55,7 @@ func TestPodcastsGoldenOutput(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, err := a.RssFeedBuilderBuild(ctx, source, store.KW{store.Opt("url_base", "http://pinchflat.test:8945")})
+			got, err := a.RssFeedBuilderBuild(ctx, source, 2000, "http://pinchflat.test:8945")
 			if err != nil {
 				t.Fatal(err)
 			}

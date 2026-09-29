@@ -32,7 +32,7 @@ func (a *App) MediaQualityUpgradeWorkerPerform(ctx context.Context, job *obanlit
 	slog.Info(fmt.Sprintf("Redownloading %d media items", len(upgradableMedia)))
 
 	for _, mediaItem := range upgradableMedia {
-		_, err := a.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{"quality_upgrade?": true}, store.KW{})
+		_, err := a.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{"quality_upgrade?": true}, nil)
 		if err != nil {
 			return err
 		}

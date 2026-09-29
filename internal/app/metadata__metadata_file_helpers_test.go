@@ -13,6 +13,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 func TestMetadataFileHelpers_MetadataDirectoryFor(t *testing.T) {
@@ -152,7 +153,7 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailFor(t *testing.T) {
 			t.Fatalf("failed to preload source: %v", err)
 		}
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "", nil
 		})
 
@@ -177,7 +178,7 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailFor(t *testing.T) {
 			t.Fatalf("failed to preload source: %v", err)
 		}
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if url != mediaItem.OriginalURL {
 				t.Errorf("expected url %q, got %q", mediaItem.OriginalURL, url)
 			}
@@ -244,7 +245,7 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailFor(t *testing.T) {
 			t.Fatalf("failed to preload source: %v", err)
 		}
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "", fmt.Errorf("yt-dlp failed")
 		})
 
@@ -263,16 +264,9 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailForCookieUsage(t *testing.
 	t.Run("sets use_cookies if the source uses cookies", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			// Check that use_cookies is true in addl opts
-			found := false
-			for _, kv := range addl {
-				if kv.Key == "use_cookies" && kv.Value == true {
-					found = true
-					break
-				}
-			}
-			if !found {
+			if addl.UseCookies != true {
 				t.Errorf("expected use_cookies: true in addl opts, got %v", addl)
 			}
 			return "", nil
@@ -296,16 +290,9 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailForCookieUsage(t *testing.
 	t.Run("does not set use_cookies if the source uses cookies when needed", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			// Check that use_cookies is false in addl opts
-			found := false
-			for _, kv := range addl {
-				if kv.Key == "use_cookies" && kv.Value == false {
-					found = true
-					break
-				}
-			}
-			if !found {
+			if addl.UseCookies != false {
 				t.Errorf("expected use_cookies: false in addl opts, got %v", addl)
 			}
 			return "", nil
@@ -329,16 +316,9 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailForCookieUsage(t *testing.
 	t.Run("does not set use_cookies if the source does not use cookies", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			// Check that use_cookies is false in addl opts
-			found := false
-			for _, kv := range addl {
-				if kv.Key == "use_cookies" && kv.Value == false {
-					found = true
-					break
-				}
-			}
-			if !found {
+			if addl.UseCookies != false {
 				t.Errorf("expected use_cookies: false in addl opts, got %v", addl)
 			}
 			return "", nil
@@ -356,26 +336,6 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailForCookieUsage(t *testing.
 		_, err = ta.App.MetadataFileHelpersDownloadAndStoreThumbnailFor(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatalf("failed to download and store thumbnail: %v", err)
-		}
-	})
-}
-
-func TestMetadataFileHelpers_ParseUploadDate(t *testing.T) {
-	t.Parallel()
-	t.Run("returns a datetime from the given metadata upload date", func(t *testing.T) {
-		uploadDate := "20210101"
-
-		result, err := app.MetadataFileHelpersParseUploadDate(uploadDate)
-		if err != nil {
-			t.Fatalf("failed to parse upload date: %v", err)
-		}
-
-		// Expected: 2021-01-01 00:00:00 UTC
-		if result.Year() != 2021 || result.Month() != 1 || result.Day() != 1 {
-			t.Errorf("expected 2021-01-01, got %d-%02d-%02d", result.Year(), result.Month(), result.Day())
-		}
-		if result.Hour() != 0 || result.Minute() != 0 || result.Second() != 0 {
-			t.Errorf("expected 00:00:00, got %02d:%02d:%02d", result.Hour(), result.Minute(), result.Second())
 		}
 	})
 }

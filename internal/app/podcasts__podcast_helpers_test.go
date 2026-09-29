@@ -42,7 +42,7 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 		goodMedia := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID})
 		apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": "/tmp/existing_file.mp3"})
 
-		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, store.KW{})
+		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, 1000)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -59,7 +59,7 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID})
 
-		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, store.KW{store.Opt("limit", 0)})
+		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, 0)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -76,7 +76,7 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 		current := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": apptest.Now()})
 		older := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": apptest.NowMinus(1, "day")})
 
-		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, store.KW{})
+		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, 1000)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 // NfoBuilderBuildAndStoreForMediaItem/2
@@ -35,7 +36,7 @@ func buildForMediaItem(nfoFilepath string, metadata map[string]any) string {
 
 	uploadDateStr, ok := metadata["upload_date"].(string)
 	if ok {
-		uploadDate, _ = MetadataFileHelpersParseUploadDate(uploadDateStr)
+		uploadDate, _ = ytdlp.ParseUploadDate(uploadDateStr)
 	}
 
 	// Determine season and episode number

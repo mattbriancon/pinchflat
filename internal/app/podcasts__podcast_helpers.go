@@ -21,9 +21,7 @@ func (a *App) PodcastHelpersOpmlSources(ctx context.Context) ([]*store.Source, e
 }
 
 // PodcastHelpersPersistedMediaItemsFor/2
-func (a *App) PodcastHelpersPersistedMediaItemsFor(ctx context.Context, source *store.Source, opts store.KW) ([]*store.MediaItem, error) {
-	limit := opts.GetOr("limit", 1000).(int)
-
+func (a *App) PodcastHelpersPersistedMediaItemsFor(ctx context.Context, source *store.Source, limit int) ([]*store.MediaItem, error) {
 	q := store.MediaQueryNew().
 		Where(store.MediaQueryForSource(source.ID)).
 		Where(store.MediaQueryDownloaded()).
