@@ -124,40 +124,24 @@ func TestSources_OutputPathTemplate(t *testing.T) {
 }
 
 func TestSources_UseCookies(t *testing.T) {
-	t.Run("returns true if the source has been set to use cookies", func(t *testing.T) {
-		src := &store.Source{CookieBehaviour: store.SourceCookieBehaviourAllOperations}
-		if !store.UseCookies(src, "downloading") {
-			t.Error("expected true")
-		}
-	})
-
-	t.Run("returns false if the source has not been set to use cookies", func(t *testing.T) {
-		src := &store.Source{CookieBehaviour: store.SourceCookieBehaviourDisabled}
-		if store.UseCookies(src, "downloading") {
-			t.Error("expected false")
-		}
-	})
-
-	t.Run("returns true if the action is indexing and the source is set to :when_needed", func(t *testing.T) {
-		src := &store.Source{CookieBehaviour: store.SourceCookieBehaviourWhenNeeded}
-		if !store.UseCookies(src, "indexing") {
-			t.Error("expected true")
-		}
-	})
-
-	t.Run("returns false if the action is downloading and the source is set to :when_needed", func(t *testing.T) {
-		src := &store.Source{CookieBehaviour: store.SourceCookieBehaviourWhenNeeded}
-		if store.UseCookies(src, "downloading") {
-			t.Error("expected false")
-		}
-	})
-
-	t.Run("returns true if the action is error_recovery and the source is set to :when_needed", func(t *testing.T) {
-		src := &store.Source{CookieBehaviour: store.SourceCookieBehaviourWhenNeeded}
-		if !store.UseCookies(src, "error_recovery") {
-			t.Error("expected true")
-		}
-	})
+	for _, c := range []struct {
+		name      string
+		behaviour store.SourceCookieBehaviour
+		action    string
+		want      bool
+	}{
+		{"returns true if the source has been set to use cookies", store.SourceCookieBehaviourAllOperations, "downloading", true},
+		{"returns false if the source has not been set to use cookies", store.SourceCookieBehaviourDisabled, "downloading", false},
+		{"returns true if the action is indexing and the source is set to :when_needed", store.SourceCookieBehaviourWhenNeeded, "indexing", true},
+		{"returns false if the action is downloading and the source is set to :when_needed", store.SourceCookieBehaviourWhenNeeded, "downloading", false},
+		{"returns true if the action is error_recovery and the source is set to :when_needed", store.SourceCookieBehaviourWhenNeeded, "error_recovery", true},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			if got := store.UseCookies(&store.Source{CookieBehaviour: c.behaviour}, c.action); got != c.want {
+				t.Errorf("UseCookies = %v, want %v", got, c.want)
+			}
+		})
+	}
 }
 
 func TestSources_ListSources(t *testing.T) {
@@ -537,50 +521,30 @@ func TestSources_CreateSource(t *testing.T) {
 }
 
 func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
-	t.Run("sets use_cookies to true if the source has been set to use cookies", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ta.YtDlpMock.Run.Expect(func(_, _ string, _ ytdlp.Args, _ string, addl ytdlp.CallOptions) (string, error) {
-			if !addl.UseCookies {
-				t.Error("expected use_cookies to be true")
-			}
-			return sourcesTestPlaylistReturn(), nil
+	for _, c := range []struct {
+		name      string
+		behaviour store.SourceCookieBehaviour
+		want      bool
+	}{
+		{"sets use_cookies to true if the source has been set to use cookies", store.SourceCookieBehaviourAllOperations, true},
+		{"does not set use_cookies if the source uses cookies when needed", store.SourceCookieBehaviourWhenNeeded, false},
+		{"does not set use_cookies if the source has not been set to use cookies", store.SourceCookieBehaviourDisabled, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := apptest.NewApp(t)
+			ta.YtDlpMock.Run.Expect(func(_, _ string, _ ytdlp.Args, _ string, addl ytdlp.CallOptions) (string, error) {
+				if addl.UseCookies != c.want {
+					t.Errorf("use_cookies = %v, want %v", addl.UseCookies, c.want)
+				}
+				return sourcesTestPlaylistReturn(), nil
+			})
+
+			validAttrs := newSourceAttrs(t, ta)
+			validAttrs.CookieBehaviour = store.Ptr(c.behaviour)
+
+			mustOK(t)(ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true))
 		})
-
-		validAttrs := newSourceAttrs(t, ta)
-		validAttrs.CookieBehaviour = store.Ptr(store.SourceCookieBehaviourAllOperations)
-
-		mustOK(t)(ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true))
-	})
-
-	t.Run("does not set use_cookies if the source uses cookies when needed", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ta.YtDlpMock.Run.Expect(func(_, _ string, _ ytdlp.Args, _ string, addl ytdlp.CallOptions) (string, error) {
-			if addl.UseCookies {
-				t.Error("expected use_cookies to be false")
-			}
-			return sourcesTestPlaylistReturn(), nil
-		})
-
-		validAttrs := newSourceAttrs(t, ta)
-		validAttrs.CookieBehaviour = store.Ptr(store.SourceCookieBehaviourWhenNeeded)
-
-		mustOK(t)(ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true))
-	})
-
-	t.Run("does not set use_cookies if the source has not been set to use cookies", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		ta.YtDlpMock.Run.Expect(func(_, _ string, _ ytdlp.Args, _ string, addl ytdlp.CallOptions) (string, error) {
-			if addl.UseCookies {
-				t.Error("expected use_cookies to be false")
-			}
-			return sourcesTestPlaylistReturn(), nil
-		})
-
-		validAttrs := newSourceAttrs(t, ta)
-		validAttrs.CookieBehaviour = store.Ptr(store.SourceCookieBehaviourDisabled)
-
-		mustOK(t)(ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true))
-	})
+	}
 
 	t.Run("skips sleep interval", func(t *testing.T) {
 		ta := apptest.NewApp(t)
@@ -733,129 +697,120 @@ func TestSources_UpdateSource(t *testing.T) {
 	})
 }
 
+// enqueueCase is a source update and whether it should enqueue the worker
+// under test (nothing may be enqueued beforehand).
+type enqueueCase struct {
+	name        string
+	src, update store.SourceParams
+	want        bool
+}
+
+// testUpdateEnqueues runs each case: it creates the source, lets prep add
+// fixtures and return the expected job args, updates the source, then
+// asserts on the worker's queue.
+func testUpdateEnqueues(t *testing.T, worker string, prep func(*testing.T, *apptest.TestApp, *store.Source) map[string]any, cases []enqueueCase) {
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			ta := apptest.NewApp(t)
+			src := apptest.SourceFixture(t, ta, c.src)
+			args := prep(t, ta, src)
+
+			ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: worker})
+			mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, c.update, true))
+			if c.want {
+				ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: worker, Args: args})
+			} else {
+				ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: worker})
+			}
+		})
+	}
+}
+
+func srcIDArgs(_ *testing.T, _ *apptest.TestApp, src *store.Source) map[string]any {
+	return map[string]any{"id": src.ID}
+}
+
+// pendingTask inserts a job for worker with a task attached to src.
+func pendingTask(t *testing.T, ta *apptest.TestApp, src *store.Source, worker string) *store.Task {
+	t.Helper()
+	job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), obanlite.NewJob(worker, map[string]any{"id": src.ID}))
+	must(t, err)
+	return apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(src.ID), JobID: store.Ptr(job.ID)})
+}
+
+func wantTaskGone(t *testing.T, ta *apptest.TestApp, task *store.Task) {
+	t.Helper()
+	if _, err := store.Get[store.Task](ta.Ctx, ta.Q(ta.Ctx), task.ID); err != store.ErrNotFound {
+		t.Errorf("expected task %d to be deleted, got err=%v", task.ID, err)
+	}
+}
+
 func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
-	t.Run("enabling the download_media attribute will schedule a download task", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-
-		src := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
-		updateAttrs := store.SourceParams{DownloadMedia: store.Ptr(true)}
-
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
+	prep := func(t *testing.T, ta *apptest.TestApp, src *store.Source) map[string]any {
+		item := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
+		return map[string]any{"id": item.ID}
+	}
+	yes, no := store.Ptr(true), store.Ptr(false)
+	testUpdateEnqueues(t, app.MediaDownloadWorkerName, prep, []enqueueCase{
+		{"enabling the download_media attribute will schedule a download task", store.SourceParams{DownloadMedia: no}, store.SourceParams{DownloadMedia: yes}, true},
+		{"enabling download_media will not schedule a task if the source is disabled", store.SourceParams{DownloadMedia: no, Enabled: no}, store.SourceParams{DownloadMedia: yes}, false},
+		{"enabling a source will schedule a download task if download_media is true", store.SourceParams{DownloadMedia: yes, Enabled: no}, store.SourceParams{Enabled: yes}, true},
+		{"enabling a source will not schedule a download task if download_media is false", store.SourceParams{DownloadMedia: no, Enabled: no}, store.SourceParams{Enabled: yes}, false},
 	})
 
-	t.Run("disabling the download_media attribute will cancel the download task", func(t *testing.T) {
-		ta := apptest.NewApp(t)
+	for _, c := range []struct {
+		name   string
+		update store.SourceParams
+	}{
+		{"disabling the download_media attribute will cancel the download task", store.SourceParams{DownloadMedia: no}},
+		{"disabling a source will cancel any pending download tasks", store.SourceParams{Enabled: no}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := apptest.NewApp(t)
 
-		src := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(true), Enabled: store.Ptr(true)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
-		updateAttrs := store.SourceParams{DownloadMedia: store.Ptr(false)}
-		must(t, ta.App.DownloadingHelpersEnqueuePendingDownloadTasks(ta.Ctx, src, nil))
+			src := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: yes, Enabled: yes})
+			mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
+			must(t, ta.App.DownloadingHelpersEnqueuePendingDownloadTasks(ta.Ctx, src, nil))
 
-		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-	})
-
-	t.Run("enabling download_media will not schedule a task if the source is disabled", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-
-		src := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false), Enabled: store.Ptr(false)})
-		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
-		updateAttrs := store.SourceParams{DownloadMedia: store.Ptr(true)}
-
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-	})
-
-	t.Run("disabling a source will cancel any pending download tasks", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-
-		src := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(true), Enabled: store.Ptr(true)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
-		updateAttrs := store.SourceParams{Enabled: store.Ptr(false)}
-		must(t, ta.App.DownloadingHelpersEnqueuePendingDownloadTasks(ta.Ctx, src, nil))
-
-		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-	})
-
-	t.Run("enabling a source will schedule a download task if download_media is true", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-
-		src := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(true), Enabled: store.Ptr(false)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
-		updateAttrs := store.SourceParams{Enabled: store.Ptr(true)}
-
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
-	})
-
-	t.Run("enabling a source will not schedule a download task if download_media is false", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-
-		src := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false), Enabled: store.Ptr(false)})
-		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
-		updateAttrs := store.SourceParams{Enabled: store.Ptr(true)}
-
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-	})
+			ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
+			mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, c.update, true))
+			ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
+		})
+	}
 }
 
 func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
-	t.Run("updating the index frequency to >0 will re-schedule the indexing task", func(t *testing.T) {
+	yes, no := store.Ptr(true), store.Ptr(false)
+	testUpdateEnqueues(t, app.MediaCollectionIndexingWorkerName, srcIDArgs, []enqueueCase{
+		{"updating the index frequency to >0 will re-schedule the indexing task", store.SourceParams{}, store.SourceParams{IndexFrequencyMinutes: store.Ptr(123)}, true},
+		{"updating the index frequency to 0 will not re-schedule the indexing task", store.SourceParams{}, store.SourceParams{IndexFrequencyMinutes: store.Ptr(0)}, false},
+		{"updating the index frequency will not create a task if the source is disabled", store.SourceParams{Enabled: no}, store.SourceParams{IndexFrequencyMinutes: store.Ptr(123)}, false},
+		{"enabling a source will create a task if the index frequency is >0", store.SourceParams{Enabled: no, IndexFrequencyMinutes: store.Ptr(123)}, store.SourceParams{Enabled: yes}, true},
+		{"enabling a source will not create a task if the index frequency is 0", store.SourceParams{Enabled: no, IndexFrequencyMinutes: store.Ptr(0)}, store.SourceParams{Enabled: yes}, false},
+	})
+
+	t.Run("updating the index frequency to >0 stores the new frequency", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
 		src := apptest.SourceFixture(t, ta, store.SourceParams{})
-		updateAttrs := store.SourceParams{IndexFrequencyMinutes: store.Ptr(123)}
-
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.SourceParams{IndexFrequencyMinutes: store.Ptr(123)}, true)
 		must(t, err)
 		if updated.IndexFrequencyMinutes != 123 {
 			t.Errorf("expected 123, got %d", updated.IndexFrequencyMinutes)
 		}
-		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": updated.ID}})
-	})
-
-	t.Run("updating the index frequency to 0 will not re-schedule the indexing task", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-
-		src := apptest.SourceFixture(t, ta, store.SourceParams{})
-		updateAttrs := store.SourceParams{IndexFrequencyMinutes: store.Ptr(0)}
-
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": src.ID}})
 	})
 
 	t.Run("updating the index frequency to 0 will delete any pending tasks", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
 		src := apptest.SourceFixture(t, ta, store.SourceParams{})
-		updateAttrs := store.SourceParams{IndexFrequencyMinutes: store.Ptr(0)}
+		task1 := pendingTask(t, ta, src, app.FastIndexingWorkerName)
+		task2 := pendingTask(t, ta, src, app.MediaCollectionIndexingWorkerName)
 
-		job1, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), obanlite.NewJob(app.FastIndexingWorkerName, map[string]any{"id": src.ID}))
-		must(t, err)
-		task1 := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(src.ID), JobID: store.Ptr(job1.ID)})
-		job2, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), obanlite.NewJob(app.MediaCollectionIndexingWorkerName, map[string]any{"id": src.ID}))
-		must(t, err)
-		task2 := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(src.ID), JobID: store.Ptr(job2.ID)})
+		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, store.SourceParams{IndexFrequencyMinutes: store.Ptr(0)}, true))
 
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-
-		if _, err := store.Get[store.Task](ta.Ctx, ta.Q(ta.Ctx), task1.ID); err != store.ErrNotFound {
-			t.Errorf("expected task1 to be deleted, got err=%v", err)
-		}
-		if _, err := store.Get[store.Task](ta.Ctx, ta.Q(ta.Ctx), task2.ID); err != store.ErrNotFound {
-			t.Errorf("expected task2 to be deleted, got err=%v", err)
-		}
+		wantTaskGone(t, ta, task1)
+		wantTaskGone(t, ta, task2)
 	})
 
 	t.Run("not updating the index frequency will not re-schedule the indexing task or delete tasks", func(t *testing.T) {
@@ -863,168 +818,71 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 
 		src := apptest.SourceFixture(t, ta, store.SourceParams{})
 		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(src.ID)})
-		updateAttrs := store.SourceParams{CustomName: store.Ptr("some updated name")}
 
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
+		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, store.SourceParams{CustomName: store.Ptr("some updated name")}, true))
 
 		if _, err := store.Get[store.Task](ta.Ctx, ta.Q(ta.Ctx), task.ID); err != nil {
 			t.Errorf("expected task to still exist, got err=%v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": src.ID}})
 	})
-
-	t.Run("disabling a source will delete any pending tasks", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-
-		src := apptest.SourceFixture(t, ta, store.SourceParams{})
-		updateAttrs := store.SourceParams{Enabled: store.Ptr(false)}
-
-		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), obanlite.NewJob(app.MediaCollectionIndexingWorkerName, map[string]any{"id": src.ID}))
-		must(t, err)
-		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(src.ID), JobID: store.Ptr(job.ID)})
-
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-
-		if _, err := store.Get[store.Task](ta.Ctx, ta.Q(ta.Ctx), task.ID); err != store.ErrNotFound {
-			t.Errorf("expected task to be deleted, got err=%v", err)
-		}
-	})
-
-	t.Run("updating the index frequency will not create a task if the source is disabled", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-
-		src := apptest.SourceFixture(t, ta, store.SourceParams{Enabled: store.Ptr(false)})
-		updateAttrs := store.SourceParams{IndexFrequencyMinutes: store.Ptr(123)}
-
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
-	})
-
-	t.Run("enabling a source will create a task if the index frequency is >0", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-
-		src := apptest.SourceFixture(t, ta, store.SourceParams{Enabled: store.Ptr(false), IndexFrequencyMinutes: store.Ptr(123)})
-		updateAttrs := store.SourceParams{Enabled: store.Ptr(true)}
-
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": src.ID}})
-	})
-
-	t.Run("enabling a source will not create a task if the index frequency is 0", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-
-		src := apptest.SourceFixture(t, ta, store.SourceParams{Enabled: store.Ptr(false), IndexFrequencyMinutes: store.Ptr(0)})
-		updateAttrs := store.SourceParams{Enabled: store.Ptr(true)}
-
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
-	})
 }
 
 func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
-	t.Run("enabling fast_index will schedule a fast indexing task", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-
-		src := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(false)})
-		updateAttrs := store.SourceParams{FastIndex: store.Ptr(true)}
-
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName, Args: map[string]any{"id": src.ID}})
+	yes, no := store.Ptr(true), store.Ptr(false)
+	testUpdateEnqueues(t, app.FastIndexingWorkerName, srcIDArgs, []enqueueCase{
+		{"enabling fast_index will schedule a fast indexing task", store.SourceParams{FastIndex: no}, store.SourceParams{FastIndex: yes}, true},
+		{"updating fast indexing will not create a task if the source is disabled", store.SourceParams{Enabled: no, FastIndex: no}, store.SourceParams{FastIndex: yes}, false},
+		{"enabling a source will create a task if fast_index is true", store.SourceParams{Enabled: no, FastIndex: yes}, store.SourceParams{Enabled: yes}, true},
+		{"enabling a source will not create a task if fast_index is false", store.SourceParams{Enabled: no, FastIndex: no}, store.SourceParams{Enabled: yes}, false},
 	})
 
 	t.Run("disabling fast_index will cancel the fast indexing task", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
-		src := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(true)})
-		updateAttrs := store.SourceParams{FastIndex: store.Ptr(false)}
-		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), obanlite.NewJob(app.FastIndexingWorkerName, map[string]any{"id": src.ID}))
-		must(t, err)
-		apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(src.ID), JobID: store.Ptr(job.ID)})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: yes})
+		pendingTask(t, ta, src, app.FastIndexingWorkerName)
 
 		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName, Args: map[string]any{"id": src.ID}})
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
+		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, store.SourceParams{FastIndex: no}, true))
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
 	})
 
-	t.Run("fast_index forces the index frequency to be a default value", func(t *testing.T) {
-		ta := apptest.NewApp(t)
+	for _, c := range []struct {
+		name string
+		fast *bool
+		want int
+	}{
+		{"fast_index forces the index frequency to be a default value", yes, store.SourceIndexFrequencyWhenFastIndexing()},
+		{"disabling fast index will not change the index frequency", no, 0},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := apptest.NewApp(t)
 
-		src := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(true)})
-		updateAttrs := store.SourceParams{IndexFrequencyMinutes: store.Ptr(0)}
+			src := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: c.fast})
+			updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.SourceParams{IndexFrequencyMinutes: store.Ptr(0)}, true)
+			must(t, err)
+			if updated.IndexFrequencyMinutes != c.want {
+				t.Errorf("expected %d, got %d", c.want, updated.IndexFrequencyMinutes)
+			}
+		})
+	}
+}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
-		must(t, err)
-		if updated.IndexFrequencyMinutes != store.SourceIndexFrequencyWhenFastIndexing() {
-			t.Errorf("expected %d, got %d", store.SourceIndexFrequencyWhenFastIndexing(), updated.IndexFrequencyMinutes)
-		}
-	})
+// Disabling a source deletes its pending tasks, whichever worker owns them.
+func TestSources_UpdateSourceDisablingDeletesPendingTasks(t *testing.T) {
+	for _, worker := range []string{app.MediaCollectionIndexingWorkerName, app.FastIndexingWorkerName} {
+		t.Run(worker, func(t *testing.T) {
+			ta := apptest.NewApp(t)
 
-	t.Run("disabling fast index will not change the index frequency", func(t *testing.T) {
-		ta := apptest.NewApp(t)
+			src := apptest.SourceFixture(t, ta, store.SourceParams{})
+			task := pendingTask(t, ta, src, worker)
 
-		src := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(false)})
-		updateAttrs := store.SourceParams{IndexFrequencyMinutes: store.Ptr(0)}
+			mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, store.SourceParams{Enabled: store.Ptr(false)}, true))
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
-		must(t, err)
-		if updated.IndexFrequencyMinutes != 0 {
-			t.Errorf("expected 0, got %d", updated.IndexFrequencyMinutes)
-		}
-	})
-
-	t.Run("disabling a source will delete any pending tasks", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-
-		src := apptest.SourceFixture(t, ta, store.SourceParams{})
-		updateAttrs := store.SourceParams{Enabled: store.Ptr(false)}
-
-		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), obanlite.NewJob(app.FastIndexingWorkerName, map[string]any{"id": src.ID}))
-		must(t, err)
-		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(src.ID), JobID: store.Ptr(job.ID)})
-
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-
-		if _, err := store.Get[store.Task](ta.Ctx, ta.Q(ta.Ctx), task.ID); err != store.ErrNotFound {
-			t.Errorf("expected task to be deleted, got err=%v", err)
-		}
-	})
-
-	t.Run("updating fast indexing will not create a task if the source is disabled", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-
-		src := apptest.SourceFixture(t, ta, store.SourceParams{Enabled: store.Ptr(false), FastIndex: store.Ptr(false)})
-		updateAttrs := store.SourceParams{FastIndex: store.Ptr(true)}
-
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-	})
-
-	t.Run("enabling a source will create a task if fast_index is true", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-
-		src := apptest.SourceFixture(t, ta, store.SourceParams{Enabled: store.Ptr(false), FastIndex: store.Ptr(true)})
-		updateAttrs := store.SourceParams{Enabled: store.Ptr(true)}
-
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName, Args: map[string]any{"id": src.ID}})
-	})
-
-	t.Run("enabling a source will not create a task if fast_index is false", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-
-		src := apptest.SourceFixture(t, ta, store.SourceParams{Enabled: store.Ptr(false), FastIndex: store.Ptr(false)})
-		updateAttrs := store.SourceParams{Enabled: store.Ptr(true)}
-
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-		mustOK(t)(ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true))
-		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-	})
+			wantTaskGone(t, ta, task)
+		})
+	}
 }
 
 func TestSources_UpdateSourceWhenTestingOptions(t *testing.T) {
