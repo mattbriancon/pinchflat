@@ -2,6 +2,7 @@ package web_test
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -34,6 +35,16 @@ func TestSourceController_New(t *testing.T) {
 		html := res.HTML(t, 200)
 		if !strings.Contains(html, "New Source") {
 			t.Errorf("expected 'New Source' in response")
+		}
+	})
+
+	t.Run("starts from the source defaults", func(t *testing.T) {
+		c := webtest.New(t)
+		html := c.Get("/sources/new").HTML(t, 200)
+		for _, id := range []string{"source_download_media", "source_enabled"} {
+			if !regexp.MustCompile(`id="` + id + `"[^>]*checked`).MatchString(html) {
+				t.Errorf("%s should be checked by default", id)
+			}
 		}
 	})
 

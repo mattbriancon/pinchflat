@@ -2,8 +2,6 @@ package store
 
 import (
 	"net/url"
-	"strconv"
-	"strings"
 )
 
 type Setting struct {
@@ -34,95 +32,41 @@ type SettingParams struct {
 	RestrictFilenames             *bool
 }
 
-// ParseSettingParams parses form values into SettingParams, returning validation errors.
+// ParseSettingParams reads the "setting[...]" fields of the settings form.
 func ParseSettingParams(values url.Values) (SettingParams, map[string][]string) {
-	errs := make(map[string][]string)
+	f := newFormReader(values, "setting")
 	p := SettingParams{}
-
-	if v := values.Get("onboarding"); v != "" {
-		b := v == "true" || v == "on" || v == "1"
-		p.Onboarding = &b
+	f.boolOrFalse("onboarding", &p.Onboarding)
+	f.str("yt_dlp_version", &p.YtDlpVersion)
+	f.str("video_codec_preference", &p.VideoCodecPreference)
+	f.str("audio_codec_preference", &p.AudioCodecPreference)
+	f.str("youtube_api_key", &p.YoutubeAPIKey)
+	f.str("download_throughput_limit", &p.DownloadThroughputLimit)
+	f.boolOrFalse("restrict_filenames", &p.RestrictFilenames)
+	switch n, state := f.integer("extractor_sleep_interval_seconds"); state {
+	case fieldSet:
+		p.ExtractorSleepIntervalSeconds = &n
+	case fieldBlank:
+		addErr(f.errs, "extractor_sleep_interval_seconds", "can't be blank")
 	}
-
-	if v := values.Get("yt_dlp_version"); v != "" {
-		v = strings.TrimSpace(v)
-		if v == "" {
-			v = ""
-		}
-		p.YtDlpVersion = &v
-	}
-
-	if v := values.Get("video_codec_preference"); v != "" {
-		v = strings.TrimSpace(v)
-		p.VideoCodecPreference = &v
-	}
-
-	if v := values.Get("audio_codec_preference"); v != "" {
-		v = strings.TrimSpace(v)
-		p.AudioCodecPreference = &v
-	}
-
-	if v := values.Get("youtube_api_key"); v != "" {
-		v = strings.TrimSpace(v)
-		if v == "" {
-			v = ""
-		}
-		p.YoutubeAPIKey = &v
-	}
-
-	if v := values.Get("extractor_sleep_interval_seconds"); v != "" {
-		i, err := strconv.Atoi(v)
-		if err != nil {
-			errs["extractor_sleep_interval_seconds"] = append(errs["extractor_sleep_interval_seconds"], "is not a valid integer")
-		} else {
-			p.ExtractorSleepIntervalSeconds = &i
-		}
-	}
-
-	if v := values.Get("download_throughput_limit"); v != "" {
-		v = strings.TrimSpace(v)
-		if v == "" {
-			v = ""
-		}
-		p.DownloadThroughputLimit = &v
-	}
-
-	if v := values.Get("restrict_filenames"); v != "" {
-		b := v == "true" || v == "on" || v == "1"
-		p.RestrictFilenames = &b
-	}
-
-	return p, errs
+	return p, f.errs
 }
 
-// Validate validates the SettingParams against an existing Setting and returns a map of field errors.
-// The existing Setting is used to check for required fields when they're provided.
+// Validate is SettingChangeset's validate_required + validate_number: the
+// required columns must be non-blank after p is applied, and a submitted
+// sleep interval must not be negative.
 func (p SettingParams) Validate(existing *Setting) map[string][]string {
-	errs := make(map[string][]string)
-
-	// Check required fields: onboarding, video_codec_preference, audio_codec_preference, extractor_sleep_interval_seconds
-	if p.Onboarding == nil && !existing.Onboarding {
-		errs["onboarding"] = append(errs["onboarding"], "can't be blank")
+	errs := map[string][]string{}
+	next, _ := p.apply(existing)
+	if isBlank(next.VideoCodecPreference) {
+		addErr(errs, "video_codec_preference", "can't be blank")
 	}
-
-	if p.VideoCodecPreference == nil && existing.VideoCodecPreference == "" {
-		errs["video_codec_preference"] = append(errs["video_codec_preference"], "can't be blank")
-	} else if p.VideoCodecPreference != nil && *p.VideoCodecPreference == "" {
-		errs["video_codec_preference"] = append(errs["video_codec_preference"], "can't be blank")
+	if isBlank(next.AudioCodecPreference) {
+		addErr(errs, "audio_codec_preference", "can't be blank")
 	}
-
-	if p.AudioCodecPreference == nil && existing.AudioCodecPreference == "" {
-		errs["audio_codec_preference"] = append(errs["audio_codec_preference"], "can't be blank")
-	} else if p.AudioCodecPreference != nil && *p.AudioCodecPreference == "" {
-		errs["audio_codec_preference"] = append(errs["audio_codec_preference"], "can't be blank")
+	if p.ExtractorSleepIntervalSeconds != nil && *p.ExtractorSleepIntervalSeconds < 0 {
+		addErr(errs, "extractor_sleep_interval_seconds", "must be greater than or equal to 0")
 	}
-
-	if p.ExtractorSleepIntervalSeconds == nil && existing.ExtractorSleepIntervalSeconds < 0 {
-		errs["extractor_sleep_interval_seconds"] = append(errs["extractor_sleep_interval_seconds"], "can't be blank")
-	} else if p.ExtractorSleepIntervalSeconds != nil && *p.ExtractorSleepIntervalSeconds < 0 {
-		errs["extractor_sleep_interval_seconds"] = append(errs["extractor_sleep_interval_seconds"], "must be greater than or equal to 0")
-	}
-
 	return errs
 }
 

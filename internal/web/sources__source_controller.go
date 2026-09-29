@@ -61,18 +61,23 @@ func (s *Server) SourceControllerNew(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if cs == nil {
-		cs = &store.Source{}
+		cs = store.NewSource()
 	}
 
-	// Create a blank source with nullified fields from the template
-	source := &store.Source{
-		IndexFrequencyMinutes:      cs.IndexFrequencyMinutes,
-		DownloadCutoffDate:         cs.DownloadCutoffDate,
-		TitleFilterRegex:           cs.TitleFilterRegex,
-		OutputPathTemplateOverride: cs.OutputPathTemplateOverride,
-		CookieBehaviour:            cs.CookieBehaviour,
-		MediaProfileID:             cs.MediaProfileID,
-	}
+	// Start from the template (or the defaults) and clear what identifies
+	// the copied source, as the Elixir controller did.
+	copied := *cs
+	source := &copied
+	source.ID = 0
+	source.UUID = nil
+	source.CustomName = ""
+	source.Description = nil
+	source.CollectionName = ""
+	source.CollectionID = ""
+	source.CollectionType = ""
+	source.OriginalURL = ""
+	source.MarkedForDeletionAt = nil
+	source.MediaProfile, source.Metadata, source.Tasks, source.MediaItems = nil, nil, nil, nil
 
 	mediaProfiles, _ := s.App.ListMediaProfiles(ctx)
 

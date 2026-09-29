@@ -1,6 +1,8 @@
 package web_test
 
 import (
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -38,6 +40,44 @@ func TestSettingController_UpdateSettings(t *testing.T) {
 			t.Error("expected updated download_throughput_limit in HTML")
 		}
 	})
+}
+
+// A browser posts setting[...] keys, the hidden "false" before a checked
+// checkbox's "true", and every field of the form.
+func TestSettingController_UpdateSettingsFromBrowserForm(t *testing.T) {
+	c := webtest.New(t)
+	if _, err := c.App.SetSetting(c.Ctx, "onboarding", false); err != nil {
+		t.Fatal(err)
+	}
+
+	form := url.Values{
+		"_method":                                   {"patch"},
+		"setting[restrict_filenames]":               {"false", "true"},
+		"setting[video_codec_preference]":           {"av01"},
+		"setting[audio_codec_preference]":           {"opus"},
+		"setting[extractor_sleep_interval_seconds]": {"3"},
+		"setting[download_throughput_limit]":        {""},
+		"setting[youtube_api_key]":                  {""},
+	}
+	req := httptest.NewRequest("POST", "/settings", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if got := c.Do(req).RedirectedTo(t); got != "/settings" {
+		t.Fatalf("redirect = %q, want /settings", got)
+	}
+
+	s, err := c.App.GetSettingsRecord(c.Ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.RestrictFilenames == nil || !*s.RestrictFilenames {
+		t.Errorf("restrict_filenames = %v, want true", s.RestrictFilenames)
+	}
+	if s.VideoCodecPreference != "av01" || s.AudioCodecPreference != "opus" || s.ExtractorSleepIntervalSeconds != 3 {
+		t.Errorf("got %q %q %d", s.VideoCodecPreference, s.AudioCodecPreference, s.ExtractorSleepIntervalSeconds)
+	}
+	if s.Onboarding {
+		t.Error("onboarding should stay false")
+	}
 }
 
 func TestSettingController_AppInfo(t *testing.T) {
