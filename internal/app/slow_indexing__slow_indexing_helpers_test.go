@@ -18,9 +18,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{IndexFrequencyMinutes: store.Ptr(1)})
 
 		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if task == nil {
 			t.Fatal("expected task, got nil")
 		}
@@ -42,9 +40,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		})
 
 		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if task == nil {
 			t.Fatal("expected task, got nil")
 		}
@@ -72,9 +68,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		})
 
 		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if task == nil {
 			t.Fatal("expected task, got nil")
 		}
@@ -99,9 +93,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		})
 
 		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if task == nil {
 			t.Fatal("expected task, got nil")
 		}
@@ -126,9 +118,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		})
 
 		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{"force": true})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if task == nil {
 			t.Fatal("expected task, got nil")
 		}
@@ -150,9 +140,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{IndexFrequencyMinutes: store.Ptr(1)})
 
 		task, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if *task.SourceID != source.ID {
 			t.Errorf("expected task.SourceID to be %d, got %d", source.ID, task.SourceID)
@@ -166,15 +154,11 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(job.ID)})
 
 		_, err = ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		// The old task should be deleted
 		_, err = ta.App.GetTaskBang(ta.Ctx, task.ID)
@@ -190,20 +174,14 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(job.ID)})
 
 		// Mark the job as executing
-		if _, err := ta.DB.ExecContext(ta.Ctx, `UPDATE oban_jobs SET state = 'executing' WHERE id = ?`, job.ID); err != nil {
-			t.Fatalf("failed to set job state: %v", err)
-		}
+		mustOK(t)(ta.DB.ExecContext(ta.Ctx, `UPDATE oban_jobs SET state = 'executing' WHERE id = ?`, job.ID))
 
 		_, err = ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, map[string]any{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		// The task should be deleted
 		_, err = ta.App.GetTaskBang(ta.Ctx, task.ID)
@@ -218,9 +196,7 @@ func TestSlowIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		jobArgs := map[string]any{"force": true}
 
 		_, err := ta.App.SlowIndexingHelpersKickoffIndexingTask(ta.Ctx, source, jobArgs)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName, Args: map[string]any{"id": source.ID, "force": true}})
 		if len(jobs) == 0 {
@@ -237,9 +213,7 @@ func TestSlowIndexingHelpers_DeleteIndexingTasks(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 		_ = apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(job.ID)})
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
@@ -248,9 +222,7 @@ func TestSlowIndexingHelpers_DeleteIndexingTasks(t *testing.T) {
 		}
 
 		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		jobs = ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
 		if len(jobs) != 0 {
@@ -265,9 +237,7 @@ func TestSlowIndexingHelpers_DeleteIndexingTasks(t *testing.T) {
 			Worker: app.FastIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 		_ = apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(job.ID)})
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
@@ -276,9 +246,7 @@ func TestSlowIndexingHelpers_DeleteIndexingTasks(t *testing.T) {
 		}
 
 		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		jobs = ta.Oban.Enqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
 		if len(jobs) != 0 {
@@ -293,29 +261,19 @@ func TestSlowIndexingHelpers_DeleteIndexingTasks(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(job.ID)})
 
-		if _, err := ta.DB.ExecContext(ta.Ctx, `UPDATE oban_jobs SET state = 'executing' WHERE id = ?`, job.ID); err != nil {
-			t.Fatalf("failed to set job state: %v", err)
-		}
+		mustOK(t)(ta.DB.ExecContext(ta.Ctx, `UPDATE oban_jobs SET state = 'executing' WHERE id = ?`, job.ID))
 
 		reloadedTask, err := ta.App.GetTaskBang(ta.Ctx, task.ID)
-		if err != nil {
-			t.Fatalf("unexpected error reloading task: %v", err)
-		}
+		must(t, err)
 
 		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		reloadedTask, err = ta.App.GetTaskBang(ta.Ctx, reloadedTask.ID)
-		if err != nil {
-			t.Fatalf("unexpected error reloading task after delete: %v", err)
-		}
+		must(t, err)
 	})
 
 	t.Run("can optionally delete currently executing tasks", func(t *testing.T) {
@@ -325,24 +283,16 @@ func TestSlowIndexingHelpers_DeleteIndexingTasks(t *testing.T) {
 			Worker: app.MediaCollectionIndexingWorkerName,
 			Args:   map[string]any{"id": source.ID},
 		})
-		if err != nil {
-			t.Fatalf("failed to insert job: %v", err)
-		}
+		must(t, err)
 		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(job.ID)})
 
-		if _, err := ta.DB.ExecContext(ta.Ctx, `UPDATE oban_jobs SET state = 'executing' WHERE id = ?`, job.ID); err != nil {
-			t.Fatalf("failed to set job state: %v", err)
-		}
+		mustOK(t)(ta.DB.ExecContext(ta.Ctx, `UPDATE oban_jobs SET state = 'executing' WHERE id = ?`, job.ID))
 
 		reloadedTask, err := ta.App.GetTaskBang(ta.Ctx, task.ID)
-		if err != nil {
-			t.Fatalf("unexpected error reloading task: %v", err)
-		}
+		must(t, err)
 
 		err = ta.App.SlowIndexingHelpersDeleteIndexingTasks(ta.Ctx, source, true)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		_, err = ta.App.GetTaskBang(ta.Ctx, reloadedTask.ID)
 		if err == nil {
@@ -361,9 +311,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		})
 
 		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		mediaItems := 0
 		for _, item := range result {
@@ -387,9 +335,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		})
 
 		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		for _, item := range result {
 			if mi, ok := item.(*store.MediaItem); ok {
@@ -409,21 +355,15 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		_, err = ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		// Check that we still have only 3 media items
 		q := store.From[store.MediaItem]("mi").Where(map[string]interface{}{"mi.source_id": source.ID})
 		items, err := store.All[store.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), q)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 3 {
 			t.Errorf("expected 3 media items, got %d", len(items))
@@ -440,14 +380,10 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		})
 
 		result1, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source1, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		result2, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source2, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		mediaItems1 := 0
 		mediaItems2 := 0
@@ -476,14 +412,10 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		})
 
 		result1, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		result2, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		ids1 := make([]int64, 0)
 		ids2 := make([]int64, 0)
@@ -524,14 +456,10 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		reloadedSource, err := ta.App.GetSource(ta.Ctx, source.ID)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if reloadedSource.LastIndexedAt == nil {
 			t.Fatal("expected last_indexed_at to be set")
@@ -553,9 +481,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
 		if len(jobs) == 0 {
@@ -573,14 +499,10 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		tasks, err := ta.App.ListTasksFor(ta.Ctx, mediaItem, nil, nil)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if len(tasks) != 0 {
 			t.Errorf("expected no tasks for media item, got %d", len(tasks))
 		}
@@ -597,9 +519,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		})
 
 		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if len(result) != 1 {
 			t.Fatalf("expected 1 result, got %d", len(result))
@@ -621,9 +541,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		})
 
 		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		if len(result) != 1 {
 			t.Fatalf("expected 1 result, got %d", len(result))
@@ -654,9 +572,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 	})
 }
 
@@ -673,9 +589,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_Cookies(t *tes
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 	})
 
 	t.Run("sets use_cookies if the source uses cookies when needed", func(t *testing.T) {
@@ -690,9 +604,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_Cookies(t *tes
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 	})
 
 	t.Run("doesn't set use_cookies if the source doesn't use cookies", func(t *testing.T) {
@@ -707,9 +619,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_Cookies(t *tes
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 	})
 }
 
@@ -721,9 +631,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			filepath := addl.OutputFilepath
-			if err := os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644); err != nil {
-				t.Fatalf("failed to write file: %v", err)
-			}
+			must(t, os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644))
 			time.Sleep(pollInterval * 2)
 			// We know we're testing the file watcher since the synchronous call
 			// only returns an empty string (creating no records)
@@ -731,22 +639,16 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 		})
 
 		countBefore, err := store.All[store.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), store.From[store.MediaItem]("mi"))
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if len(countBefore) != 0 {
 			t.Fatalf("expected 0 media items before indexing, got %d", len(countBefore))
 		}
 
 		_, err = ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		countAfter, err := store.All[store.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), store.From[store.MediaItem]("mi"))
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if len(countAfter) != 3 {
 			t.Errorf("expected 3 media items after indexing, got %d", len(countAfter))
 		}
@@ -759,9 +661,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			filepath := addl.OutputFilepath
-			if err := os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644); err != nil {
-				t.Fatalf("failed to write file: %v", err)
-			}
+			must(t, os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644))
 			time.Sleep(pollInterval * 2)
 			return "", nil
 		})
@@ -772,9 +672,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 		}
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		after := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 		if len(after) == 0 {
@@ -789,17 +687,13 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			filepath := addl.OutputFilepath
-			if err := os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644); err != nil {
-				t.Fatalf("failed to write file: %v", err)
-			}
+			must(t, os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644))
 			time.Sleep(pollInterval * 2)
 			return "", nil
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 		if len(jobs) != 0 {
@@ -816,17 +710,13 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			filepath := addl.OutputFilepath
 			contents := `{"id":"video2","title":"Video 2","original_url":"https://example.com/shorts/video2","live_status":"is_live","description":"desc2","aspect_ratio":1.67,"duration":345.67,"upload_date":"20210101"}`
-			if err := os.WriteFile(filepath, []byte(contents), 0644); err != nil {
-				t.Fatalf("failed to write file: %v", err)
-			}
+			must(t, os.WriteFile(filepath, []byte(contents), 0644))
 			time.Sleep(pollInterval * 2)
 			return "", nil
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		jobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 		if len(jobs) != 0 {
@@ -841,9 +731,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			filepath := addl.OutputFilepath
-			if err := os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644); err != nil {
-				t.Fatalf("failed to write file: %v", err)
-			}
+			must(t, os.WriteFile(filepath, []byte(apptest.SourceAttributesReturnFixture()), 0644))
 			time.Sleep(pollInterval * 2)
 			// This also returns the final result to the yt-dlp call (like the real
 			// usage actually would do) so it'll attempt to create the media items and
@@ -852,14 +740,10 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 
 		items, err := store.All[store.MediaItem](ta.Ctx, ta.App.Q(ta.Ctx), store.From[store.MediaItem]("mi"))
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if len(items) != 3 {
 			t.Errorf("expected 3 media items, got %d", len(items))
 		}
@@ -877,17 +761,13 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			filepath := addl.OutputFilepath
-			if err := os.WriteFile(filepath, []byte("INVALID"), 0644); err != nil {
-				t.Fatalf("failed to write file: %v", err)
-			}
+			must(t, os.WriteFile(filepath, []byte("INVALID"), 0644))
 			time.Sleep(pollInterval * 2)
 			return "", nil
 		})
 
 		result, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 		if len(result) != 0 {
 			t.Errorf("expected no results, got %d", len(result))
 		}
@@ -926,9 +806,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 	})
 
 	t.Run("a download archive is not used if the source is not a channel", func(t *testing.T) {
@@ -952,9 +830,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 	})
 
 	t.Run("a download archive is not used if the source has never been indexed before", func(t *testing.T) {
@@ -978,9 +854,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 	})
 
 	t.Run("a download archive is not used if the index has been forced to run", func(t *testing.T) {
@@ -1003,9 +877,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, true)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 	})
 
 	t.Run("the download archive is formatted correctly and contains the right video", func(t *testing.T) {
@@ -1027,9 +899,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			archiveFile, _ := opts.Get("download_archive")
 			contents, err := os.ReadFile(archiveFile.(string))
-			if err != nil {
-				t.Fatalf("failed to read archive file: %v", err)
-			}
+			must(t, err)
 			expected := "youtube " + lastMediaItem.MediaID
 			if string(contents) != expected {
 				t.Errorf("expected archive contents %q, got %q", expected, string(contents))
@@ -1039,9 +909,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 		})
 
 		_, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		must(t, err)
 	})
 }
 
@@ -1053,9 +921,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueuePreloadsMediaProfile(t *testing.T) {
 		ta := apptest.NewApp(t)
 		fixture := apptest.SourceFixture(t, ta, store.SourceParams{OutputPathTemplateOverride: store.Ptr("/{{ title }}.{{ ext }}")})
 		source, err := ta.App.GetSource(ta.Ctx, fixture.ID)
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			if _, ok := opts.Get("format_sort"); !ok {
 				t.Error("expected the media profile's quality options")
@@ -1063,8 +929,6 @@ func TestSlowIndexingHelpers_IndexAndEnqueuePreloadsMediaProfile(t *testing.T) {
 			return "", nil
 		})
 
-		if _, err := ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		mustOK(t)(ta.App.SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ta.Ctx, source, false))
 	})
 }

@@ -43,9 +43,7 @@ func TestFastIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		existingTask := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(source.ID), JobID: store.Ptr(existingJob.ID)})
 
 		newTask, err := ta.FastIndexingHelpersKickoffIndexingTask(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("kickoff failed: %v", err)
-		}
+		must(t, err)
 
 		if newTask == nil || newTask.ID == existingTask.ID {
 			t.Error("expected new task to be created, different from existing")
@@ -58,9 +56,7 @@ func TestFastIndexingHelpers_KickoffIndexingTask(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		task, err := ta.FastIndexingHelpersKickoffIndexingTask(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("kickoff failed: %v", err)
-		}
+		must(t, err)
 
 		if task == nil || task.SourceID == nil || *task.SourceID != source.ID {
 			t.Errorf("task.SourceID=%v, want %d", task.SourceID, source.ID)
@@ -102,9 +98,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		setupDownloadIndexMocks(t, ta, "<yt:videoId>test_1</yt:videoId>")
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 1 {
 			t.Errorf("items=%d, want 1", len(items))
@@ -142,9 +136,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		})
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 0 {
 			t.Errorf("items=%d, want 0", len(items))
@@ -163,9 +155,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		setupDownloadIndexMocks(t, ta, "<yt:videoId>test_1</yt:videoId>")
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 1 {
 			t.Errorf("items=%d, want 1", len(items))
@@ -197,9 +187,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		setupDownloadIndexMocks(t, ta, "<yt:videoId>test_1</yt:videoId>")
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 1 {
 			t.Errorf("items=%d, want 1", len(items))
@@ -216,9 +204,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		setupDownloadIndexMocks(t, ta, "<yt:videoId>test_1</yt:videoId>")
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 1 {
 			t.Errorf("items=%d, want 1", len(items))
@@ -239,9 +225,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		})
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 0 {
 			t.Errorf("items=%d, want 0", len(items))
@@ -261,9 +245,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		})
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 0 {
 			t.Errorf("items=%d, want 0", len(items))
@@ -298,9 +280,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		})
 
 		_, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if !optionsChecked {
 			t.Error("yt-dlp not called")
@@ -333,9 +313,7 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		})
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 1 {
 			t.Errorf("items=%d, want 1", len(items))
@@ -376,9 +354,7 @@ func TestFastIndexingHelpers_CookieBehavior(t *testing.T) {
 			})
 
 			_, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-			if err != nil {
-				t.Fatalf("failed: %v", err)
-			}
+			must(t, err)
 
 			if !cookieChecked {
 				t.Error("yt-dlp not called")
@@ -404,9 +380,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		})
 
 		_, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if !apiUsed {
 			t.Error("API not used")
@@ -437,9 +411,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		})
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 1 {
 			t.Errorf("items=%d, want 1", len(items))
@@ -469,9 +441,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		})
 
 		items, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if len(items) != 1 {
 			t.Errorf("items=%d, want 1", len(items))
@@ -497,9 +467,7 @@ func TestFastIndexingHelpers_Backends(t *testing.T) {
 		})
 
 		_, err := ta.FastIndexingHelpersIndexAndKickoffDownloads(ta.Ctx, source)
-		if err != nil {
-			t.Fatalf("failed: %v", err)
-		}
+		must(t, err)
 
 		if !rssUsed {
 			t.Error("RSS not used")

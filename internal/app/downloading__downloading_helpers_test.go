@@ -19,9 +19,7 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil); err != nil {
-			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
-		}
+		must(t, ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil))
 
 		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
 	})
@@ -33,9 +31,7 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		_ = apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaFilepath: store.Ptr("some/filepath.mp4")})
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil); err != nil {
-			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
-		}
+		must(t, ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil))
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 	})
@@ -48,21 +44,15 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		tasks, err := ta.ListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
-		if err != nil {
-			t.Fatalf("TasksListTasksFor failed: %v", err)
-		}
+		must(t, err)
 		if len(tasks) != 0 {
 			t.Errorf("expected 0 tasks, got %d", len(tasks))
 		}
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil); err != nil {
-			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
-		}
+		must(t, ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil))
 
 		tasks, err = ta.ListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
-		if err != nil {
-			t.Fatalf("TasksListTasksFor failed: %v", err)
-		}
+		must(t, err)
 		if len(tasks) != 1 {
 			t.Errorf("expected 1 task, got %d", len(tasks))
 		}
@@ -74,9 +64,7 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 
 		source := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false)})
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil); err != nil {
-			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
-		}
+		must(t, ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil))
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 	})
@@ -88,14 +76,10 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil); err != nil {
-			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
-		}
+		must(t, ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil))
 
 		tasks, err := ta.ListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
-		if err != nil {
-			t.Fatalf("TasksListTasksFor failed: %v", err)
-		}
+		must(t, err)
 		if len(tasks) != 0 {
 			t.Errorf("expected 0 tasks, got %d", len(tasks))
 		}
@@ -109,9 +93,7 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		priority := 1
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, &priority); err != nil {
-			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
-		}
+		must(t, ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, &priority))
 
 		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}, Priority: &priority})
 	})
@@ -127,20 +109,14 @@ func TestDownloadingHelpers_DequeuePendingDownloadTasks(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
-		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil); err != nil {
-			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
-		}
+		must(t, ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, nil))
 		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
 
-		if err := ta.DownloadingHelpersDequeuePendingDownloadTasks(ctx, source); err != nil {
-			t.Fatalf("DownloadingHelpersDequeuePendingDownloadTasks failed: %v", err)
-		}
+		must(t, ta.DownloadingHelpersDequeuePendingDownloadTasks(ctx, source))
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 		tasks, err := ta.ListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
-		if err != nil {
-			t.Fatalf("TasksListTasksFor failed: %v", err)
-		}
+		must(t, err)
 		if len(tasks) != 0 {
 			t.Errorf("expected 0 tasks, got %d", len(tasks))
 		}
@@ -161,9 +137,7 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 		ctx := ta.Ctx
 
 		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, nil)
-		if err != nil {
-			t.Fatalf("DownloadingHelpersKickoffDownloadIfPending failed: %v", err)
-		}
+		must(t, err)
 
 		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}})
 	})
@@ -173,14 +147,10 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 		ctx := ta.Ctx
 
 		task, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, nil)
-		if err != nil {
-			t.Fatalf("DownloadingHelpersKickoffDownloadIfPending failed: %v", err)
-		}
+		must(t, err)
 
 		tasks, err := ta.ListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
-		if err != nil {
-			t.Fatalf("TasksListTasksFor failed: %v", err)
-		}
+		must(t, err)
 		if len(tasks) != 1 {
 			t.Errorf("expected 1 task, got %d", len(tasks))
 		}
@@ -233,9 +203,7 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 
 		priority := 1
 		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, &priority)
-		if err != nil {
-			t.Fatalf("DownloadingHelpersKickoffDownloadIfPending failed: %v", err)
-		}
+		must(t, err)
 
 		ta.Oban.AssertEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}, Priority: &priority})
 	})
@@ -250,9 +218,7 @@ func TestDownloadingHelpers_KickoffRedownloadForExistingMedia(t *testing.T) {
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaFilepath: store.Ptr("some/filepath.mp4")})
 
 		results, err := ta.DownloadingHelpersKickoffRedownloadForExistingMedia(ctx, source)
-		if err != nil {
-			t.Fatalf("DownloadingHelpersKickoffRedownloadForExistingMedia failed: %v", err)
-		}
+		must(t, err)
 
 		if len(results) != 1 {
 			t.Errorf("expected 1 result, got %d", len(results))
@@ -272,9 +238,7 @@ func TestDownloadingHelpers_KickoffRedownloadForExistingMedia(t *testing.T) {
 		_ = apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaFilepath: store.Ptr("some/filepath.mp4"), PreventDownload: store.Ptr(true)})
 
 		results, err := ta.DownloadingHelpersKickoffRedownloadForExistingMedia(ctx, source)
-		if err != nil {
-			t.Fatalf("DownloadingHelpersKickoffRedownloadForExistingMedia failed: %v", err)
-		}
+		must(t, err)
 
 		if len(results) != 0 {
 			t.Errorf("expected 0 results, got %d", len(results))
