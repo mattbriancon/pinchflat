@@ -212,7 +212,7 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"livestream_behaviour": "exclude"})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{LivestreamBehaviour: store.Ptr(store.MediaProfileLivestreamBehaviourExclude)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
 

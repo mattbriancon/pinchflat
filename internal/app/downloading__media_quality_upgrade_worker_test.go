@@ -34,7 +34,7 @@ func TestMediaQualityUpgradeWorker_Perform(t *testing.T) {
 			ta := apptest.NewApp(t)
 			ctx := ta.Ctx
 
-			mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"redownload_delay_days": 4})
+			mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{RedownloadDelayDays: store.Ptr(4)})
 			source := apptest.SourceFixture(t, ta, store.Attrs{
 				"media_profile_id": mediaProfile.ID,
 				"inserted_at":      apptest.NowMinus(10, "days"),

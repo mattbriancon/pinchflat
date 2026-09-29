@@ -36,7 +36,7 @@ func SourceFixture(t testing.TB, ts *TestStore, attrs store.Attrs) *store.Source
 		"custom_name":             "Cool and good internal name!",
 		"description":             "This is a description",
 		"original_url":            "https://www.youtube.com/@" + randBase64(12),
-		"media_profile_id":        MediaProfileFixture(t, ts, store.Attrs{}).ID,
+		"media_profile_id":        MediaProfileFixture(t, ts, store.MediaProfileParams{}).ID,
 		"index_frequency_minutes": 60,
 	}
 

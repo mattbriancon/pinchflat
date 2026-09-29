@@ -18,7 +18,7 @@ func TestMediaProfileDeletionWorker_Kickoff(t *testing.T) {
 			return nil
 		})
 
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 
 		if len(ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaProfileDeletionWorkerName})) != 0 {
 			t.Errorf("expected 0 enqueued initially")
@@ -44,7 +44,7 @@ func TestMediaProfileDeletionWorker_Kickoff(t *testing.T) {
 			return nil
 		})
 
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		jobArgs := store.Attrs{"delete_files": true}
 
 		job, err := ta.App.MediaProfileDeletionWorkerKickoff(ta.Ctx, profile, jobArgs, store.KW{})
@@ -73,7 +73,7 @@ func TestMediaProfileDeletionWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": profile.ID,
 		})
@@ -113,7 +113,7 @@ func TestMediaProfileDeletionWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": profile.ID,
 		})

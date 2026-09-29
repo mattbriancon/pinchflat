@@ -845,7 +845,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_FileWatcher(t 
 
 	t.Run("does not enqueue downloads for media that doesn't match the profile's format options", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "exclude"})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{ShortsBehaviour: store.Ptr(store.MediaProfileShortsBehaviourExclude)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 		pollInterval := ta.App.Config.FileWatcherPollInterval
 

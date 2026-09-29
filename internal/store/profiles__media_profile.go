@@ -99,41 +99,6 @@ func NewMediaProfile() *MediaProfile {
 	}
 }
 
-var mediaProfileAllowedFields = []string{
-	"name",
-	"output_path_template",
-	"download_subs",
-	"download_auto_subs",
-	"embed_subs",
-	"sub_langs",
-	"download_thumbnail",
-	"embed_thumbnail",
-	"download_source_images",
-	"download_metadata",
-	"embed_metadata",
-	"download_nfo",
-	"sponsorblock_behaviour",
-	"sponsorblock_categories",
-	"shorts_behaviour",
-	"livestream_behaviour",
-	"audio_track",
-	"preferred_resolution",
-	"media_container",
-	"redownload_delay_days",
-	"marked_for_deletion_at",
-}
-
-// MediaProfile.changeset/2
-func MediaProfileChangeset(profile *MediaProfile, attrs Attrs) *Changeset {
-	return Cast(profile, attrs, mediaProfileAllowedFields).
-		ValidateRequired("name", "output_path_template").
-		ValidateFormat("output_path_template", mediaProfileExtRegex(), "must end with .{{ ext }}").
-		ValidateNumber("redownload_delay_days", NumberOpts{
-			GreaterThanOrEqualTo: Num(0),
-		}).
-		UniqueConstraint([]string{"name"}, "name")
-}
-
 // mediaProfileExtRegex returns the regex pattern for output_path_template validation
 func mediaProfileExtRegex() string {
 	return `\.({{ ?ext ?}}|%\( ?ext ?\)[sS])$`

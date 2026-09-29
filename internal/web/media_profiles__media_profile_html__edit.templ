@@ -2,7 +2,7 @@ package web
 
 import "github.com/mattbriancon/pinchflat/internal/store"
 
-templ MediaProfilesHTMLEdit(profile *store.MediaProfile, changeset *store.Changeset) {
+templ MediaProfilesHTMLEdit(profile *store.MediaProfile, f *Form) {
 	<div class="page-header justify-start">
 		<a href={ templ.SafeURL(P(ctx, "/media_profiles")) }>
 			@CoreIcon("hero-arrow-left", "back-link", nil)
@@ -14,7 +14,7 @@ templ MediaProfilesHTMLEdit(profile *store.MediaProfile, changeset *store.Change
 	<div class="card card-body">
 		<div class="max-w-full">
 			<div class="flex flex-col gap-6">
-				@MediaProfilesHTMLMediaProfileForm(FormFor(changeset, "media_profile"), P(ctx, "/media_profiles/%v", profile.ID), "patch")
+				@MediaProfilesHTMLMediaProfileForm(f, P(ctx, "/media_profiles/%v", profile.ID), "patch")
 			</div>
 		</div>
 	</div>

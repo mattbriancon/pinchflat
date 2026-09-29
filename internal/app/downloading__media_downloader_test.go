@@ -1092,7 +1092,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNFOGeneration(t *testin
 
 	t.Run("generates an NFO file if the source is set to download NFOs", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"download_nfo": true})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadNfo: store.Ptr(true)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
@@ -1132,7 +1132,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNFOGeneration(t *testin
 
 	t.Run("does not generate an NFO file if the source is set to not download NFOs", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"download_nfo": false})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadNfo: store.Ptr(false)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)

@@ -1,14 +1,13 @@
 package web
 
 // MediaProfilesHTMLMediaProfileForm is media_profile_form/1. Callers build f
-// with FormFor(changeset, "media_profile"), matching the `:let={f}` in the
-// Elixir source.
+// with mediaProfileForm.
 templ MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) {
 	<form { mediaProfilesFormAttrs(action)... }>
 		if method != "post" {
 			<input type="hidden" name="_method" value={ method }/>
 		}
-		if f.Changeset.Action != "" {
+		if f.HasErrors() {
 			@CoreError("Oops, something went wrong! Please check the errors below.")
 		}
 

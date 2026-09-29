@@ -9,8 +9,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 // MediaProfilesHTMLMediaProfileForm is media_profile_form/1. Callers build f
-// with FormFor(changeset, "media_profile"), matching the `:let={f}` in the
-// Elixir source.
+// with mediaProfileForm.
 func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -52,7 +51,7 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(method)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__media_profile_form.templ`, Line: 9, Col: 53}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__media_profile_form.templ`, Line: 8, Col: 53}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 			if templ_7745c5c3_Err != nil {
@@ -63,7 +62,7 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 				return templ_7745c5c3_Err
 			}
 		}
-		if f.Changeset.Action != "" {
+		if f.HasErrors() {
 			templ_7745c5c3_Err = CoreError("Oops, something went wrong! Please check the errors below.").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -108,7 +107,7 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ \n        presets: { \n          default: '" + mediaProfilesDefaultOutputTemplate() + "',\n          media_center: '" + mediaProfilesMediaCenterOutputTemplate() + "',\n          audio: '" + mediaProfilesAudioOutputTemplate() + "',\n          archiving: '" + mediaProfilesDefaultOutputTemplate() + "'\n        }\n    }")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__media_profile_form.templ`, Line: 58, Col: 342}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__media_profile_form.templ`, Line: 57, Col: 342}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 		if templ_7745c5c3_Err != nil {

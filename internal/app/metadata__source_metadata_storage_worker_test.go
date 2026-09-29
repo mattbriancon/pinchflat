@@ -272,7 +272,7 @@ func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T)
 	t.Run("downloads and stores source images", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"download_source_images": true})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSourceImages: store.Ptr(true)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
@@ -337,7 +337,7 @@ func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T)
 			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
 				ta := apptest.NewApp(t)
-				profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"download_source_images": true})
+				profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSourceImages: store.Ptr(true)})
 				source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID, "collection_type": tt.collectionType})
 
 				ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
@@ -368,7 +368,7 @@ func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T)
 	t.Run("does not store source images if the profile is not set to", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"download_source_images": false})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSourceImages: store.Ptr(false)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
@@ -402,7 +402,7 @@ func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T)
 	t.Run("does not store source images if the series directory cannot be determined", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"download_source_images": true})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSourceImages: store.Ptr(true)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
@@ -449,7 +449,7 @@ func TestSourceMetadataStorageWorker_PerformSourceImageDownloading(t *testing.T)
 			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
 				ta := apptest.NewApp(t)
-				profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"download_source_images": true})
+				profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSourceImages: store.Ptr(true)})
 				source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID, "cookie_behaviour": tt.cookieBehaviour})
 
 				callCount := 0
@@ -588,7 +588,7 @@ func TestSourceMetadataStorageWorker_PerformNfo(t *testing.T) {
 	t.Run("stores the NFO if specified", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"download_nfo": true})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadNfo: store.Ptr(true)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"nfo_filepath": nil, "media_profile_id": profile.ID})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
@@ -624,7 +624,7 @@ func TestSourceMetadataStorageWorker_PerformNfo(t *testing.T) {
 	t.Run("does not store the NFO if not specified", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"download_nfo": false})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadNfo: store.Ptr(false)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"nfo_filepath": nil, "media_profile_id": profile.ID})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
@@ -651,7 +651,7 @@ func TestSourceMetadataStorageWorker_PerformNfo(t *testing.T) {
 	t.Run("does not store the NFO if the series directory cannot be determined", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"download_nfo": true})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadNfo: store.Ptr(true)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"nfo_filepath": nil, "media_profile_id": profile.ID})
 
 		ta.YtDlpMock.Run.Stub(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {

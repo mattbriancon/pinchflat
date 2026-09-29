@@ -12,7 +12,7 @@ import (
 func TestProfiles_Schema(t *testing.T) {
 	t.Parallel()
 	ta := apptest.NewApp(t)
-	profile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+	profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 
 	_, err := db.EncodeJSON(profile)
 	if err != nil {
@@ -23,7 +23,7 @@ func TestProfiles_Schema(t *testing.T) {
 func TestProfiles_ListMediaProfiles(t *testing.T) {
 	t.Parallel()
 	ta := apptest.NewApp(t)
-	mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+	mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 
 	profiles, err := ta.ListMediaProfiles(ta.Ctx)
 	if err != nil {
@@ -41,7 +41,7 @@ func TestProfiles_ListMediaProfiles(t *testing.T) {
 func TestProfiles_GetMediaProfile(t *testing.T) {
 	t.Parallel()
 	ta := apptest.NewApp(t)
-	mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+	mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 
 	retrieved, err := ta.GetMediaProfile(ta.Ctx, mediaProfile.ID)
 	if err != nil {
@@ -60,14 +60,14 @@ func TestProfiles_CreateMediaProfile(t *testing.T) {
 	t.Run("valid data", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		validAttrs := store.Attrs{
-			"name":                 "some name",
-			"output_path_template": "output_template.{{ ext }}",
+		valid := store.MediaProfileParams{
+			Name:               store.Ptr("some name"),
+			OutputPathTemplate: store.Ptr("output_template.{{ ext }}"),
 		}
 
-		profile, err := ta.CreateMediaProfile(ta.Ctx, validAttrs)
-		if err != nil {
-			t.Fatalf("ProfilesCreateMediaProfile failed: %v", err)
+		profile, errs, err := ta.CreateMediaProfile(ta.Ctx, valid)
+		if err != nil || len(errs) > 0 {
+			t.Fatalf("CreateMediaProfile failed: %v %v", errs, err)
 		}
 
 		if profile.Name != "some name" {
@@ -81,19 +81,30 @@ func TestProfiles_CreateMediaProfile(t *testing.T) {
 	t.Run("invalid data", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		invalidAttrs := store.Attrs{
-			"name":                 nil,
-			"output_path_template": nil,
-		}
 
-		_, err := ta.CreateMediaProfile(ta.Ctx, invalidAttrs)
-		if err == nil {
-			t.Error("expected error for invalid attrs")
+		profile, errs, err := ta.CreateMediaProfile(ta.Ctx, store.MediaProfileParams{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
+		if profile != nil || len(errs) == 0 {
+			t.Errorf("expected validation errors, got profile=%v errs=%v", profile, errs)
+		}
+	})
 
-		csErr, ok := store.AsChangesetError(err)
-		if !ok || csErr == nil {
-			t.Errorf("expected store.ChangesetError, got %T", err)
+	t.Run("duplicate name", func(t *testing.T) {
+		t.Parallel()
+		ta := apptest.NewApp(t)
+		existing := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
+
+		_, errs, err := ta.CreateMediaProfile(ta.Ctx, store.MediaProfileParams{
+			Name:               store.Ptr(existing.Name),
+			OutputPathTemplate: store.Ptr("x.{{ ext }}"),
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got := errs["name"]; len(got) != 1 || got[0] != "has already been taken" {
+			t.Errorf("expected name taken error, got %v", errs)
 		}
 	})
 }
@@ -102,16 +113,14 @@ func TestProfiles_UpdateMediaProfile(t *testing.T) {
 	t.Run("valid data", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 
-		updateAttrs := store.Attrs{
-			"name":                 "updated name",
-			"output_path_template": "new_output_template.{{ ext }}",
-		}
-
-		updated, err := ta.UpdateMediaProfile(ta.Ctx, mediaProfile, updateAttrs)
-		if err != nil {
-			t.Fatalf("ProfilesUpdateMediaProfile failed: %v", err)
+		updated, errs, err := ta.UpdateMediaProfile(ta.Ctx, mediaProfile, store.MediaProfileParams{
+			Name:               store.Ptr("updated name"),
+			OutputPathTemplate: store.Ptr("new_output_template.{{ ext }}"),
+		})
+		if err != nil || len(errs) > 0 {
+			t.Fatalf("UpdateMediaProfile failed: %v %v", errs, err)
 		}
 
 		if updated.Name != "updated name" {
@@ -120,29 +129,74 @@ func TestProfiles_UpdateMediaProfile(t *testing.T) {
 		if updated.OutputPathTemplate != "new_output_template.{{ ext }}" {
 			t.Errorf("expected template 'new_output_template.{{ ext }}', got %s", updated.OutputPathTemplate)
 		}
+		reloaded, err := ta.GetMediaProfile(ta.Ctx, mediaProfile.ID)
+		if err != nil {
+			t.Fatalf("GetMediaProfile failed: %v", err)
+		}
+		if reloaded.Name != "updated name" {
+			t.Errorf("expected persisted name 'updated name', got %s", reloaded.Name)
+		}
+	})
+
+	t.Run("only writes submitted fields", func(t *testing.T) {
+		t.Parallel()
+		ta := apptest.NewApp(t)
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{
+			RedownloadDelayDays: store.Ptr(3),
+			AudioTrack:          store.Ptr("de"),
+		})
+
+		if _, errs, err := ta.UpdateMediaProfile(ta.Ctx, mediaProfile, store.MediaProfileParams{SubLangs: store.Ptr("fr")}); err != nil || len(errs) > 0 {
+			t.Fatalf("UpdateMediaProfile failed: %v %v", errs, err)
+		}
+		reloaded, _ := ta.GetMediaProfile(ta.Ctx, mediaProfile.ID)
+		if reloaded.SubLangs != "fr" || reloaded.RedownloadDelayDays == nil || *reloaded.RedownloadDelayDays != 3 || reloaded.AudioTrack == nil {
+			t.Errorf("unexpected profile after partial update: %+v", reloaded)
+		}
+	})
+
+	t.Run("blank clears nullable fields", func(t *testing.T) {
+		t.Parallel()
+		ta := apptest.NewApp(t)
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{
+			RedownloadDelayDays: store.Ptr(3),
+			AudioTrack:          store.Ptr("de"),
+		})
+
+		_, errs, err := ta.UpdateMediaProfile(ta.Ctx, mediaProfile, store.MediaProfileParams{
+			AudioTrack:               store.Ptr(""),
+			ClearRedownloadDelayDays: true,
+		})
+		if err != nil || len(errs) > 0 {
+			t.Fatalf("UpdateMediaProfile failed: %v %v", errs, err)
+		}
+		reloaded, _ := ta.GetMediaProfile(ta.Ctx, mediaProfile.ID)
+		if reloaded.AudioTrack != nil || reloaded.RedownloadDelayDays != nil {
+			t.Errorf("expected cleared fields, got %+v", reloaded)
+		}
 	})
 
 	t.Run("invalid data", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 
-		invalidAttrs := store.Attrs{
-			"name":                 nil,
-			"output_path_template": nil,
+		_, errs, err := ta.UpdateMediaProfile(ta.Ctx, mediaProfile, store.MediaProfileParams{
+			Name:               store.Ptr(""),
+			OutputPathTemplate: store.Ptr(""),
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
-
-		_, err := ta.UpdateMediaProfile(ta.Ctx, mediaProfile, invalidAttrs)
-		if err == nil {
-			t.Error("expected error for invalid attrs")
+		if len(errs["name"]) == 0 || len(errs["output_path_template"]) == 0 {
+			t.Errorf("expected validation errors, got %v", errs)
 		}
 
 		retrieved, err := ta.GetMediaProfile(ta.Ctx, mediaProfile.ID)
 		if err != nil {
-			t.Fatalf("ProfilesGetMediaProfile failed: %v", err)
+			t.Fatalf("GetMediaProfile failed: %v", err)
 		}
-
-		if retrieved.ID != mediaProfile.ID {
+		if retrieved.Name != mediaProfile.Name {
 			t.Error("profile should not have changed")
 		}
 	})
@@ -152,7 +206,7 @@ func TestProfiles_DeleteMediaProfile(t *testing.T) {
 	t.Run("deletes profile", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 
 		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, store.KW{})
 		if err != nil {
@@ -168,7 +222,7 @@ func TestProfiles_DeleteMediaProfile(t *testing.T) {
 	t.Run("deletes sources", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 		})
@@ -187,7 +241,7 @@ func TestProfiles_DeleteMediaProfile(t *testing.T) {
 	t.Run("deletes media items", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 		})
@@ -209,7 +263,7 @@ func TestProfiles_DeleteMediaProfile(t *testing.T) {
 	t.Run("preserves files by default", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 		})
@@ -236,7 +290,7 @@ func TestProfiles_DeleteMediaProfile_WhenDeletingFiles(t *testing.T) {
 			return nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 		})
@@ -272,7 +326,7 @@ func TestProfiles_DeleteMediaProfile_WhenDeletingFiles(t *testing.T) {
 			return nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 		})
@@ -293,62 +347,34 @@ func TestProfiles_DeleteMediaProfile_WhenDeletingFiles(t *testing.T) {
 	})
 }
 
-func TestProfiles_ChangeMediaProfile(t *testing.T) {
+func TestProfiles_OutputPathTemplateValidation(t *testing.T) {
 	t.Parallel()
-	ta := apptest.NewApp(t)
-
-	t.Run("returns changeset", func(t *testing.T) {
-		t.Parallel()
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
-		cs := ta.ChangeMediaProfile(ta.Ctx, mediaProfile, store.Attrs{})
-		if cs == nil {
-			t.Error("expected changeset, got nil")
+	templates := []struct {
+		template string
+		valid    bool
+	}{
+		{"output_template.{{ ext }}", true},
+		{"output_template.{{ext}}", true},
+		{"output_template.%(ext)s", true},
+		{"output_template.%(ext)S", true},
+		{"output_template.%( ext )s", true},
+		{"output_template.%( ext )S", true},
+		{"output_template.{{ ext }}.something", false},
+		{"output_template.{{   ext   }}", false},
+		{"output_template{{ ext }}", false},
+		{"output_template.%(ext)s.something", false},
+		{"output_template.txt", false},
+		{"output_template%(ext)s", false},
+		{"output_template.%(nope)s", false},
+		{"output_template", false},
+	}
+	for _, tt := range templates {
+		errs := store.MediaProfileParams{
+			Name:               store.Ptr("a"),
+			OutputPathTemplate: store.Ptr(tt.template),
+		}.Validate(&store.MediaProfile{})
+		if valid := len(errs) == 0; valid != tt.valid {
+			t.Errorf("template %q: valid = %v, want %v (%v)", tt.template, valid, tt.valid, errs)
 		}
-	})
-
-	t.Run("allows valid templates", func(t *testing.T) {
-		t.Parallel()
-		validTemplates := []string{
-			"output_template.{{ ext }}",
-			"output_template.{{ext}}",
-			"output_template.%(ext)s",
-			"output_template.%(ext)S",
-			"output_template.%( ext )s",
-			"output_template.%( ext )S",
-		}
-
-		for _, template := range validTemplates {
-			cs := ta.ChangeMediaProfile(ta.Ctx, &store.MediaProfile{}, store.Attrs{
-				"name":                 "a",
-				"output_path_template": template,
-			})
-			if !cs.Valid() {
-				t.Errorf("template %q should be valid", template)
-			}
-		}
-	})
-
-	t.Run("rejects invalid templates", func(t *testing.T) {
-		t.Parallel()
-		invalidTemplates := []string{
-			"output_template.{{ ext }}.something",
-			"output_template.{{   ext   }}",
-			"output_template{{ ext }}",
-			"output_template.%(ext)s.something",
-			"output_template.txt",
-			"output_template%(ext)s",
-			"output_template.%(nope)s",
-			"output_template",
-		}
-
-		for _, template := range invalidTemplates {
-			cs := ta.ChangeMediaProfile(ta.Ctx, &store.MediaProfile{}, store.Attrs{
-				"name":                 "a",
-				"output_path_template": template,
-			})
-			if cs.Valid() {
-				t.Errorf("template %q should be invalid", template)
-			}
-		}
-	})
+	}
 }

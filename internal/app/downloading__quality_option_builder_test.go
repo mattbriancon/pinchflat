@@ -35,7 +35,7 @@ func TestQualityOptionBuilder_Build(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ta := apptest.NewApp(t)
-			mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"audio_track": tt.audioTrack})
+			mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{AudioTrack: store.Ptr(tt.audioTrack)})
 			res := ta.App.QualityOptionBuilderBuild(ta.Ctx, mediaProfile)
 
 			found := findOption(res, "format", tt.wantFormat)
@@ -51,7 +51,7 @@ func TestQualityOptionBuilder_BuildAudio(t *testing.T) {
 
 	t.Run("includes quality options for audio only", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"preferred_resolution": "audio"})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{PreferredResolution: store.Ptr(store.MediaProfilePreferredResolutionAudio)})
 		res := ta.App.QualityOptionBuilderBuild(ta.Ctx, mediaProfile)
 
 		if !hasFlag(res, "extract_audio") {
@@ -67,8 +67,8 @@ func TestQualityOptionBuilder_BuildAudio(t *testing.T) {
 
 	t.Run("includes custom format target for audio if specified", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"preferred_resolution": "audio"})
-		updatedProfile, err := ta.App.UpdateMediaProfile(ta.Ctx, mediaProfile, store.Attrs{"media_container": "flac", "preferred_resolution": "audio"})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{PreferredResolution: store.Ptr(store.MediaProfilePreferredResolutionAudio)})
+		updatedProfile, _, err := ta.App.UpdateMediaProfile(ta.Ctx, mediaProfile, store.MediaProfileParams{MediaContainer: store.Ptr("flac"), PreferredResolution: store.Ptr(store.MediaProfilePreferredResolutionAudio)})
 		if err != nil {
 			t.Fatalf("failed to update media profile: %v", err)
 		}
@@ -81,7 +81,7 @@ func TestQualityOptionBuilder_BuildAudio(t *testing.T) {
 
 	t.Run("includes custom format options", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"preferred_resolution": "audio"})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{PreferredResolution: store.Ptr(store.MediaProfilePreferredResolutionAudio)})
 		res := ta.App.QualityOptionBuilderBuild(ta.Ctx, mediaProfile)
 
 		if !findOption(res, "format", "bestaudio/best") {
@@ -110,7 +110,7 @@ func TestQualityOptionBuilder_BuildNonAudio(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				ta := apptest.NewApp(t)
-				mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"preferred_resolution": tt.name})
+				mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{PreferredResolution: store.Ptr(store.MediaProfilePreferredResolution(tt.name))})
 				res := ta.App.QualityOptionBuilderBuild(ta.Ctx, mediaProfile)
 
 				wantFormatSort := "res:" + tt.resolution + ",+codec:avc:m4a"
@@ -135,7 +135,7 @@ func TestQualityOptionBuilder_BuildNonAudio(t *testing.T) {
 			t.Fatalf("failed to set audio_codec_preference: %v", err)
 		}
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"preferred_resolution": "1080p"})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{PreferredResolution: store.Ptr(store.MediaProfilePreferredResolution1080p)})
 		res := ta.App.QualityOptionBuilderBuild(ta.Ctx, mediaProfile)
 
 		if !findOption(res, "format_sort", "res:1080,+codec:av01:aac") {
@@ -145,8 +145,8 @@ func TestQualityOptionBuilder_BuildNonAudio(t *testing.T) {
 
 	t.Run("includes custom remux target for videos if specified", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"preferred_resolution": "480p"})
-		updatedProfile, err := ta.App.UpdateMediaProfile(ta.Ctx, mediaProfile, store.Attrs{"media_container": "mkv"})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{PreferredResolution: store.Ptr(store.MediaProfilePreferredResolution480p)})
+		updatedProfile, _, err := ta.App.UpdateMediaProfile(ta.Ctx, mediaProfile, store.MediaProfileParams{MediaContainer: store.Ptr("mkv")})
 		if err != nil {
 			t.Fatalf("failed to update media profile: %v", err)
 		}
@@ -159,7 +159,7 @@ func TestQualityOptionBuilder_BuildNonAudio(t *testing.T) {
 
 	t.Run("includes custom format options", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"preferred_resolution": "480p"})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{PreferredResolution: store.Ptr(store.MediaProfilePreferredResolution480p)})
 		res := ta.App.QualityOptionBuilderBuild(ta.Ctx, mediaProfile)
 
 		if !findOption(res, "format", "bestvideo*+bestaudio/best") {

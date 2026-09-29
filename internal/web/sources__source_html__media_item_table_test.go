@@ -107,7 +107,7 @@ func TestMediaItemTableLive_MediaState(t *testing.T) {
 
 	t.Run("shows records that aren't pending or downloaded when other", func(t *testing.T) {
 		c := webtest.New(t)
-		mediaProfile := apptest.MediaProfileFixture(t, c.TestApp, store.Attrs{"shorts_behaviour": "exclude"})
+		mediaProfile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{ShortsBehaviour: store.Ptr(store.MediaProfileShortsBehaviourExclude)})
 		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{"media_profile_id": mediaProfile.ID})
 
 		downloadedMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID})

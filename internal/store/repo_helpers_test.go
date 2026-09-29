@@ -87,8 +87,8 @@ func TestRepoHelpers_MaybeLimit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			ts := storetest.NewStore(t)
-			storetest.MediaProfileFixture(t, ts, store.Attrs{})
-			storetest.MediaProfileFixture(t, ts, store.Attrs{})
+			storetest.MediaProfileFixture(t, ts, store.MediaProfileParams{})
+			storetest.MediaProfileFixture(t, ts, store.MediaProfileParams{})
 
 			q := store.From[store.MediaProfile]()
 			q = store.MaybeLimit(q, tt.limit)

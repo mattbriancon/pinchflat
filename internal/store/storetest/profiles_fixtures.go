@@ -7,22 +7,20 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-// MediaProfileFixture creates a MediaProfile with sensible defaults, merging in attrs.
-func MediaProfileFixture(t testing.TB, ts *TestStore, attrs store.Attrs) *store.MediaProfile {
+// MediaProfileFixture creates a MediaProfile with sensible defaults for the
+// name and output path template, then applies p over them.
+func MediaProfileFixture(t testing.TB, ts *TestStore, p store.MediaProfileParams) *store.MediaProfile {
 	t.Helper()
-	defaults := store.Attrs{
-		"name":                 "Media Profile #" + strconv.Itoa(randInt(1000000)+1),
-		"output_path_template": "{{title}}.{{ext}}",
+	if p.Name == nil {
+		p.Name = store.Ptr("Media Profile #" + strconv.Itoa(randInt(1000000)+1))
+	}
+	if p.OutputPathTemplate == nil {
+		p.OutputPathTemplate = store.Ptr("{{title}}.{{ext}}")
 	}
 
-	// Merge attrs into defaults
-	for k, v := range attrs {
-		defaults[k] = v
-	}
-
-	mediaProfile, err := ts.CreateMediaProfile(ts.Ctx, defaults)
-	if err != nil {
-		t.Fatalf("MediaProfileFixture: %v", err)
+	mediaProfile, errs, err := ts.CreateMediaProfile(ts.Ctx, p)
+	if err != nil || len(errs) > 0 {
+		t.Fatalf("MediaProfileFixture: %v %v", errs, err)
 	}
 	return mediaProfile
 }

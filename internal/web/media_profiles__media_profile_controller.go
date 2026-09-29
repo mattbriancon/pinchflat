@@ -72,25 +72,27 @@ func (s *Server) MediaProfileControllerNew(w http.ResponseWriter, r *http.Reques
 	profileForForm.Name = ""
 	profileForForm.MarkedForDeletionAt = nil
 
-	changeset := s.App.ChangeMediaProfile(ctx, &profileForForm, nil)
-
 	layout := OnboardingLayout(ctx)
-	s.Render(w, r, http.StatusOK, layout, MediaProfilesHTMLNew(changeset))
+	s.Render(w, r, http.StatusOK, layout, MediaProfilesHTMLNew(mediaProfileForm(&profileForForm, nil)))
 }
 
 // MediaProfileControllerCreate creates a new media profile
 func (s *Server) MediaProfileControllerCreate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	params := ParseForm(r, "media_profile")
-
-	profile, err := s.App.CreateMediaProfile(ctx, params)
-	if err != nil {
-		if cs, ok := store.AsChangesetError(err); ok {
-			layout := OnboardingLayout(ctx)
-			s.Render(w, r, http.StatusOK, layout, MediaProfilesHTMLNew(cs))
+	_ = r.ParseForm()
+	params, errs := store.ParseMediaProfileParams(r.PostForm)
+	base := store.NewMediaProfile()
+	mergeFormErrors(errs, params.Validate(base))
+	var profile *store.MediaProfile
+	if len(errs) == 0 {
+		var err error
+		if profile, errs, err = s.App.CreateMediaProfile(ctx, params); err != nil {
+			s.Fail(w, r, err)
 			return
 		}
-		s.Fail(w, r, err)
+	}
+	if len(errs) > 0 {
+		s.Render(w, r, http.StatusOK, OnboardingLayout(ctx), MediaProfilesHTMLNew(mediaProfileForm(params.Apply(base), errs)))
 		return
 	}
 
@@ -100,6 +102,13 @@ func (s *Server) MediaProfileControllerCreate(w http.ResponseWriter, r *http.Req
 	}
 	s.PutFlash(w, r, "info", "Media profile created successfully.")
 	s.Redirect(w, r, redirectPath)
+}
+
+// mergeFormErrors adds src's messages to dst.
+func mergeFormErrors(dst, src map[string][]string) {
+	for field, msgs := range src {
+		dst[field] = append(dst[field], msgs...)
+	}
 }
 
 // MediaProfileControllerShow displays a media profile
@@ -124,14 +133,12 @@ func (s *Server) MediaProfileControllerShow(w http.ResponseWriter, r *http.Reque
 
 // MediaProfileControllerEdit shows the form for editing a media profile
 func (s *Server) MediaProfileControllerEdit(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	profile, ok := loadOrFail(s, w, r, "id", s.App.GetMediaProfile)
 	if !ok {
 		return
 	}
 
-	changeset := s.App.ChangeMediaProfile(ctx, profile, nil)
-	s.Render(w, r, http.StatusOK, LayoutApp, MediaProfilesHTMLEdit(profile, changeset))
+	s.Render(w, r, http.StatusOK, LayoutApp, MediaProfilesHTMLEdit(profile, mediaProfileForm(profile, nil)))
 }
 
 // MediaProfileControllerUpdate updates a media profile
@@ -142,14 +149,19 @@ func (s *Server) MediaProfileControllerUpdate(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	params := ParseForm(r, "media_profile")
-	updated, err := s.App.UpdateMediaProfile(ctx, profile, params)
-	if err != nil {
-		if cs, ok := store.AsChangesetError(err); ok {
-			s.Render(w, r, http.StatusOK, LayoutApp, MediaProfilesHTMLEdit(profile, cs))
+	_ = r.ParseForm()
+	params, errs := store.ParseMediaProfileParams(r.PostForm)
+	mergeFormErrors(errs, params.Validate(profile))
+	var updated *store.MediaProfile
+	if len(errs) == 0 {
+		var err error
+		if updated, errs, err = s.App.UpdateMediaProfile(ctx, profile, params); err != nil {
+			s.Fail(w, r, err)
 			return
 		}
-		s.Fail(w, r, err)
+	}
+	if len(errs) > 0 {
+		s.Render(w, r, http.StatusOK, LayoutApp, MediaProfilesHTMLEdit(profile, mediaProfileForm(params.Apply(profile), errs)))
 		return
 	}
 
@@ -166,9 +178,8 @@ func (s *Server) MediaProfileControllerDelete(w http.ResponseWriter, r *http.Req
 	}
 	deleteFiles := r.URL.Query().Get("delete_files") == "true"
 
-	_, err := s.App.UpdateMediaProfile(ctx, profile, store.Attrs{
-		"marked_for_deletion_at": time.Now().UTC(),
-	})
+	now := time.Now().UTC()
+	_, _, err := s.App.UpdateMediaProfile(ctx, profile, store.MediaProfileParams{MarkedForDeletionAt: &now})
 	if err != nil {
 		s.Fail(w, r, err)
 		return

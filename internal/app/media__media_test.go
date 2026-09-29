@@ -76,7 +76,7 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 	setup := func(t *testing.T) (*apptest.TestApp, *store.MediaProfile, *store.Source) {
 		t.Helper()
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"redownload_delay_days": 4})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{RedownloadDelayDays: store.Ptr(4)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"inserted_at":      apptest.NowMinus(10, "days"),
@@ -251,7 +251,7 @@ func TestMedia_ListUpgradeableMediaItems(t *testing.T) {
 
 	t.Run("does not return media items without a redownload delay", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"redownload_delay_days": nil})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
 
 		apptest.MediaItemFixture(t, ta, store.Attrs{
@@ -309,7 +309,7 @@ func TestMedia_ListPendingMediaItemsFor(t *testing.T) {
 func TestMedia_ListPendingMediaItemsFor_Shorts(t *testing.T) {
 	t.Run("returns shorts and normal media when shorts_behaviour is :include", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "include"})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{ShortsBehaviour: store.Ptr(store.MediaProfileShortsBehaviourInclude)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 		normal := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 		short := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
@@ -325,7 +325,7 @@ func TestMedia_ListPendingMediaItemsFor_Shorts(t *testing.T) {
 
 	t.Run("returns only shorts when shorts_behaviour is :only", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "only"})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{ShortsBehaviour: store.Ptr(store.MediaProfileShortsBehaviourOnly)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 		apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 		short := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
@@ -341,7 +341,7 @@ func TestMedia_ListPendingMediaItemsFor_Shorts(t *testing.T) {
 
 	t.Run("returns only normal media when shorts_behaviour is :exclude", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "exclude"})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{ShortsBehaviour: store.Ptr(store.MediaProfileShortsBehaviourExclude)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 		normal := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 		apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
@@ -359,7 +359,7 @@ func TestMedia_ListPendingMediaItemsFor_Shorts(t *testing.T) {
 func TestMedia_ListPendingMediaItemsFor_Livestreams(t *testing.T) {
 	t.Run("returns livestreams and normal media when livestream_behaviour is :include", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"livestream_behaviour": "include"})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{LivestreamBehaviour: store.Ptr(store.MediaProfileLivestreamBehaviourInclude)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 		normal := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 		livestream := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
@@ -375,7 +375,7 @@ func TestMedia_ListPendingMediaItemsFor_Livestreams(t *testing.T) {
 
 	t.Run("returns only livestreams when livestream_behaviour is :only", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"livestream_behaviour": "only"})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{LivestreamBehaviour: store.Ptr(store.MediaProfileLivestreamBehaviourOnly)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 		apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 		livestream := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
@@ -391,7 +391,7 @@ func TestMedia_ListPendingMediaItemsFor_Livestreams(t *testing.T) {
 
 	t.Run("returns only normal media when livestream_behaviour is :exclude", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"livestream_behaviour": "exclude"})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{LivestreamBehaviour: store.Ptr(store.MediaProfileLivestreamBehaviourExclude)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 		normal := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
 		apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
@@ -409,7 +409,7 @@ func TestMedia_ListPendingMediaItemsFor_Livestreams(t *testing.T) {
 func TestMedia_ListPendingMediaItemsFor_AllFormatOptions(t *testing.T) {
 	t.Run("returns livestreams, shorts, and normal media when behaviour is :include", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "include", "livestream_behaviour": "include"})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{ShortsBehaviour: store.Ptr(store.MediaProfileShortsBehaviourInclude), LivestreamBehaviour: store.Ptr(store.MediaProfileLivestreamBehaviourInclude)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 
 		normal := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
@@ -427,7 +427,7 @@ func TestMedia_ListPendingMediaItemsFor_AllFormatOptions(t *testing.T) {
 
 	t.Run("returns only livestreams and shorts when behaviour is :only", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "only", "livestream_behaviour": "only"})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{ShortsBehaviour: store.Ptr(store.MediaProfileShortsBehaviourOnly), LivestreamBehaviour: store.Ptr(store.MediaProfileLivestreamBehaviourOnly)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 
 		apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
@@ -445,7 +445,7 @@ func TestMedia_ListPendingMediaItemsFor_AllFormatOptions(t *testing.T) {
 
 	t.Run("returns only normal media when behaviour is :exclude", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "exclude", "livestream_behaviour": "exclude"})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{ShortsBehaviour: store.Ptr(store.MediaProfileShortsBehaviourExclude), LivestreamBehaviour: store.Ptr(store.MediaProfileLivestreamBehaviourExclude)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 
 		normal := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
@@ -463,7 +463,7 @@ func TestMedia_ListPendingMediaItemsFor_AllFormatOptions(t *testing.T) {
 
 	t.Run(":only and :exclude return the expected results", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "only", "livestream_behaviour": "exclude"})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{ShortsBehaviour: store.Ptr(store.MediaProfileShortsBehaviourOnly), LivestreamBehaviour: store.Ptr(store.MediaProfileLivestreamBehaviourExclude)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 
 		apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
@@ -664,7 +664,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns false if the media hasn't been downloaded but the profile doesn't DL shorts", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"shorts_behaviour": "exclude"})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{ShortsBehaviour: store.Ptr(store.MediaProfileShortsBehaviourExclude)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "short_form_content": true})
 
@@ -679,7 +679,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 
 	t.Run("returns false if the media hasn't been downloaded but the profile doesn't DL livestreams", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"livestream_behaviour": "exclude"})
+		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{LivestreamBehaviour: store.Ptr(store.MediaProfileLivestreamBehaviourExclude)})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
 

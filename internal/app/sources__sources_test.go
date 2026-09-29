@@ -104,7 +104,7 @@ func TestSources_OutputPathTemplate(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"output_path_template": "/profile/{{ title }}.{{ ext }}"})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("/profile/{{ title }}.{{ ext }}")})
 		src := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
 
 		got := ta.App.SourcesOutputPathTemplate(ta.Ctx, src)
@@ -117,7 +117,7 @@ func TestSources_OutputPathTemplate(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"output_path_template": "/profile/{{ title }}.{{ ext }}"})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("/profile/{{ title }}.{{ ext }}")})
 		src := apptest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id":              mediaProfile.ID,
 			"output_path_template_override": "  ",
@@ -189,7 +189,7 @@ func TestSources_ListSourcesFor(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		src := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
 
 		got, err := ta.App.ListSourcesFor(ta.Ctx, mediaProfile)
@@ -225,7 +225,7 @@ func TestSources_CreateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",
@@ -245,7 +245,7 @@ func TestSources_CreateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",
@@ -266,7 +266,7 @@ func TestSources_CreateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",
@@ -289,7 +289,7 @@ func TestSources_CreateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestPlaylistMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/playlist?list=abc123",
@@ -314,7 +314,7 @@ func TestSources_CreateSource(t *testing.T) {
 			return "", &fsutil.CommandError{Output: "some error", Status: 1}
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",
@@ -340,7 +340,7 @@ func TestSources_CreateSource(t *testing.T) {
 			return "store.Not JSON", nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",
@@ -364,7 +364,7 @@ func TestSources_CreateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",
@@ -385,7 +385,7 @@ func TestSources_CreateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",
@@ -413,7 +413,7 @@ func TestSources_CreateSource(t *testing.T) {
 			return jsonStr, nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validOnceAttrs := store.Attrs{
 			"media_profile_id":   mediaProfile.ID,
 			"original_url":       "https://www.youtube.com/channel/abc123",
@@ -445,7 +445,7 @@ func TestSources_CreateSource(t *testing.T) {
 			return jsonStr, nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"name":             "some name",
@@ -492,8 +492,8 @@ func TestSources_CreateSource(t *testing.T) {
 			source1Attrs[k] = v
 			source2Attrs[k] = v
 		}
-		source1Attrs["media_profile_id"] = apptest.MediaProfileFixture(t, ta, store.Attrs{}).ID
-		source2Attrs["media_profile_id"] = apptest.MediaProfileFixture(t, ta, store.Attrs{}).ID
+		source1Attrs["media_profile_id"] = apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{}).ID
+		source2Attrs["media_profile_id"] = apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{}).ID
 
 		if _, err := ta.App.SourcesCreateSource(ta.Ctx, source1Attrs, store.KW{}); err != nil {
 			t.Fatalf("first SourcesCreateSource: %v", err)
@@ -509,7 +509,7 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 		ta.YtDlpMock.Run.Expect(sourcesTestPlaylistMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",
@@ -566,7 +566,7 @@ func TestSources_CreateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",
@@ -588,7 +588,7 @@ func TestSources_CreateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",
@@ -611,7 +611,7 @@ func TestSources_CreateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",
@@ -630,7 +630,7 @@ func TestSources_CreateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id":        mediaProfile.ID,
 			"original_url":            "https://www.youtube.com/channel/abc123",
@@ -653,7 +653,7 @@ func TestSources_CreateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id":        mediaProfile.ID,
 			"original_url":            "https://www.youtube.com/channel/abc123",
@@ -675,7 +675,7 @@ func TestSources_CreateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id":        mediaProfile.ID,
 			"original_url":            "https://www.youtube.com/channel/abc123",
@@ -697,7 +697,7 @@ func TestSources_CreateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id":        mediaProfile.ID,
 			"original_url":            "https://www.youtube.com/channel/abc123",
@@ -728,7 +728,7 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 			return sourcesTestPlaylistReturn(), nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",
@@ -750,7 +750,7 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 			return sourcesTestPlaylistReturn(), nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",
@@ -772,7 +772,7 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 			return sourcesTestPlaylistReturn(), nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",
@@ -794,7 +794,7 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 			return sourcesTestPlaylistReturn(), nil
 		})
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",
@@ -812,7 +812,7 @@ func TestSources_CreateSourceWhenTestingOptions(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{})
+		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
 		validAttrs := store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 			"original_url":     "https://www.youtube.com/channel/abc123",

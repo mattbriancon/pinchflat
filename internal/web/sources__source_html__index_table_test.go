@@ -37,7 +37,7 @@ func TestSourceIndexTable_InitialRendering(t *testing.T) {
 
 	t.Run("omits sources who's media profile has marked_for_deletion_at set", func(t *testing.T) {
 		c := webtest.New(t)
-		mediaProfile := apptest.MediaProfileFixture(t, c.TestApp, store.Attrs{"marked_for_deletion_at": apptest.Now()})
+		mediaProfile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{MarkedForDeletionAt: store.Ptr(apptest.Now())})
 		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{"media_profile_id": mediaProfile.ID})
 
 		res := c.Get("/sources")
