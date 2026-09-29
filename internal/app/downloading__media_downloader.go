@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/cmdrun"
-	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/ytdlp"
@@ -62,7 +62,7 @@ func mediaDownloaderAttemptDownloadAndUpdateForMediaItem(ctx context.Context, a 
 			return nil, err
 		}
 		// Clear last_error on success
-		updatedMediaItem2, _ := a.UpdateMediaItem(ctx, updatedMediaItem, store.Attrs{"last_error": nil})
+		updatedMediaItem2, _ := a.UpdateMediaItem(ctx, updatedMediaItem, store.MediaItemParams{Clear: store.ClearLastError})
 		return &MediaDownloaderResult{MediaItem: updatedMediaItem2, Recovered: false}, nil
 	}
 
@@ -71,7 +71,7 @@ func mediaDownloaderAttemptDownloadAndUpdateForMediaItem(ctx context.Context, a 
 		message := fmt.Sprintf("Media item #%d isn't suitable for download yet. May be an active or processing live stream", mediaWithPreloads.ID)
 		slog.Warn(message)
 		// Update last_error
-		a.UpdateMediaItem(ctx, mediaWithPreloads, store.Attrs{"last_error": message})
+		a.UpdateMediaItem(ctx, mediaWithPreloads, store.MediaItemParams{LastError: &message})
 		return nil, &MediaDownloaderError{Reason: "unsuitable_for_download", Message: message}
 	}
 
@@ -86,14 +86,14 @@ func mediaDownloaderAttemptDownloadAndUpdateForMediaItem(ctx context.Context, a 
 		}
 
 		// Update last_error and return error
-		a.UpdateMediaItem(ctx, mediaWithPreloads, store.Attrs{"last_error": errMsg})
+		a.UpdateMediaItem(ctx, mediaWithPreloads, store.MediaItemParams{LastError: &errMsg})
 		return nil, &MediaDownloaderError{Reason: "download_failed", Message: errMsg}
 	}
 
 	// Unknown error
 	slog.Error(fmt.Sprintf("Unknown error downloading media item #%d: %v", mediaWithPreloads.ID, dlErr))
 	errMsg := fmt.Sprintf("Unknown error: %v", dlErr)
-	a.UpdateMediaItem(ctx, mediaWithPreloads, store.Attrs{"last_error": errMsg})
+	a.UpdateMediaItem(ctx, mediaWithPreloads, store.MediaItemParams{LastError: &errMsg})
 	return nil, &MediaDownloaderError{Reason: "unknown", Message: errMsg}
 }
 
@@ -101,7 +101,7 @@ func mediaDownloaderAttemptRecoveryFromError(ctx context.Context, a *App, mediaW
 	contents, err := os.ReadFile(outputFilepath)
 	if err != nil {
 		slog.Error(fmt.Sprintf("Unable to recover error for media item #%d: %v", mediaWithPreloads.ID, err))
-		a.UpdateMediaItem(ctx, mediaWithPreloads, store.Attrs{"last_error": errorMessage})
+		a.UpdateMediaItem(ctx, mediaWithPreloads, store.MediaItemParams{LastError: &errorMessage})
 		return nil, &MediaDownloaderError{Reason: "unrecoverable", Message: errorMessage}
 	}
 
@@ -109,7 +109,7 @@ func mediaDownloaderAttemptRecoveryFromError(ctx context.Context, a *App, mediaW
 	err = store.DecodeJSON(contents, &parsedJSON)
 	if err != nil {
 		slog.Error(fmt.Sprintf("Unable to recover error for media item #%d: %v", mediaWithPreloads.ID, err))
-		a.UpdateMediaItem(ctx, mediaWithPreloads, store.Attrs{"last_error": errorMessage})
+		a.UpdateMediaItem(ctx, mediaWithPreloads, store.MediaItemParams{LastError: &errorMessage})
 		return nil, &MediaDownloaderError{Reason: "unrecoverable", Message: errorMessage}
 	}
 
@@ -117,36 +117,39 @@ func mediaDownloaderAttemptRecoveryFromError(ctx context.Context, a *App, mediaW
 
 	updatedMediaItem, err := mediaDownloaderUpdateMediaItemFromParsedJSON(ctx, a, mediaWithPreloads, parsedJSON)
 	if err != nil {
-		a.UpdateMediaItem(ctx, mediaWithPreloads, store.Attrs{"last_error": errorMessage})
+		a.UpdateMediaItem(ctx, mediaWithPreloads, store.MediaItemParams{LastError: &errorMessage})
 		return nil, &MediaDownloaderError{Reason: "unrecoverable", Message: errorMessage}
 	}
 
 	// Update last_error with the warning message
-	updatedMediaItem2, _ := a.UpdateMediaItem(ctx, updatedMediaItem, store.Attrs{"last_error": errorMessage})
+	updatedMediaItem2, _ := a.UpdateMediaItem(ctx, updatedMediaItem, store.MediaItemParams{LastError: &errorMessage})
 	return &MediaDownloaderResult{MediaItem: updatedMediaItem2, Recovered: true, Message: errorMessage}, nil
 }
 
 func mediaDownloaderUpdateMediaItemFromParsedJSON(ctx context.Context, a *App, mediaWithPreloads *store.MediaItem, parsedJSON map[string]any) (*store.MediaItem, error) {
-	parsedAttrs, _ := MetadataParserParseForMediaItem(parsedJSON)
+	params, _ := MetadataParserParseForMediaItem(parsedJSON)
 
 	// Merge in additional attributes
-	parsedAttrs["media_downloaded_at"] = db.Now()
-	parsedAttrs["culled_at"] = nil
+	params.MediaDownloadedAt = store.Ptr(time.Now().UTC())
+	params.Clear |= store.ClearCulledAt
 
-	nfoFilepath := mediaDownloaderDetermineNfoFilepath(parsedJSON, mediaWithPreloads.Source.MediaProfile.DownloadNfo)
-	parsedAttrs["nfo_filepath"] = nfoFilepath
+	params.NfoFilepath = mediaDownloaderDetermineNfoFilepath(parsedJSON, mediaWithPreloads.Source.MediaProfile.DownloadNfo)
+	if params.NfoFilepath == nil {
+		params.Clear |= store.ClearNfoFilepath
+	}
 
 	// Handle metadata
 	metadataFilepath, _ := a.MetadataFileHelpersCompressAndStoreMetadataFor(ctx, mediaWithPreloads, parsedJSON)
 	thumbnailFilepath, _ := a.MetadataFileHelpersDownloadAndStoreThumbnailFor(ctx, mediaWithPreloads)
-
-	metadataMap := map[string]any{
-		"metadata_filepath":  metadataFilepath,
-		"thumbnail_filepath": thumbnailFilepath,
+	if thumbnailFilepath == nil {
+		thumbnailFilepath = store.Ptr("")
 	}
-	parsedAttrs["metadata"] = metadataMap
+	params.Metadata = &store.MediaMetadataParams{
+		MetadataFilepath:  &metadataFilepath,
+		ThumbnailFilepath: thumbnailFilepath,
+	}
 
-	return a.UpdateMediaItem(ctx, mediaWithPreloads, parsedAttrs)
+	return a.UpdateMediaItem(ctx, mediaWithPreloads, params)
 }
 
 func mediaDownloaderDetermineNfoFilepath(parsedJSON map[string]any, downloadNfo bool) *string {

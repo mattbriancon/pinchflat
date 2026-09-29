@@ -77,8 +77,8 @@ func TestMediaProfileDeletionWorker_Perform(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": profile.ID,
 		})
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
-			"source_id": source.ID,
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
+			SourceID: store.Ptr(source.ID),
 		})
 
 		err := ta.Oban.PerformJob(ta.Ctx, app.MediaProfileDeletionWorkerName, map[string]any{"id": profile.ID})
@@ -117,8 +117,8 @@ func TestMediaProfileDeletionWorker_Perform(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": profile.ID,
 		})
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
-			"source_id": source.ID,
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
+			SourceID: store.Ptr(source.ID),
 		})
 
 		mediaFilepath := *mediaItem.MediaFilepath

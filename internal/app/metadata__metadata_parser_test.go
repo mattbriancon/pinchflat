@@ -47,10 +47,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		mediaFilepath, ok := result["media_filepath"].(*string)
-		if !ok {
-			t.Fatalf("expected media_filepath to be *string, got %T", result["media_filepath"])
-		}
+		mediaFilepath := result.MediaFilepath
 		if mediaFilepath == nil {
 			t.Fatal("expected media_filepath to not be nil")
 		}
@@ -70,10 +67,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		title, ok := result["title"].(string)
-		if !ok {
-			t.Fatalf("expected title to be string, got %T", result["title"])
-		}
+		title := *result.Title
 
 		expectedTitle := getString(metadata, "title")
 		if title != expectedTitle {
@@ -88,10 +82,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		description, ok := result["description"].(string)
-		if !ok {
-			t.Fatalf("expected description to be string, got %T", result["description"])
-		}
+		description := *result.Description
 
 		expectedDescription := getString(metadata, "description")
 		if description != expectedDescription {
@@ -106,10 +97,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		originalURL, ok := result["original_url"].(string)
-		if !ok {
-			t.Fatalf("expected original_url to be string, got %T", result["original_url"])
-		}
+		originalURL := *result.OriginalURL
 
 		expectedURL := getString(metadata, "original_url")
 		if originalURL != expectedURL {
@@ -124,10 +112,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		mediaID, ok := result["media_id"].(string)
-		if !ok {
-			t.Fatalf("expected media_id to be string, got %T", result["media_id"])
-		}
+		mediaID := *result.MediaID
 
 		expectedID := getString(metadata, "id")
 		if mediaID != expectedID {
@@ -142,10 +127,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		livestream, ok := result["livestream"].(bool)
-		if !ok {
-			t.Fatalf("expected livestream to be bool, got %T", result["livestream"])
-		}
+		livestream := *result.Livestream
 
 		liveStatus := getString(metadata, "live_status")
 		if liveStatus != "not_live" {
@@ -169,10 +151,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		livestream, ok := result["livestream"].(bool)
-		if !ok {
-			t.Fatalf("expected livestream to be bool, got %T", result["livestream"])
-		}
+		livestream := *result.Livestream
 
 		if livestream != false {
 			t.Errorf("got livestream %v, want false", livestream)
@@ -186,9 +165,9 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingMediaMetadata(t *testing.T)
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		durationSecondsPtr, ok := result["duration_seconds"].(*int)
-		if !ok || durationSecondsPtr == nil {
-			t.Fatalf("expected duration_seconds to be a non-nil *int, got %T", result["duration_seconds"])
+		durationSecondsPtr := result.DurationSeconds
+		if durationSecondsPtr == nil {
+			t.Fatal("expected duration_seconds to not be nil")
 		}
 
 		duration, ok := metadata["duration"].(float64)
@@ -213,10 +192,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingSubtitleMetadata(t *testing
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		subtitleFilepaths, ok := result["subtitle_filepaths"].([][]string)
-		if !ok {
-			t.Fatalf("expected subtitle_filepaths to be [][]string, got %T", result["subtitle_filepaths"])
-		}
+		subtitleFilepaths := *result.SubtitleFilepaths
 
 		if len(subtitleFilepaths) < 2 {
 			t.Fatalf("expected at least 2 subtitle filepaths, got %d", len(subtitleFilepaths))
@@ -259,10 +235,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingSubtitleMetadata(t *testing
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		subtitleFilepaths, ok := result["subtitle_filepaths"].([][]string)
-		if !ok {
-			t.Fatalf("expected subtitle_filepaths to be [][]string, got %T", result["subtitle_filepaths"])
-		}
+		subtitleFilepaths := *result.SubtitleFilepaths
 
 		if len(subtitleFilepaths) != 4 {
 			t.Fatalf("expected 4 subtitle filepaths, got %d", len(subtitleFilepaths))
@@ -289,10 +262,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingSubtitleMetadata(t *testing
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		subtitleFilepaths, ok := result["subtitle_filepaths"].([][]string)
-		if !ok {
-			t.Fatalf("expected subtitle_filepaths to be [][]string, got %T", result["subtitle_filepaths"])
-		}
+		subtitleFilepaths := *result.SubtitleFilepaths
 
 		if len(subtitleFilepaths) != 0 {
 			t.Errorf("expected empty subtitle_filepaths, got %d items", len(subtitleFilepaths))
@@ -312,10 +282,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingSubtitleMetadata(t *testing
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		subtitleFilepaths, ok := result["subtitle_filepaths"].([][]string)
-		if !ok {
-			t.Fatalf("expected subtitle_filepaths to be [][]string, got %T", result["subtitle_filepaths"])
-		}
+		subtitleFilepaths := *result.SubtitleFilepaths
 
 		if len(subtitleFilepaths) != 0 {
 			t.Errorf("expected empty subtitle_filepaths, got %d items", len(subtitleFilepaths))
@@ -365,10 +332,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		thumbnailPath, ok := result["thumbnail_filepath"].(*string)
-		if !ok {
-			t.Fatalf("expected thumbnail_filepath to be *string, got %T", result["thumbnail_filepath"])
-		}
+		thumbnailPath := result.ThumbnailFilepath
 
 		if thumbnailPath == nil {
 			t.Fatal("expected thumbnail_filepath to not be nil")
@@ -385,10 +349,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		thumbnailPath, ok := result["thumbnail_filepath"].(*string)
-		if !ok {
-			t.Fatalf("expected thumbnail_filepath to be *string, got %T", result["thumbnail_filepath"])
-		}
+		thumbnailPath := result.ThumbnailFilepath
 
 		if thumbnailPath == nil {
 			t.Fatal("expected thumbnail_filepath to not be nil")
@@ -417,7 +378,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		thumbnailPath := result["thumbnail_filepath"]
+		thumbnailPath := result.ThumbnailFilepath
 		if thumbnailPath != nil {
 			t.Errorf("expected thumbnail_filepath to be nil, got %v", thumbnailPath)
 		}
@@ -436,7 +397,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		thumbnailPath := result["thumbnail_filepath"]
+		thumbnailPath := result.ThumbnailFilepath
 		if thumbnailPath != nil {
 			t.Errorf("expected thumbnail_filepath to be nil, got %v", thumbnailPath)
 		}
@@ -455,7 +416,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingThumbnailMetadata(t *testin
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		thumbnailPath := result["thumbnail_filepath"]
+		thumbnailPath := result.ThumbnailFilepath
 		if thumbnailPath != nil {
 			t.Errorf("expected thumbnail_filepath to be nil, got %v", thumbnailPath)
 		}
@@ -491,10 +452,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingInfojsonMetadata(t *testing
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		metadataPath, ok := result["metadata_filepath"].(*string)
-		if !ok {
-			t.Fatalf("expected metadata_filepath to be *string, got %T", result["metadata_filepath"])
-		}
+		metadataPath := result.MetadataFilepath
 
 		if metadataPath == nil {
 			t.Fatal("expected metadata_filepath to not be nil")
@@ -519,7 +477,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingInfojsonMetadata(t *testing
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		metadataPath := result["metadata_filepath"]
+		metadataPath := result.MetadataFilepath
 		if metadataPath != nil {
 			t.Errorf("expected metadata_filepath to be nil, got %v", metadataPath)
 		}
@@ -538,7 +496,7 @@ func TestMetadataParser_ParseForMediaItem_WhenTestingInfojsonMetadata(t *testing
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		metadataPath := result["metadata_filepath"]
+		metadataPath := result.MetadataFilepath
 		if metadataPath != nil {
 			t.Errorf("expected metadata_filepath to be nil, got %v", metadataPath)
 		}

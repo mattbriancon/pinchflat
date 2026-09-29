@@ -1,12 +1,9 @@
 package store
 
 import (
-	"context"
-	"database/sql"
 	"encoding/json"
 	"time"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/mattbriancon/pinchflat/internal/db"
 )
 
@@ -67,167 +64,9 @@ func NewMediaItem() *MediaItem {
 	}
 }
 
-var mediaItemAllowedFields = []string{
-	"playlist_index",
-	"title",
-	"media_id",
-	"description",
-	"original_url",
-	"livestream",
-	"source_id",
-	"short_form_content",
-	"uploaded_at",
-	"upload_date_index",
-	"duration_seconds",
-	"predicted_media_filepath",
-	"media_downloaded_at",
-	"media_filepath",
-	"media_size_bytes",
-	"subtitle_filepaths",
-	"thumbnail_filepath",
-	"metadata_filepath",
-	"nfo_filepath",
-	"last_error",
-	"prevent_download",
-	"prevent_culling",
-	"culled_at",
-	"media_redownloaded_at",
-}
-
-// Pretty much all the fields captured at index are required.
-var mediaItemRequiredFields = []string{
-	"uuid",
-	"title",
-	"original_url",
-	"livestream",
-	"media_id",
-	"source_id",
-	"uploaded_at",
-	"short_form_content",
-}
-
-// MediaItem.changeset/2
-//
-// Ported as a method taking *Store (with ctx) because update_upload_date_index
-// queries the database (Sources.get_source!/1 and a MediaQuery aggregate).
-func MediaItemChangeset(ctx context.Context, s *Store, mediaItem *MediaItem, attrs Attrs) *Changeset {
-	cs := Cast(mediaItem, attrs, mediaItemAllowedFields)
-	cs.CastAssoc(attrs, "metadata", mediaItem.Metadata, func(data any, attrs Attrs) *Changeset {
-		md, _ := data.(*MediaMetadata)
-		if md == nil {
-			md = NewMediaMetadata()
-		}
-		return MediaMetadataChangeset(md, attrs)
-	})
-	cs.DynamicDefault("uuid", func(*Changeset) any { return GenerateUUID() })
-	cs = mediaItemUpdateUploadDateIndex(ctx, s, cs)
-	cs.ValidateRequired(mediaItemRequiredFields...)
-	// Validate that the title does NOT start with "youtube video #" since that indicates a restriction by YouTube.
-	// See issue #549 for more information.
-	cs.ValidateFormat("title", `^(?!youtube video #)`)
-	cs.UniqueConstraint([]string{"media_id", "source_id"}, "")
-	return cs
-}
-
 // MediaItem.filepath_attributes/0
 func MediaItemFilepathAttributes() []string {
 	return []string{"media_filepath", "thumbnail_filepath", "metadata_filepath", "subtitle_filepaths", "nfo_filepath"}
-}
-
-// MediaItem.filepath_attribute_defaults/0
-func MediaItemFilepathAttributeDefaults() Attrs {
-	out := Attrs{}
-	for _, field := range MediaItemFilepathAttributes() {
-		if field == "subtitle_filepaths" {
-			out[field] = db.NestedStringArray{}
-		} else {
-			out[field] = nil
-		}
-	}
-	return out
-}
-
-// update_upload_date_index/1. Run it on new records no matter what. The
-// method we delegate to will handle the case where `uploaded_at` is `nil`.
-func mediaItemUpdateUploadDateIndex(ctx context.Context, s *Store, cs *Changeset) *Changeset {
-	data, _ := cs.Data.(*MediaItem)
-	if data != nil && data.ID == 0 {
-		return mediaItemDoUpdateUploadDateIndex(ctx, s, cs)
-	}
-
-	// For the update case, we only want to recalculate if the day itself has
-	// changed. For instance, this is useful in the migration from
-	// `upload_date` to `uploaded_at`.
-	if cs.HasChange("uploaded_at") {
-		oldUploadedAt := data.UploadedAt
-		newUploadedAt := cs.GetChange("uploaded_at").(db.UTCDateTime)
-		if mediaItemSameDate(oldUploadedAt.Time, newUploadedAt.Time) {
-			return cs
-		}
-		return mediaItemDoUpdateUploadDateIndex(ctx, s, cs)
-	}
-
-	// If the record is persisted and the `uploaded_at` field is not being
-	// changed, we don't need to recalculate the index.
-	return cs
-}
-
-func mediaItemSameDate(a, b time.Time) bool {
-	ay, am, ad := a.UTC().Date()
-	by, bm, bd := b.UTC().Date()
-	return ay == by && am == bm && ad == bd
-}
-
-func mediaItemDoUpdateUploadDateIndex(ctx context.Context, s *Store, cs *Changeset) *Changeset {
-	if !cs.HasChange("uploaded_at") {
-		return cs
-	}
-
-	uploadedAtVal := cs.GetChange("uploaded_at")
-	if uploadedAtVal == nil {
-		return cs
-	}
-
-	uploadedAt, ok := uploadedAtVal.(db.UTCDateTime)
-	if !ok {
-		return cs
-	}
-
-	sourceID, _ := cs.GetField("source_id").(int64)
-	// Repo.get!/2: raises Ecto.NoResultsError if the source doesn't exist.
-	source, err := MustOne[Source](ctx, s.Q(ctx), From[Source]().Where(sq.Eq{"sources.id": sourceID}))
-	if err != nil {
-		panic(err)
-	}
-
-	// Channels should count down from 99, playlists should count up from 0.
-	// This reflects the fact that channels prepend new videos to the top of
-	// the list and playlists append new videos to the bottom of the list.
-	defaultIndex := 0
-	aggregator := "MAX"
-	changeDirection := 1
-	if source.CollectionType == SourceCollectionTypeChannel {
-		defaultIndex = 99
-		aggregator = "MIN"
-		changeDirection = -1
-	}
-	q := MediaQueryNew().
-		Where(sq.And{MediaQueryUploadDateMatches(uploadedAt.Time), MediaQueryForSource(source.ID)}).
-		Map(func(b sq.SelectBuilder) sq.SelectBuilder {
-			return b.RemoveColumns().Column(aggregator + "(mi.upload_date_index) AS agg")
-		})
-
-	currentMax, err := Scalar[sql.NullInt64](ctx, s.Q(ctx), q)
-	if err != nil {
-		panic(err)
-	}
-
-	if !currentMax.Valid {
-		cs.PutChange("upload_date_index", defaultIndex)
-	} else {
-		cs.PutChange("upload_date_index", int(currentMax.Int64)+changeDirection)
-	}
-	return cs
 }
 
 // MarshalJSON is `defimpl Jason.Encoder, for: MediaItem` (media_item.ex):

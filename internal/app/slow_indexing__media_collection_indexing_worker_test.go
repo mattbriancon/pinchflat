@@ -247,7 +247,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 	t.Run("starts a job for any pending media item even if it's from another run", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
-		apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil
@@ -274,7 +274,7 @@ func TestMediaCollectionIndexingWorker_Perform(t *testing.T) {
 	t.Run("does not kick off a job for media items that could not be saved", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"index_frequency_minutes": 10})
-		apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "media_id": "video1"})
+		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaID: store.Ptr("video1"), Clear: store.ClearMediaFilepath})
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil

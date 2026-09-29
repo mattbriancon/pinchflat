@@ -6,6 +6,7 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/app"
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
+	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
@@ -15,8 +16,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		newMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
-		oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
+		newMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
+		oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 
 		if err := app.FileSyncingDeleteOutdatedFiles(ctx, oldMediaItem, newMediaItem); err != nil {
 			t.Fatalf("DeleteOutdatedFiles failed: %v", err)
@@ -35,8 +36,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		newMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
-		oldMediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": newMediaItem.MediaFilepath})
+		newMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
+		oldMediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{MediaFilepath: newMediaItem.MediaFilepath})
 
 		if err := app.FileSyncingDeleteOutdatedFiles(ctx, oldMediaItem, newMediaItem); err != nil {
 			t.Fatalf("DeleteOutdatedFiles failed: %v", err)
@@ -55,8 +56,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		newMediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
-		oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
+		newMediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
+		oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 
 		if err := app.FileSyncingDeleteOutdatedFiles(ctx, oldMediaItem, newMediaItem); err != nil {
 			t.Fatalf("DeleteOutdatedFiles failed: %v", err)
@@ -72,8 +73,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		newMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
-		oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
+		newMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
+		oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 
 		if err := app.FileSyncingDeleteOutdatedFiles(ctx, oldMediaItem, newMediaItem); err != nil {
 			t.Fatalf("DeleteOutdatedFiles failed: %v", err)
@@ -95,8 +96,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		newMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
-		oldMediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"subtitle_filepaths": newMediaItem.SubtitleFilepaths})
+		newMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
+		oldMediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SubtitleFilepaths: &newMediaItem.SubtitleFilepaths})
 
 		if err := app.FileSyncingDeleteOutdatedFiles(ctx, oldMediaItem, newMediaItem); err != nil {
 			t.Fatalf("DeleteOutdatedFiles failed: %v", err)
@@ -118,8 +119,8 @@ func TestFileSyncing_DeleteOutdatedFiles(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		newMediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"subtitle_filepaths": [][]string{}})
-		oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
+		newMediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SubtitleFilepaths: &db.NestedStringArray{}})
+		oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 
 		if err := app.FileSyncingDeleteOutdatedFiles(ctx, oldMediaItem, newMediaItem); err != nil {
 			t.Fatalf("DeleteOutdatedFiles failed: %v", err)
@@ -138,7 +139,7 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": "/tmp/missing_file.mp4"})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{MediaFilepath: store.Ptr("/tmp/missing_file.mp4")})
 
 		if mediaItem.MediaFilepath == nil {
 			t.Fatal("media_filepath should be set")
@@ -163,7 +164,7 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 
 		if mediaItem.MediaFilepath == nil {
 			t.Fatal("media_filepath should be set")
@@ -188,7 +189,7 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 
 		if mediaItem.MediaFilepath != nil {
 			os.Remove(*mediaItem.MediaFilepath)
@@ -223,8 +224,8 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{
-			"subtitle_filepaths": [][]string{{"en", "/tmp/missing_file.srt"}},
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{
+			SubtitleFilepaths: &db.NestedStringArray{{"en", "/tmp/missing_file.srt"}},
 		})
 
 		if len(mediaItem.SubtitleFilepaths) == 0 {
@@ -251,7 +252,7 @@ func TestFileSyncing_SyncFilePresenceOnDisk(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 
 		if len(mediaItem.SubtitleFilepaths) == 0 {
 			t.Fatal("subtitle_filepaths should be set")

@@ -105,5 +105,5 @@ func fastIndexingHelpersCreateMediaItemFromMediaID(ctx context.Context, a *App, 
 		return nil, err
 	}
 
-	return a.CreateMediaItemFromBackendAttrs(ctx, source, ytDlpMedia)
+	return a.UpsertMediaItemFromYtDlp(ctx, source, ytDlpMedia)
 }

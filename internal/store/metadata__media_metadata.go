@@ -22,23 +22,6 @@ func NewMediaMetadata() *MediaMetadata {
 	return &MediaMetadata{}
 }
 
-var mediaMetadataAllowedFields = []string{
-	"metadata_filepath",
-	"thumbnail_filepath",
-}
-
-var mediaMetadataRequiredFields = []string{
-	"metadata_filepath",
-	"thumbnail_filepath",
-}
-
-// MediaMetadataChangeset/2
-func MediaMetadataChangeset(mediaMetadata *MediaMetadata, attrs Attrs) *Changeset {
-	return Cast(mediaMetadata, attrs, mediaMetadataAllowedFields).
-		ValidateRequired(mediaMetadataRequiredFields...).
-		UniqueConstraint([]string{"media_item_id"}, "media_item_id")
-}
-
 // MediaMetadataFilepathAttributes/0
 func MediaMetadataFilepathAttributes() []string {
 	return []string{"metadata_filepath", "thumbnail_filepath"}

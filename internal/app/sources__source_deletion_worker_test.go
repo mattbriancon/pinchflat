@@ -74,8 +74,8 @@ func TestSourceDeletionWorker_Perform(t *testing.T) {
 		})
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
-			"source_id": source.ID,
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
+			SourceID: store.Ptr(source.ID),
 		})
 
 		err := ta.Oban.PerformJob(ta.Ctx, app.SourceDeletionWorkerName, map[string]any{"id": source.ID})
@@ -106,8 +106,8 @@ func TestSourceDeletionWorker_Perform(t *testing.T) {
 		})
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
-			"source_id": source.ID,
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
+			SourceID: store.Ptr(source.ID),
 		})
 
 		mediaFilepath := *mediaItem.MediaFilepath

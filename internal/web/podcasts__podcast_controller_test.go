@@ -121,7 +121,7 @@ func TestPodcastController_FeedImage(t *testing.T) {
 func TestPodcastController_EpisodeImage(t *testing.T) {
 	t.Run("returns an episode image if one can be found", func(t *testing.T) {
 		c := webtest.New(t)
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.Attrs{})
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.MediaItemParams{})
 
 		res := c.Get("/media/" + *mediaItem.UUID + "/episode_image.jpg")
 
@@ -140,7 +140,7 @@ func TestPodcastController_EpisodeImage(t *testing.T) {
 
 	t.Run("returns 404 if an image cannot be found", func(t *testing.T) {
 		c := webtest.New(t)
-		mediaItem := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{})
 
 		res := c.Get("/media/" + *mediaItem.UUID + "/episode_image.jpg")
 

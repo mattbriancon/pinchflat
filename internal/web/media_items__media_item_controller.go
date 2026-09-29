@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -52,14 +53,30 @@ func (s *Server) MediaItemControllerShow(w http.ResponseWriter, r *http.Request)
 
 // MediaItemControllerEdit renders the edit form for a media item.
 func (s *Server) MediaItemControllerEdit(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	mediaItem, ok := loadOrFail(s, w, r, "id", s.App.GetMediaItem)
 	if !ok {
 		return
 	}
 
-	cs := s.App.ChangeMediaItem(ctx, mediaItem, store.Attrs{})
-	s.Render(w, r, http.StatusOK, LayoutApp, MediaItemsMediaItemHTMLEdit(mediaItem, cs))
+	s.Render(w, r, http.StatusOK, LayoutApp, MediaItemsMediaItemHTMLEdit(mediaItem, mediaItemForm(mediaItem, store.MediaItemParams{}, nil)))
+}
+
+// mediaItemForm shows mediaItem's editable fields with the params applied on
+// top, as after a failed submit.
+func mediaItemForm(mediaItem *store.MediaItem, p store.MediaItemParams, errs map[string][]string) *Form {
+	values := map[string]any{
+		"prevent_download": mediaItem.PreventDownload,
+		"prevent_culling":  mediaItem.PreventCulling,
+	}
+	if p.PreventDownload != nil {
+		values["prevent_download"] = *p.PreventDownload
+	}
+	if p.PreventCulling != nil {
+		values["prevent_culling"] = *p.PreventCulling
+	} else if p.Clear&store.ClearPreventCulling != 0 {
+		values["prevent_culling"] = nil
+	}
+	return NewForm("media_item", values, errs)
 }
 
 // MediaItemControllerUpdate updates a media item.
@@ -70,13 +87,27 @@ func (s *Server) MediaItemControllerUpdate(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	params := ParseForm(r, "media_item")
+	_ = r.ParseForm()
+	values := url.Values{}
+	for k, v := range r.Form {
+		if field, ok := strings.CutPrefix(k, "media_item["); ok {
+			values[strings.TrimSuffix(field, "]")] = v
+		}
+	}
+
+	params, errs := store.ParseMediaItemParams(values)
+	for field, msgs := range params.Validate(mediaItem) {
+		errs[field] = append(errs[field], msgs...)
+	}
+	if len(errs) > 0 {
+		s.Render(w, r, http.StatusOK, LayoutApp, MediaItemsMediaItemHTMLEdit(mediaItem, mediaItemForm(mediaItem, params, errs)))
+		return
+	}
+
 	updated, err := s.App.UpdateMediaItem(ctx, mediaItem, params)
 	if err != nil {
-		// Handle changeset errors
-		if csErr, ok := store.AsChangesetError(err); ok {
-			csErr.Action = "update"
-			s.Render(w, r, http.StatusOK, LayoutApp, MediaItemsMediaItemHTMLEdit(mediaItem, csErr))
+		if cs, ok := store.AsChangesetError(err); ok {
+			s.Render(w, r, http.StatusOK, LayoutApp, MediaItemsMediaItemHTMLEdit(mediaItem, mediaItemForm(mediaItem, params, cs.ErrorMap())))
 			return
 		}
 		s.Fail(w, r, err)
@@ -96,12 +127,12 @@ func (s *Server) MediaItemControllerDelete(w http.ResponseWriter, r *http.Reques
 	}
 
 	prevent := r.URL.Query().Get("prevent_download") == "true"
-	addlAttrs := store.Attrs{}
+	var extra store.MediaItemParams
 	if prevent {
-		addlAttrs["prevent_download"] = true
+		extra.PreventDownload = store.Ptr(true)
 	}
 
-	_, err := s.App.MediaDeleteMediaFiles(ctx, mediaItem, addlAttrs)
+	_, err := s.App.MediaDeleteMediaFiles(ctx, mediaItem, extra)
 	if err != nil {
 		s.Fail(w, r, err)
 		return

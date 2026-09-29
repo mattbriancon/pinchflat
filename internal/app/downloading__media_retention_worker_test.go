@@ -121,11 +121,11 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 		justOverTwoDaysAgo := apptest.NowMinus(2, "days").Add(-1 * time.Minute)
 		justUnderTwoDaysAgo := apptest.NowMinus(2, "days").Add(1 * time.Minute)
 
-		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.Attrs{"media_downloaded_at": db.UTCDateTime{Time: justOverTwoDaysAgo}})
+		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.MediaItemParams{MediaDownloadedAt: store.Ptr(justOverTwoDaysAgo)})
 		if err != nil {
 			t.Fatalf("update old media item: %v", err)
 		}
-		_, err = ta.UpdateMediaItem(ctx, newMediaItem, store.Attrs{"media_downloaded_at": db.UTCDateTime{Time: justUnderTwoDaysAgo}})
+		_, err = ta.UpdateMediaItem(ctx, newMediaItem, store.MediaItemParams{MediaDownloadedAt: store.Ptr(justUnderTwoDaysAgo)})
 		if err != nil {
 			t.Fatalf("update new media item: %v", err)
 		}
@@ -239,7 +239,7 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 
 		_, oldMediaItem, _ := prepareRecordsForRetentionDate(t, ta, 2)
 
-		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.Attrs{"prevent_culling": true})
+		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.MediaItemParams{PreventCulling: store.Ptr(true)})
 		if err != nil {
 			t.Fatalf("update media item: %v", err)
 		}
@@ -270,7 +270,7 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 
 		_, oldMediaItem, _ := prepareRecordsForRetentionDate(t, ta, 2)
 
-		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.Attrs{"media_filepath": nil})
+		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		if err != nil {
 			t.Fatalf("update media item: %v", err)
 		}
@@ -332,11 +332,11 @@ func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *tes
 
 		_, oldMediaItem, newMediaItem := prepareRecordsForSourceCutoffDate(t, ta, 2)
 
-		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.Attrs{"uploaded_at": db.UTCDateTime{Time: apptest.NowMinus(2, "days")}})
+		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.MediaItemParams{UploadedAt: store.Ptr(apptest.NowMinus(2, "days"))})
 		if err != nil {
 			t.Fatalf("update old media item: %v", err)
 		}
-		_, err = ta.UpdateMediaItem(ctx, newMediaItem, store.Attrs{"uploaded_at": db.UTCDateTime{Time: apptest.NowMinus(1, "day")}})
+		_, err = ta.UpdateMediaItem(ctx, newMediaItem, store.MediaItemParams{UploadedAt: store.Ptr(apptest.NowMinus(1, "day"))})
 		if err != nil {
 			t.Fatalf("update new media item: %v", err)
 		}
@@ -459,7 +459,7 @@ func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *tes
 
 		_, oldMediaItem, _ := prepareRecordsForSourceCutoffDate(t, ta, 2)
 
-		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.Attrs{"prevent_culling": true})
+		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.MediaItemParams{PreventCulling: store.Ptr(true)})
 		if err != nil {
 			t.Fatalf("update media item: %v", err)
 		}
@@ -491,7 +491,7 @@ func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *tes
 
 		_, oldMediaItem, _ := prepareRecordsForSourceCutoffDate(t, ta, 2)
 
-		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.Attrs{"media_filepath": nil})
+		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		if err != nil {
 			t.Fatalf("update media item: %v", err)
 		}
@@ -522,14 +522,14 @@ func prepareRecordsForRetentionDate(t testing.TB, ta *apptest.TestApp, retention
 
 	source := apptest.SourceFixture(t, ta, attrs)
 
-	oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
-		"source_id":           source.ID,
-		"media_downloaded_at": &db.UTCDateTime{Time: apptest.NowMinus(3, "days")},
+	oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
+		SourceID:          store.Ptr(source.ID),
+		MediaDownloadedAt: store.Ptr(apptest.NowMinus(3, "days")),
 	})
 
-	newMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
-		"source_id":           source.ID,
-		"media_downloaded_at": &db.UTCDateTime{Time: apptest.NowMinus(1, "day")},
+	newMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
+		SourceID:          store.Ptr(source.ID),
+		MediaDownloadedAt: store.Ptr(apptest.NowMinus(1, "day")),
 	})
 
 	return source, oldMediaItem, newMediaItem
@@ -546,14 +546,14 @@ func prepareRecordsForSourceCutoffDate(t testing.TB, ta *apptest.TestApp, downlo
 
 	source := apptest.SourceFixture(t, ta, attrs)
 
-	oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
-		"source_id":   source.ID,
-		"uploaded_at": db.UTCDateTime{Time: apptest.NowMinus(3, "days")},
+	oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
+		SourceID:   store.Ptr(source.ID),
+		UploadedAt: store.Ptr(apptest.NowMinus(3, "days")),
 	})
 
-	newMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
-		"source_id":   source.ID,
-		"uploaded_at": db.UTCDateTime{Time: apptest.NowMinus(1, "day")},
+	newMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
+		SourceID:   store.Ptr(source.ID),
+		UploadedAt: store.Ptr(apptest.NowMinus(1, "day")),
 	})
 
 	return source, oldMediaItem, newMediaItem

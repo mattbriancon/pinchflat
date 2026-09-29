@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
@@ -103,32 +104,37 @@ func fileSyncingHandleFileDeletion(ctx context.Context, oldAttributes, newAttrib
 	}
 }
 
-func fileSyncingSyncMediaItemFiles(mediaItem *store.MediaItem) store.Attrs {
-	nonSubtitleKeys := fileSyncingNonSubtitleFilepathAttributes()
+func fileSyncingSyncMediaItemFiles(mediaItem *store.MediaItem) store.MediaItemParams {
 	subtitleKeys := fileSyncingFromNestedList(mediaItem.SubtitleFilepaths)
-	nonSubtitles := fileSyncingExtractFilepaths(mediaItem, nonSubtitleKeys)
 
 	// This one is checking for the negative (ie: only update if the file doesn't exist)
-	newNonSubtitleAttrs := make(store.Attrs)
-	for key, filepath := range nonSubtitles {
-		if filepath == nil || !fileExists(*filepath) {
-			newNonSubtitleAttrs[key] = nil
-		}
+	var p store.MediaItemParams
+	missing := func(filepath *string) bool { return filepath == nil || !fileExists(*filepath) }
+	if missing(mediaItem.MediaFilepath) {
+		p.Clear |= store.ClearMediaFilepath
+	}
+	if missing(mediaItem.ThumbnailFilepath) {
+		p.Clear |= store.ClearThumbnailFilepath
+	}
+	if missing(mediaItem.MetadataFilepath) {
+		p.Clear |= store.ClearMetadataFilepath
+	}
+	if missing(mediaItem.NfoFilepath) {
+		p.Clear |= store.ClearNfoFilepath
 	}
 
 	// This one is checking for the positive (ie: only update if the file exists)
 	// This is because subtitles, being an array type in the DB, are most easily updated
 	// by a full replacement rather than finding the actual diff
-	var newSubtitleAttrs [][]string
+	subtitles := db.NestedStringArray{}
 	for key, filepath := range subtitleKeys {
 		if filepath != nil && fileExists(*filepath) {
-			newSubtitleAttrs = append(newSubtitleAttrs, []string{key, *filepath})
+			subtitles = append(subtitles, []string{key, *filepath})
 		}
 	}
+	p.SubtitleFilepaths = &subtitles
 
-	newNonSubtitleAttrs["subtitle_filepaths"] = newSubtitleAttrs
-
-	return newNonSubtitleAttrs
+	return p
 }
 
 func fileExists(path string) bool {

@@ -986,7 +986,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		src := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": src.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
 		updateAttrs := store.Attrs{"download_media": true}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
@@ -1004,7 +1004,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		src := apptest.SourceFixture(t, ta, store.Attrs{"download_media": true, "enabled": true})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": src.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
 		updateAttrs := store.Attrs{"download_media": false}
 		if err := ta.App.DownloadingHelpersEnqueuePendingDownloadTasks(ta.Ctx, src, nil); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks: %v", err)
@@ -1025,7 +1025,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		src := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false, "enabled": false})
-		apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": src.ID, "media_filepath": nil})
+		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
 		updateAttrs := store.Attrs{"download_media": true}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
@@ -1040,7 +1040,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		src := apptest.SourceFixture(t, ta, store.Attrs{"download_media": true, "enabled": true})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": src.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
 		updateAttrs := store.Attrs{"enabled": false}
 		if err := ta.App.DownloadingHelpersEnqueuePendingDownloadTasks(ta.Ctx, src, nil); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks: %v", err)
@@ -1061,7 +1061,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		src := apptest.SourceFixture(t, ta, store.Attrs{"download_media": true, "enabled": false})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": src.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
 		updateAttrs := store.Attrs{"enabled": true}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
@@ -1079,7 +1079,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		src := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false, "enabled": false})
-		apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": src.ID, "media_filepath": nil})
+		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
 		updateAttrs := store.Attrs{"enabled": true}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
@@ -1448,7 +1448,7 @@ func TestSources_DeleteSource(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": src.ID})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID)})
 
 		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, false); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
@@ -1463,7 +1463,7 @@ func TestSources_DeleteSource(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": src.ID})
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID)})
 
 		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, false); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
@@ -1533,7 +1533,7 @@ func TestSources_DeleteSourceWhenDeletingFiles(t *testing.T) {
 		ta.UserScriptMock.Run.Stub(func(_ string, _ any) error { return nil })
 
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": src.ID})
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID)})
 
 		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, true); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
@@ -1553,7 +1553,7 @@ func TestSources_DeleteSourceWhenDeletingFiles(t *testing.T) {
 		ta.UserScriptMock.Run.Stub(func(_ string, _ any) error { return nil })
 
 		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": src.ID})
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID)})
 
 		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, true); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)

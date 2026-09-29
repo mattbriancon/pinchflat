@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
-	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
@@ -41,7 +40,7 @@ func TestRssFeedBuilder_Build(t *testing.T) {
 	})
 
 	t.Run("can optionally apply a limit to media items", func(t *testing.T) {
-		goodMedia := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID})
+		goodMedia := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 0, "")
 		if err != nil {
@@ -161,9 +160,9 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		goodMedia := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID})
-		badMedia := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": "/tmp/existing_file.mp3"})
-		pendingMedia := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		goodMedia := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
+		badMedia := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaFilepath: store.Ptr("/tmp/existing_file.mp3")})
+		pendingMedia := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
 		if err != nil {
@@ -186,7 +185,7 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "title": "Test Media Item", "description": "Test Description"})
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Title: store.Ptr("Test Media Item"), Description: store.Ptr("Test Description")})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
 		if err != nil {
@@ -228,7 +227,7 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		uploadedAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
-		apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": db.UTCDateTime{Time: uploadedAt}})
+		apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(uploadedAt)})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
 		if err != nil {
@@ -251,7 +250,7 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "media_size_bytes": int64(1234)})
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaSizeBytes: store.Ptr(int64(1234))})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
 		if err != nil {
@@ -283,7 +282,7 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "media_size_bytes": int64(1234), "title": "Test Media"})
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaSizeBytes: store.Ptr(int64(1234)), Title: store.Ptr("Test Media")})
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")
 		if err != nil {
@@ -310,7 +309,7 @@ func TestRssFeedBuilder_Build_MediaXml(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID})
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		os.Remove(*mediaItem.ThumbnailFilepath)
 
 		res, err := ta.RssFeedBuilderBuild(ta.Ctx, source, 2000, "")

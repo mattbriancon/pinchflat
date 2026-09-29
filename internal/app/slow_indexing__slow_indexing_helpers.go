@@ -88,7 +88,7 @@ func (a *App) SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx contex
 	// Create media items
 	result := make([]any, 0, len(mediaAttributes))
 	for _, mediaAttrs := range mediaAttributes {
-		mediaItem, err := a.CreateMediaItemFromBackendAttrs(ctx, source, mediaAttrs)
+		mediaItem, err := a.UpsertMediaItemFromYtDlp(ctx, source, mediaAttrs)
 		if err != nil {
 			// Return changeset errors
 			if csErr, ok := err.(*store.ChangesetError); ok {
@@ -191,7 +191,7 @@ func slowIndexingHelpersCreateMediaItemAndEnqueueDownload(ctx context.Context, a
 	}
 
 	// Create media item
-	mediaItem, err := a.CreateMediaItemFromBackendAttrs(ctx, reloadedSource, mediaAttrs)
+	mediaItem, err := a.UpsertMediaItemFromYtDlp(ctx, reloadedSource, mediaAttrs)
 	if err != nil {
 		slog.Debug("FileFollowerServer Handler: Error creating media item", "error", err)
 		return

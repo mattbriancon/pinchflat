@@ -15,28 +15,38 @@ func randomVideoName() string {
 	return "video_" + randBase64(8) + ext
 }
 
-// MediaItemFixture creates a MediaItem with sensible defaults, merging in attrs.
-func MediaItemFixture(t testing.TB, ts *TestStore, attrs store.Attrs) *store.MediaItem {
+// MediaItemFixture creates a MediaItem with sensible defaults for whatever p
+// leaves unset.
+func MediaItemFixture(t testing.TB, ts *TestStore, p store.MediaItemParams) *store.MediaItem {
 	t.Helper()
 	mediaID := randBase64(12)
 
-	defaults := store.Attrs{
-		"media_id":           mediaID,
-		"title":              "Product " + randBase64(6) + " " + mediaID,
-		"original_url":       "https://www.youtube.com/watch?v=" + mediaID,
-		"livestream":         false,
-		"short_form_content": false,
-		"media_filepath":     "/video/" + randomVideoName(),
-		"source_id":          SourceFixture(t, ts, store.Attrs{}).ID,
-		"uploaded_at":        db.UTCDateTime{Time: time.Now().UTC()},
+	if p.MediaID == nil {
+		p.MediaID = &mediaID
+	}
+	if p.Title == nil && p.Clear&store.ClearTitle == 0 {
+		p.Title = store.Ptr("Product " + randBase64(6) + " " + *p.MediaID)
+	}
+	if p.OriginalURL == nil {
+		p.OriginalURL = store.Ptr("https://www.youtube.com/watch?v=" + *p.MediaID)
+	}
+	if p.Livestream == nil {
+		p.Livestream = store.Ptr(false)
+	}
+	if p.ShortFormContent == nil && p.Clear&store.ClearShortFormContent == 0 {
+		p.ShortFormContent = store.Ptr(false)
+	}
+	if p.MediaFilepath == nil && p.Clear&store.ClearMediaFilepath == 0 {
+		p.MediaFilepath = store.Ptr("/video/" + randomVideoName())
+	}
+	if p.SourceID == nil {
+		p.SourceID = store.Ptr(SourceFixture(t, ts, store.Attrs{}).ID)
+	}
+	if p.UploadedAt == nil && p.Clear&store.ClearUploadedAt == 0 {
+		p.UploadedAt = store.Ptr(time.Now().UTC())
 	}
 
-	// Merge attrs into defaults
-	for k, v := range attrs {
-		defaults[k] = v
-	}
-
-	mediaItem, err := ts.CreateMediaItem(ts.Ctx, defaults)
+	mediaItem, err := ts.CreateMediaItem(ts.Ctx, p)
 	if err != nil {
 		t.Fatalf("MediaItemFixture: %v", err)
 	}

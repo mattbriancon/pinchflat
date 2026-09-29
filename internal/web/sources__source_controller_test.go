@@ -256,7 +256,7 @@ func TestSourceController_ForceDownloadPending(t *testing.T) {
 	t.Run("enqueues pending download tasks", func(t *testing.T) {
 		c := webtest.New(t)
 		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
-		apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		initialJobs := len(c.Oban.Enqueued(t, obanlite.Match{}))
 		c.Post(fmt.Sprintf("/sources/%d/force_download_pending", source.ID), "", nil)
@@ -283,9 +283,9 @@ func TestSourceController_ForceRedownload(t *testing.T) {
 	t.Run("enqueues re-download tasks", func(t *testing.T) {
 		c := webtest.New(t)
 		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
-		apptest.MediaItemFixture(t, c.TestApp, store.Attrs{
-			"source_id":           source.ID,
-			"media_downloaded_at": apptest.Now(),
+		apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{
+			SourceID:          store.Ptr(source.ID),
+			MediaDownloadedAt: store.Ptr(apptest.Now()),
 		})
 
 		initialJobs := len(c.Oban.Enqueued(t, obanlite.Match{}))

@@ -245,8 +245,8 @@ func TestProfiles_DeleteMediaProfile(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 		})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{
-			"source_id": source.ID,
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{
+			SourceID: store.Ptr(source.ID),
 		})
 
 		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, false)
@@ -267,8 +267,8 @@ func TestProfiles_DeleteMediaProfile(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 		})
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
-			"source_id": source.ID,
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
+			SourceID: store.Ptr(source.ID),
 		})
 
 		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, false)
@@ -294,8 +294,8 @@ func TestProfiles_DeleteMediaProfile_WhenDeletingFiles(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 		})
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
-			"source_id": source.ID,
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
+			SourceID: store.Ptr(source.ID),
 		})
 
 		_, err := ta.ProfilesDeleteMediaProfile(ta.Ctx, mediaProfile, true)
@@ -330,8 +330,8 @@ func TestProfiles_DeleteMediaProfile_WhenDeletingFiles(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"media_profile_id": mediaProfile.ID,
 		})
-		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{
-			"source_id": source.ID,
+		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
+			SourceID: store.Ptr(source.ID),
 		})
 
 		mediaFilepath := *mediaItem.MediaFilepath

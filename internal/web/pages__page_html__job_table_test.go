@@ -19,7 +19,7 @@ import (
 func createMediaItemJob(t testing.TB, c *webtest.Client, jobState string) (*store.Source, *store.MediaItem, *store.Task) {
 	t.Helper()
 	source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
-	mediaItem := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID})
+	mediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 	task, err := c.App.MediaDownloadWorkerKickoffWithTask(c.Ctx, mediaItem, store.Attrs{}, nil)
 	if err != nil {
 		t.Fatalf("MediaDownloadWorkerKickoffWithTask: %v", err)

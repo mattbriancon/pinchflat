@@ -17,28 +17,38 @@ func randomVideoName() string {
 	return "video_" + randBase64(8) + ext
 }
 
-// MediaItemFixture creates a MediaItem with sensible defaults, merging in attrs.
-func MediaItemFixture(t testing.TB, ta *TestApp, attrs store.Attrs) *store.MediaItem {
+// MediaItemFixture creates a MediaItem with sensible defaults for whatever p
+// leaves unset.
+func MediaItemFixture(t testing.TB, ta *TestApp, p store.MediaItemParams) *store.MediaItem {
 	t.Helper()
 	mediaID := randBase64(12)
 
-	defaults := store.Attrs{
-		"media_id":           mediaID,
-		"title":              "Product " + randBase64(6) + " " + mediaID,
-		"original_url":       "https://www.youtube.com/watch?v=" + mediaID,
-		"livestream":         false,
-		"short_form_content": false,
-		"media_filepath":     "/video/" + randomVideoName(),
-		"source_id":          SourceFixture(t, ta, store.Attrs{}).ID,
-		"uploaded_at":        db.UTCDateTime{Time: time.Now().UTC()},
+	if p.MediaID == nil {
+		p.MediaID = &mediaID
+	}
+	if p.Title == nil && p.Clear&store.ClearTitle == 0 {
+		p.Title = store.Ptr("Product " + randBase64(6) + " " + *p.MediaID)
+	}
+	if p.OriginalURL == nil {
+		p.OriginalURL = store.Ptr("https://www.youtube.com/watch?v=" + *p.MediaID)
+	}
+	if p.Livestream == nil {
+		p.Livestream = store.Ptr(false)
+	}
+	if p.ShortFormContent == nil && p.Clear&store.ClearShortFormContent == 0 {
+		p.ShortFormContent = store.Ptr(false)
+	}
+	if p.MediaFilepath == nil && p.Clear&store.ClearMediaFilepath == 0 {
+		p.MediaFilepath = store.Ptr("/video/" + randomVideoName())
+	}
+	if p.SourceID == nil {
+		p.SourceID = store.Ptr(SourceFixture(t, ta, store.Attrs{}).ID)
+	}
+	if p.UploadedAt == nil && p.Clear&store.ClearUploadedAt == 0 {
+		p.UploadedAt = store.Ptr(time.Now().UTC())
 	}
 
-	// Merge attrs into defaults
-	for k, v := range attrs {
-		defaults[k] = v
-	}
-
-	mediaItem, err := ta.CreateMediaItem(ta.Ctx, defaults)
+	mediaItem, err := ta.CreateMediaItem(ta.Ctx, p)
 	if err != nil {
 		t.Fatalf("MediaItemFixture: %v", err)
 	}
@@ -46,7 +56,7 @@ func MediaItemFixture(t testing.TB, ta *TestApp, attrs store.Attrs) *store.Media
 }
 
 // MediaItemWithMetadataAttachmentsFixture creates a MediaItem with metadata attachments.
-func MediaItemWithMetadataAttachmentsFixture(t testing.TB, ta *TestApp, attrs store.Attrs) *store.MediaItem {
+func MediaItemWithMetadataAttachmentsFixture(t testing.TB, ta *TestApp, p store.MediaItemParams) *store.MediaItem {
 	t.Helper()
 
 	metadataDir := filepath.Join(ta.Config.MetadataDirectory, strconv.Itoa(randInt(1000000)+1))
@@ -61,23 +71,18 @@ func MediaItemWithMetadataAttachmentsFixture(t testing.TB, ta *TestApp, attrs st
 		t.Fatalf("copy thumbnail: %v", err)
 	}
 
-	defaults := store.Attrs{
-		"metadata": map[string]string{
-			"metadata_filepath":  jsonGzFilepath,
-			"thumbnail_filepath": thumbnailFilepath,
-		},
+	if p.Metadata == nil {
+		p.Metadata = &store.MediaMetadataParams{
+			MetadataFilepath:  &jsonGzFilepath,
+			ThumbnailFilepath: &thumbnailFilepath,
+		}
 	}
 
-	// Merge attrs into defaults
-	for k, v := range attrs {
-		defaults[k] = v
-	}
-
-	return MediaItemWithAttachmentsFixture(t, ta, defaults)
+	return MediaItemWithAttachmentsFixture(t, ta, p)
 }
 
 // MediaItemWithAttachmentsFixture creates a MediaItem with media, thumbnail, and subtitle files.
-func MediaItemWithAttachmentsFixture(t testing.TB, ta *TestApp, attrs store.Attrs) *store.MediaItem {
+func MediaItemWithAttachmentsFixture(t testing.TB, ta *TestApp, p store.MediaItemParams) *store.MediaItem {
 	t.Helper()
 
 	baseDir := filepath.Join(ta.Config.MediaDirectory, strconv.Itoa(randInt(1000000)+1))
@@ -96,18 +101,17 @@ func MediaItemWithAttachmentsFixture(t testing.TB, ta *TestApp, attrs store.Attr
 		t.Fatalf("copy subtitle: %v", err)
 	}
 
-	defaults := store.Attrs{
-		"media_filepath":     storedMediaFilepath,
-		"thumbnail_filepath": thumbnailFilepath,
-		"subtitle_filepaths": db.NestedStringArray{[]string{"en", subtitleFilepath}},
+	if p.MediaFilepath == nil && p.Clear&store.ClearMediaFilepath == 0 {
+		p.MediaFilepath = &storedMediaFilepath
+	}
+	if p.ThumbnailFilepath == nil && p.Clear&store.ClearThumbnailFilepath == 0 {
+		p.ThumbnailFilepath = &thumbnailFilepath
+	}
+	if p.SubtitleFilepaths == nil {
+		p.SubtitleFilepaths = &db.NestedStringArray{{"en", subtitleFilepath}}
 	}
 
-	// Merge attrs into defaults
-	for k, v := range attrs {
-		defaults[k] = v
-	}
-
-	return MediaItemFixture(t, ta, defaults)
+	return MediaItemFixture(t, ta, p)
 }
 
 // MediaAttributesReturnFixture returns the JSON string matching Elixir fixture.
