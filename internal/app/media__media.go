@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 
+	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
@@ -44,11 +45,9 @@ func (a *App) MediaDeleteMediaItem(ctx context.Context, mediaItem *store.MediaIt
 // the media_item in the database. Does not delete anything to do with
 // associated metadata.
 //
-// addlAttrs will be merged into the media_item before it is updated. Useful
-// for setting things like `prevent_download` and `culled_at`, if wanted.
-func (a *App) MediaDeleteMediaFiles(ctx context.Context, mediaItem *store.MediaItem, addlAttrs store.Attrs) (*store.MediaItem, error) {
-	filepathAttrs := store.MediaItemFilepathAttributeDefaults()
-
+// extra is merged into the media_item before it is updated. Useful for
+// setting things like `prevent_download` and `culled_at`, if wanted.
+func (a *App) MediaDeleteMediaFiles(ctx context.Context, mediaItem *store.MediaItem, extra store.MediaItemParams) (*store.MediaItem, error) {
 	if err := a.DeleteTasksFor(ctx, mediaItem, nil, obanlite.AllStates); err != nil {
 		return nil, err
 	}
@@ -58,15 +57,9 @@ func (a *App) MediaDeleteMediaFiles(ctx context.Context, mediaItem *store.MediaI
 	// The Elixir code doesn't check the result of this call.
 	_ = a.UserScripts.Run(ctx, "media_deleted", mediaItem)
 
-	mergedAttrs := store.Attrs{}
-	for k, v := range filepathAttrs {
-		mergedAttrs[k] = v
-	}
-	for k, v := range addlAttrs {
-		mergedAttrs[k] = v
-	}
-
-	return a.UpdateMediaItem(ctx, mediaItem, mergedAttrs)
+	extra.Clear |= store.ClearFilepaths
+	extra.SubtitleFilepaths = &db.NestedStringArray{}
+	return a.UpdateMediaItem(ctx, mediaItem, extra)
 }
 
 // do_delete_media_files/1

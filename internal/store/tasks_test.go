@@ -231,7 +231,7 @@ func TestTasks_CreateTask(t *testing.T) {
 	t.Run("accepts a job and media item", func(t *testing.T) {
 		ts := storetest.NewStore(t)
 		job := storetest.JobFixture(t, ts)
-		mediaItem := storetest.MediaItemFixture(t, ts, store.Attrs{})
+		mediaItem := storetest.MediaItemFixture(t, ts, store.MediaItemParams{})
 
 		task, err := ts.CreateTaskWithRecord(ts.Ctx, job, mediaItem)
 		if err != nil {
@@ -250,7 +250,7 @@ func TestTasks_CreateJobWithTask(t *testing.T) {
 	t.Run("enqueues the given job", func(t *testing.T) {
 		ts := storetest.NewStore(t)
 		ts.Oban.Register(storetest.TestJobWorkerName, obanlite.WorkerOpts{Queue: "default"}, storetest.TestJobWorker{})
-		mediaItem := storetest.MediaItemFixture(t, ts, store.Attrs{})
+		mediaItem := storetest.MediaItemFixture(t, ts, store.MediaItemParams{})
 
 		spec := obanlite.NewJob(storetest.TestJobWorkerName, map[string]any{})
 		task, err := ts.CreateJobWithTask(ts.Ctx, spec, mediaItem)
@@ -381,7 +381,7 @@ func TestTasks_DeleteTasksFor(t *testing.T) {
 
 	t.Run("deletes the tasks attached to a media_item", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		mediaItem := storetest.MediaItemFixture(t, ts, store.Attrs{})
+		mediaItem := storetest.MediaItemFixture(t, ts, store.MediaItemParams{})
 		task := storetest.TaskFixture(t, ts, store.Attrs{"media_item_id": mediaItem.ID})
 
 		pendingStates := []string{"available", "scheduled", "retryable"}
@@ -399,7 +399,7 @@ func TestTasks_DeleteTasksFor(t *testing.T) {
 
 	t.Run("deletion can specify which worker to include", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		mediaItem := storetest.MediaItemFixture(t, ts, store.Attrs{})
+		mediaItem := storetest.MediaItemFixture(t, ts, store.MediaItemParams{})
 		task := storetest.TaskFixture(t, ts, store.Attrs{"media_item_id": mediaItem.ID})
 
 		pendingStates := []string{"available", "scheduled", "retryable"}
@@ -522,7 +522,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 
 	t.Run("works on media_items", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		mediaItem := storetest.MediaItemFixture(t, ts, store.Attrs{})
+		mediaItem := storetest.MediaItemFixture(t, ts, store.MediaItemParams{})
 		pendingTask := storetest.TaskFixture(t, ts, store.Attrs{"media_item_id": mediaItem.ID})
 		cancelledTask := storetest.TaskFixture(t, ts, store.Attrs{"media_item_id": mediaItem.ID})
 
@@ -549,7 +549,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 
 	t.Run("deletion can specify which worker to include", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		mediaItem := storetest.MediaItemFixture(t, ts, store.Attrs{})
+		mediaItem := storetest.MediaItemFixture(t, ts, store.MediaItemParams{})
 		task := storetest.TaskFixture(t, ts, store.Attrs{"media_item_id": mediaItem.ID})
 
 		// Should not delete with FooBarWorker filter

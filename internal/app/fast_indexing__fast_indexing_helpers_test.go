@@ -133,9 +133,9 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		apptest.MediaItemFixture(t, ta, store.Attrs{
-			"source_id": source.ID,
-			"media_id":  "test_1",
+		apptest.MediaItemFixture(t, ta, store.MediaItemParams{
+			SourceID: store.Ptr(source.ID),
+			MediaID:  store.Ptr("test_1"),
 		})
 
 		ta.HTTPMock.Get.Expect(func(url string, headers, opts store.KW) (string, error) {
@@ -157,9 +157,9 @@ func TestFastIndexingHelpers_IndexAndKickoffDownloads(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		pendingItem := apptest.MediaItemFixture(t, ta, store.Attrs{
-			"source_id":      source.ID,
-			"media_filepath": nil,
+		pendingItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{
+			SourceID: store.Ptr(source.ID),
+			Clear:    store.ClearMediaFilepath,
 		})
 		setupDownloadIndexMocks(t, ta, "<yt:videoId>test_1</yt:videoId>")
 

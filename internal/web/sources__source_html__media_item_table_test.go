@@ -53,7 +53,7 @@ func TestMediaItemTableLive_InitialRendering(t *testing.T) {
 	t.Run("shows records when present", func(t *testing.T) {
 		c := webtest.New(t)
 		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
-		mediaItem := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		html := c.Get(fmt.Sprintf("/sources/%d", source.ID)).HTML(t, 200)
 		pending := mediaSectionHTML(t, html, source.ID, "pending")
@@ -74,8 +74,8 @@ func TestMediaItemTableLive_MediaState(t *testing.T) {
 	t.Run("shows pending media when pending", func(t *testing.T) {
 		c := webtest.New(t)
 		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
-		downloadedMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID})
-		pendingMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		downloadedMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
+		pendingMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		html := c.Get(fmt.Sprintf("/sources/%d", source.ID)).HTML(t, 200)
 		pending := mediaSectionHTML(t, html, source.ID, "pending")
@@ -91,8 +91,8 @@ func TestMediaItemTableLive_MediaState(t *testing.T) {
 	t.Run("shows downloaded media when downloaded", func(t *testing.T) {
 		c := webtest.New(t)
 		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
-		downloadedMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID})
-		pendingMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		downloadedMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
+		pendingMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		html := c.Get(fmt.Sprintf("/sources/%d", source.ID)).HTML(t, 200)
 		downloaded := mediaSectionHTML(t, html, source.ID, "downloaded")
@@ -110,12 +110,12 @@ func TestMediaItemTableLive_MediaState(t *testing.T) {
 		mediaProfile := apptest.MediaProfileFixture(t, c.TestApp, store.Attrs{"shorts_behaviour": "exclude"})
 		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{"media_profile_id": mediaProfile.ID})
 
-		downloadedMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID})
-		pendingMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "media_filepath": nil})
-		otherMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{
-			"source_id":          source.ID,
-			"media_filepath":     nil,
-			"short_form_content": true,
+		downloadedMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
+		pendingMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
+		otherMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{
+			SourceID:         store.Ptr(source.ID),
+			ShortFormContent: store.Ptr(true),
+			Clear:            store.ClearMediaFilepath,
 		})
 
 		html := c.Get(fmt.Sprintf("/sources/%d", source.ID)).HTML(t, 200)
@@ -135,10 +135,10 @@ func TestMediaItemTableLive_MediaState(t *testing.T) {
 	t.Run("shows 'Manually Ignored' column when other", func(t *testing.T) {
 		c := webtest.New(t)
 		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
-		apptest.MediaItemFixture(t, c.TestApp, store.Attrs{
-			"source_id":        source.ID,
-			"prevent_download": true,
-			"media_filepath":   nil,
+		apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{
+			SourceID:        store.Ptr(source.ID),
+			PreventDownload: store.Ptr(true),
+			Clear:           store.ClearMediaFilepath,
 		})
 
 		html := c.Get(fmt.Sprintf("/sources/%d", source.ID)).HTML(t, 200)
@@ -154,8 +154,8 @@ func TestMediaItemTableLive_Search(t *testing.T) {
 	t.Run("q filters records and stays on the matching tab", func(t *testing.T) {
 		c := webtest.New(t)
 		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
-		match := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "Match Me"})
-		other := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "media_filepath": nil, "title": "Something Else"})
+		match := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Title: store.Ptr("Match Me"), Clear: store.ClearMediaFilepath})
+		other := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Title: store.Ptr("Something Else"), Clear: store.ClearMediaFilepath})
 
 		html := c.Get(fmt.Sprintf("/sources/%d", source.ID), map[string]string{"pending_q": "Match"}).HTML(t, 200)
 		pending := mediaSectionHTML(t, html, source.ID, "pending")
@@ -178,14 +178,17 @@ func TestMediaItemTableLive_Pagination(t *testing.T) {
 		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
 		var pendingItems []*store.MediaItem
 		for i := 0; i < 11; i++ {
-			pendingItems = append(pendingItems, apptest.MediaItemFixture(t, c.TestApp, store.Attrs{
-				"source_id": source.ID, "media_filepath": nil, "title": fmt.Sprintf("Pending_%02d", i),
+			pendingItems = append(pendingItems, apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{
+				SourceID: store.Ptr(source.ID),
+				Title:    store.Ptr(fmt.Sprintf("Pending_%02d", i)),
+				Clear:    store.ClearMediaFilepath,
 			}))
 		}
 		var downloadedItems []*store.MediaItem
 		for i := 0; i < 11; i++ {
-			downloadedItems = append(downloadedItems, apptest.MediaItemFixture(t, c.TestApp, store.Attrs{
-				"source_id": source.ID, "title": fmt.Sprintf("Downloaded_%02d", i),
+			downloadedItems = append(downloadedItems, apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{
+				SourceID: store.Ptr(source.ID),
+				Title:    store.Ptr(fmt.Sprintf("Downloaded_%02d", i)),
 			}))
 		}
 

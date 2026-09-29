@@ -26,8 +26,8 @@ func TestNoHTMX(t *testing.T) {
 		t.Fatalf("SettingsSet: %v", err)
 	}
 	source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
-	apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID})
-	apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+	apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
+	apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 	pages := map[string]string{
 		"home":          "/",

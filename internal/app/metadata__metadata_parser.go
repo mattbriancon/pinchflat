@@ -3,58 +3,63 @@ package app
 import (
 	"os"
 	"sort"
+
+	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // MetadataParserParseForMediaItem/1
-func MetadataParserParseForMediaItem(metadata map[string]any) (map[string]any, error) {
-	result := make(map[string]any)
-
-	// Merge results from all parsing functions
-	for k, v := range parseMediaMetadata(metadata) {
-		result[k] = v
-	}
-	for k, v := range parseSubtitleMetadata(metadata) {
-		result[k] = v
-	}
-	for k, v := range parseThumbnailMetadata(metadata) {
-		result[k] = v
-	}
-	for k, v := range parseInfojsonMetadata(metadata) {
-		result[k] = v
-	}
-
-	return result, nil
-}
-
-// parseMediaMetadata extracts media-related fields from the metadata.
-// Returns the struct fields from YtDlpMedia plus media_filepath.
-func parseMediaMetadata(metadata map[string]any) map[string]any {
+func MetadataParserParseForMediaItem(metadata map[string]any) (store.MediaItemParams, error) {
 	ytMedia := YtDlpMediaResponseToStruct(metadata)
 
-	result := make(map[string]any)
-	result["media_id"] = ytMedia.MediaID
-	result["title"] = ytMedia.Title
-	result["description"] = ytMedia.Description
-	result["original_url"] = ytMedia.OriginalURL
-	result["livestream"] = ytMedia.Livestream
-	result["short_form_content"] = ytMedia.ShortFormContent
-	result["uploaded_at"] = ytMedia.UploadedAt
-	result["duration_seconds"] = ytMedia.DurationSeconds
-	result["predicted_media_filepath"] = ytMedia.PredictedMediaFilepath
-	result["playlist_index"] = ytMedia.PlaylistIndex
-	if fp, ok := metadata["filepath"].(string); ok {
-		result["media_filepath"] = &fp
-	} else {
-		result["media_filepath"] = nil
+	p := store.MediaItemParams{
+		MediaID:                &ytMedia.MediaID,
+		Title:                  &ytMedia.Title,
+		Description:            &ytMedia.Description,
+		OriginalURL:            &ytMedia.OriginalURL,
+		Livestream:             &ytMedia.Livestream,
+		ShortFormContent:       ytMedia.ShortFormContent,
+		UploadedAt:             ytMedia.UploadedAt,
+		DurationSeconds:        ytMedia.DurationSeconds,
+		PredictedMediaFilepath: &ytMedia.PredictedMediaFilepath,
+		PlaylistIndex:          ytMedia.PlaylistIndex,
+	}
+	if ytMedia.ShortFormContent == nil {
+		p.Clear |= store.ClearShortFormContent
+	}
+	if ytMedia.UploadedAt == nil {
+		p.Clear |= store.ClearUploadedAt
 	}
 
-	return result
+	if fp, ok := metadata["filepath"].(string); ok {
+		p.MediaFilepath = &fp
+	} else {
+		p.Clear |= store.ClearMediaFilepath
+	}
+
+	subtitles := parseSubtitleMetadata(metadata)
+	p.SubtitleFilepaths = &subtitles
+
+	if thumbnail := parseThumbnailMetadata(metadata); thumbnail != nil {
+		p.ThumbnailFilepath = thumbnail
+	} else {
+		p.Clear |= store.ClearThumbnailFilepath
+	}
+
+	infojsonFilename, _ := metadata["infojson_filename"].(string)
+	if infojson := filepathIfExists(infojsonFilename); infojson != nil {
+		p.MetadataFilepath = infojson
+	} else {
+		p.Clear |= store.ClearMetadataFilepath
+	}
+
+	return p, nil
 }
 
 // parseSubtitleMetadata extracts subtitle filepaths from the metadata.
 // Sorts them by language code.
-func parseSubtitleMetadata(metadata map[string]any) map[string]any {
-	subtitleFilepaths := make([][]string, 0)
+func parseSubtitleMetadata(metadata map[string]any) db.NestedStringArray {
+	subtitleFilepaths := db.NestedStringArray{}
 
 	requestedSubs, ok := metadata["requested_subtitles"].(map[string]any)
 	if ok {
@@ -72,54 +77,30 @@ func parseSubtitleMetadata(metadata map[string]any) map[string]any {
 		return subtitleFilepaths[i][0] < subtitleFilepaths[j][0]
 	})
 
-	return map[string]any{
-		"subtitle_filepaths": subtitleFilepaths,
-	}
+	return subtitleFilepaths
 }
 
 // parseThumbnailMetadata extracts and processes the thumbnail filepath.
 // Reverses thumbnails list, finds the first with a filepath, and applies
 // a workaround for a yt-dlp bug by inserting "-thumb" before the file extension.
-func parseThumbnailMetadata(metadata map[string]any) map[string]any {
-	var thumbnailFilepath *string
-
+// Returns nil if there is no thumbnail on disk.
+func parseThumbnailMetadata(metadata map[string]any) *string {
 	thumbnails, ok := metadata["thumbnails"].([]any)
-	if ok {
-		// Reverse the thumbnails list
-		for i := len(thumbnails) - 1; i >= 0; i-- {
-			if thumbMap, ok := thumbnails[i].(map[string]any); ok {
-				if fp, ok := thumbMap["filepath"].(string); ok {
-					thumbnailFilepath = &fp
-					break
-				}
+	if !ok {
+		return nil
+	}
+
+	// Reverse the thumbnails list
+	for i := len(thumbnails) - 1; i >= 0; i-- {
+		if thumbMap, ok := thumbnails[i].(map[string]any); ok {
+			if fp, ok := thumbMap["filepath"].(string); ok {
+				// Apply yt-dlp bug workaround: insert "-thumb" before the last 2 components
+				// e.g., "file.jpg" -> "file-thumb.jpg", "path/file.webp" -> "path/file-thumb.webp"
+				return filepathIfExists(applyThumbnailWorkaround(fp))
 			}
 		}
 	}
-
-	result := make(map[string]any)
-
-	if thumbnailFilepath != nil {
-		// Apply yt-dlp bug workaround: insert "-thumb" before the last 2 components
-		// e.g., "file.jpg" -> "file-thumb.jpg", "path/file.webp" -> "path/file-thumb.webp"
-		modified := applyThumbnailWorkaround(*thumbnailFilepath)
-		result["thumbnail_filepath"] = filepathIfExists(modified)
-	} else {
-		result["thumbnail_filepath"] = nil
-	}
-
-	return result
-}
-
-// parseInfojsonMetadata extracts the infojson metadata filepath.
-func parseInfojsonMetadata(metadata map[string]any) map[string]any {
-	infojsonFilename, ok := metadata["infojson_filename"].(string)
-	if !ok {
-		infojsonFilename = ""
-	}
-
-	return map[string]any{
-		"metadata_filepath": filepathIfExists(infojsonFilename),
-	}
+	return nil
 }
 
 // applyThumbnailWorkaround applies the yt-dlp bug workaround by inserting "-thumb"
@@ -159,11 +140,7 @@ func applyThumbnailWorkaround(filepath string) string {
 // filepathIfExists checks if a filepath exists on disk.
 // Returns the filepath if it exists, nil otherwise.
 // This is a workaround for a yt-dlp bug.
-//
-// Returns `any` (rather than *string) so that the "doesn't exist" case
-// stores an untyped nil into the result map, not a typed-nil *string
-// (which would compare != nil when read back out of a map[string]any).
-func filepathIfExists(filepath string) any {
+func filepathIfExists(filepath string) *string {
 	if filepath == "" {
 		return nil
 	}

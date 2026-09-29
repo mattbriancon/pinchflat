@@ -40,10 +40,10 @@ func TestMediaQualityUpgradeWorker_Perform(t *testing.T) {
 				"inserted_at":      apptest.NowMinus(10, "days"),
 			})
 
-			mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{
-				"source_id":           source.ID,
-				"uploaded_at":         apptest.NowMinus(6, "days"),
-				"media_downloaded_at": apptest.NowMinus(tt.downloadedDays, "days"),
+			mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{
+				SourceID:          store.Ptr(source.ID),
+				UploadedAt:        store.Ptr(apptest.NowMinus(6, "days")),
+				MediaDownloadedAt: store.Ptr(apptest.NowMinus(tt.downloadedDays, "days")),
 			})
 
 			err := ta.Oban.PerformJob(ctx, app.MediaQualityUpgradeWorkerName, map[string]any{})

@@ -18,7 +18,7 @@ import (
 )
 
 func createMediaItem(t testing.TB, c *webtest.Client) *store.MediaItem {
-	return apptest.MediaItemFixture(t, c.TestApp, store.Attrs{})
+	return apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{})
 }
 
 func TestMediaItemController_Show(t *testing.T) {
@@ -41,7 +41,7 @@ func TestMediaItemController_Show(t *testing.T) {
 
 		t.Run("renders the page when the media item has no description", func(t *testing.T) {
 			c := webtest.New(t)
-			mediaItem := apptest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.Attrs{"description": nil})
+			mediaItem := apptest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.MediaItemParams{Clear: store.ClearDescription})
 
 			res := c.Get(fmt.Sprintf("/sources/%d/media/%d", mediaItem.SourceID, mediaItem.ID))
 			html := res.HTML(t, 200)
@@ -112,7 +112,7 @@ func TestMediaItemController_Update(t *testing.T) {
 func TestMediaItemController_Delete(t *testing.T) {
 	t.Run("delete media", func(t *testing.T) {
 		newFixture := func(t testing.TB, c *webtest.Client) *store.MediaItem {
-			mediaItem := apptest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.Attrs{})
+			mediaItem := apptest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.MediaItemParams{})
 			c.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 			return mediaItem
 		}
@@ -219,7 +219,7 @@ func TestMediaItemController_ForceDownload(t *testing.T) {
 
 		t.Run("forces a download even if one wouldn't normally run", func(t *testing.T) {
 			c := webtest.New(t)
-			mediaItem := apptest.MediaItemFixture(t, c.TestApp, store.Attrs{"media_filepath": nil})
+			mediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 			c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", store.Attrs{})
 
@@ -263,7 +263,7 @@ func TestMediaItemController_Stream(t *testing.T) {
 
 		t.Run("automatically sets the content type", func(t *testing.T) {
 			c := webtest.New(t)
-			mediaItem := apptest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.Attrs{})
+			mediaItem := apptest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.MediaItemParams{})
 
 			uuid := ""
 			if mediaItem.UUID != nil {
@@ -279,7 +279,7 @@ func TestMediaItemController_Stream(t *testing.T) {
 
 		t.Run("sets the content length", func(t *testing.T) {
 			c := webtest.New(t)
-			mediaItem := apptest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.Attrs{})
+			mediaItem := apptest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.MediaItemParams{})
 
 			uuid := ""
 			if mediaItem.UUID != nil {
@@ -306,7 +306,7 @@ func TestMediaItemController_StreamRangeValid(t *testing.T) {
 	t.Run("streaming media when range is valid", func(t *testing.T) {
 		newFixture := func(t testing.TB) (*webtest.Client, *store.MediaItem) {
 			c := webtest.New(t)
-			mediaItem := apptest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.Attrs{})
+			mediaItem := apptest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.MediaItemParams{})
 			return c, mediaItem
 		}
 
@@ -441,7 +441,7 @@ func TestMediaItemController_StreamRangeInvalid(t *testing.T) {
 	t.Run("streaming media when range is invalid or not present", func(t *testing.T) {
 		newFixture := func(t testing.TB) (*webtest.Client, *store.MediaItem) {
 			c := webtest.New(t)
-			mediaItem := apptest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.Attrs{})
+			mediaItem := apptest.MediaItemWithAttachmentsFixture(t, c.TestApp, store.MediaItemParams{})
 			return c, mediaItem
 		}
 

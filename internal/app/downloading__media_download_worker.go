@@ -104,7 +104,7 @@ func (a *App) fetchAndRunPreventDownloadUserScript(ctx context.Context, mediaIte
 	// (Elixir: {:ok, _, exit_code} when exit_code != 0), which prevents this
 	// and all future downloads of the media item.
 	if userScriptErr := a.UserScripts.Run(ctx, "media_pre_download", mediaItem); userScriptErr != nil {
-		updatedMediaItem, updateErr := a.UpdateMediaItem(ctx, mediaItem, store.Attrs{"prevent_download": true})
+		updatedMediaItem, updateErr := a.UpdateMediaItem(ctx, mediaItem, store.MediaItemParams{PreventDownload: store.Ptr(true)})
 		if updateErr != nil {
 			return nil, updateErr
 		}
@@ -157,15 +157,10 @@ func (a *App) downloadMediaAndScheduleJobs(ctx context.Context, mediaItem *store
 		fileSize := a.computeMediaFilesize(result.MediaItem)
 		redownloadedAt := a.getRedownloadedAt(isQualityUpgrade)
 
-		attrs := store.Attrs{}
-		if fileSize != nil {
-			attrs["media_size_bytes"] = *fileSize
-		}
-		if redownloadedAt != nil {
-			attrs["media_redownloaded_at"] = *redownloadedAt
-		}
-
-		updatedMediaItem, updateErr := a.UpdateMediaItem(ctx, result.MediaItem, attrs)
+		updatedMediaItem, updateErr := a.UpdateMediaItem(ctx, result.MediaItem, store.MediaItemParams{
+			MediaSizeBytes:      fileSize,
+			MediaRedownloadedAt: redownloadedAt,
+		})
 		if updateErr != nil {
 			return updateErr
 		}

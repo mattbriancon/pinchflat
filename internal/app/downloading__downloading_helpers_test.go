@@ -17,7 +17,7 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		ctx := ta.Ctx
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
@@ -31,7 +31,7 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		ctx := ta.Ctx
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		_ = apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": "some/filepath.mp4"})
+		_ = apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaFilepath: store.Ptr("some/filepath.mp4")})
 
 		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
@@ -45,7 +45,7 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		ctx := ta.Ctx
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		tasks, err := ta.ListTasksFor(ctx, mediaItem, nil, []string{obanlite.StateAvailable})
 		if err != nil {
@@ -86,7 +86,7 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		ctx := ta.Ctx
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
@@ -106,7 +106,7 @@ func TestDownloadingHelpers_EnqueuePendingDownloadTasks(t *testing.T) {
 		ctx := ta.Ctx
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		priority := 1
 		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{store.Opt("priority", priority)}); err != nil {
@@ -125,7 +125,7 @@ func TestDownloadingHelpers_DequeuePendingDownloadTasks(t *testing.T) {
 		ctx := ta.Ctx
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		if err := ta.DownloadingHelpersEnqueuePendingDownloadTasks(ctx, source, store.KW{}); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks failed: %v", err)
@@ -152,7 +152,7 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 
 	setup := func(t *testing.T) (*apptest.TestApp, *store.MediaItem) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		return ta, mediaItem
 	}
 
@@ -195,7 +195,7 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 		ctx := ta.Ctx
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.KW{})
 		if err == nil {
@@ -214,7 +214,7 @@ func TestDownloadingHelpers_KickoffDownloadIfPending(t *testing.T) {
 
 		profile := apptest.MediaProfileFixture(t, ta, store.Attrs{"livestream_behaviour": "exclude"})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": profile.ID})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil, "livestream": true})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Livestream: store.Ptr(true), Clear: store.ClearMediaFilepath})
 
 		_, err := ta.DownloadingHelpersKickoffDownloadIfPending(ctx, mediaItem, store.KW{})
 		if err == nil {
@@ -247,7 +247,7 @@ func TestDownloadingHelpers_KickoffRedownloadForExistingMedia(t *testing.T) {
 		ctx := ta.Ctx
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": "some/filepath.mp4"})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaFilepath: store.Ptr("some/filepath.mp4")})
 
 		results, err := ta.DownloadingHelpersKickoffRedownloadForExistingMedia(ctx, source)
 		if err != nil {
@@ -267,9 +267,9 @@ func TestDownloadingHelpers_KickoffRedownloadForExistingMedia(t *testing.T) {
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 		otherSource := apptest.SourceFixture(t, ta, store.Attrs{})
-		_ = apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
-		_ = apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": otherSource.ID, "media_filepath": "some/filepath.mp4"})
-		_ = apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": "some/filepath.mp4", "prevent_download": true})
+		_ = apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
+		_ = apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(otherSource.ID), MediaFilepath: store.Ptr("some/filepath.mp4")})
+		_ = apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaFilepath: store.Ptr("some/filepath.mp4"), PreventDownload: store.Ptr(true)})
 
 		results, err := ta.DownloadingHelpersKickoffRedownloadForExistingMedia(ctx, source)
 		if err != nil {

@@ -5,16 +5,12 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"sort"
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
-
-// Some fields should only be set on insert and not on update.
-var fieldsToDropOnUpdate = []string{"playlist_index"}
 
 // ListMediaItems returns every media item.
 func (s *Store) ListMediaItems(ctx context.Context) ([]*MediaItem, error) {
@@ -86,45 +82,62 @@ func (s *Store) GetMediaItem(ctx context.Context, id int64) (*MediaItem, error) 
 	return Get[MediaItem](ctx, s.Q(ctx), id)
 }
 
-// CreateMediaItem creates a media item from attrs.
-func (s *Store) CreateMediaItem(ctx context.Context, attrs Attrs) (*MediaItem, error) {
-	cs := MediaItemChangeset(ctx, s, NewMediaItem(), attrs)
+// CreateMediaItem creates a media item from p. Invalid params return a
+// *ChangesetError.
+func (s *Store) CreateMediaItem(ctx context.Context, p MediaItemParams) (*MediaItem, error) {
+	cs, err := s.mediaItemChangeset(ctx, NewMediaItem(), p)
+	if err != nil {
+		return nil, err
+	}
 	return Insert[MediaItem](ctx, s.Q(ctx), cs)
 }
 
-// CreateMediaItemFromBackendAttrs creates or updates a media item from a
-// *ytdlp.Media (or ytdlp.Media) response.
+// UpsertMediaItemFromYtDlp creates or updates a media item from a yt-dlp
+// response.
 //
 // Unlike CreateMediaItem, this will attempt an update if the media_item
 // already exists. This is so that future indexing can pick up attributes
 // that we may not have asked for in the past (eg: uploaded_at).
-func (s *Store) CreateMediaItemFromBackendAttrs(ctx context.Context, source *Source, mediaAttrsStruct any) (*MediaItem, error) {
-	attrs := Attrs{"source_id": source.ID}
-	for k, v := range mediaItemAttrsFromBackendStruct(mediaAttrsStruct) {
-		attrs[k] = v
+func (s *Store) UpsertMediaItemFromYtDlp(ctx context.Context, source *Source, m *ytdlp.Media) (*MediaItem, error) {
+	p := MediaItemParams{
+		SourceID:               &source.ID,
+		MediaID:                &m.MediaID,
+		Title:                  &m.Title,
+		Description:            &m.Description,
+		OriginalURL:            &m.OriginalURL,
+		Livestream:             &m.Livestream,
+		ShortFormContent:       m.ShortFormContent,
+		UploadedAt:             m.UploadedAt,
+		DurationSeconds:        m.DurationSeconds,
+		PredictedMediaFilepath: &m.PredictedMediaFilepath,
+		PlaylistIndex:          m.PlaylistIndex,
+	}
+	// A response without these is invalid rather than defaulted.
+	if m.ShortFormContent == nil {
+		p.Clear |= ClearShortFormContent
+	}
+	if m.UploadedAt == nil {
+		p.Clear |= ClearUploadedAt
 	}
 
-	cs := MediaItemChangeset(ctx, s, NewMediaItem(), attrs)
-	return mediaItemInsertOnConflict(ctx, s, cs, attrs)
+	cs, err := s.mediaItemChangeset(ctx, NewMediaItem(), p)
+	if err != nil {
+		return nil, err
+	}
+	return mediaItemInsertOnConflict(ctx, s, cs)
 }
 
-// UpdateMediaItem updates mediaItem with attrs.
-func (s *Store) UpdateMediaItem(ctx context.Context, mediaItem *MediaItem, attrs Attrs) (*MediaItem, error) {
-	updateAttrs := Attrs{}
-	for k, v := range attrs {
-		updateAttrs[k] = v
-	}
-	for _, f := range fieldsToDropOnUpdate {
-		delete(updateAttrs, f)
-	}
+// UpdateMediaItem updates mediaItem with p. Invalid params return a
+// *ChangesetError.
+func (s *Store) UpdateMediaItem(ctx context.Context, mediaItem *MediaItem, p MediaItemParams) (*MediaItem, error) {
+	// Some fields should only be set on insert and not on update.
+	p.PlaylistIndex = nil
 
-	cs := MediaItemChangeset(ctx, s, mediaItem, updateAttrs)
+	cs, err := s.mediaItemChangeset(ctx, mediaItem, p)
+	if err != nil {
+		return nil, err
+	}
 	return Update[MediaItem](ctx, s.Q(ctx), cs)
-}
-
-// ChangeMediaItem builds a changeset for mediaItem from attrs.
-func (s *Store) ChangeMediaItem(ctx context.Context, mediaItem *MediaItem, attrs Attrs) *Changeset {
-	return MediaItemChangeset(ctx, s, mediaItem, attrs)
 }
 
 // ComputeAndSaveMediaFilesize fetches the on-disk size of a media item's
@@ -139,46 +152,23 @@ func (s *Store) ComputeAndSaveMediaFilesize(ctx context.Context, mediaItem *Medi
 		return nil, err
 	}
 
-	return s.UpdateMediaItem(ctx, mediaItem, Attrs{
-		"media_size_bytes": stat.Size(),
-	})
+	return s.UpdateMediaItem(ctx, mediaItem, MediaItemParams{MediaSizeBytes: Ptr(stat.Size())})
 }
 
-// mediaItemAttrsFromBackendStruct is Map.from_struct(media_attrs_struct):
-// converts a *ytdlp.Media (Pinchflat.YtDlp.Media) into an Attrs map.
-func mediaItemAttrsFromBackendStruct(mediaAttrsStruct any) Attrs {
-	var v *ytdlp.Media
-	switch m := mediaAttrsStruct.(type) {
-	case *ytdlp.Media:
-		v = m
-	case ytdlp.Media:
-		v = &m
-	default:
-		panic(fmt.Sprintf("create_media_item_from_backend_attrs/2: unsupported media_attrs_struct %T", mediaAttrsStruct))
-	}
-
-	return Attrs{
-		"media_id":                 v.MediaID,
-		"title":                    v.Title,
-		"description":              v.Description,
-		"original_url":             v.OriginalURL,
-		"livestream":               v.Livestream,
-		"short_form_content":       v.ShortFormContent,
-		"uploaded_at":              v.UploadedAt,
-		"duration_seconds":         v.DurationSeconds,
-		"predicted_media_filepath": v.PredictedMediaFilepath,
-		"playlist_index":           v.PlaylistIndex,
-	}
+// mediaUpsertColumns are the columns an upsert refreshes when the media item
+// already exists (everything indexing sets except playlist_index).
+var mediaUpsertColumns = []string{
+	"description", "duration_seconds", "livestream", "media_id", "original_url",
+	"predicted_media_filepath", "short_form_content", "source_id", "title", "uploaded_at",
 }
 
-// mediaItemInsertOnConflict is Repo.insert(changeset, on_conflict: [set:
-// attrs |> Map.drop(@fields_to_drop_on_update) |> Map.to_list()],
-// conflict_target: [:source_id, :media_id]).
+// mediaItemInsertOnConflict inserts cs's record, updating mediaUpsertColumns
+// on a (source_id, media_id) conflict.
 //
 // Uses the package's private repo helpers (columnValues, quoteCols,
 // fieldValue, setID, setTimestamp) to build the same INSERT the ordinary
 // Insert[T] would, adding an ON CONFLICT clause raw SQL can't avoid.
-func mediaItemInsertOnConflict(ctx context.Context, s *Store, cs *Changeset, attrs Attrs) (*MediaItem, error) {
+func mediaItemInsertOnConflict(ctx context.Context, s *Store, cs *Changeset) (*MediaItem, error) {
 	cs.Action = "insert"
 	if !cs.Valid() {
 		return nil, &ChangesetError{cs}
@@ -192,16 +182,7 @@ func mediaItemInsertOnConflict(ctx context.Context, s *Store, cs *Changeset, att
 	cols, vals := columnValues(rec, true)
 	fields := fieldsOf(reflect.TypeOf(rec).Elem())
 
-	var updateCols []string
-	for k := range attrs {
-		if k == "playlist_index" {
-			continue
-		}
-		if _, ok := fields[k]; ok {
-			updateCols = append(updateCols, k)
-		}
-	}
-	sort.Strings(updateCols) // deterministic SQL text; doesn't affect behaviour
+	updateCols := mediaUpsertColumns
 
 	var setSQL []string
 	var setVals []any

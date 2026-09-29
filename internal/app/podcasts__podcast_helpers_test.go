@@ -39,8 +39,8 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 
 	t.Run("returns media items with files that exist on-disk", func(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		goodMedia := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID})
-		apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": "/tmp/existing_file.mp3"})
+		goodMedia := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
+		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaFilepath: store.Ptr("/tmp/existing_file.mp3")})
 
 		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, store.KW{})
 		if err != nil {
@@ -57,7 +57,7 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 
 	t.Run("lets you specify a limit", func(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID})
+		apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 
 		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, store.KW{store.Opt("limit", 0)})
 		if err != nil {
@@ -72,9 +72,9 @@ func TestPodcastHelpers_PersistedMediaItemsFor(t *testing.T) {
 	t.Run("orders by upload date where newest is first", func(t *testing.T) {
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
 
-		oldest := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": apptest.NowMinus(2, "day")})
-		current := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": apptest.Now()})
-		older := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID, "uploaded_at": apptest.NowMinus(1, "day")})
+		oldest := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.NowMinus(2, "day"))})
+		current := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.Now())})
+		older := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), UploadedAt: store.Ptr(apptest.NowMinus(1, "day"))})
 
 		persisted, err := ta.PodcastHelpersPersistedMediaItemsFor(ta.Ctx, source, store.KW{})
 		if err != nil {
@@ -125,7 +125,7 @@ func TestPodcastHelpers_SelectCoverImage(t *testing.T) {
 
 	t.Run("falls back to a media item's thumbnail, if present", func(t *testing.T) {
 		source := apptest.SourceWithMetadataAttachmentsFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemWithMetadataAttachmentsFixture(t, ta, store.Attrs{"source_id": source.ID})
+		mediaItem := apptest.MediaItemWithMetadataAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 
 		// Remove source image files
 		os.Remove(*source.Metadata.PosterFilepath)

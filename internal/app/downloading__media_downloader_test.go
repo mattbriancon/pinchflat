@@ -17,7 +17,7 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 
 	t.Run("calls the backend runner", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		// Stub HTTP mock
@@ -63,7 +63,7 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 
 	t.Run("saves the metadata filepath to the database", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -104,7 +104,7 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 
 	t.Run("errors for non-downloadable media are passed through", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -134,7 +134,7 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 
 	t.Run("non-recoverable errors are passed through", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -164,7 +164,7 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 
 	t.Run("unknown errors are passed through", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -198,7 +198,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonDownloadableMedia(t 
 
 	t.Run("calls the download runner if the media is currently downloadable", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -226,7 +226,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonDownloadableMedia(t 
 
 	t.Run("does not call the download runner if the media is not downloadable", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -249,7 +249,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonDownloadableMedia(t 
 
 	t.Run("returns unexpected errors from the download status determination method", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -283,7 +283,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingOverrideOptions(t *test
 
 	t.Run("includes override opts if specified", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -334,7 +334,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 	t.Run("sets use_cookies if the source uses cookies", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "all_operations"})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -367,7 +367,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 	t.Run("does not set use_cookies if the source uses cookies when needed", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "when_needed"})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -400,7 +400,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 	t.Run("does not set use_cookies if the source does not use cookies", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "disabled"})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -436,7 +436,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 
 	t.Run("returns a recovered tuple on recoverable errors", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -470,7 +470,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 
 	t.Run("attempts to update the media item on recoverable errors", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -508,7 +508,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 
 	t.Run("returns an unrecoverable tuple if recovery fails", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -541,7 +541,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 
 	t.Run("sets the last_error appropriately when recovered", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -575,7 +575,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNonCookieRetries(t *tes
 
 	t.Run("sets the last_error appropriately when unrecoverable", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -611,7 +611,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 	t.Run("retries with cookies if we think it would help and the source allows", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "when_needed"})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -645,7 +645,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 	t.Run("does not retry with cookies if we don't think it would help even the source allows", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "when_needed"})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -676,7 +676,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 	t.Run("does not retry with cookies even if we think it would help but source doesn't allow", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "disabled"})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -707,7 +707,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 	t.Run("does not retry with cookies if cookies were already used", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "all_operations"})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -741,7 +741,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("sets the media_downloaded_at", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -778,7 +778,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("sets the culled_at to nil", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil, "culled_at": time.Now().UTC()})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{CulledAt: store.Ptr(time.Now().UTC()), Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -806,7 +806,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("extracts the title", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -838,7 +838,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("extracts the description", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -866,7 +866,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("extracts the media_filepath", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -898,7 +898,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("extracts the subtitle_filepaths", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -930,7 +930,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("extracts the duration_seconds", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -962,7 +962,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("extracts the thumbnail_filepath", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -997,7 +997,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("extracts the metadata_filepath", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -1032,7 +1032,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("sets the last_error to nil on success", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil, "last_error": "Some error"})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{LastError: store.Ptr("Some error"), Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -1060,7 +1060,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingMediaItemAttributes(t *
 
 	t.Run("sets the last_error to the error message on failure", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -1094,7 +1094,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNFOGeneration(t *testin
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"download_nfo": true})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {
@@ -1134,7 +1134,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNFOGeneration(t *testin
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.Attrs{"download_nfo": false})
 		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
 		ta.HTTPMock.Get.Stub(func(url string, headers, opts store.KW) (string, error) {

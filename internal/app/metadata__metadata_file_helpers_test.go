@@ -20,7 +20,7 @@ func TestMetadataFileHelpers_MetadataDirectoryFor(t *testing.T) {
 	t.Run("returns the metadata directory for the given record", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatalf("failed to preload source: %v", err)
@@ -45,7 +45,7 @@ func TestMetadataFileHelpers_CompressAndStoreMetadataFor(t *testing.T) {
 	t.Run("returns the filepath", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		metadataMap := map[string]any{"foo": "bar"}
 
 		filePath, err := ta.App.MetadataFileHelpersCompressAndStoreMetadataFor(ta.Ctx, mediaItem, metadataMap)
@@ -62,7 +62,7 @@ func TestMetadataFileHelpers_CompressAndStoreMetadataFor(t *testing.T) {
 	t.Run("creates folder structure based on passed record", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		metadataMap := map[string]any{"foo": "bar"}
 
 		filePath, err := ta.App.MetadataFileHelpersCompressAndStoreMetadataFor(ta.Ctx, mediaItem, metadataMap)
@@ -80,7 +80,7 @@ func TestMetadataFileHelpers_CompressAndStoreMetadataFor(t *testing.T) {
 	t.Run("stores it as compressed JSON", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		metadataMap := map[string]any{"foo": "bar"}
 
 		filePath, err := ta.App.MetadataFileHelpersCompressAndStoreMetadataFor(ta.Ctx, mediaItem, metadataMap)
@@ -122,7 +122,7 @@ func TestMetadataFileHelpers_ReadCompressedMetadata(t *testing.T) {
 	t.Run("returns the compressed and decoded metadata", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		metadataMap := map[string]any{"foo": "bar"}
 
 		filePath, err := ta.App.MetadataFileHelpersCompressAndStoreMetadataFor(ta.Ctx, mediaItem, metadataMap)
@@ -146,7 +146,7 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailFor(t *testing.T) {
 	t.Run("returns the filepath", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatalf("failed to preload source: %v", err)
@@ -171,7 +171,7 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailFor(t *testing.T) {
 	t.Run("calls yt-dlp with the expected options", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatalf("failed to preload source: %v", err)
@@ -238,7 +238,7 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailFor(t *testing.T) {
 	t.Run("returns nil if yt-dlp fails", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
 		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatalf("failed to preload source: %v", err)
@@ -281,7 +281,7 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailForCookieUsage(t *testing.
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"cookie_behaviour": store.SourceCookieBehaviourAllOperations,
 		})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatalf("failed to preload source: %v", err)
@@ -314,7 +314,7 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailForCookieUsage(t *testing.
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"cookie_behaviour": store.SourceCookieBehaviourWhenNeeded,
 		})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatalf("failed to preload source: %v", err)
@@ -347,7 +347,7 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailForCookieUsage(t *testing.
 		source := apptest.SourceFixture(t, ta, store.Attrs{
 			"cookie_behaviour": store.SourceCookieBehaviourDisabled,
 		})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
 		if err != nil {
 			t.Fatalf("failed to preload source: %v", err)

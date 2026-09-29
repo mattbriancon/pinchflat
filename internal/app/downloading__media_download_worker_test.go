@@ -20,7 +20,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		enqueuedJobs := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 		if len(enqueuedJobs) != 0 {
@@ -42,7 +42,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		task, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, store.KW{})
 		if err != nil {
@@ -58,7 +58,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		jobArgs := store.Attrs{"force": true}
 
 		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, jobArgs, store.KW{})
@@ -73,7 +73,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, store.KW{})
 		if err != nil {
@@ -95,7 +95,7 @@ func TestMediaDownloadWorker_KickoffWithTask(t *testing.T) {
 		ta := apptest.NewApp(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		priority := 0
 
 		_, err := ta.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, store.Attrs{}, store.KW{store.Opt("priority", priority)})
@@ -150,7 +150,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := setup(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		if mediaItem.MediaFilepath != nil {
 			t.Errorf("expected media_filepath to be nil, got %v", *mediaItem.MediaFilepath)
@@ -168,7 +168,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := setup(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		if mediaItem.Metadata != nil {
 			t.Errorf("expected metadata to be nil, got %v", mediaItem.Metadata)
@@ -186,7 +186,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 	t.Run("won't double-schedule downloading jobs", func(t *testing.T) {
 		ta := setup(t)
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		spec1 := obanlite.JobSpec{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}}
 		spec2 := obanlite.JobSpec{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}}
@@ -218,7 +218,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		spec := obanlite.JobSpec{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}}
 		_, _, _ = ta.InsertUniqueJob(ctx, spec)
 
@@ -247,7 +247,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		spec := obanlite.JobSpec{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID}}
 		_, _, _ = ta.InsertUniqueJob(ctx, spec)
 
@@ -277,7 +277,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
 
@@ -304,7 +304,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
 
@@ -331,7 +331,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
 
@@ -358,7 +358,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -399,7 +399,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return "{}", nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
@@ -413,7 +413,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		ta := setup(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
@@ -467,7 +467,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -492,7 +492,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		})
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -513,8 +513,8 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return "{}", nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
-		_, _ = ta.UpdateMediaItem(ctx, mediaItem, store.Attrs{"prevent_download": true})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
+		_, _ = ta.UpdateMediaItem(ctx, mediaItem, store.MediaItemParams{PreventDownload: store.Ptr(true)})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -535,7 +535,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			return "{}", nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": "foo.mp4"})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{MediaFilepath: store.Ptr("foo.mp4")})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -561,7 +561,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingNonDownloadableMedia(t *testing.
 			return nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -607,9 +607,9 @@ func TestMediaDownloadWorker_Perform_WhenTestingForcedDownloads(t *testing.T) {
 		ctx := ta.Ctx
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
-		_, _ = ta.UpdateMediaItem(ctx, mediaItem, store.Attrs{"prevent_download": true})
+		_, _ = ta.UpdateMediaItem(ctx, mediaItem, store.MediaItemParams{PreventDownload: store.Ptr(true)})
 
 		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "force": true})
 
@@ -622,7 +622,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingForcedDownloads(t *testing.T) {
 		ta := setup(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": "foo.mp4"})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{MediaFilepath: store.Ptr("foo.mp4")})
 
 		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "force": true})
 
@@ -664,7 +664,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingForcedDownloads(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "force": true})
 
@@ -710,7 +710,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 		ta := setup(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
 		updatedMediaItem, _ := ta.GetMediaItem(ctx, mediaItem.ID)
@@ -724,7 +724,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 		ta := setup(t)
 		ctx := ta.Ctx
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": "foo.mp4"})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{MediaFilepath: store.Ptr("foo.mp4")})
 
 		err := ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
 
@@ -746,7 +746,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 		})
 
 		source := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": "foo.mp4"})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), MediaFilepath: store.Ptr("foo.mp4")})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
 
@@ -767,8 +767,8 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 			return "{}", nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": "foo.mp4"})
-		_, _ = ta.UpdateMediaItem(ctx, mediaItem, store.Attrs{"prevent_download": true})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{MediaFilepath: store.Ptr("foo.mp4")})
+		_, _ = ta.UpdateMediaItem(ctx, mediaItem, store.MediaItemParams{PreventDownload: store.Ptr(true)})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
 
@@ -810,7 +810,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 			return nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": "foo.mp4"})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{MediaFilepath: store.Ptr("foo.mp4")})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID, "quality_upgrade?": true})
 
@@ -846,7 +846,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingRedownloads(t *testing.T) {
 			return nil
 		})
 
-		oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.Attrs{})
+		oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 		oldFilepath := *oldMediaItem.MediaFilepath
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": oldMediaItem.ID, "force": true})
@@ -897,7 +897,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 			return nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -929,7 +929,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 			return nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -974,7 +974,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 			return nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 
@@ -1025,7 +1025,7 @@ func TestMediaDownloadWorker_Perform_WhenTestingUserScriptCallbacks(t *testing.T
 			return nil
 		})
 
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
 		_ = ta.Oban.PerformJob(ctx, app.MediaDownloadWorkerName, map[string]any{"id": mediaItem.ID})
 

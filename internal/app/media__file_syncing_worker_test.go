@@ -37,9 +37,9 @@ func TestFileSyncingWorker_Perform(t *testing.T) {
 	ta := apptest.NewApp(t)
 
 	source := apptest.SourceFixture(t, ta, store.Attrs{})
-	mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{
-		"media_filepath": "/tmp/missing.mp4",
-		"source_id":      source.ID,
+	mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{
+		MediaFilepath: store.Ptr("/tmp/missing.mp4"),
+		SourceID:      store.Ptr(source.ID),
 	})
 
 	if err := ta.Oban.PerformJob(ta.Ctx, app.FileSyncingWorkerName, map[string]any{"id": source.ID}); err != nil {

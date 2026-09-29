@@ -51,9 +51,9 @@ func mediaRetentionWorkerCullCullableMediaItems(ctx context.Context, a *App) err
 		// store.Setting `prevent_download` does what it says on the tin, but `culled_at` is purely informational.
 		// We don't actually do anything with that in terms of queries and it gets set to nil if the media item
 		// gets re-downloaded.
-		_, err := a.MediaDeleteMediaFiles(ctx, mediaItem, store.Attrs{
-			"prevent_download": true,
-			"culled_at":        time.Now().UTC(),
+		_, err := a.MediaDeleteMediaFiles(ctx, mediaItem, store.MediaItemParams{
+			PreventDownload: store.Ptr(true),
+			CulledAt:        store.Ptr(time.Now().UTC()),
 		})
 		if err != nil {
 			return err
@@ -82,8 +82,8 @@ func mediaRetentionWorkerDeleteMediaItemsFromBeforeCutoff(ctx context.Context, a
 		// Download is ultimately prevented because `MediaQuery.pending()` only returns media items
 		// from after the cutoff date (among other things), so it's not like the media will just immediately
 		// be re-downloaded.
-		_, err := a.MediaDeleteMediaFiles(ctx, mediaItem, store.Attrs{
-			"culled_at": time.Now().UTC(),
+		_, err := a.MediaDeleteMediaFiles(ctx, mediaItem, store.MediaItemParams{
+			CulledAt: store.Ptr(time.Now().UTC()),
 		})
 		if err != nil {
 			return err

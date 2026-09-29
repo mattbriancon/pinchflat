@@ -12,7 +12,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-func MediaItemsMediaItemHTMLEdit(mediaItem *store.MediaItem, changeset *store.Changeset) templ.Component {
+func MediaItemsMediaItemHTMLEdit(mediaItem *store.MediaItem, form *Form) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -56,7 +56,7 @@ func MediaItemsMediaItemHTMLEdit(mediaItem *store.MediaItem, changeset *store.Ch
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = MediaItemsMediaItemHTMLMediaItemForm(FormFor(changeset, "media_item"), P(ctx, "/sources/%v/media/%v", mediaItem.SourceID, mediaItem.ID)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = MediaItemsMediaItemHTMLMediaItemForm(form, P(ctx, "/sources/%v/media/%v", mediaItem.SourceID, mediaItem.ID)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

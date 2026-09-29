@@ -582,7 +582,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 	t.Run("enqueues a job for each pending media item", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil
@@ -602,7 +602,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 	t.Run("does not attach tasks if the source is set to not download", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.Attrs{"source_id": source.ID, "media_filepath": nil})
+		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		ta.YtDlpMock.Run.Expect(func(url, action string, opts store.KW, ot string, addl store.KW) (string, error) {
 			return apptest.SourceAttributesReturnFixture(), nil
@@ -1053,9 +1053,9 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems_DownloadArchiv
 
 		var mediaItems []*store.MediaItem
 		for n := 1; n <= 21; n++ {
-			mediaItems = append(mediaItems, apptest.MediaItemFixture(t, ta, store.Attrs{
-				"source_id":   source.ID,
-				"uploaded_at": apptest.NowMinus(n, "days"),
+			mediaItems = append(mediaItems, apptest.MediaItemFixture(t, ta, store.MediaItemParams{
+				SourceID:   store.Ptr(source.ID),
+				UploadedAt: store.Ptr(apptest.NowMinus(n, "days")),
 			}))
 		}
 		lastMediaItem := mediaItems[len(mediaItems)-1]
