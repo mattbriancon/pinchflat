@@ -1,12 +1,10 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/media_items/media_item_html/media_preview.heex
-
 import (
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-templ MediaItemsMediaItemHTMLMediaPreview(mediaItem *core.MediaItem) {
+templ MediaItemsMediaItemHTMLMediaPreview(mediaItem *store.MediaItem) {
 	if mediaType(mediaItem) == "video" {
 		<video controls class="max-h-128 w-full">
 			<source src={ templ.URL(P(ctx, "/media/%v/stream?v=%v", miStr(mediaItem.UUID), mediaItem.UpdatedAt.Time.Unix())) } type="video/mp4" />

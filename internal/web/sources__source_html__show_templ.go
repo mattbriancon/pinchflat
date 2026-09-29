@@ -8,11 +8,9 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Port of lib/pinchflat_web/controllers/sources/source_html/show.html.heex.
+import "github.com/mattbriancon/pinchflat/internal/store"
 
-import "github.com/mattbriancon/pinchflat/internal/core"
-
-func SourceHTMLShow(source *core.Source, pendingTasks []*core.Task, pending, downloaded, other *mediaItemTableData) templ.Component {
+func SourceHTMLShow(source *store.Source, pendingTasks []*store.Task, pending, downloaded, other *mediaItemTableData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -40,7 +38,7 @@ func SourceHTMLShow(source *core.Source, pendingTasks []*core.Task, pending, dow
 		var templ_7745c5c3_Var2 templ.SafeURL
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/sources")))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__show.templ`, Line: 10, Col: 42}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__show.templ`, Line: 8, Col: 42}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -61,7 +59,7 @@ func SourceHTMLShow(source *core.Source, pendingTasks []*core.Task, pending, dow
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(source.CustomName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__show.templ`, Line: 14, Col: 23}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__show.templ`, Line: 12, Col: 23}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -74,7 +72,7 @@ func SourceHTMLShow(source *core.Source, pendingTasks []*core.Task, pending, dow
 		var templ_7745c5c3_Var4 templ.SafeURL
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/sources/%v/edit", source.ID)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__show.templ`, Line: 18, Col: 61}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__show.templ`, Line: 16, Col: 61}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -137,7 +135,7 @@ func sourceHTMLEditSourceButtonContent() templ.Component {
 	})
 }
 
-func sourceHTMLShowTabAppend(source *core.Source) templ.Component {
+func sourceHTMLShowTabAppend(source *store.Source) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -166,7 +164,7 @@ func sourceHTMLShowTabAppend(source *core.Source) templ.Component {
 	})
 }
 
-func sourceHTMLShowTabs(source *core.Source, pendingTasks []*core.Task, pending, downloaded, other *mediaItemTableData) []TabTab {
+func sourceHTMLShowTabs(source *store.Source, pendingTasks []*store.Task, pending, downloaded, other *mediaItemTableData) []TabTab {
 	return []TabTab{
 		{ID: "source", Title: "Source", Content: sourceHTMLShowSourceTab(source)},
 		{ID: "pending", Title: "Pending", Content: SourceHTMLMediaItemTable(pending)},
@@ -176,7 +174,7 @@ func sourceHTMLShowTabs(source *core.Source, pendingTasks []*core.Task, pending,
 	}
 }
 
-func sourceHTMLShowSourceTab(source *core.Source) templ.Component {
+func sourceHTMLShowSourceTab(source *store.Source) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -221,7 +219,7 @@ func sourceHTMLShowSourceTab(source *core.Source) templ.Component {
 	})
 }
 
-func sourceHTMLMediaProfileName(source *core.Source) templ.Component {
+func sourceHTMLMediaProfileName(source *store.Source) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -246,7 +244,7 @@ func sourceHTMLMediaProfileName(source *core.Source) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(source.MediaProfile.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__show.templ`, Line: 64, Col: 28}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__show.templ`, Line: 62, Col: 28}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -257,7 +255,7 @@ func sourceHTMLMediaProfileName(source *core.Source) templ.Component {
 	})
 }
 
-func sourceHTMLShowTasksTab(pendingTasks []*core.Task) templ.Component {
+func sourceHTMLShowTasksTab(pendingTasks []*store.Task) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -283,9 +281,9 @@ func sourceHTMLShowTasksTab(pendingTasks []*core.Task) templ.Component {
 				Rows:       sourceHTMLTaskRows(pendingTasks),
 				TableClass: "text-black dark:text-white",
 				Columns: []TableColumn{
-					{Label: "Worker", Render: func(row any) templ.Component { return sourceHTMLTaskWorkerCell(row.(*core.Task)) }},
-					{Label: "State", Render: func(row any) templ.Component { return sourceHTMLTaskStateCell(row.(*core.Task)) }},
-					{Label: "Scheduled At", Render: func(row any) templ.Component { return sourceHTMLTaskScheduledAtCell(row.(*core.Task)) }},
+					{Label: "Worker", Render: func(row any) templ.Component { return sourceHTMLTaskWorkerCell(row.(*store.Task)) }},
+					{Label: "State", Render: func(row any) templ.Component { return sourceHTMLTaskStateCell(row.(*store.Task)) }},
+					{Label: "Scheduled At", Render: func(row any) templ.Component { return sourceHTMLTaskScheduledAtCell(row.(*store.Task)) }},
 				},
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
@@ -301,7 +299,7 @@ func sourceHTMLShowTasksTab(pendingTasks []*core.Task) templ.Component {
 	})
 }
 
-func sourceHTMLTaskRows(tasks []*core.Task) []any {
+func sourceHTMLTaskRows(tasks []*store.Task) []any {
 	out := make([]any, len(tasks))
 	for i, t := range tasks {
 		out[i] = t
@@ -309,7 +307,7 @@ func sourceHTMLTaskRows(tasks []*core.Task) []any {
 	return out
 }
 
-func sourceHTMLTaskWorkerCell(task *core.Task) templ.Component {
+func sourceHTMLTaskWorkerCell(task *store.Task) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -333,7 +331,7 @@ func sourceHTMLTaskWorkerCell(task *core.Task) templ.Component {
 		var templ_7745c5c3_Var12 string
 		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(task.Job.Worker)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__show.templ`, Line: 93, Col: 18}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__show.templ`, Line: 91, Col: 18}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 		if templ_7745c5c3_Err != nil {
@@ -343,7 +341,7 @@ func sourceHTMLTaskWorkerCell(task *core.Task) templ.Component {
 	})
 }
 
-func sourceHTMLTaskStateCell(task *core.Task) templ.Component {
+func sourceHTMLTaskStateCell(task *store.Task) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -367,7 +365,7 @@ func sourceHTMLTaskStateCell(task *core.Task) templ.Component {
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(task.Job.State)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__show.templ`, Line: 97, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__show.templ`, Line: 95, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 		if templ_7745c5c3_Err != nil {
@@ -377,7 +375,7 @@ func sourceHTMLTaskStateCell(task *core.Task) templ.Component {
 	})
 }
 
-func sourceHTMLTaskScheduledAtCell(task *core.Task) templ.Component {
+func sourceHTMLTaskScheduledAtCell(task *store.Task) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {

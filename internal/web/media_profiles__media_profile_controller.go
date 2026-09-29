@@ -1,36 +1,32 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/media_profiles/media_profile_controller.ex
-
 import (
-	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // MediaProfileWithCount is a media profile with its source count.
 type MediaProfileWithCount struct {
-	Profile     *core.MediaProfile
+	Profile     *store.MediaProfile
 	SourceCount int64
 }
 
 // MediaProfileControllerIndex lists all media profiles
 func (s *Server) MediaProfileControllerIndex(w http.ResponseWriter, r *http.Request) {
-	ctx := ctxOf(r)
+	ctx := r.Context()
 
 	// Get all media profiles that are not marked for deletion, ordered by name
-	q := core.From[core.MediaProfile]("").
+	q := store.From[store.MediaProfile]("").
 		Where(sq.Eq{"marked_for_deletion_at": nil}).
 		OrderBy("name ASC")
 
-	profiles, err := core.All[core.MediaProfile](ctx, s.App.Q(ctx), q)
+	profiles, err := store.All[store.MediaProfile](ctx, s.App.Q(ctx), q)
 	if err != nil {
-		slog.Error("query media profiles failed", "err", err)
-		s.Render(w, r, http.StatusInternalServerError, LayoutNone, ErrorHTML500())
+		s.Fail(w, r, err)
 		return
 	}
 
@@ -38,7 +34,7 @@ func (s *Server) MediaProfileControllerIndex(w http.ResponseWriter, r *http.Requ
 	profilesWithCounts := make([]MediaProfileWithCount, 0, len(profiles))
 	for _, profile := range profiles {
 		// Count sources for this profile
-		count, err := core.Scalar[int64](ctx, s.App.Q(ctx),
+		count, err := store.Scalar[int64](ctx, s.App.Q(ctx),
 			sq.Select("COUNT(id)").From("sources").Where(sq.Eq{"media_profile_id": profile.ID}))
 		if err != nil {
 			count = 0
@@ -55,23 +51,19 @@ func (s *Server) MediaProfileControllerIndex(w http.ResponseWriter, r *http.Requ
 
 // MediaProfileControllerNew shows the form for creating a new media profile
 func (s *Server) MediaProfileControllerNew(w http.ResponseWriter, r *http.Request) {
-	ctx := ctxOf(r)
+	ctx := r.Context()
 	templateID := r.URL.Query().Get("template_id")
 
 	// Preload an existing media profile for faster creation
-	var csStruct *core.MediaProfile
-	if templateID != "" {
-		id, err := strconv.ParseInt(templateID, 10, 64)
-		if err == nil {
-			profile, err := s.App.ProfilesGetMediaProfile(ctx, id)
-			if err == nil && profile != nil {
-				csStruct = profile
-			}
+	var csStruct *store.MediaProfile
+	if id, err := strconv.ParseInt(templateID, 10, 64); err == nil {
+		if profile, err := s.App.GetMediaProfile(ctx, id); err == nil && profile != nil {
+			csStruct = profile
 		}
 	}
 
 	if csStruct == nil {
-		csStruct = &core.MediaProfile{}
+		csStruct = &store.MediaProfile{}
 	}
 
 	// Clone the struct and clear sensitive fields
@@ -80,65 +72,59 @@ func (s *Server) MediaProfileControllerNew(w http.ResponseWriter, r *http.Reques
 	profileForForm.Name = ""
 	profileForForm.MarkedForDeletionAt = nil
 
-	changeset := s.App.ProfilesChangeMediaProfile(ctx, &profileForForm, nil)
-
-	layout := OnboardingLayout(r.Context())
-	s.Render(w, r, http.StatusOK, layout, MediaProfilesHTMLNew(changeset))
+	layout := OnboardingLayout(ctx)
+	s.Render(w, r, http.StatusOK, layout, MediaProfilesHTMLNew(mediaProfileForm(&profileForForm, nil)))
 }
 
 // MediaProfileControllerCreate creates a new media profile
 func (s *Server) MediaProfileControllerCreate(w http.ResponseWriter, r *http.Request) {
-	ctx := ctxOf(r)
-	params := ParseForm(r, "media_profile")
-
-	profile, err := s.App.ProfilesCreateMediaProfile(ctx, params)
-	if err == nil {
-		onboarding, _ := s.App.SettingsGet(ctx, "onboarding")
-		if onboarding, ok := onboarding.(bool); ok && onboarding {
-			s.PutFlash(w, r, "info", "Media profile created successfully.")
-			s.Redirect(w, r, P(ctx, "/?onboarding=1"))
-		} else {
-			s.PutFlash(w, r, "info", "Media profile created successfully.")
-			s.Redirect(w, r, P(ctx, "/media_profiles/%v", profile.ID))
+	ctx := r.Context()
+	_ = r.ParseForm()
+	params, errs := store.ParseMediaProfileParams(r.PostForm)
+	base := store.NewMediaProfile()
+	mergeFormErrors(errs, params.Validate(base))
+	var profile *store.MediaProfile
+	if len(errs) == 0 {
+		var err error
+		if profile, errs, err = s.App.CreateMediaProfile(ctx, params); err != nil {
+			s.Fail(w, r, err)
+			return
 		}
+	}
+	if len(errs) > 0 {
+		s.Render(w, r, http.StatusOK, OnboardingLayout(ctx), MediaProfilesHTMLNew(mediaProfileForm(params.Apply(base), errs)))
 		return
 	}
 
-	// Changeset error
-	cs, ok := core.AsChangesetError(err)
-	if ok {
-		layout := OnboardingLayout(r.Context())
-		s.Render(w, r, http.StatusOK, layout, MediaProfilesHTMLNew(cs))
-		return
+	redirectPath := P(ctx, "/media_profiles/%v", profile.ID)
+	if onboarding, _ := s.App.GetSetting(ctx, "onboarding"); onboarding == true {
+		redirectPath = P(ctx, "/?onboarding=1")
 	}
+	s.PutFlash(w, r, "info", "Media profile created successfully.")
+	s.Redirect(w, r, redirectPath)
+}
 
-	slog.Error("create media profile failed", "err", err)
-	s.Render(w, r, http.StatusInternalServerError, LayoutNone, ErrorHTML500())
+// mergeFormErrors adds src's messages to dst.
+func mergeFormErrors(dst, src map[string][]string) {
+	for field, msgs := range src {
+		dst[field] = append(dst[field], msgs...)
+	}
 }
 
 // MediaProfileControllerShow displays a media profile
 func (s *Server) MediaProfileControllerShow(w http.ResponseWriter, r *http.Request) {
-	ctx := ctxOf(r)
-	id := URLParam(r, "id")
-	idInt, err := strconv.ParseInt(id, 10, 64)
-	if err != nil {
-		s.Fail(w, r, core.ErrNotFound)
-		return
-	}
-
-	profile, err := s.App.ProfilesGetMediaProfile(ctx, idInt)
-	if err != nil {
-		s.Fail(w, r, err)
+	ctx := r.Context()
+	profile, ok := loadOrFail(s, w, r, "id", s.App.GetMediaProfile)
+	if !ok {
 		return
 	}
 
 	// Get sources for this profile
-	q := core.SourcesQueryNew().Where(core.SourcesQueryForMediaProfile(profile.ID)).
+	q := store.SourcesQueryNew().Where(store.SourcesQueryForMediaProfile(profile.ID)).
 		OrderBy("custom_name ASC")
-	sources, err := core.All[core.Source](ctx, s.App.Q(ctx), q)
+	sources, err := store.All[store.Source](ctx, s.App.Q(ctx), q)
 	if err != nil {
-		slog.Error("query sources failed", "err", err)
-		s.Render(w, r, http.StatusInternalServerError, LayoutNone, ErrorHTML500())
+		s.Fail(w, r, err)
 		return
 	}
 
@@ -147,90 +133,59 @@ func (s *Server) MediaProfileControllerShow(w http.ResponseWriter, r *http.Reque
 
 // MediaProfileControllerEdit shows the form for editing a media profile
 func (s *Server) MediaProfileControllerEdit(w http.ResponseWriter, r *http.Request) {
-	ctx := ctxOf(r)
-	id := URLParam(r, "id")
-	idInt, err := strconv.ParseInt(id, 10, 64)
-	if err != nil {
-		s.Fail(w, r, core.ErrNotFound)
+	profile, ok := loadOrFail(s, w, r, "id", s.App.GetMediaProfile)
+	if !ok {
 		return
 	}
 
-	profile, err := s.App.ProfilesGetMediaProfile(ctx, idInt)
-	if err != nil {
-		s.Fail(w, r, err)
-		return
-	}
-
-	changeset := s.App.ProfilesChangeMediaProfile(ctx, profile, nil)
-	s.Render(w, r, http.StatusOK, LayoutApp, MediaProfilesHTMLEdit(profile, changeset))
+	s.Render(w, r, http.StatusOK, LayoutApp, MediaProfilesHTMLEdit(profile, mediaProfileForm(profile, nil)))
 }
 
 // MediaProfileControllerUpdate updates a media profile
 func (s *Server) MediaProfileControllerUpdate(w http.ResponseWriter, r *http.Request) {
-	ctx := ctxOf(r)
-	id := URLParam(r, "id")
-	idInt, err := strconv.ParseInt(id, 10, 64)
-	if err != nil {
-		s.Fail(w, r, core.ErrNotFound)
+	ctx := r.Context()
+	profile, ok := loadOrFail(s, w, r, "id", s.App.GetMediaProfile)
+	if !ok {
 		return
 	}
 
-	profile, err := s.App.ProfilesGetMediaProfile(ctx, idInt)
-	if err != nil {
-		s.Fail(w, r, err)
+	_ = r.ParseForm()
+	params, errs := store.ParseMediaProfileParams(r.PostForm)
+	mergeFormErrors(errs, params.Validate(profile))
+	var updated *store.MediaProfile
+	if len(errs) == 0 {
+		var err error
+		if updated, errs, err = s.App.UpdateMediaProfile(ctx, profile, params); err != nil {
+			s.Fail(w, r, err)
+			return
+		}
+	}
+	if len(errs) > 0 {
+		s.Render(w, r, http.StatusOK, LayoutApp, MediaProfilesHTMLEdit(profile, mediaProfileForm(params.Apply(profile), errs)))
 		return
 	}
 
-	params := ParseForm(r, "media_profile")
-	updated, err := s.App.ProfilesUpdateMediaProfile(ctx, profile, params)
-	if err == nil {
-		s.PutFlash(w, r, "info", "Media profile updated successfully.")
-		s.Redirect(w, r, P(ctx, "/media_profiles/%v", updated.ID))
-		return
-	}
-
-	// Changeset error
-	cs, ok := core.AsChangesetError(err)
-	if ok {
-		s.Render(w, r, http.StatusOK, LayoutApp, MediaProfilesHTMLEdit(profile, cs))
-		return
-	}
-
-	slog.Error("update media profile failed", "err", err)
-	s.Render(w, r, http.StatusInternalServerError, LayoutNone, ErrorHTML500())
+	s.PutFlash(w, r, "info", "Media profile updated successfully.")
+	s.Redirect(w, r, P(ctx, "/media_profiles/%v", updated.ID))
 }
 
 // MediaProfileControllerDelete marks a media profile for deletion
 func (s *Server) MediaProfileControllerDelete(w http.ResponseWriter, r *http.Request) {
-	ctx := ctxOf(r)
-	id := URLParam(r, "id")
-	idInt, err := strconv.ParseInt(id, 10, 64)
-	if err != nil {
-		s.Fail(w, r, core.ErrNotFound)
+	ctx := r.Context()
+	profile, ok := loadOrFail(s, w, r, "id", s.App.GetMediaProfile)
+	if !ok {
 		return
 	}
+	deleteFiles := r.URL.Query().Get("delete_files") == "true"
 
-	profile, err := s.App.ProfilesGetMediaProfile(ctx, idInt)
+	now := time.Now().UTC()
+	_, _, err := s.App.UpdateMediaProfile(ctx, profile, store.MediaProfileParams{MarkedForDeletionAt: &now})
 	if err != nil {
 		s.Fail(w, r, err)
 		return
 	}
 
-	// Parse delete_files parameter
-	deleteFiles := r.URL.Query().Get("delete_files") == "true"
-
-	// Update profile with marked_for_deletion_at timestamp
-	_, err = s.App.ProfilesUpdateMediaProfile(ctx, profile, core.Attrs{
-		"marked_for_deletion_at": time.Now().UTC(),
-	})
-	if err != nil {
-		slog.Error("mark profile for deletion failed", "err", err)
-		s.Render(w, r, http.StatusInternalServerError, LayoutNone, ErrorHTML500())
-		return
-	}
-
-	// Enqueue deletion job
-	s.App.MediaProfileDeletionWorkerKickoff(ctx, profile, core.Attrs{"delete_files": deleteFiles}, nil)
+	s.App.MediaProfileDeletionWorkerKickoff(ctx, profile, map[string]any{"delete_files": deleteFiles})
 
 	s.PutFlash(w, r, "info", "Media Profile deletion started. This may take a while to complete.")
 	s.Redirect(w, r, P(ctx, "/media_profiles"))

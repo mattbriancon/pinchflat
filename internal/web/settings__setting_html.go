@@ -6,8 +6,6 @@ import (
 	"runtime"
 )
 
-// Port of lib/pinchflat_web/controllers/settings/setting_html.ex.
-
 // YoutubeAPIHelp returns the help text for the YouTube API key field.
 func YoutubeAPIHelp() string {
 	url := "https://github.com/kieraneglin/pinchflat/wiki/Generating-a-YouTube-API-key"
@@ -20,7 +18,7 @@ func YoutubeAPIHelp() string {
 func DiagnosticInfoString(ctx context.Context, appVersion string) string {
 	page := PageOf(ctx)
 
-	ytDlpVersion, _ := page.App.SettingsGetBang(ctx, "yt_dlp_version")
+	ytDlpVersion, _ := page.App.GetSettingBang(ctx, "yt_dlp_version")
 	systemArch := runtime.GOOS + "-" + runtime.GOARCH
 
 	return fmt.Sprintf(

@@ -1,17 +1,15 @@
 package web
 
-// Port of lib/pinchflat_web/components/custom_components/text_components.ex.
 // The renderable half lives in custom_components__text_components.templ;
 // this file holds the plain-Go logic (regex splitting, strftime, byte
 // sizes) that templ's DSL can't express directly.
 
 import (
 	"context"
+	"math"
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/mattbriancon/pinchflat/internal/core"
 )
 
 // textDescURLPattern is ~r{https?://\S+}.
@@ -149,7 +147,7 @@ func textPluralize(word string, count int, suffix string) string {
 
 // textReadableFilesize is readable_filesize/1.
 func textReadableFilesize(byteSize int64) (float64, string) {
-	return core.NumberUtilsHumanByteSize(byteSize, core.KW{})
+	return humanByteSize(byteSize, 2)
 }
 
 func textReadableFilesizeValue(byteSize int64) float64 {
@@ -168,4 +166,23 @@ func textDefaultFormat(format string) string {
 		return "%Y-%m-%d %H:%M:%S"
 	}
 	return format
+}
+
+var byteSizeSuffixes = []string{"B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"}
+
+// humanByteSize converts number to a human-readable byte size, rounded to
+// precision decimal places.
+func humanByteSize(number int64, precision int) (float64, string) {
+	value := float64(number)
+	suffix := "B"
+	for _, s := range byteSizeSuffixes {
+		if value < 1024 {
+			suffix = s
+			break
+		}
+		value /= 1024
+	}
+
+	scale := math.Pow(10, float64(precision))
+	return math.Round(value*scale) / scale, suffix
 }

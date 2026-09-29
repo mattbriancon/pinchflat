@@ -8,12 +8,10 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Port of lib/pinchflat_web/controllers/media_profiles/media_profile_html/actions_dropdown.html.heex.
-
-import "github.com/mattbriancon/pinchflat/internal/core"
+import "github.com/mattbriancon/pinchflat/internal/store"
 
 // MediaProfilesHTMLActionsDropdown is actions_dropdown/1.
-func MediaProfilesHTMLActionsDropdown(mediaProfile *core.MediaProfile) templ.Component {
+func MediaProfilesHTMLActionsDropdown(mediaProfile *store.MediaProfile) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -48,7 +46,7 @@ func MediaProfilesHTMLActionsDropdown(mediaProfile *core.MediaProfile) templ.Com
 	})
 }
 
-func mediaProfilesCopyJSONOption(mediaProfile *core.MediaProfile) templ.Component {
+func mediaProfilesCopyJSONOption(mediaProfile *store.MediaProfile) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -69,20 +67,20 @@ func mediaProfilesCopyJSONOption(mediaProfile *core.MediaProfile) templ.Componen
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<span x-data=\"{ copied: false }\" x-on:click=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<span data-copy=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(mediaProfilesCopyWithCallbacksJS(mediaProfile))
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(prettyJSON(mediaProfile))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__actions_dropdown.templ`, Line: 19, Col: 93}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__actions_dropdown.templ`, Line: 17, Col: 43}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\">Copy JSON <span x-show=\"copied\" x-transition.duration.150ms>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\">Copy JSON <span data-copied hidden>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -98,7 +96,7 @@ func mediaProfilesCopyJSONOption(mediaProfile *core.MediaProfile) templ.Componen
 	})
 }
 
-func mediaProfilesUseAsTemplateOption(mediaProfile *core.MediaProfile) templ.Component {
+func mediaProfilesUseAsTemplateOption(mediaProfile *store.MediaProfile) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -126,7 +124,7 @@ func mediaProfilesUseAsTemplateOption(mediaProfile *core.MediaProfile) templ.Com
 		var templ_7745c5c3_Var5 templ.SafeURL
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(P(ctx, "/media_profiles/new?template_id=%v", mediaProfile.ID)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__actions_dropdown.templ`, Line: 28, Col: 87}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__actions_dropdown.templ`, Line: 26, Col: 87}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -169,7 +167,7 @@ func mediaProfilesDividerOption() templ.Component {
 	})
 }
 
-func mediaProfilesDeleteOption(mediaProfile *core.MediaProfile) templ.Component {
+func mediaProfilesDeleteOption(mediaProfile *store.MediaProfile) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -233,7 +231,7 @@ func mediaProfilesDeleteProfileLabel() templ.Component {
 	})
 }
 
-func mediaProfilesDeleteWithFilesOption(mediaProfile *core.MediaProfile) templ.Component {
+func mediaProfilesDeleteWithFilesOption(mediaProfile *store.MediaProfile) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {

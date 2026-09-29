@@ -8,7 +8,6 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Port of lib/pinchflat_web/controllers/pages/page_html/history_table_live.ex.
 // Rendered inline on the home page's first load; paging uses its own query
 // param per table (<media_state>_page) so paging one history table doesn't
 // reset the other, and carries ?tab= so the right tab stays selected on
@@ -18,12 +17,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // PagesPageHTMLHistoryTableContent renders the content of the history table.
-func PagesPageHTMLHistoryTableContent(ctx context.Context, mediaState string, page, totalPages int, records []*core.MediaItem, totalRecordCount int) templ.Component {
+func PagesPageHTMLHistoryTableContent(ctx context.Context, mediaState string, page, totalPages int, records []*store.MediaItem, totalRecordCount int) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -57,7 +56,7 @@ func PagesPageHTMLHistoryTableContent(ctx context.Context, mediaState string, pa
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs("Showing ")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 26, Col: 16}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 25, Col: 16}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -70,7 +69,7 @@ func PagesPageHTMLHistoryTableContent(ctx context.Context, mediaState string, pa
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(" of ")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 28, Col: 12}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 27, Col: 12}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -106,7 +105,7 @@ func PagesPageHTMLHistoryTableContent(ctx context.Context, mediaState string, pa
 }
 
 // historyTableContentTable renders the table rows for the history table.
-func historyTableContentTable(ctx context.Context, records []*core.MediaItem) templ.Component {
+func historyTableContentTable(ctx context.Context, records []*store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -149,7 +148,7 @@ func historyTableContentTable(ctx context.Context, records []*core.MediaItem) te
 			var templ_7745c5c3_Var5 templ.SafeURL
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/sources/%v/media/%v", mi.SourceID, mi.ID)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 61, Col: 80}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 60, Col: 80}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -162,7 +161,7 @@ func historyTableContentTable(ctx context.Context, records []*core.MediaItem) te
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(derefString(mi.Title))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 62, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 61, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -175,7 +174,7 @@ func historyTableContentTable(ctx context.Context, records []*core.MediaItem) te
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(mi.UploadedAt.Format("2006-01-02"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 68, Col: 43}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 67, Col: 43}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -188,7 +187,7 @@ func historyTableContentTable(ctx context.Context, records []*core.MediaItem) te
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(historyTableFormatDatetime(&mi.InsertedAt))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 71, Col: 51}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 70, Col: 51}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -201,7 +200,7 @@ func historyTableContentTable(ctx context.Context, records []*core.MediaItem) te
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(historyTableFormatDatetime(mi.MediaDownloadedAt))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 74, Col: 57}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 73, Col: 57}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -219,7 +218,7 @@ func historyTableContentTable(ctx context.Context, records []*core.MediaItem) te
 				var templ_7745c5c3_Var10 templ.SafeURL
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/sources/%v", mi.SourceID)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 78, Col: 63}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 77, Col: 63}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -232,7 +231,7 @@ func historyTableContentTable(ctx context.Context, records []*core.MediaItem) te
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(mi.Source.CustomName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 79, Col: 31}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__history_table.templ`, Line: 78, Col: 31}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {

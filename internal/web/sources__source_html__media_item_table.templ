@@ -1,16 +1,13 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/sources/source_html/media_item_table_live.ex
-// (the render/1 clauses; fetching lives in the .go file). Rendered inline for
-// each media_state tab on the source show page: paging/search are each
-// media_state's own query params (<state>_page, <state>_q) so switching one
-// tab's page or search doesn't disturb another's, and the form/links carry
-// ?tab= so a reload lands back on the right tab (STRATEGY.md decision 4: no
-// htmx, no fragment endpoint, no PubSub "reload_page" -- a browser reload
-// replaces it).
+// Rendered inline for each media_state tab on the source show page: paging
+// and search are each media_state's own query params (<state>_page,
+// <state>_q) so switching one tab's page or search doesn't disturb
+// another's, and the form/links carry ?tab= so a reload lands back on the
+// right tab. Fetching lives in the sibling .go file.
 
 import (
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // SourceHTMLMediaItemTable is render/1.
@@ -74,7 +71,7 @@ templ mediaItemTableHiddenParams(data *mediaItemTableData) {
 	}
 }
 
-templ mediaItemTableTitleCell(data *mediaItemTableData, item *core.MediaItem) {
+templ mediaItemTableTitleCell(data *mediaItemTableData, item *store.MediaItem) {
 	<section class="flex items-start gap-1">
 		if item.LastError != nil && *item.LastError != "" {
 			@TextTooltip(*item.LastError, "bottom-right", "w-64", "", mediaItemTableErrorIcon())
@@ -89,11 +86,11 @@ templ mediaItemTableErrorIcon() {
 	@CoreIcon("hero-exclamation-circle-solid", "text-red-500", nil)
 }
 
-templ mediaItemTableTitle(item *core.MediaItem) {
-	{ core.Deref(item.Title) }
+templ mediaItemTableTitle(item *store.MediaItem) {
+	{ store.Deref(item.Title) }
 }
 
-templ mediaItemTableIgnoredCell(item *core.MediaItem) {
+templ mediaItemTableIgnoredCell(item *store.MediaItem) {
 	if item.PreventDownload {
 		@CoreIcon("hero-check", "", nil)
 	} else {
@@ -101,10 +98,10 @@ templ mediaItemTableIgnoredCell(item *core.MediaItem) {
 	}
 }
 
-templ mediaItemTableUploadDateCell(item *core.MediaItem) {
+templ mediaItemTableUploadDateCell(item *store.MediaItem) {
 	{ item.UploadedAt.UTC().Format("2006-01-02") }
 }
 
-templ mediaItemTableEditCell(data *mediaItemTableData, item *core.MediaItem) {
+templ mediaItemTableEditCell(data *mediaItemTableData, item *store.MediaItem) {
 	@TextIconLink(P(ctx, "/sources/%v/media/%v/edit", data.Source.ID, item.ID), "hero-pencil-square", "mr-4")
 }

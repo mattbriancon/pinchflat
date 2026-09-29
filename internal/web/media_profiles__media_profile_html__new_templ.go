@@ -8,11 +8,7 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Port of lib/pinchflat_web/controllers/media_profiles/media_profile_html/new.html.heex.
-
-import "github.com/mattbriancon/pinchflat/internal/core"
-
-func MediaProfilesHTMLNew(changeset *core.Changeset) templ.Component {
+func MediaProfilesHTMLNew(f *Form) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -45,7 +41,7 @@ func MediaProfilesHTMLNew(changeset *core.Changeset) templ.Component {
 			var templ_7745c5c3_Var2 templ.SafeURL
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(P(ctx, "/media_profiles")))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__new.templ`, Line: 10, Col: 53}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__new.templ`, Line: 6, Col: 53}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -68,7 +64,7 @@ func MediaProfilesHTMLNew(changeset *core.Changeset) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = MediaProfilesHTMLMediaProfileForm(FormFor(changeset, "media_profile"), P(ctx, "/media_profiles"), "post").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = MediaProfilesHTMLMediaProfileForm(f, P(ctx, "/media_profiles"), "post").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -11,44 +11,37 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // MediaItemControllerShow shows a media item with details and associated tasks.
 func (s *Server) MediaItemControllerShow(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	id, err := strconv.ParseInt(URLParam(r, "id"), 10, 64)
-	if err != nil {
-		s.Fail(w, r, core.ErrNotFound)
-		return
-	}
-
-	mediaItem, err := s.App.MediaGetMediaItem(ctx, id)
-	if err != nil {
-		s.Fail(w, r, err)
+	mediaItem, ok := loadOrFail(s, w, r, "id", s.App.GetMediaItem)
+	if !ok {
 		return
 	}
 
 	// Preload source and tasks with jobs
 	if mediaItem.Source == nil {
-		source, err := s.App.SourcesGetSource(ctx, mediaItem.SourceID)
+		source, err := s.App.GetSource(ctx, mediaItem.SourceID)
 		if err != nil {
-			s.Fail(w, r, core.ErrNotFound)
+			s.Fail(w, r, store.ErrNotFound)
 			return
 		}
 		mediaItem.Source = source
 	}
 
 	// Load tasks with jobs
-	taskQuery := core.SQ.Select("*").From("tasks").Where(sq.Eq{"media_item_id": id}).OrderBy("id DESC")
-	tasks, err := core.All[core.Task](ctx, s.App.Q(ctx), taskQuery)
+	taskQuery := store.SQ.Select("*").From("tasks").Where(sq.Eq{"media_item_id": mediaItem.ID}).OrderBy("id DESC")
+	tasks, err := store.All[store.Task](ctx, s.App.Q(ctx), taskQuery)
 	if err == nil {
 		mediaItem.Tasks = tasks
 		// Load jobs for each task
 		for _, task := range tasks {
 			if task != nil && task.Job == nil {
-				job, _ := core.One[obanlite.Job](ctx, s.App.Q(ctx), core.SQ.Select("*").From("oban_jobs").Where(sq.Eq{"id": task.JobID}))
+				job, _ := store.One[obanlite.Job](ctx, s.App.Q(ctx), store.SQ.Select("*").From("oban_jobs").Where(sq.Eq{"id": task.JobID}))
 				task.Job = job
 			}
 		}
@@ -59,45 +52,54 @@ func (s *Server) MediaItemControllerShow(w http.ResponseWriter, r *http.Request)
 
 // MediaItemControllerEdit renders the edit form for a media item.
 func (s *Server) MediaItemControllerEdit(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	id, err := strconv.ParseInt(URLParam(r, "id"), 10, 64)
-	if err != nil {
-		s.Fail(w, r, core.ErrNotFound)
+	mediaItem, ok := loadOrFail(s, w, r, "id", s.App.GetMediaItem)
+	if !ok {
 		return
 	}
 
-	mediaItem, err := s.App.MediaGetMediaItem(ctx, id)
-	if err != nil {
-		s.Fail(w, r, err)
-		return
-	}
+	s.Render(w, r, http.StatusOK, LayoutApp, MediaItemsMediaItemHTMLEdit(mediaItem, mediaItemForm(mediaItem, store.MediaItemParams{}, nil)))
+}
 
-	cs := s.App.MediaChangeMediaItem(ctx, mediaItem, core.Attrs{})
-	s.Render(w, r, http.StatusOK, LayoutApp, MediaItemsMediaItemHTMLEdit(mediaItem, cs))
+// mediaItemForm shows mediaItem's editable fields with the params applied on
+// top, as after a failed submit.
+func mediaItemForm(mediaItem *store.MediaItem, p store.MediaItemParams, errs map[string][]string) *Form {
+	values := map[string]any{
+		"prevent_download": mediaItem.PreventDownload,
+		"prevent_culling":  mediaItem.PreventCulling,
+	}
+	if p.PreventDownload != nil {
+		values["prevent_download"] = *p.PreventDownload
+	}
+	if p.PreventCulling != nil {
+		values["prevent_culling"] = *p.PreventCulling
+	} else if p.Clear&store.ClearPreventCulling != 0 {
+		values["prevent_culling"] = nil
+	}
+	return NewForm("media_item", values, errs)
 }
 
 // MediaItemControllerUpdate updates a media item.
 func (s *Server) MediaItemControllerUpdate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	id, err := strconv.ParseInt(URLParam(r, "id"), 10, 64)
-	if err != nil {
-		s.Fail(w, r, core.ErrNotFound)
+	mediaItem, ok := loadOrFail(s, w, r, "id", s.App.GetMediaItem)
+	if !ok {
 		return
 	}
 
-	mediaItem, err := s.App.MediaGetMediaItem(ctx, id)
-	if err != nil {
-		s.Fail(w, r, err)
+	_ = r.ParseForm()
+	params, errs := store.ParseMediaItemParams(r.Form)
+	for field, msgs := range params.Validate(mediaItem) {
+		errs[field] = append(errs[field], msgs...)
+	}
+	if len(errs) > 0 {
+		s.Render(w, r, http.StatusOK, LayoutApp, MediaItemsMediaItemHTMLEdit(mediaItem, mediaItemForm(mediaItem, params, errs)))
 		return
 	}
 
-	params := ParseForm(r, "media_item")
-	updated, err := s.App.MediaUpdateMediaItem(ctx, mediaItem, params)
+	updated, err := s.App.UpdateMediaItem(ctx, mediaItem, params)
 	if err != nil {
-		// Handle changeset errors
-		if csErr, ok := core.AsChangesetError(err); ok {
-			csErr.Action = "update"
-			s.Render(w, r, http.StatusOK, LayoutApp, MediaItemsMediaItemHTMLEdit(mediaItem, csErr))
+		if errs, ok := store.AsValidationErrors(err); ok {
+			s.Render(w, r, http.StatusOK, LayoutApp, MediaItemsMediaItemHTMLEdit(mediaItem, mediaItemForm(mediaItem, params, errs)))
 			return
 		}
 		s.Fail(w, r, err)
@@ -111,25 +113,18 @@ func (s *Server) MediaItemControllerUpdate(w http.ResponseWriter, r *http.Reques
 // MediaItemControllerDelete deletes the files associated with a media item.
 func (s *Server) MediaItemControllerDelete(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	id, err := strconv.ParseInt(URLParam(r, "id"), 10, 64)
-	if err != nil {
-		s.Fail(w, r, core.ErrNotFound)
-		return
-	}
-
-	mediaItem, err := s.App.MediaGetMediaItem(ctx, id)
-	if err != nil {
-		s.Fail(w, r, err)
+	mediaItem, ok := loadOrFail(s, w, r, "id", s.App.GetMediaItem)
+	if !ok {
 		return
 	}
 
 	prevent := r.URL.Query().Get("prevent_download") == "true"
-	addlAttrs := core.Attrs{}
+	var extra store.MediaItemParams
 	if prevent {
-		addlAttrs["prevent_download"] = true
+		extra.PreventDownload = store.Ptr(true)
 	}
 
-	_, err = s.App.MediaDeleteMediaFiles(ctx, mediaItem, addlAttrs)
+	_, err := s.App.MediaDeleteMediaFiles(ctx, mediaItem, extra)
 	if err != nil {
 		s.Fail(w, r, err)
 		return
@@ -142,19 +137,12 @@ func (s *Server) MediaItemControllerDelete(w http.ResponseWriter, r *http.Reques
 // MediaItemControllerForceDownload enqueues a download task for a media item.
 func (s *Server) MediaItemControllerForceDownload(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	mediaItemID, err := strconv.ParseInt(URLParam(r, "media_item_id"), 10, 64)
-	if err != nil {
-		s.Fail(w, r, core.ErrNotFound)
+	mediaItem, ok := loadOrFail(s, w, r, "media_item_id", s.App.GetMediaItem)
+	if !ok {
 		return
 	}
 
-	mediaItem, err := s.App.MediaGetMediaItem(ctx, mediaItemID)
-	if err != nil {
-		s.Fail(w, r, err)
-		return
-	}
-
-	_, err = s.App.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, core.Attrs{"force": true}, core.KW{})
+	_, err := s.App.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{"force": true}, nil)
 	if err != nil {
 		// Allow duplicate job errors to pass through silently
 		if !strings.Contains(err.Error(), "duplicate") {
@@ -171,9 +159,9 @@ func (s *Server) MediaItemControllerForceDownload(w http.ResponseWriter, r *http
 // Uses UUID instead of ID to avoid enumeration attacks since streaming is a public endpoint.
 func (s *Server) MediaItemControllerStream(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	uuid := URLParam(r, "uuid")
+	uuid := r.PathValue("uuid")
 
-	mediaItem, err := core.One[core.MediaItem](ctx, s.App.Q(ctx), core.SQ.Select("*").From("media_items").Where(sq.Eq{"uuid": uuid}))
+	mediaItem, err := store.One[store.MediaItem](ctx, s.App.Q(ctx), store.SQ.Select("*").From("media_items").Where(sq.Eq{"uuid": uuid}))
 	if err != nil || mediaItem == nil {
 		http.Error(w, "File not found", http.StatusNotFound)
 		return

@@ -1,20 +1,14 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/media_profiles/media_profile_html.ex
-// (the plain-Go half; the renderable templates live in the sibling .templ
-// files). Helper names use the mp prefix to avoid collisions with other
-// controllers' files in this flat package.
+// The renderable templates live in the sibling .templ files. Helper names
+// use the mp prefix to avoid collisions with other controllers' files in
+// this flat package.
 
 import (
 	"fmt"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
-
-// formatInt64 formats an int64 as a string.
-func formatInt64(v int64) string {
-	return fmt.Sprint(v)
-}
 
 // mpKV is one entry of media_center_custom_output_template_options/0 and
 // other_custom_output_template_options/0 (an alias key plus optional help,
@@ -151,7 +145,7 @@ func mediaProfilesPresetOptions() []CoreSelectOption {
 // schema field defaults on a bare struct literal, so this must go through
 // the NewMediaProfile() constructor rather than a zero-value MediaProfile{}.
 func mediaProfilesDefaultOutputTemplate() string {
-	return core.NewMediaProfile().OutputPathTemplate
+	return store.NewMediaProfile().OutputPathTemplate
 }
 
 // mediaProfilesMediaCenterOutputTemplate is media_center_output_template/0.
@@ -167,5 +161,5 @@ func mediaProfilesAudioOutputTemplate() string {
 // double_brace/1 (Pinchflat.Utils.StringUtils), used throughout the form and
 // output_template_help templates.
 func mediaProfilesBrace(s string) string {
-	return core.StringUtilsDoubleBrace(s)
+	return fmt.Sprintf("{{ %s }}", s)
 }

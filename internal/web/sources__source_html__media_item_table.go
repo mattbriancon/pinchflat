@@ -1,6 +1,5 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/sources/source_html/media_item_table_live.ex.
 // Rendered inline for each media_state tab on the source show page.
 
 import (
@@ -12,18 +11,18 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/a-h/templ"
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 const mediaItemTableLimit = 10
 
 // mediaItemTableData is this render's state.
 type mediaItemTableData struct {
-	Source              *core.Source
+	Source              *store.Source
 	MediaState          string
 	Page                int
 	TotalPages          int
-	Records             []*core.MediaItem
+	Records             []*store.MediaItem
 	SearchTerm          string
 	TotalRecordCount    int
 	FilteredRecordCount int
@@ -41,7 +40,7 @@ func mediaItemTableSearchParam(mediaState string) string { return mediaState + "
 
 // mediaItemTableFetch is mount/3 + fetch_pagination_attributes/3, reading
 // page/search from this media_state's query params on r.
-func (s *Server) mediaItemTableFetch(ctx context.Context, r *http.Request, source *core.Source, mediaState string) (*mediaItemTableData, error) {
+func (s *Server) mediaItemTableFetch(ctx context.Context, r *http.Request, source *store.Source, mediaState string) (*mediaItemTableData, error) {
 	page, _ := strconv.Atoi(r.URL.Query().Get(mediaItemTablePageParam(mediaState)))
 	if page < 1 {
 		page = 1
@@ -50,7 +49,7 @@ func (s *Server) mediaItemTableFetch(ctx context.Context, r *http.Request, sourc
 
 	base := mediaItemTableBaseQuery(source, mediaState)
 
-	totalRecordCount, err := core.Scalar[int](ctx, s.App.Q(ctx), core.SQ.Select("COUNT(*)").FromSelect(base.B, "sq"))
+	totalRecordCount, err := store.Scalar[int](ctx, s.App.Q(ctx), store.SQ.Select("COUNT(*)").FromSelect(base.B, "sq"))
 	if err != nil {
 		return nil, err
 	}
@@ -65,16 +64,16 @@ func (s *Server) mediaItemTableFetch(ctx context.Context, r *http.Request, sourc
 		filtered = base.MatchingSearchTerm(&term)
 	}
 
-	filteredRecordCount, err := core.Scalar[int](ctx, s.App.Q(ctx), core.SQ.Select("COUNT(*)").FromSelect(filtered.B, "sq"))
+	filteredRecordCount, err := store.Scalar[int](ctx, s.App.Q(ctx), store.SQ.Select("COUNT(*)").FromSelect(filtered.B, "sq"))
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := core.NumberUtilsClamp((filteredRecordCount+mediaItemTableLimit-1)/mediaItemTableLimit, 1, 1<<30)
+	totalPages := clamp((filteredRecordCount+mediaItemTableLimit-1)/mediaItemTableLimit, 1, 1<<30)
 	if filteredRecordCount == 0 {
 		totalPages = 1
 	}
-	page = core.NumberUtilsClamp(page, 1, totalPages)
+	page = clamp(page, 1, totalPages)
 	offset := (page - 1) * mediaItemTableLimit
 
 	recordsQuery := filtered.Map(func(b sq.SelectBuilder) sq.SelectBuilder {
@@ -83,7 +82,7 @@ func (s *Server) mediaItemTableFetch(ctx context.Context, r *http.Request, sourc
 		}
 		return b.OrderBy("mi.uploaded_at DESC").Limit(mediaItemTableLimit).Offset(uint64(offset))
 	})
-	records, err := core.All[core.MediaItem](ctx, s.App.Q(ctx), recordsQuery.B)
+	records, err := store.All[store.MediaItem](ctx, s.App.Q(ctx), recordsQuery.B)
 	if err != nil {
 		return nil, err
 	}
@@ -101,21 +100,21 @@ func (s *Server) mediaItemTableFetch(ctx context.Context, r *http.Request, sourc
 }
 
 // generate_base_query/2.
-func mediaItemTableBaseQuery(source *core.Source, mediaState string) *core.MediaQ {
-	q := core.MediaQueryNew()
+func mediaItemTableBaseQuery(source *store.Source, mediaState string) *store.MediaQ {
+	q := store.MediaQueryNew()
 	switch mediaState {
 	case "pending":
-		return q.RequireAssoc("media_profile").Where(sq.And{core.MediaQueryForSource(source.ID), core.MediaQueryPending()})
+		return q.RequireAssoc("media_profile").Where(sq.And{store.MediaQueryForSource(source.ID), store.MediaQueryPending()})
 	case "downloaded":
-		return q.Where(sq.And{core.MediaQueryForSource(source.ID), core.MediaQueryDownloaded()})
+		return q.Where(sq.And{store.MediaQueryForSource(source.ID), store.MediaQueryDownloaded()})
 	case "other":
 		return q.RequireAssoc("media_profile").Where(sq.And{
-			core.MediaQueryForSource(source.ID),
-			core.Not(core.MediaQueryDownloaded()),
-			core.Not(core.MediaQueryPending()),
+			store.MediaQueryForSource(source.ID),
+			store.Not(store.MediaQueryDownloaded()),
+			store.Not(store.MediaQueryPending()),
 		})
 	default:
-		return q.Where(core.MediaQueryForSource(source.ID))
+		return q.Where(store.MediaQueryForSource(source.ID))
 	}
 }
 
@@ -136,7 +135,7 @@ func mediaItemTablePageURL(ctx context.Context, data *mediaItemTableData, delta 
 }
 
 // mediaItemTableRows/Columns build the generic TableTable props.
-func mediaItemTableRows(records []*core.MediaItem) []any {
+func mediaItemTableRows(records []*store.MediaItem) []any {
 	out := make([]any, len(records))
 	for i, r := range records {
 		out[i] = r
@@ -150,7 +149,7 @@ func mediaItemTableColumns(data *mediaItemTableData) []TableColumn {
 			Label: "Title",
 			Class: "cell-wrap",
 			Render: func(row any) templ.Component {
-				return mediaItemTableTitleCell(data, row.(*core.MediaItem))
+				return mediaItemTableTitleCell(data, row.(*store.MediaItem))
 			},
 		},
 	}
@@ -158,7 +157,7 @@ func mediaItemTableColumns(data *mediaItemTableData) []TableColumn {
 		cols = append(cols, TableColumn{
 			Label: "Manually Ignored?",
 			Render: func(row any) templ.Component {
-				return mediaItemTableIgnoredCell(row.(*core.MediaItem))
+				return mediaItemTableIgnoredCell(row.(*store.MediaItem))
 			},
 		})
 	}
@@ -166,14 +165,14 @@ func mediaItemTableColumns(data *mediaItemTableData) []TableColumn {
 		TableColumn{
 			Label: "Upload Date",
 			Render: func(row any) templ.Component {
-				return mediaItemTableUploadDateCell(row.(*core.MediaItem))
+				return mediaItemTableUploadDateCell(row.(*store.MediaItem))
 			},
 		},
 		TableColumn{
 			Label: "",
 			Class: "flex justify-end",
 			Render: func(row any) templ.Component {
-				return mediaItemTableEditCell(data, row.(*core.MediaItem))
+				return mediaItemTableEditCell(data, row.(*store.MediaItem))
 			},
 		},
 	)

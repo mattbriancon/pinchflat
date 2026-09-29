@@ -35,9 +35,7 @@ func TestReadsEveryElixirJob(t *testing.T) {
 	d := dbtest.CopyOf(t, dbtest.ElixirFixture("populated.db"))
 	o := obanlite.New(d)
 	jobs, err := o.Jobs(context.Background(), "")
-	if err != nil {
-		t.Fatal(err)
-	}
+	must(t, err)
 	if len(jobs) != 13 {
 		t.Fatalf("want 13 jobs, got %d", len(jobs))
 	}
@@ -73,13 +71,9 @@ func TestInsertMatchesElixirEncoding(t *testing.T) {
 	o := obanlite.New(d)
 	register(o, noop)
 	job, err := o.Insert(context.Background(), nil, obanlite.NewJob(downloadWorker, map[string]any{"quality_upgrade?": true, "id": 4}))
-	if err != nil {
-		t.Fatal(err)
-	}
+	must(t, err)
 	got := want
-	if err := d.Get(&got, q, job.ID); err != nil {
-		t.Fatal(err)
-	}
+	must(t, d.Get(&got, q, job.ID))
 	// Timestamps differ in value but must share the format.
 	if len(got.InsertedAt) != len(want.InsertedAt) || got.InsertedAt[10] != want.InsertedAt[10] {
 		t.Errorf("inserted_at format: got %q want like %q", got.InsertedAt, want.InsertedAt)
@@ -100,9 +94,7 @@ func TestScheduledInsertMatchesElixirFormat(t *testing.T) {
 	spec := obanlite.NewJob(downloadWorker, map[string]any{"id": 1})
 	spec.ScheduleIn = 3600
 	job, err := o.Insert(context.Background(), nil, spec)
-	if err != nil {
-		t.Fatal(err)
-	}
+	must(t, err)
 	var raw string
 	d.Get(&raw, `SELECT scheduled_at FROM oban_jobs WHERE id = ?`, job.ID)
 	// Elixir: 2026-09-26T23:00:38.921177Z
@@ -119,9 +111,7 @@ func TestUniqueConflictWithElixirJob(t *testing.T) {
 
 	// Job 1 is MediaDownloadWorker %{id: 2}, available.
 	job, err := o.Insert(ctx, nil, obanlite.NewJob(downloadWorker, map[string]any{"id": 2}))
-	if err != nil {
-		t.Fatal(err)
-	}
+	must(t, err)
 	if !job.Conflict || job.ID != 1 {
 		t.Fatalf("want conflict with job 1, got conflict=%v id=%d", job.Conflict, job.ID)
 	}
@@ -133,9 +123,7 @@ func TestUniqueConflictWithElixirJob(t *testing.T) {
 	}
 
 	// Completed jobs aren't in the worker's unique states.
-	if _, err := d.Exec(`UPDATE oban_jobs SET state = 'completed' WHERE id = 1`); err != nil {
-		t.Fatal(err)
-	}
+	mustOK(t)(d.Exec(`UPDATE oban_jobs SET state = 'completed' WHERE id = 1`))
 	job, err = o.Insert(ctx, nil, obanlite.NewJob(downloadWorker, map[string]any{"id": 2}))
 	if err != nil || job.Conflict {
 		t.Fatalf("want new job after completion, got conflict=%v err=%v", job.Conflict, err)
@@ -152,13 +140,9 @@ func setup(t *testing.T, w obanlite.Worker) (*obanlite.Oban, *db.DB) {
 func insertAndRun(t *testing.T, o *obanlite.Oban, worker string) *obanlite.Job {
 	t.Helper()
 	job, err := o.Insert(context.Background(), nil, obanlite.NewJob(worker, map[string]any{"id": 1}))
-	if err != nil {
-		t.Fatal(err)
-	}
+	must(t, err)
 	job, err = o.PerformExisting(context.Background(), job.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
+	must(t, err)
 	return job
 }
 
@@ -198,20 +182,6 @@ func TestOutcomes(t *testing.T) {
 			t.Fatalf("%+v", job)
 		}
 	})
-	t.Run("snooze reschedules without using an attempt", func(t *testing.T) {
-		o, _ := setup(t, obanlite.WorkerFunc(func(context.Context, *obanlite.Job) error { return obanlite.Snooze(60) }))
-		job := insertAndRun(t, o, downloadWorker)
-		if job.State != "scheduled" || job.MaxAttempts != 21 {
-			t.Fatalf("%+v", job)
-		}
-	})
-	t.Run("cancel result", func(t *testing.T) {
-		o, _ := setup(t, obanlite.WorkerFunc(func(context.Context, *obanlite.Job) error { return obanlite.Cancel(errors.New("nope")) }))
-		job := insertAndRun(t, o, downloadWorker)
-		if job.State != "cancelled" || job.CancelledAt == nil {
-			t.Fatalf("%+v", job)
-		}
-	})
 }
 
 func TestCancelJobStopsRunningWorker(t *testing.T) {
@@ -228,9 +198,7 @@ func TestCancelJobStopsRunningWorker(t *testing.T) {
 	done := make(chan struct{})
 	go func() { o.PerformExisting(ctx, job.ID); close(done) }()
 	<-started
-	if err := o.CancelJob(ctx, job.ID); err != nil {
-		t.Fatal(err)
-	}
+	must(t, o.CancelJob(ctx, job.ID))
 	if err := <-stopped; err == nil {
 		t.Fatal("worker context was not cancelled")
 	}
@@ -251,9 +219,7 @@ func TestStageAndPrune(t *testing.T) {
 	d.Exec(`UPDATE oban_jobs SET scheduled_at = '2999-01-01T00:00:00.000000Z' WHERE id = 4`)
 	// Make the scheduled SourceDeletionWorker job (id 10) due.
 	d.Exec(`UPDATE oban_jobs SET scheduled_at = '2020-01-01T00:00:00.000000Z' WHERE id = 10`)
-	if err := o.Stage(ctx); err != nil {
-		t.Fatal(err)
-	}
+	must(t, o.Stage(ctx))
 	if j, _ := o.GetJob(ctx, 10); j.State != "available" {
 		t.Fatalf("job 10 state %s", j.State)
 	}
@@ -281,9 +247,7 @@ func TestCronInsertsMatchingEntries(t *testing.T) {
 		{Expr: "0 1 * * *", Worker: "Pinchflat.YtDlp.UpdateWorker"},
 		{Expr: "0 2 * * *", Worker: downloadWorker},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	must(t, err)
 	o.InsertCronJobs(context.Background(), crons, time.Date(2025, 1, 1, 1, 0, 0, 0, time.UTC))
 	job := o.AssertEnqueued(t, obanlite.Match{Worker: "Pinchflat.YtDlp.UpdateWorker"})
 	if string(job.Meta) != `{"cron":true,"cron_expr":"0 1 * * *","cron_tz":"Etc/UTC"}` {

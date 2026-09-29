@@ -8,7 +8,6 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Port of lib/pinchflat_web/controllers/media_items/media_item_html/media_item_form.html.heex
 func MediaItemsMediaItemHTMLMediaItemForm(f *Form, action string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -34,8 +33,6 @@ func MediaItemsMediaItemHTMLMediaItemForm(f *Form, action string) templ.Componen
 			templ.Attributes{
 				"action": action,
 				"method": "post",
-				"x-data": "{ advancedMode: !!JSON.parse(localStorage.getItem('advancedMode')) }",
-				"x-init": "$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))",
 			},
 			mediaItemFormContent(f),
 			nil,

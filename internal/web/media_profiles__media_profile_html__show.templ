@@ -1,10 +1,8 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/media_profiles/media_profile_html/show.html.heex.
+import "github.com/mattbriancon/pinchflat/internal/store"
 
-import "github.com/mattbriancon/pinchflat/internal/core"
-
-templ MediaProfilesHTMLShow(profile *core.MediaProfile, sources []*core.Source) {
+templ MediaProfilesHTMLShow(profile *store.MediaProfile, sources []*store.Source) {
 	<div class="page-header">
 		<div class="flex gap-3 items-center min-w-0">
 			<a href={ templ.SafeURL(P(ctx, "/media_profiles")) }>
@@ -35,7 +33,7 @@ templ mediaProfilesShowEditLabel() {
 	Edit <span class="hidden sm:inline pl-1">Media Profile</span>
 }
 
-templ mediaProfilesShowMediaProfileTab(profile *core.MediaProfile) {
+templ mediaProfilesShowMediaProfileTab(profile *store.MediaProfile) {
 	<div class="flex flex-col gap-6 text-white">
 		<section>
 			<h3 class="section-title mt-2 mb-2">Raw Attributes</h3>
@@ -44,6 +42,6 @@ templ mediaProfilesShowMediaProfileTab(profile *core.MediaProfile) {
 	</div>
 }
 
-templ mediaProfilesShowSourcesTab(sources []*core.Source) {
+templ mediaProfilesShowSourcesTab(sources []*store.Source) {
 	@TableTable(mediaProfilesShowSourcesTableProps(sources))
 }

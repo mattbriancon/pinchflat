@@ -8,12 +8,6 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import (
-	"context"
-	"fmt"
-)
-
-// Port of lib/pinchflat_web/controllers/settings/setting_html/app_info.html.heex.
 func SettingHTMLAppInfo() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -40,8 +34,7 @@ func SettingHTMLAppInfo() templ.Component {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = ButtonButton("bg-primary", "rounded-lg", "", "button", false, templ.Attributes{
-			"x-data":     "{ copied: false }",
-			"x-on:click": appInfoCopyScript(ctx),
+			"data-copy": DiagnosticInfoString(ctx, PageOf(ctx).Version),
 		}, appInfoCopyButtonContent()).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -53,7 +46,7 @@ func SettingHTMLAppInfo() templ.Component {
 		var templ_7745c5c3_Var2 templ.SafeURL
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/download_logs")))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `settings__setting_html__app_info.templ`, Line: 24, Col: 48}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `settings__setting_html__app_info.templ`, Line: 16, Col: 48}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -96,7 +89,7 @@ func appInfoCopyButtonContent() templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "Copy Diagnostic Info <span x-show=\"copied\" x-transition.duration.150ms>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "Copy Diagnostic Info <span data-copied hidden>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -139,16 +132,6 @@ func appInfoDownloadLogsContent() templ.Component {
 		}
 		return nil
 	})
-}
-
-// appInfoCopyScript builds the x-on:click Alpine expression with the
-// diagnostic info string interpolated into the JS template literal, as
-// the .heex's `~s"copyWithCallbacks(`#{diagnostic_info_string()}`, ...)"` did.
-func appInfoCopyScript(ctx context.Context) string {
-	return fmt.Sprintf(
-		"\n        copyWithCallbacks(\n          `%s`, \n          () => copied = true, \n          () => copied = false\n        )\n      ",
-		DiagnosticInfoString(ctx, PageOf(ctx).Version),
-	)
 }
 
 var _ = templruntime.GeneratedTemplate

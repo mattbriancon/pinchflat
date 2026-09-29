@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-// Port of lib/pinchflat_web/controllers/searches/search_html/show.html.heex.
-
-templ SearchHTMLShow(searchTerm string, searchResults []*core.MediaItem) {
+templ SearchHTMLShow(searchTerm string, searchResults []*store.MediaItem) {
 	<div class="page-header">
 		<h2 class="page-title">
 			{ fmt.Sprintf("Results for \"%s\"", searchTerm) }
@@ -29,7 +27,7 @@ templ SearchHTMLShow(searchTerm string, searchResults []*core.MediaItem) {
 								Label: "Title",
 								Class: "cell-wrap",
 								Render: func(row any) templ.Component {
-									result := row.(*core.MediaItem)
+									result := row.(*store.MediaItem)
 									return TextSubtleLink(
 										fmt.Sprintf("/sources/%v/media/%v", result.SourceID, result.ID),
 										"",
@@ -41,7 +39,7 @@ templ SearchHTMLShow(searchTerm string, searchResults []*core.MediaItem) {
 								Label: "Excerpt",
 								Class: "!whitespace-normal min-w-64",
 								Render: func(row any) templ.Component {
-									result := row.(*core.MediaItem)
+									result := row.(*store.MediaItem)
 									excerptText := ""
 									if result.MatchingSearchTerm != nil {
 										excerptText = *result.MatchingSearchTerm
@@ -59,8 +57,8 @@ templ SearchHTMLShow(searchTerm string, searchResults []*core.MediaItem) {
 	</div>
 }
 
-// Helper function to convert []*core.MediaItem to []any
-func toAny(items []*core.MediaItem) []any {
+// Helper function to convert []*store.MediaItem to []any
+func toAny(items []*store.MediaItem) []any {
 	result := make([]any, len(items))
 	for i, item := range items {
 		result[i] = item

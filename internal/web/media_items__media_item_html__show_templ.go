@@ -8,15 +8,13 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Port of lib/pinchflat_web/controllers/media_items/media_item_html/show.html.heex
-
 import (
 	"strings"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-func MediaItemsMediaItemHTMLShow(mediaItem *core.MediaItem) templ.Component {
+func MediaItemsMediaItemHTMLShow(mediaItem *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -44,7 +42,7 @@ func MediaItemsMediaItemHTMLShow(mediaItem *core.MediaItem) templ.Component {
 		var templ_7745c5c3_Var2 templ.SafeURL
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/sources/%v", mediaItem.SourceID)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 14, Col: 65}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 12, Col: 65}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -65,7 +63,7 @@ func MediaItemsMediaItemHTMLShow(mediaItem *core.MediaItem) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(miStr(mediaItem.Title))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 18, Col: 28}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 16, Col: 28}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -78,7 +76,7 @@ func MediaItemsMediaItemHTMLShow(mediaItem *core.MediaItem) templ.Component {
 		var templ_7745c5c3_Var4 templ.SafeURL
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/sources/%v/media/%v/edit", mediaItem.SourceID, mediaItem.ID)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 23, Col: 93}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 21, Col: 93}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -141,14 +139,14 @@ func mediaItemsEditButtonContent() templ.Component {
 	})
 }
 
-func mediaItemsShowTabs(mediaItem *core.MediaItem) []TabTab {
+func mediaItemsShowTabs(mediaItem *store.MediaItem) []TabTab {
 	return []TabTab{
 		{ID: "media", Title: "Media", Content: mediaItemsShowMediaTab(mediaItem)},
 		{ID: "tasks", Title: "Tasks", Content: mediaItemsShowTasksTab(mediaItem)},
 	}
 }
 
-func mediaItemsShowMediaTab(mediaItem *core.MediaItem) templ.Component {
+func mediaItemsShowMediaTab(mediaItem *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -189,7 +187,7 @@ func mediaItemsShowMediaTab(mediaItem *core.MediaItem) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(*mediaItem.LastError)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 55, Col: 32}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 53, Col: 32}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -216,7 +214,7 @@ func mediaItemsShowMediaTab(mediaItem *core.MediaItem) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(miStr(mediaItem.Title))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 64, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 62, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -229,7 +227,7 @@ func mediaItemsShowMediaTab(mediaItem *core.MediaItem) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(mediaItem.UploadedAt.Time.Format("2006-01-02"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 65, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 63, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -306,7 +304,7 @@ func mediaItemsShowMediaTab(mediaItem *core.MediaItem) templ.Component {
 	})
 }
 
-func mediaItemsShowTasksTab(mediaItem *core.MediaItem) templ.Component {
+func mediaItemsShowTasksTab(mediaItem *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -350,7 +348,7 @@ func mediaItemsShowTasksTab(mediaItem *core.MediaItem) templ.Component {
 	})
 }
 
-func mediaItemsTaskRows(tasks []*core.Task) []any {
+func mediaItemsTaskRows(tasks []*store.Task) []any {
 	rows := make([]any, len(tasks))
 	for i, t := range tasks {
 		rows[i] = t
@@ -379,11 +377,11 @@ func mediaItemsTaskWorkerCell(row any) templ.Component {
 			templ_7745c5c3_Var11 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		if task, ok := row.(*core.Task); ok && task.Job != nil {
+		if task, ok := row.(*store.Task); ok && task.Job != nil {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(task.Job.Worker)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 124, Col: 19}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 122, Col: 19}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -415,11 +413,11 @@ func mediaItemsTaskStateCell(row any) templ.Component {
 			templ_7745c5c3_Var13 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		if task, ok := row.(*core.Task); ok && task.Job != nil {
+		if task, ok := row.(*store.Task); ok && task.Job != nil {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(task.Job.State)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 130, Col: 18}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 128, Col: 18}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
@@ -451,7 +449,7 @@ func mediaItemsTaskScheduledAtCell(row any) templ.Component {
 			templ_7745c5c3_Var15 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		if task, ok := row.(*core.Task); ok && task.Job != nil {
+		if task, ok := row.(*store.Task); ok && task.Job != nil {
 			templ_7745c5c3_Err = TextDatetimeInZone(task.Job.ScheduledAt.Time, "", "").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -485,7 +483,7 @@ func miText(s string) templ.Component {
 		var templ_7745c5c3_Var17 string
 		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(s)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 142, Col: 4}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 139, Col: 4}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 		if templ_7745c5c3_Err != nil {

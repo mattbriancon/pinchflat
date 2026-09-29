@@ -1,13 +1,10 @@
 package web
 
-// Port of lib/pinchflat_web/components/core_components.ex. The renderable
-// pieces live in core_components.templ (templ requires its own file type);
-// this file holds the plain-Go parts: prop structs and the `input/1`
-// multi-clause dispatch, which templ's DSL can't express directly.
+// The renderable pieces live in core_components.templ (templ requires its
+// own file type); this file holds the plain-Go parts: prop structs and the
+// input dispatch, which templ's DSL can't express directly.
 
 import (
-	"strings"
-
 	"github.com/a-h/templ"
 )
 
@@ -116,22 +113,4 @@ func coreOptionsInList(value any, option string) bool {
 		}
 	}
 	return false
-}
-
-// TranslateError is core_components.ex's translate_error/1. The Go port has
-// no Gettext backend, so it returns the message unchanged (a documented
-// Phase 1 deviation; see the report).
-func TranslateError(msg string) string { return msg }
-
-// TranslateErrors is translate_errors/2.
-func TranslateErrors(errors []string) []string { return errors }
-
-func coreJoinNonEmpty(parts ...string) string {
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		if p != "" {
-			out = append(out, p)
-		}
-	}
-	return strings.Join(out, " ")
 }

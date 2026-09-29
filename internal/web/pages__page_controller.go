@@ -5,10 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
-
-// Port of lib/pinchflat_web/controllers/pages/page_controller.ex.
 
 // PageControllerHome: home action
 func (s *Server) PageControllerHome(w http.ResponseWriter, r *http.Request) {
@@ -19,13 +17,13 @@ func (s *Server) PageControllerHome(w http.ResponseWriter, r *http.Request) {
 	forceOnboarding := onboardingParam == "1"
 
 	if doneOnboarding {
-		if _, err := s.App.SettingsSet(ctx, core.KW{core.Opt("onboarding", false)}); err != nil {
+		if _, err := s.App.SetSetting(ctx, "onboarding", false); err != nil {
 			s.Fail(w, r, err)
 			return
 		}
 	}
 
-	onboarding, _ := s.App.SettingsGetBang(ctx, "onboarding")
+	onboarding, _ := s.App.GetSettingBang(ctx, "onboarding")
 	forceOnboarding = forceOnboarding || onboarding.(bool)
 
 	if forceOnboarding {
@@ -38,32 +36,32 @@ func (s *Server) PageControllerHome(w http.ResponseWriter, r *http.Request) {
 // renderHomePage renders the home page with stats.
 func renderHomePage(s *Server, ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	// Get media profile count
-	mediaProfileCount, err := core.Scalar[int](ctx, s.App.Q(ctx),
-		core.SQ.Select("COUNT(*)").From("media_profiles"))
+	mediaProfileCount, err := store.Scalar[int](ctx, s.App.Q(ctx),
+		store.SQ.Select("COUNT(*)").From("media_profiles"))
 	if err != nil {
 		s.Fail(w, r, err)
 		return
 	}
 
 	// Get source count
-	sourceCount, err := core.Scalar[int](ctx, s.App.Q(ctx),
-		core.SQ.Select("COUNT(*)").From("sources"))
+	sourceCount, err := store.Scalar[int](ctx, s.App.Q(ctx),
+		store.SQ.Select("COUNT(*)").From("sources"))
 	if err != nil {
 		s.Fail(w, r, err)
 		return
 	}
 
 	// Get downloaded media items stats
-	downloadedMediaItems := core.MediaQueryNew().Where(core.MediaQueryDownloaded())
-	mediaItemSize, err := core.Scalar[int](ctx, s.App.Q(ctx),
-		core.SQ.Select("COALESCE(SUM(mi.media_size_bytes), 0)").FromSelect(downloadedMediaItems.B, "mi"))
+	downloadedMediaItems := store.MediaQueryNew().Where(store.MediaQueryDownloaded())
+	mediaItemSize, err := store.Scalar[int](ctx, s.App.Q(ctx),
+		store.SQ.Select("COALESCE(SUM(mi.media_size_bytes), 0)").FromSelect(downloadedMediaItems.B, "mi"))
 	if err != nil {
 		s.Fail(w, r, err)
 		return
 	}
 
-	mediaItemCount, err := core.Scalar[int](ctx, s.App.Q(ctx),
-		core.SQ.Select("COUNT(*)").FromSelect(downloadedMediaItems.B, "mi"))
+	mediaItemCount, err := store.Scalar[int](ctx, s.App.Q(ctx),
+		store.SQ.Select("COUNT(*)").FromSelect(downloadedMediaItems.B, "mi"))
 	if err != nil {
 		s.Fail(w, r, err)
 		return
@@ -110,14 +108,14 @@ func queryPage(r *http.Request, name string) int {
 
 // renderOnboardingPage renders the onboarding checklist page.
 func renderOnboardingPage(s *Server, ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	if _, err := s.App.SettingsSet(ctx, core.KW{core.Opt("onboarding", true)}); err != nil {
+	if _, err := s.App.SetSetting(ctx, "onboarding", true); err != nil {
 		s.Fail(w, r, err)
 		return
 	}
 
 	// Check if media profiles exist
-	mediaProfileCount, err := core.Scalar[int](ctx, s.App.Q(ctx),
-		core.SQ.Select("COUNT(*)").From("media_profiles"))
+	mediaProfileCount, err := store.Scalar[int](ctx, s.App.Q(ctx),
+		store.SQ.Select("COUNT(*)").From("media_profiles"))
 	if err != nil {
 		s.Fail(w, r, err)
 		return
@@ -125,8 +123,8 @@ func renderOnboardingPage(s *Server, ctx context.Context, w http.ResponseWriter,
 	mediaProfilesExist := mediaProfileCount > 0
 
 	// Check if sources exist
-	sourceCount, err := core.Scalar[int](ctx, s.App.Q(ctx),
-		core.SQ.Select("COUNT(*)").From("sources"))
+	sourceCount, err := store.Scalar[int](ctx, s.App.Q(ctx),
+		store.SQ.Select("COUNT(*)").From("sources"))
 	if err != nil {
 		s.Fail(w, r, err)
 		return

@@ -1,10 +1,6 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/media_profiles/media_profile_html/new.html.heex.
-
-import "github.com/mattbriancon/pinchflat/internal/core"
-
-templ MediaProfilesHTMLNew(changeset *core.Changeset) {
+templ MediaProfilesHTMLNew(f *Form) {
 	<div class="page-header justify-start">
 		if !PageOf(ctx).Onboarding {
 			<a href={ templ.SafeURL(P(ctx, "/media_profiles")) }>
@@ -16,7 +12,7 @@ templ MediaProfilesHTMLNew(changeset *core.Changeset) {
 	<div class="card card-body">
 		<div class="max-w-full">
 			<div class="flex flex-col gap-6">
-				@MediaProfilesHTMLMediaProfileForm(FormFor(changeset, "media_profile"), P(ctx, "/media_profiles"), "post")
+				@MediaProfilesHTMLMediaProfileForm(f, P(ctx, "/media_profiles"), "post")
 			</div>
 		</div>
 	</div>

@@ -1147,8 +1147,16 @@ body {
   }
 }
 
-.visible {
-  visibility: visible;
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 .static {
@@ -1559,11 +1567,6 @@ body {
   table-layout: auto;
 }
 
-.\!translate-x-5 {
-  --tw-translate-x: 1.25rem !important;
-  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y)) !important;
-}
-
 .-translate-x-1\/2 {
   --tw-translate-x: -50%;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
@@ -1571,11 +1574,6 @@ body {
 
 .-translate-y-1\/2 {
   --tw-translate-y: -50%;
-  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
-}
-
-.rotate-180 {
-  --tw-rotate: 180deg;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
@@ -1604,6 +1602,10 @@ body {
 
 .list-disc {
   list-style-type: disc;
+}
+
+.list-none {
+  list-style-type: none;
 }
 
 .appearance-none {
@@ -1815,11 +1817,6 @@ body {
   border-top-width: 1px;
 }
 
-.\!border-primary {
-  --tw-border-opacity: 1 !important;
-  border-color: rgb(68 88 232 / var(--tw-border-opacity)) !important;
-}
-
 .border-emerald-500\/40 {
   border-color: rgb(16 185 129 / 0.4);
 }
@@ -1860,11 +1857,6 @@ body {
 .border-l-red-400 {
   --tw-border-opacity: 1;
   border-left-color: rgb(248 113 113 / var(--tw-border-opacity));
-}
-
-.\!bg-primary {
-  --tw-bg-opacity: 1 !important;
-  background-color: rgb(68 88 232 / var(--tw-bg-opacity)) !important;
 }
 
 .bg-boxdark {
@@ -2434,7 +2426,7 @@ body {
 
 /* This file is for your main application CSS */
 
-[x-cloak] {
+[hidden] {
   display: none !important;
 }
 
@@ -2582,12 +2574,32 @@ body {
   --tw-text-opacity: 0.5;
 }
 
+.group[open] .group-open\:rotate-180 {
+  --tw-rotate: 180deg;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
 .group:hover .group-hover\:block {
   display: block;
 }
 
 .group:hover .group-hover\:opacity-100 {
   opacity: 1;
+}
+
+.peer:checked ~ .peer-checked\:translate-x-5 {
+  --tw-translate-x: 1.25rem;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.peer:checked ~ .peer-checked\:border-primary {
+  --tw-border-opacity: 1;
+  border-color: rgb(68 88 232 / var(--tw-border-opacity));
+}
+
+.peer:checked ~ .peer-checked\:bg-primary {
+  --tw-bg-opacity: 1;
+  background-color: rgb(68 88 232 / var(--tw-bg-opacity));
 }
 
 .dark\:divide-strokedark:is(.dark *) > :not([hidden]) ~ :not([hidden]) {
@@ -2812,4 +2824,8 @@ body {
   .xl\:gap-6 {
     gap: 1.5rem;
   }
+}
+
+.\[\&\:\:-webkit-details-marker\]\:hidden::-webkit-details-marker {
+  display: none;
 }

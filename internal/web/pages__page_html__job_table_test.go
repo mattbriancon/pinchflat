@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/core"
-	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/app/apptest"
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
 
@@ -16,36 +16,28 @@ import (
 // old /_live/jobs fragment (STRATEGY.md decision 4: no htmx).
 
 // createMediaItemJob is create_media_item_job/1.
-func createMediaItemJob(t testing.TB, c *webtest.Client, jobState string) (*core.Source, *core.MediaItem, *core.Task) {
+func createMediaItemJob(t testing.TB, c *webtest.Client, jobState string) (*store.Source, *store.MediaItem, *store.Task) {
 	t.Helper()
-	source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-	mediaItem := coretest.MediaItemFixture(t, c.TestApp, core.Attrs{"source_id": source.ID})
-	task, err := c.App.MediaDownloadWorkerKickoffWithTask(c.Ctx, mediaItem, core.Attrs{}, core.KW{})
-	if err != nil {
-		t.Fatalf("MediaDownloadWorkerKickoffWithTask: %v", err)
-	}
+	source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
+	mediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
+	task, err := c.App.MediaDownloadWorkerKickoffWithTask(c.Ctx, mediaItem, map[string]any{}, nil)
+	must(t, err)
 
-	_, err = core.Exec(c.Ctx, c.App.Q(c.Ctx), core.SQ.Update("oban_jobs").Set("state", jobState).Where(sq.Eq{"id": task.JobID}))
-	if err != nil {
-		t.Fatalf("failed to update job state: %v", err)
-	}
+	_, err = store.Exec(c.Ctx, c.App.Q(c.Ctx), store.SQ.Update("oban_jobs").Set("state", jobState).Where(sq.Eq{"id": task.JobID}))
+	must(t, err)
 
 	return source, mediaItem, task
 }
 
 // createSourceJob is create_source_job/1.
-func createSourceJob(t testing.TB, c *webtest.Client, jobState string) (*core.Source, *core.Task) {
+func createSourceJob(t testing.TB, c *webtest.Client, jobState string) (*store.Source, *store.Task) {
 	t.Helper()
-	source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-	task, err := c.App.FastIndexingWorkerKickoffWithTask(c.Ctx, source, core.KW{})
-	if err != nil {
-		t.Fatalf("FastIndexingWorkerKickoffWithTask: %v", err)
-	}
+	source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
+	task, err := c.App.FastIndexingWorkerKickoffWithTask(c.Ctx, source, 0)
+	must(t, err)
 
-	_, err = core.Exec(c.Ctx, c.App.Q(c.Ctx), core.SQ.Update("oban_jobs").Set("state", jobState).Where(sq.Eq{"id": task.JobID}))
-	if err != nil {
-		t.Fatalf("failed to update job state: %v", err)
-	}
+	_, err = store.Exec(c.Ctx, c.App.Q(c.Ctx), store.SQ.Update("oban_jobs").Set("state", jobState).Where(sq.Eq{"id": task.JobID}))
+	must(t, err)
 
 	return source, task
 }
@@ -54,9 +46,7 @@ func createSourceJob(t testing.TB, c *webtest.Client, jobState string) (*core.So
 func homeClient(t testing.TB) *webtest.Client {
 	t.Helper()
 	c := webtest.New(t)
-	if _, err := c.App.SettingsSet(c.Ctx, core.KW{core.Opt("onboarding", false)}); err != nil {
-		t.Fatalf("SettingsSet: %v", err)
-	}
+	mustOK(t)(c.App.SetSetting(c.Ctx, "onboarding", false))
 	return c
 }
 

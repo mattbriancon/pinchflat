@@ -1,7 +1,6 @@
 package web
 
-// Port of lib/pinchflat_web/components/custom_components/table_components.ex
-// (the renderable half is custom_components__table_components.templ).
+// The renderable half is custom_components__table_components.templ.
 
 import "github.com/a-h/templ"
 

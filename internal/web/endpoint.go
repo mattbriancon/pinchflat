@@ -1,6 +1,5 @@
 package web
 
-// Port of lib/pinchflat_web/endpoint.ex and lib/pinchflat_web/plugs.ex.
 // Hand-written W4 infrastructure.
 
 import (
@@ -83,7 +82,7 @@ func (s *Server) withPageContext(w http.ResponseWriter, r *http.Request) *http.R
 		App:      s.App,
 		Version:  s.Opts.Version,
 	}
-	if v, err := s.App.SettingsGet(r.Context(), "onboarding"); err == nil {
+	if v, err := s.App.GetSetting(r.Context(), "onboarding"); err == nil {
 		page.Onboarding, _ = v.(bool)
 	}
 	r = withPage(r, page)
@@ -142,7 +141,7 @@ func (s *Server) tokenProtectedRoute(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, ok := r.URL.Query()["route_token"]
 		if ok {
-			if want, err := s.App.SettingsGetBang(r.Context(), "route_token"); err == nil && want == token[0] {
+			if want, err := s.App.GetSettingBang(r.Context(), "route_token"); err == nil && want == token[0] {
 				next.ServeHTTP(w, r)
 				return
 			}

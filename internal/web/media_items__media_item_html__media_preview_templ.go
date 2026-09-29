@@ -8,13 +8,11 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Port of lib/pinchflat_web/controllers/media_items/media_item_html/media_preview.heex
-
 import (
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-func MediaItemsMediaItemHTMLMediaPreview(mediaItem *core.MediaItem) templ.Component {
+func MediaItemsMediaItemHTMLMediaPreview(mediaItem *store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -43,7 +41,7 @@ func MediaItemsMediaItemHTMLMediaPreview(mediaItem *core.MediaItem) templ.Compon
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.URL(P(ctx, "/media/%v/stream?v=%v", miStr(mediaItem.UUID), mediaItem.UpdatedAt.Time.Unix())))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__media_preview.templ`, Line: 12, Col: 115}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__media_preview.templ`, Line: 10, Col: 115}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 			if templ_7745c5c3_Err != nil {
@@ -62,7 +60,7 @@ func MediaItemsMediaItemHTMLMediaPreview(mediaItem *core.MediaItem) templ.Compon
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(templ.URL(P(ctx, "/media/%v/stream?v=%v", miStr(mediaItem.UUID), mediaItem.UpdatedAt.Time.Unix())))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__media_preview.templ`, Line: 19, Col: 115}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__media_preview.templ`, Line: 17, Col: 115}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {

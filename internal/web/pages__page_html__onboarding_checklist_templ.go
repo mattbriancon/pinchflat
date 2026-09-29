@@ -8,8 +8,6 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Port of lib/pinchflat_web/controllers/pages/page_html/onboarding_checklist.html.heex.
-
 import "context"
 
 func PagesPageHTMLOnboardingChecklist(ctx context.Context, mediaProfilesExist, sourcesExist bool) templ.Component {
@@ -62,7 +60,7 @@ func PagesPageHTMLOnboardingChecklist(ctx context.Context, mediaProfilesExist, s
 		var templ_7745c5c3_Var4 templ.SafeURL
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/media_profiles/new")))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__onboarding_checklist.templ`, Line: 20, Col: 56}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__onboarding_checklist.templ`, Line: 18, Col: 56}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -105,7 +103,7 @@ func PagesPageHTMLOnboardingChecklist(ctx context.Context, mediaProfilesExist, s
 		var templ_7745c5c3_Var7 templ.SafeURL
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/sources/new")))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__onboarding_checklist.templ`, Line: 32, Col: 49}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__onboarding_checklist.templ`, Line: 30, Col: 49}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
@@ -148,7 +146,7 @@ func PagesPageHTMLOnboardingChecklist(ctx context.Context, mediaProfilesExist, s
 		var templ_7745c5c3_Var10 templ.SafeURL
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/?onboarding=0")))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__onboarding_checklist.templ`, Line: 45, Col: 51}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__onboarding_checklist.templ`, Line: 43, Col: 51}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -201,7 +199,7 @@ func onboardingButtonContent(icon, text string) templ.Component {
 		var templ_7745c5c3_Var12 string
 		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(text)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__onboarding_checklist.templ`, Line: 60, Col: 7}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__onboarding_checklist.templ`, Line: 58, Col: 7}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 		if templ_7745c5c3_Err != nil {

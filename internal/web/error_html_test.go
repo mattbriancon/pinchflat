@@ -19,9 +19,7 @@ import (
 func TestErrorHTML(t *testing.T) {
 	t.Run("renders 404.html", func(t *testing.T) {
 		var b strings.Builder
-		if err := web.ErrorHTML404().Render(context.Background(), &b); err != nil {
-			t.Fatalf("render failed: %v", err)
-		}
+		must(t, web.ErrorHTML404().Render(context.Background(), &b))
 		if !strings.Contains(b.String(), "404 (not found)") {
 			t.Errorf("expected the body to contain %q, got %q", "404 (not found)", b.String())
 		}
@@ -29,9 +27,7 @@ func TestErrorHTML(t *testing.T) {
 
 	t.Run("renders 500.html", func(t *testing.T) {
 		var b strings.Builder
-		if err := web.ErrorHTML500().Render(context.Background(), &b); err != nil {
-			t.Fatalf("render failed: %v", err)
-		}
+		must(t, web.ErrorHTML500().Render(context.Background(), &b))
 		if !strings.Contains(b.String(), "Internal Server Error") {
 			t.Errorf("expected the body to contain %q, got %q", "Internal Server Error", b.String())
 		}

@@ -1,22 +1,13 @@
 package web
 
-import "github.com/mattbriancon/pinchflat/internal/core"
-
-// Port of lib/pinchflat_web/controllers/settings/setting_html/setting_form.html.heex.
-
-templ SettingHTMLSettingForm(changeset *core.Changeset, action string) {
-	<form
-		method="post"
-		action={ action }
-		x-data="{advancedMode: !!JSON.parse(localStorage.getItem('advancedMode'))}"
-		x-init="$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))"
-	>
+templ SettingHTMLSettingForm(f *Form, action string) {
+	<form method="post" action={ action }>
 		// Ecto.Changeset with a persisted (loaded) struct -> Phoenix.HTML.Form
 		// defaults to method "put", carried over the wire with the standard
 		// _method override hidden field (there is no CSRF token to emit; Go's
 		// cross-origin protection replaces it).
 		<input type="hidden" name="_method" value="put"/>
-		@formContent(FormFor(changeset, "setting"))
+		@formContent(f)
 		@ButtonButton("bg-primary", "rounded-lg", "mt-6 mb-2 w-full sm:w-auto", "submit", false, nil, saveSettingsButtonContent())
 	</form>
 }
@@ -37,8 +28,8 @@ templ formContent(f *Form) {
 				<h3 class="section-title">
 					Extractor Settings
 				</h3>
-				<span class="cursor-pointer hover:underline" x-on:click="advancedMode = !advancedMode">
-					Editing Mode: <span x-text="advancedMode ? 'Advanced' : 'Standard'"></span>
+				<span class="cursor-pointer hover:underline" data-advanced-toggle>
+					Editing Mode: <span data-advanced-label>Standard</span>
 				</span>
 			</section>
 
@@ -49,7 +40,7 @@ templ formContent(f *Form) {
 		</section>
 	</section>
 
-	<section class="mt-8" x-show="advancedMode">
+	<section class="mt-8" data-advanced-only hidden>
 		<section>
 			<h3 class="section-title">
 				Codec Options

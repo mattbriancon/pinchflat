@@ -1,14 +1,10 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/media_items/media_item_html/media_item_form.html.heex
-
 templ MediaItemsMediaItemHTMLMediaItemForm(f *Form, action string) {
 	@CoreSimpleForm(
 		templ.Attributes{
 			"action": action,
 			"method": "post",
-			"x-data": "{ advancedMode: !!JSON.parse(localStorage.getItem('advancedMode')) }",
-			"x-init": "$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))",
 		},
 		mediaItemFormContent(f),
 		nil,

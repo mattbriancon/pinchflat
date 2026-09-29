@@ -3,18 +3,17 @@ package web_test
 import (
 	"testing"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
-	"github.com/mattbriancon/pinchflat/internal/core/coretest"
-	"github.com/mattbriancon/pinchflat/internal/web"
+	"github.com/mattbriancon/pinchflat/internal/app/apptest"
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
 
 func TestGetPaginationAttributes(t *testing.T) {
 	t.Run("returns the correct pagination attributes", func(t *testing.T) {
 		c := webtest.New(t)
-		coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
-		query := core.From[core.Source]("s")
+		query := store.From[store.Source]("s")
 		attrs, err := c.Server.GetPaginationAttributes(c.Ctx, query, 1, 10)
 		if err != nil {
 			t.Fatalf("GetPaginationAttributes failed: %v", err)
@@ -39,10 +38,10 @@ func TestGetPaginationAttributes(t *testing.T) {
 
 	t.Run("returns the correct pagination attributes when there are multiple pages", func(t *testing.T) {
 		c := webtest.New(t)
-		coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
+		apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
-		query := core.From[core.Source]("s")
+		query := store.From[store.Source]("s")
 		attrs, err := c.Server.GetPaginationAttributes(c.Ctx, query, 1, 1)
 		if err != nil {
 			t.Fatalf("GetPaginationAttributes failed: %v", err)
@@ -67,10 +66,10 @@ func TestGetPaginationAttributes(t *testing.T) {
 
 	t.Run("returns the correct attributes when on a page other than the first", func(t *testing.T) {
 		c := webtest.New(t)
-		coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
+		apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
-		query := core.From[core.Source]("s")
+		query := store.From[store.Source]("s")
 		attrs, err := c.Server.GetPaginationAttributes(c.Ctx, query, 2, 1)
 		if err != nil {
 			t.Fatalf("GetPaginationAttributes failed: %v", err)
@@ -90,36 +89,6 @@ func TestGetPaginationAttributes(t *testing.T) {
 		}
 		if attrs.Offset != 1 {
 			t.Errorf("expected offset 1, got %d", attrs.Offset)
-		}
-	})
-}
-
-func TestUpdatePageNumber(t *testing.T) {
-	t.Run("increments the page number", func(t *testing.T) {
-		updated := web.UpdatePageNumber(1, "inc", 2)
-		if updated != 2 {
-			t.Errorf("expected 2, got %d", updated)
-		}
-	})
-
-	t.Run("decrements the page number", func(t *testing.T) {
-		updated := web.UpdatePageNumber(2, "dec", 2)
-		if updated != 1 {
-			t.Errorf("expected 1, got %d", updated)
-		}
-	})
-
-	t.Run("doesn't overflow the page number", func(t *testing.T) {
-		updated := web.UpdatePageNumber(2, "inc", 2)
-		if updated != 2 {
-			t.Errorf("expected 2, got %d", updated)
-		}
-	})
-
-	t.Run("doesn't underflow the page number", func(t *testing.T) {
-		updated := web.UpdatePageNumber(1, "dec", 2)
-		if updated != 1 {
-			t.Errorf("expected 1, got %d", updated)
 		}
 	})
 }

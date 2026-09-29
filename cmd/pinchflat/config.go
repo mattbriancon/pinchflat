@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/app"
 )
 
 // Settings is everything main reads from the environment.
 type Settings struct {
-	Core               core.Config
+	Core               app.Config
 	JournalMode        string
 	Port               int
 	EnableIPv6         bool
@@ -44,7 +44,7 @@ func loadSettings() (Settings, error) {
 	yt, _ := exec.LookPath("yt-dlp")
 
 	s := Settings{
-		Core: core.Config{
+		Core: app.Config{
 			Env:                     "prod",
 			YtDlpExecutable:         yt,
 			MediaDirectory:          mediaPath,

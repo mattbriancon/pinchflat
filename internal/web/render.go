@@ -11,7 +11,7 @@ import (
 	"net/http"
 
 	"github.com/a-h/templ"
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // Layout selects the inner layout (the root layout always wraps it).
@@ -47,11 +47,6 @@ func (s *Server) Render(w http.ResponseWriter, r *http.Request, status int, layo
 	s.write(w, r, status, page)
 }
 
-// RenderFragment writes a component with no layout (htmx swaps).
-func (s *Server) RenderFragment(w http.ResponseWriter, r *http.Request, status int, c templ.Component) {
-	s.write(w, r, status, c)
-}
-
 func (s *Server) write(w http.ResponseWriter, r *http.Request, status int, c templ.Component) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
@@ -79,9 +74,9 @@ func (s *Server) NotFound(w http.ResponseWriter, r *http.Request) {
 }
 
 // Fail maps an error to a response the way Phoenix does: a missing record
-// (Ecto.NoResultsError / core.ErrNotFound) is a 404, anything else a 500.
+// (Ecto.NoResultsError / store.ErrNotFound) is a 404, anything else a 500.
 func (s *Server) Fail(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, core.ErrNotFound) {
+	if errors.Is(err, store.ErrNotFound) {
 		s.NotFound(w, r)
 		return
 	}

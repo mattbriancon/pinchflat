@@ -1,31 +1,29 @@
 package web
 
-// A small port of Phoenix.HTML.Form over core.Changeset, so templates can do
-// what `to_form(changeset)` + `<.input field={f[:name]} />` did.
+// A small port of Phoenix.HTML.Form, so templates can do what
+// `to_form(...)` + `<.input field={f[:name]} />` did.
 
 import (
 	"fmt"
-	"net/http"
 	"reflect"
-	"sort"
 	"strings"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db"
 )
 
-// Form wraps a changeset under a param name ("source", "media_profile").
+// Form is a form under a param name ("source", "media_profile"): the values
+// to display and the validation errors, by field name.
 type Form struct {
-	As        string
-	Changeset *core.Changeset
-	// Params, when set, are the raw submitted params; Phoenix shows
-	// those back to the user after a failed submit.
-	Params core.Attrs
+	As     string
+	Values map[string]any
+	Errors map[string][]string
 }
 
-// FormFor is to_form(changeset, as: as).
-func FormFor(cs *core.Changeset, as string) *Form { return &Form{As: as, Changeset: cs} }
+// NewForm builds a form from plain values and validation errors.
+func NewForm(as string, values map[string]any, errs map[string][]string) *Form {
+	return &Form{As: as, Values: values, Errors: errs}
+}
 
 // FormField is Phoenix.HTML.FormField.
 type FormField struct {
@@ -35,32 +33,18 @@ type FormField struct {
 	Errors []string
 }
 
-// Field is f[:name]. Errors are only shown once the changeset has an action
-// (i.e. after a failed insert/update), like Phoenix.
+// Field is f[:name].
 func (f *Form) Field(name string) FormField {
-	ff := FormField{ID: f.As + "_" + name, Name: f.As + "[" + name + "]"}
-	if f.Changeset != nil {
-		if raw, ok := f.Params[name]; ok {
-			ff.Value = raw
-		} else {
-			ff.Value = f.Changeset.GetField(name)
-		}
-		if f.Changeset.Action != "" {
-			ff.Errors = f.Changeset.ErrorsOn(name)
-		}
+	return FormField{
+		ID:     f.As + "_" + name,
+		Name:   f.As + "[" + name + "]",
+		Value:  f.Values[name],
+		Errors: f.Errors[name],
 	}
-	return ff
 }
 
-// Nested is inputs_for for a has_one assoc (f[:metadata]).
-func (f *Form) Nested(name string, cs *core.Changeset) *Form {
-	return &Form{As: f.As + "[" + name + "]", Changeset: cs}
-}
-
-// HasErrors reports whether the error banner should show (@changeset.action).
-func (f *Form) HasErrors() bool {
-	return f.Changeset != nil && f.Changeset.Action != "" && !f.Changeset.Valid()
-}
+// HasErrors reports whether the error banner should show.
+func (f *Form) HasErrors() bool { return len(f.Errors) > 0 }
 
 // InputValue renders a value like Phoenix.HTML.Form.normalize_value/2.
 func InputValue(v any) string {
@@ -96,65 +80,3 @@ func InputValue(v any) string {
 
 // Checked reports whether a checkbox/toggle value is on.
 func Checked(v any) bool { s := InputValue(v); return s == "true" || s == "on" || s == "1" }
-
-// ParseForm is Phoenix's %{"source" => params}: it returns the params nested
-// under `as` as Attrs. Nested maps (source[metadata][x]) become Attrs too;
-// repeated keys (x[]) become []string.
-func ParseForm(r *http.Request, as string) core.Attrs {
-	_ = r.ParseForm()
-	out := core.Attrs{}
-	prefix := as + "["
-	keys := make([]string, 0, len(r.PostForm))
-	for k := range r.PostForm {
-		keys = append(keys, k)
-	}
-	if len(keys) == 0 {
-		for k := range r.Form {
-			keys = append(keys, k)
-		}
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		if !strings.HasPrefix(k, prefix) {
-			continue
-		}
-		vals := r.Form[k]
-		path := parseBracketPath(k[len(as):])
-		setNested(out, path, vals)
-	}
-	return out
-}
-
-// parseBracketPath turns "[a][b][]" into ["a","b",""].
-func parseBracketPath(s string) []string {
-	var out []string
-	for strings.HasPrefix(s, "[") {
-		end := strings.IndexByte(s, ']')
-		if end < 0 {
-			break
-		}
-		out = append(out, s[1:end])
-		s = s[end+1:]
-	}
-	return out
-}
-
-func setNested(m core.Attrs, path []string, vals []string) {
-	if len(path) == 0 {
-		return
-	}
-	if len(path) == 1 || (len(path) == 2 && path[1] == "") {
-		if len(path) == 2 { // x[] -> list
-			m[path[0]] = vals
-		} else {
-			m[path[0]] = vals[len(vals)-1] // last wins, like Plug
-		}
-		return
-	}
-	child, ok := m[path[0]].(core.Attrs)
-	if !ok {
-		child = core.Attrs{}
-		m[path[0]] = child
-	}
-	setNested(child, path[1:], vals)
-}

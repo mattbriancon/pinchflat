@@ -1,6 +1,5 @@
 package web
 
-// Port of lib/pinchflat_web/helpers/pagination_helpers.ex.
 // Methods for working with pagination, usually in the context of LiveViews or LiveComponents.
 
 import (
@@ -8,7 +7,7 @@ import (
 	"math"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // PaginationAttributes holds the pagination state returned by GetPaginationAttributes.
@@ -24,14 +23,14 @@ type PaginationAttributes struct {
 // and number of records per page.
 func (s *Server) GetPaginationAttributes(ctx context.Context, query sq.SelectBuilder, page, recordsPerPage int) (*PaginationAttributes, error) {
 	// Count using a subquery, similar to Repo.aggregate in Elixir
-	countQuery := core.SQ.Select("COUNT(*)").FromSelect(query, "sq")
-	totalRecordCount, err := core.Scalar[int](ctx, s.App.Q(ctx), countQuery)
+	countQuery := store.SQ.Select("COUNT(*)").FromSelect(query, "sq")
+	totalRecordCount, err := store.Scalar[int](ctx, s.App.Q(ctx), countQuery)
 	if err != nil {
 		return nil, err
 	}
 
 	totalPages := int(math.Max(math.Ceil(float64(totalRecordCount)/float64(recordsPerPage)), 1))
-	clampedPage := core.NumberUtilsClamp(page, 1, totalPages)
+	clampedPage := clamp(page, 1, totalPages)
 
 	return &PaginationAttributes{
 		Page:             clampedPage,
@@ -42,14 +41,7 @@ func (s *Server) GetPaginationAttributes(ctx context.Context, query sq.SelectBui
 	}, nil
 }
 
-// UpdatePageNumber returns the updated page number given the current page, direction ("inc" or "dec"),
-// and total number of pages. The result is clamped to [1, totalPages].
-func UpdatePageNumber(currentPage int, direction string, totalPages int) int {
-	updated := currentPage
-	if direction == "inc" {
-		updated = currentPage + 1
-	} else if direction == "dec" {
-		updated = currentPage - 1
-	}
-	return core.NumberUtilsClamp(updated, 1, totalPages)
+// clamp clamps num between minimum and maximum.
+func clamp(num, minimum, maximum int) int {
+	return min(max(num, minimum), maximum)
 }

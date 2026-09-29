@@ -13,11 +13,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-// Port of lib/pinchflat_web/controllers/searches/search_html/show.html.heex.
-func SearchHTMLShow(searchTerm string, searchResults []*core.MediaItem) templ.Component {
+func SearchHTMLShow(searchTerm string, searchResults []*store.MediaItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -45,7 +44,7 @@ func SearchHTMLShow(searchTerm string, searchResults []*core.MediaItem) templ.Co
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("Results for \"%s\"", searchTerm))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `searches__search_html__show.templ`, Line: 16, Col: 50}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `searches__search_html__show.templ`, Line: 14, Col: 50}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -64,7 +63,7 @@ func SearchHTMLShow(searchTerm string, searchResults []*core.MediaItem) templ.Co
 						Label: "Title",
 						Class: "cell-wrap",
 						Render: func(row any) templ.Component {
-							result := row.(*core.MediaItem)
+							result := row.(*store.MediaItem)
 							return TextSubtleLink(
 								fmt.Sprintf("/sources/%v/media/%v", result.SourceID, result.ID),
 								"",
@@ -76,7 +75,7 @@ func SearchHTMLShow(searchTerm string, searchResults []*core.MediaItem) templ.Co
 						Label: "Excerpt",
 						Class: "!whitespace-normal min-w-64",
 						Render: func(row any) templ.Component {
-							result := row.(*core.MediaItem)
+							result := row.(*store.MediaItem)
 							excerptText := ""
 							if result.MatchingSearchTerm != nil {
 								excerptText = *result.MatchingSearchTerm
@@ -103,8 +102,8 @@ func SearchHTMLShow(searchTerm string, searchResults []*core.MediaItem) templ.Co
 	})
 }
 
-// Helper function to convert []*core.MediaItem to []any
-func toAny(items []*core.MediaItem) []any {
+// Helper function to convert []*store.MediaItem to []any
+func toAny(items []*store.MediaItem) []any {
 	result := make([]any, len(items))
 	for i, item := range items {
 		result[i] = item

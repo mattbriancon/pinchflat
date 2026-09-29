@@ -1,12 +1,11 @@
 package web
 
-// Port of lib/pinchflat_web/components/core_components.ex (the renderable
-// half; see core_components.go for the prop structs and the input/1
-// dispatch). modal/1 isn't ported (nothing uses it since the Pro and donate
-// dialogs were removed), nor are the LiveView socket flashes.
+// The renderable half; see core_components.go for the prop structs and the
+// input dispatch. There is no modal component (nothing uses it since the
+// Pro and donate dialogs were removed).
 
-// CoreFlash is flash/1: the message for `kind` ("info"/"error") comes from
-// the request's flash (Page.Flash), matching Phoenix.Flash.get(@flash, kind).
+// CoreFlash renders the flash message for `kind` ("info"/"error") from the
+// request's flash (Page.Flash).
 templ CoreFlash(kind string, title string) {
 	if msg := PageOf(ctx).Flash[kind]; msg != "" {
 		<div id={ "flash-" + kind } class="pb-3" role="alert">
@@ -23,7 +22,7 @@ templ CoreFlash(kind string, title string) {
 					}
 					<p class="mt-0.5 text-sm leading-5 text-bodydark">{ msg }</p>
 				</main>
-				<button type="button" aria-label="close" x-on:click={ "document.getElementById('flash-" + kind + "').remove()" }>
+				<button type="button" aria-label="close" data-dismiss>
 					@CoreIcon("hero-x-mark-solid", "h-5 w-5 opacity-70 hover:opacity-100", nil)
 				</button>
 			</div>
@@ -101,17 +100,17 @@ templ coreInputCheckboxGroup(p CoreInputProps) {
 }
 
 templ coreInputToggle(p CoreInputProps) {
-	<div x-data={ "{ enabled: " + InputValue(*p.Checked) + " }" } id={ p.ID + "-wrapper" }>
+	<div id={ p.ID + "-wrapper" }>
 		if p.Label != "" {
 			@CoreLabel(p.ID, p.Label, p.LabelSuffix)
 		}
 		<div class="relative flex flex-col">
-			<input type="hidden" id={ p.ID } name={ p.Name } x-bind:value="enabled" { p.Rest... }/>
-			<!-- This triggers a `change` event on the hidden input when the toggle is clicked -->
-			<div class="inline-block cursor-pointer" x-on:click={ "enabled = !enabled; dispatchFor('" + p.ID + "', 'change')" }>
-				<div x-bind:class="enabled && '!bg-primary !border-primary'" class="block h-6 w-11 rounded-full border border-form-strokedark bg-meta-4 transition"></div>
-				<div x-bind:class="enabled && '!translate-x-5'" class={ "absolute left-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-white transition", p.InputClass }></div>
-			</div>
+			<label class="inline-block cursor-pointer">
+				<input type="hidden" name={ p.Name } value="false"/>
+				<input type="checkbox" class="peer sr-only" id={ p.ID } name={ p.Name } value="true" checked?={ *p.Checked } { p.Rest... }/>
+				<div class="block h-6 w-11 rounded-full border border-form-strokedark bg-meta-4 transition peer-checked:border-primary peer-checked:bg-primary"></div>
+				<div class={ "absolute left-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-white transition peer-checked:translate-x-5", p.InputClass }></div>
+			</label>
 			@CoreHelp(p.Help, p.HTMLHelp)
 			@coreErrors(p.Errors)
 		</div>
@@ -287,8 +286,7 @@ templ CoreBack(href string, content templ.Component) {
 }
 
 // CoreIcon is icon/1: <.icon name="hero-x"> renders <span class="hero-x ...">.
-// attrs is the :rest global (nil for none, e.g. button_dropdown's
-// x-bind:class on its chevron).
+// attrs is the :rest global (nil for none).
 templ CoreIcon(name string, class string, attrs templ.Attributes) {
 	<span class={ name, class } { attrs... }></span>
 }
@@ -296,11 +294,11 @@ templ CoreIcon(name string, class string, attrs templ.Attributes) {
 // CoreLinkButton is <.link method="delete" href=... data-confirm=...>: a
 // button-styled form, since a bare <a> can't send a non-GET request.
 templ CoreLinkButton(href string, method string, confirm string, class string, content templ.Component) {
-	<form action={ templ.URL(href) } method="post" class="inline">
+	<form action={ templ.URL(href) } method="post" class="inline" if confirm != "" {
+		data-confirm={ confirm }
+	}>
 		<input type="hidden" name="_method" value={ method }/>
-		<button type="submit" class={ class } if confirm != "" {
-			data-confirm={ confirm }
-		}>
+		<button type="submit" class={ class }>
 			@content
 		</button>
 	</form>

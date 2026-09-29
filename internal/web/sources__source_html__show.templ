@@ -1,10 +1,8 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/sources/source_html/show.html.heex.
+import "github.com/mattbriancon/pinchflat/internal/store"
 
-import "github.com/mattbriancon/pinchflat/internal/core"
-
-templ SourceHTMLShow(source *core.Source, pendingTasks []*core.Task, pending, downloaded, other *mediaItemTableData) {
+templ SourceHTMLShow(source *store.Source, pendingTasks []*store.Task, pending, downloaded, other *mediaItemTableData) {
 	<div class="page-header">
 		<div class="flex gap-3 items-center min-w-0">
 			<a href={ templ.URL(P(ctx, "/sources")) }>
@@ -32,11 +30,11 @@ templ sourceHTMLEditSourceButtonContent() {
 	Edit <span class="hidden sm:inline pl-1">Source</span>
 }
 
-templ sourceHTMLShowTabAppend(source *core.Source) {
+templ sourceHTMLShowTabAppend(source *store.Source) {
 	@SourceHTMLActionsDropdown(source)
 }
 
-func sourceHTMLShowTabs(source *core.Source, pendingTasks []*core.Task, pending, downloaded, other *mediaItemTableData) []TabTab {
+func sourceHTMLShowTabs(source *store.Source, pendingTasks []*store.Task, pending, downloaded, other *mediaItemTableData) []TabTab {
 	return []TabTab{
 		{ID: "source", Title: "Source", Content: sourceHTMLShowSourceTab(source)},
 		{ID: "pending", Title: "Pending", Content: SourceHTMLMediaItemTable(pending)},
@@ -46,7 +44,7 @@ func sourceHTMLShowTabs(source *core.Source, pendingTasks []*core.Task, pending,
 	}
 }
 
-templ sourceHTMLShowSourceTab(source *core.Source) {
+templ sourceHTMLShowSourceTab(source *store.Source) {
 	<div class="flex flex-col text-white gap-6">
 		<section>
 			<h3 class="section-title mt-2 mb-2">Raw Attributes</h3>
@@ -59,21 +57,21 @@ templ sourceHTMLShowSourceTab(source *core.Source) {
 	</div>
 }
 
-templ sourceHTMLMediaProfileName(source *core.Source) {
+templ sourceHTMLMediaProfileName(source *store.Source) {
 	if source.MediaProfile != nil {
 		{ source.MediaProfile.Name }
 	}
 }
 
-templ sourceHTMLShowTasksTab(pendingTasks []*core.Task) {
+templ sourceHTMLShowTasksTab(pendingTasks []*store.Task) {
 	if len(pendingTasks) > 0 {
 		@TableTable(TableProps{
 			Rows:       sourceHTMLTaskRows(pendingTasks),
 			TableClass: "text-black dark:text-white",
 			Columns: []TableColumn{
-				{Label: "Worker", Render: func(row any) templ.Component { return sourceHTMLTaskWorkerCell(row.(*core.Task)) }},
-				{Label: "State", Render: func(row any) templ.Component { return sourceHTMLTaskStateCell(row.(*core.Task)) }},
-				{Label: "Scheduled At", Render: func(row any) templ.Component { return sourceHTMLTaskScheduledAtCell(row.(*core.Task)) }},
+				{Label: "Worker", Render: func(row any) templ.Component { return sourceHTMLTaskWorkerCell(row.(*store.Task)) }},
+				{Label: "State", Render: func(row any) templ.Component { return sourceHTMLTaskStateCell(row.(*store.Task)) }},
+				{Label: "Scheduled At", Render: func(row any) templ.Component { return sourceHTMLTaskScheduledAtCell(row.(*store.Task)) }},
 			},
 		})
 	} else {
@@ -81,7 +79,7 @@ templ sourceHTMLShowTasksTab(pendingTasks []*core.Task) {
 	}
 }
 
-func sourceHTMLTaskRows(tasks []*core.Task) []any {
+func sourceHTMLTaskRows(tasks []*store.Task) []any {
 	out := make([]any, len(tasks))
 	for i, t := range tasks {
 		out[i] = t
@@ -89,14 +87,14 @@ func sourceHTMLTaskRows(tasks []*core.Task) []any {
 	return out
 }
 
-templ sourceHTMLTaskWorkerCell(task *core.Task) {
+templ sourceHTMLTaskWorkerCell(task *store.Task) {
 	{ task.Job.Worker }
 }
 
-templ sourceHTMLTaskStateCell(task *core.Task) {
+templ sourceHTMLTaskStateCell(task *store.Task) {
 	{ task.Job.State }
 }
 
-templ sourceHTMLTaskScheduledAtCell(task *core.Task) {
+templ sourceHTMLTaskScheduledAtCell(task *store.Task) {
 	@TextDatetimeInZone(task.Job.ScheduledAt.Time, "", "")
 }

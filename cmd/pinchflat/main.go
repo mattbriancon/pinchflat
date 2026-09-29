@@ -24,9 +24,10 @@ import (
 	"time"
 	_ "time/tzdata" // TZ works without system zoneinfo (replaces TZ_DATA_DIR)
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/app"
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -95,26 +96,26 @@ func start(s Settings) error {
 		return err
 	}
 
-	app := &core.App{DB: d, Oban: obanlite.New(d), Config: s.Core}
-	app.YtDlp = &core.YtDlpCommandRunner{App: app}
-	app.UserScripts = &core.UserScriptsCommandRunner{App: app}
-	app.HTTP = &core.HTTPClientImpl{}
-	app.RegisterWorkers()
-	app.Oban.OnEvent = logJobEvent
+	a := &app.App{Store: &store.Store{DB: d, Oban: obanlite.New(d)}, Config: s.Core}
+	a.YtDlp = app.NewYtDlpRunner(a)
+	a.UserScripts = &app.UserScriptsCommandRunner{App: a}
+	a.HTTP = &app.HTTPClientImpl{}
+	a.RegisterWorkers()
+	a.Oban.OnEvent = logJobEvent
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	// Supervision order from application.ex: Repo, PreJobStartupTasks,
 	// Oban, Endpoint, PostBootStartupTasks.
-	if err := app.PreJobStartupTasksInit(ctx); err != nil {
+	if err := a.PreJobStartupTasksInit(ctx); err != nil {
 		slog.Error("pre-job startup tasks failed", "err", err)
 	}
 
 	obanDone := make(chan error, 1)
-	go func() { obanDone <- app.Oban.Start(ctx, obanConfig(s)) }()
+	go func() { obanDone <- a.Oban.Start(ctx, obanConfig(s)) }()
 
-	srv := &http.Server{Handler: newHandler(app, s), ReadHeaderTimeout: 30 * time.Second}
+	srv := &http.Server{Handler: newHandler(a, s), ReadHeaderTimeout: 30 * time.Second}
 	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(s.Port))
 	if s.EnableIPv6 {
 		addr = net.JoinHostPort("::", strconv.Itoa(s.Port))
@@ -131,7 +132,7 @@ func start(s Settings) error {
 		}
 	}()
 
-	if err := app.PostBootStartupTasksInit(ctx); err != nil {
+	if err := a.PostBootStartupTasksInit(ctx); err != nil {
 		slog.Error("post-boot startup tasks failed", "err", err)
 	}
 
@@ -160,9 +161,9 @@ func obanConfig(s Settings) obanlite.Config {
 		PruneMaxAge: 30 * 24 * time.Hour,
 		Crontab: []obanlite.CronEntry{
 			// Staggered per instance so every install doesn't update yt-dlp at once.
-			{Expr: fmt.Sprintf("%d %d * * *", now.Minute(), now.Hour()), Worker: core.UpdateWorkerName},
-			{Expr: "0 1 * * *", Worker: core.MediaRetentionWorkerName},
-			{Expr: "0 2 * * *", Worker: core.MediaQualityUpgradeWorkerName},
+			{Expr: fmt.Sprintf("%d %d * * *", now.Minute(), now.Hour()), Worker: app.UpdateWorkerName},
+			{Expr: "0 1 * * *", Worker: app.MediaRetentionWorkerName},
+			{Expr: "0 2 * * *", Worker: app.MediaQualityUpgradeWorkerName},
 		},
 	}
 }

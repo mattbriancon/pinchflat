@@ -1,0 +1,395 @@
+package app_test
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/mattbriancon/pinchflat/internal/app"
+	"github.com/mattbriancon/pinchflat/internal/app/apptest"
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
+)
+
+func TestYtDlpMedia_Download(t *testing.T) {
+	t.Run("calls the backend runner with the expected arguments", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if action != "download" {
+				t.Errorf("expected action 'download', got %q", action)
+			}
+			if len(opts) != 1 || !opts.Contains(ytdlp.Arg{Key: "no_simulate", Flag: true}) {
+				t.Errorf("expected opts to be [:no_simulate], got %v", opts)
+			}
+			if ot != "after_move:%()j" {
+				t.Errorf("expected output template 'after_move:%%()j', got %q", ot)
+			}
+			if addl != (ytdlp.CallOptions{}) {
+				t.Errorf("expected empty addl, got %v", addl)
+			}
+
+			return renderMetadata(t, "media_metadata"), nil
+		})
+
+		result, err := ta.YtDlpMediaDownload(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
+
+		must(t, err)
+		if result == nil {
+			t.Fatal("expected non-nil result")
+		}
+	})
+
+	t.Run("passes along custom command args", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			hasNoSimulate := opts.Contains(ytdlp.Arg{Key: "no_simulate", Flag: true})
+			hasCustom := opts.Contains(ytdlp.Arg{Key: "custom_arg", Flag: true})
+			if !hasNoSimulate || !hasCustom {
+				t.Errorf("expected opts to contain [:no_simulate, :custom_arg], got %v", opts)
+			}
+			return "{}", nil
+		})
+
+		ta.YtDlpMediaDownload(ta.Ctx, mediaURL, ytdlp.Args{}.Flag("custom_arg"), ytdlp.CallOptions{})
+	})
+
+	t.Run("passes along additional options", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if !addl.UseCookies {
+				t.Errorf("expected addl to contain addl_arg: true, got %v", addl)
+			}
+			return "{}", nil
+		})
+
+		ta.YtDlpMediaDownload(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{UseCookies: true})
+	})
+
+	t.Run("parses and returns the generated file as JSON", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(ytReturns(renderMetadata(t, "media_metadata")))
+
+		result, err := ta.YtDlpMediaDownload(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
+
+		must(t, err)
+		if title, ok := result["title"].(string); !ok || title != "Pinchflat Example Video" {
+			t.Errorf("expected title 'Pinchflat Example Video', got %v", result["title"])
+		}
+	})
+
+	t.Run("returns errors", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			return "", &cmdrun.Error{Output: "something", Status: 1}
+		})
+
+		_, err := ta.YtDlpMediaDownload(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
+
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+	})
+}
+
+func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
+	t.Run("returns :downloadable if the media was never live", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(ytReturns(`{"live_status":"not_live"}`))
+
+		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
+
+		must(t, err)
+		if result != "downloadable" {
+			t.Errorf("expected 'downloadable', got %q", result)
+		}
+	})
+
+	t.Run("returns :downloadable if the media was live and has been processed", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(ytReturns(`{"live_status":"was_live"}`))
+
+		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
+
+		must(t, err)
+		if result != "downloadable" {
+			t.Errorf("expected 'downloadable', got %q", result)
+		}
+	})
+
+	t.Run("returns :downloadable if the media's live_status is nil", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(ytReturns(`{"live_status":null}`))
+
+		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
+
+		must(t, err)
+		if result != "downloadable" {
+			t.Errorf("expected 'downloadable', got %q", result)
+		}
+	})
+
+	t.Run("returns :ignorable if the media is currently live", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(ytReturns(`{"live_status":"is_live"}`))
+
+		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
+
+		must(t, err)
+		if result != "ignorable" {
+			t.Errorf("expected 'ignorable', got %q", result)
+		}
+	})
+
+	t.Run("returns :ignorable if the media is scheduled to be live", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(ytReturns(`{"live_status":"is_upcoming"}`))
+
+		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
+
+		must(t, err)
+		if result != "ignorable" {
+			t.Errorf("expected 'ignorable', got %q", result)
+		}
+	})
+
+	t.Run("returns :ignorable if the media was live but hasn't been processed", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(ytReturns(`{"live_status":"post_live"}`))
+
+		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
+
+		must(t, err)
+		if result != "ignorable" {
+			t.Errorf("expected 'ignorable', got %q", result)
+		}
+	})
+
+	t.Run("returns an error if the downloadable status can't be determined", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(ytReturns(`{"live_status":"what_tha"}`))
+
+		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
+
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+		if result != "" {
+			t.Errorf("expected empty string on error, got %q", result)
+		}
+	})
+
+	t.Run("optionally accepts additional args", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if !addl.UseCookies {
+				t.Errorf("expected addl to contain addl_arg: true, got %v", addl)
+			}
+			return `{"live_status":"not_live"}`, nil
+		})
+
+		ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{UseCookies: true})
+	})
+}
+
+func TestYtDlpMedia_DownloadThumbnail(t *testing.T) {
+	t.Run("calls the backend runner with the expected arguments", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			expectedOpts := ytdlp.Args{}.Flag("no_simulate").Flag("skip_download").Flag("write_thumbnail").Opt("convert_thumbnail", "jpg")
+			if !optsEqual(opts, expectedOpts) {
+				t.Errorf("expected opts %v, got %v", expectedOpts, opts)
+			}
+			if ot != "after_move:%()j" {
+				t.Errorf("expected output template 'after_move:%%()j', got %q", ot)
+			}
+			return "", nil
+		})
+
+		ta.YtDlpMediaDownloadThumbnail(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
+	})
+
+	t.Run("passes along custom command args", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			hasCustom := opts.Contains(ytdlp.Arg{Key: "custom_arg", Flag: true})
+			if !hasCustom {
+				t.Errorf("expected opts to contain :custom_arg, got %v", opts)
+			}
+			return "{}", nil
+		})
+
+		ta.YtDlpMediaDownloadThumbnail(ta.Ctx, mediaURL, ytdlp.Args{}.Flag("custom_arg"), ytdlp.CallOptions{})
+	})
+
+	t.Run("passes along additional options", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if !addl.UseCookies {
+				t.Errorf("expected addl to contain addl_arg: true, got %v", addl)
+			}
+			return "{}", nil
+		})
+
+		ta.YtDlpMediaDownloadThumbnail(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{UseCookies: true})
+	})
+
+	t.Run("returns errors", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			return "", &cmdrun.Error{Output: "something", Status: 1}
+		})
+
+		_, err := ta.YtDlpMediaDownloadThumbnail(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
+
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+	})
+}
+
+func TestYtDlpMedia_GetMediaAttributes(t *testing.T) {
+	t.Run("returns a list of video attributes", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(ytReturns(mediaAttributesReturnFixture()))
+
+		result, err := ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
+
+		must(t, err)
+		if result == nil {
+			t.Fatal("expected non-nil result")
+		}
+		if result.Description == "" && result.MediaID == "" && result.OriginalURL == "" && result.Title == "" {
+			t.Error("expected result to have some fields set")
+		}
+	})
+
+	t.Run("it passes the expected default args", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if !opts.Contains(ytdlp.Arg{Key: "simulate", Flag: true}) || !opts.Contains(ytdlp.Arg{Key: "skip_download", Flag: true}) {
+				t.Errorf("expected opts to contain [:simulate, :skip_download], got %v", opts)
+			}
+			if ot != app.YtDlpMediaIndexingOutputTemplate() {
+				t.Errorf("expected output template %q, got %q", app.YtDlpMediaIndexingOutputTemplate(), ot)
+			}
+			return mediaAttributesReturnFixture(), nil
+		})
+
+		ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
+	})
+
+	t.Run("passes along additional command options", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if !opts.Contains(ytdlp.Arg{Key: "simulate", Flag: true}) || !opts.Contains(ytdlp.Arg{Key: "skip_download", Flag: true}) || !opts.Contains(ytdlp.Arg{Key: "custom_arg", Flag: true}) {
+				t.Errorf("expected opts to contain [:simulate, :skip_download, :custom_arg], got %v", opts)
+			}
+			return mediaAttributesReturnFixture(), nil
+		})
+
+		ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, ytdlp.Args{}.Flag("custom_arg"), ytdlp.CallOptions{})
+	})
+
+	t.Run("passes along additional options", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			if !addl.UseCookies {
+				t.Errorf("expected addl to contain addl_arg: true, got %v", addl)
+			}
+			return mediaAttributesReturnFixture(), nil
+		})
+
+		ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{UseCookies: true})
+	})
+
+	t.Run("returns the error straight through when the command fails", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
+
+		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
+			return "", &cmdrun.Error{Output: "Big issue", Status: 1}
+		})
+
+		_, err := ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
+
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+	})
+}
+
+func renderMetadata(t *testing.T, name string) string {
+	data, err := os.ReadFile(apptest.RepoPath(filepath.Join("testdata/support/files", name+".json")))
+	must(t, err)
+	return string(data)
+}
+
+func mediaAttributesReturnFixture() string {
+	return `{
+		"id": "TiZPUDkDYbk",
+		"title": "Trying to Wheelie Without the Rear Brake",
+		"description": "I'm not sure what I expected.",
+		"original_url": "https://www.youtube.com/watch?v=TiZPUDkDYbk",
+		"live_status": "not_live",
+		"aspect_ratio": 1.0,
+		"duration": 60,
+		"upload_date": "20210101",
+		"timestamp": 1600000000,
+		"playlist_index": 1,
+		"filename": "TiZPUDkDYbk.mp4"
+	}`
+}
+
+func optsEqual(a, b ytdlp.Args) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if !a.Contains(b[i]) {
+			return false
+		}
+	}
+	return true
+}

@@ -8,13 +8,11 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Port of lib/pinchflat_web/controllers/media_items/media_item_html/edit.html.heex
-
 import (
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-func MediaItemsMediaItemHTMLEdit(mediaItem *core.MediaItem, changeset *core.Changeset) templ.Component {
+func MediaItemsMediaItemHTMLEdit(mediaItem *store.MediaItem, form *Form) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -43,7 +41,7 @@ func MediaItemsMediaItemHTMLEdit(mediaItem *core.MediaItem, changeset *core.Chan
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(*mediaItem.Title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__edit.templ`, Line: 14, Col: 22}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__edit.templ`, Line: 12, Col: 22}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -58,7 +56,7 @@ func MediaItemsMediaItemHTMLEdit(mediaItem *core.MediaItem, changeset *core.Chan
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = MediaItemsMediaItemHTMLMediaItemForm(FormFor(changeset, "media_item"), P(ctx, "/sources/%v/media/%v", mediaItem.SourceID, mediaItem.ID)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = MediaItemsMediaItemHTMLMediaItemForm(form, P(ctx, "/sources/%v/media/%v", mediaItem.SourceID, mediaItem.ID)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

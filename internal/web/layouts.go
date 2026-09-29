@@ -1,19 +1,19 @@
 package web
 
-// Port of lib/pinchflat_web/components/layouts.ex. The renderable pieces
-// (LayoutsNavLink, LayoutsFooterLink) are in layouts.templ; this file has
-// active_path?/2 and the Settings/version lookups used by the layouts.
+// The renderable pieces (LayoutsNavLink, LayoutsFooterLink) are in
+// layouts.templ; this file has the active-path check and the
+// Settings/version lookups used by the layouts.
 
 import (
 	"context"
 	"strings"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/app"
 )
 
 // layoutsApp is the serving App (nil outside a request, e.g. in component
 // tests), carried on the Page.
-func layoutsApp(ctx context.Context) *core.App { return PageOf(ctx).App }
+func layoutsApp(ctx context.Context) *app.App { return PageOf(ctx).App }
 
 // layoutsYtDlpVersion is Settings.get!(:yt_dlp_version), shown in the footer.
 func layoutsYtDlpVersion(ctx context.Context) string {
@@ -21,7 +21,7 @@ func layoutsYtDlpVersion(ctx context.Context) string {
 	if a == nil {
 		return ""
 	}
-	v, err := a.SettingsGetBang(ctx, "yt_dlp_version")
+	v, err := a.GetSettingBang(ctx, "yt_dlp_version")
 	if err != nil {
 		return ""
 	}

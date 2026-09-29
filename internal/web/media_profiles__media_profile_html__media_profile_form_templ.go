@@ -8,11 +8,8 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Port of lib/pinchflat_web/controllers/media_profiles/media_profile_html/media_profile_form.html.heex.
-
 // MediaProfilesHTMLMediaProfileForm is media_profile_form/1. Callers build f
-// with FormFor(changeset, "media_profile"), matching the `:let={f}` in the
-// Elixir source.
+// with mediaProfileForm.
 func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -54,7 +51,7 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(method)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__media_profile_form.templ`, Line: 11, Col: 53}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__media_profile_form.templ`, Line: 8, Col: 53}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 			if templ_7745c5c3_Err != nil {
@@ -65,13 +62,13 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 				return templ_7745c5c3_Err
 			}
 		}
-		if f.Changeset.Action != "" {
+		if f.HasErrors() {
 			templ_7745c5c3_Err = CoreError("Oops, something went wrong! Please check the errors below.").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<section x-data=\"{ selectedPreset: null }\"><h3 class=\"my-3 section-title\">Use a Preset</h3><section x-data=\"{ selection: null }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<section><h3 class=\"my-3 section-title\">Use a Preset</h3><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -83,13 +80,13 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Type:        "select",
 			InputClass:  "w-full",
 			Help:        "You can further customize the settings after selecting a preset. This is just a starting point",
-			Rest:        templ.Attributes{"x-model": "selection"},
+			Rest:        templ.Attributes{"data-preset-select": true},
 			InputAppend: mediaProfilesPresetLoadButton(),
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</section><section class=\"flex justify-between items-center mt-8\"><h3 class=\"section-title\">General Options</h3><span class=\"cursor-pointer hover:underline\" x-on:click=\"advancedMode = !advancedMode\">Editing Mode: <span x-text=\"advancedMode ? 'Advanced' : 'Standard'\"></span></span></section><section x-data=\"{\n        presets: {\n          default: 'Default',\n          media_center: 'TV Shows',\n          audio: 'Music',\n          archiving: 'Archiving'\n        }\n    }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</section><section class=\"flex justify-between items-center mt-8\"><h3 class=\"section-title\">General Options</h3><span class=\"cursor-pointer hover:underline\" data-advanced-toggle>Editing Mode: <span data-advanced-label>Standard</span></span></section><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -97,26 +94,13 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Field: mediaProfilesField(f, "name"),
 			Type:  "text",
 			Label: "Name",
-			Rest:  templ.Attributes{"placeholder": "New Profile", "x-init": "$watch('selectedPreset', p => p && ($el.value = presets[p]))"},
+			Rest:  templ.Attributes{"placeholder": "New Profile", "data-presets": `{"default": "Default", "media_center": "TV Shows", "audio": "Music", "archiving": "Archiving"}`},
 			Help:  "Something descriptive. Does not impact indexing or downloading (required)",
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</section><section x-data=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ \n        presets: { \n          default: '" + mediaProfilesDefaultOutputTemplate() + "',\n          media_center: '" + mediaProfilesMediaCenterOutputTemplate() + "',\n          audio: '" + mediaProfilesAudioOutputTemplate() + "',\n          archiving: '" + mediaProfilesDefaultOutputTemplate() + "'\n        }\n    }")
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_profiles__media_profile_html__media_profile_form.templ`, Line: 60, Col: 342}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</section><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -126,12 +110,12 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			InputClass: "font-mono",
 			Label:      "Output path template",
 			Help:       "Must end with .{{ ext }}. See below for more details. The default is good for most cases (required)",
-			Rest:       templ.Attributes{"x-init": "$watch('selectedPreset', p => p && ($el.value = presets[p]))"},
+			Rest:       templ.Attributes{"data-presets": mediaProfilesOutputTemplatePresets()},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</section><h3 class=\"mt-8 section-title\">Subtitle Options</h3><section x-data=\"{ presets: { default: true, media_center: true, audio: false, archiving: true } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</section><h3 class=\"mt-8 section-title\">Subtitle Options</h3><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -140,12 +124,12 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Type:  "toggle",
 			Label: "Download Subtitles",
 			Help:  "Downloads subtitle files alongside media file",
-			Rest:  templ.Attributes{"x-init": "$watch('selectedPreset', p => p && (enabled = presets[p]))"},
+			Rest:  templ.Attributes{"data-presets": `{"default": true, "media_center": true, "audio": false, "archiving": true}`},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</section><section x-data=\"{ presets: { default: true, media_center: true, audio: false, archiving: true } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</section><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -154,12 +138,12 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Type:  "toggle",
 			Label: "Embed Subtitles",
 			Help:  "Downloads and embeds subtitles in the media file itself, if supported. Unaffected by 'Download Subtitles'",
-			Rest:  templ.Attributes{"x-init": "$watch('selectedPreset', p => p && (enabled = presets[p]))"},
+			Rest:  templ.Attributes{"data-presets": `{"default": true, "media_center": true, "audio": false, "archiving": true}`},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</section><section x-data=\"{ presets: { default: false, media_center: false, audio: false, archiving: false } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</section><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -168,12 +152,12 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Type:  "toggle",
 			Label: "Use Autogenerated Subtitles",
 			Help:  "Prefers normal subs with 'Download Subtitles' or 'Embed Subtitles' but will use autogenerated subs if needed.",
-			Rest:  templ.Attributes{"x-init": "$watch('selectedPreset', p => p && (enabled = presets[p]))"},
+			Rest:  templ.Attributes{"data-presets": `{"default": false, "media_center": false, "audio": false, "archiving": false}`},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</section><section x-data=\"{ presets: { default: 'en', media_center: 'en', audio: '', archiving: 'all' } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</section><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -182,12 +166,12 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Type:  "text",
 			Label: "Subtitle Languages",
 			Help:  "Use commas for multiple languages (eg: en,de)",
-			Rest:  templ.Attributes{"x-init": "$watch('selectedPreset', p => p && ($el.value = presets[p]))"},
+			Rest:  templ.Attributes{"data-presets": `{"default": "en", "media_center": "en", "audio": "", "archiving": "all"}`},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</section><section x-show=\"advancedMode\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</section><section data-advanced-only hidden>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -201,7 +185,7 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</section><h3 class=\"mt-8 section-title\">Thumbnail Options</h3><section x-data=\"{ presets: { default: true, media_center: true, audio: false, archiving: true } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</section><h3 class=\"mt-8 section-title\">Thumbnail Options</h3><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -210,12 +194,12 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Type:  "toggle",
 			Label: "Download Thumbnail",
 			Help:  "Downloads thumbnail alongside media file",
-			Rest:  templ.Attributes{"x-init": "$watch('selectedPreset', p => p && (enabled = presets[p]))"},
+			Rest:  templ.Attributes{"data-presets": `{"default": true, "media_center": true, "audio": false, "archiving": true}`},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</section><section x-data=\"{ presets: { default: true, media_center: true, audio: true, archiving: true } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</section><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -224,12 +208,12 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Type:  "toggle",
 			Label: "Embed Thumbnail",
 			Help:  "Downloads and embeds thumbnail in the media file itself, if supported. Unaffected by 'Download Thumbnail' (recommended)",
-			Rest:  templ.Attributes{"x-init": "$watch('selectedPreset', p => p && (enabled = presets[p]))"},
+			Rest:  templ.Attributes{"data-presets": `{"default": true, "media_center": true, "audio": true, "archiving": true}`},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</section><h3 class=\"mt-8 section-title\">Metadata Options</h3><section x-data=\"{ presets: { default: false, media_center: false, audio: false, archiving: true } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</section><h3 class=\"mt-8 section-title\">Metadata Options</h3><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -238,12 +222,12 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Type:  "toggle",
 			Label: "Download Metadata",
 			Help:  "Downloads metadata file alongside media file",
-			Rest:  templ.Attributes{"x-init": "$watch('selectedPreset', p => p && (enabled = presets[p]))"},
+			Rest:  templ.Attributes{"data-presets": `{"default": false, "media_center": false, "audio": false, "archiving": true}`},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</section><section x-data=\"{ presets: { default: true, media_center: true, audio: true, archiving: true } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</section><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -252,12 +236,12 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Type:  "toggle",
 			Label: "Embed Metadata",
 			Help:  "Downloads and embeds metadata in the media file itself, if supported. Unaffected by 'Download Metadata' (recommended)",
-			Rest:  templ.Attributes{"x-init": "$watch('selectedPreset', p => p && (enabled = presets[p]))"},
+			Rest:  templ.Attributes{"data-presets": `{"default": true, "media_center": true, "audio": true, "archiving": true}`},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</section><h3 class=\"mt-8 section-title\">Release Format Options</h3><section x-data=\"{ presets: { default: 'include', media_center: 'exclude', audio: 'exclude', archiving: 'include' } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</section><h3 class=\"mt-8 section-title\">Release Format Options</h3><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -267,12 +251,12 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Type:    "select",
 			Label:   "Include Shorts",
 			Help:    "Experimental. Please report any issues on GitHub",
-			Rest:    templ.Attributes{"x-init": "$watch('selectedPreset', p => p && ($el.value = presets[p]))"},
+			Rest:    templ.Attributes{"data-presets": `{"default": "include", "media_center": "exclude", "audio": "exclude", "archiving": "include"}`},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</section><section x-data=\"{ presets: { default: 'exclude', media_center: 'exclude', audio: 'exclude', archiving: 'include' } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</section><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -282,12 +266,12 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Type:    "select",
 			Label:   "Include Livestreams",
 			Help:    "How to handle past livestreams",
-			Rest:    templ.Attributes{"x-init": "$watch('selectedPreset', p => p && ($el.value = presets[p]))"},
+			Rest:    templ.Attributes{"data-presets": `{"default": "exclude", "media_center": "exclude", "audio": "exclude", "archiving": "include"}`},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</section><h3 class=\"mt-8 section-title\">Quality Options</h3><section x-data=\"{ presets: { default: '1080p', media_center: '1080p', audio: 'audio', archiving: '2160p' } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</section><h3 class=\"mt-8 section-title\">Quality Options</h3><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -297,12 +281,12 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Type:    "select",
 			Label:   "Preferred Resolution",
 			Help:    "Will grab the closest available resolution if your preferred is not available. 'Audio Only' grabs the highest quality m4a",
-			Rest:    templ.Attributes{"x-init": "$watch('selectedPreset', p => p && ($el.value = presets[p]))"},
+			Rest:    templ.Attributes{"data-presets": `{"default": "1080p", "media_center": "1080p", "audio": "audio", "archiving": "2160p"}`},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</section><section x-show=\"advancedMode\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</section><section data-advanced-only hidden>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -316,7 +300,7 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</section><section x-data=\"{ presets: { default: null, media_center: 1, audio: null, archiving: 1 } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</section><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -325,12 +309,12 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Type:  "number",
 			Label: "Redownload Delay (days)",
 			Help:  "Delay in days until new media is redownloaded. Redownloading new media can improve its quality or SponsorBlock tags. Leave blank to not redownload",
-			Rest:  templ.Attributes{"min": "0", "x-init": "$watch('selectedPreset', p => p && ($el.value = presets[p]))"},
+			Rest:  templ.Attributes{"min": "0", "data-presets": `{"default": null, "media_center": 1, "audio": null, "archiving": 1}`},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</section><h3 class=\"mt-6 section-title\">Media Center Options</h3><p class=\"text-sm mt-2 max-w-prose\">Everything in this section is experimental - please open a GitHub issue if you see something odd. <strong>These options only work if this Media Profile's output template is set to split media into seasons.</strong> Try the \"Media Center\" preset if you're not sure.</p><section x-data=\"{ presets: { default: false, media_center: true, audio: false, archiving: false } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</section><h3 class=\"mt-6 section-title\">Media Center Options</h3><p class=\"text-sm mt-2 max-w-prose\">Everything in this section is experimental - please open a GitHub issue if you see something odd. <strong>These options only work if this Media Profile's output template is set to split media into seasons.</strong> Try the \"Media Center\" preset if you're not sure.</p><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -339,12 +323,12 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Type:  "toggle",
 			Label: "Download NFO data",
 			Help:  "Downloads NFO data alongside media file for use with Jellyfin, Kodi, etc.",
-			Rest:  templ.Attributes{"x-init": "$watch('selectedPreset', p => p && (enabled = presets[p]))"},
+			Rest:  templ.Attributes{"data-presets": `{"default": false, "media_center": true, "audio": false, "archiving": false}`},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</section><section x-data=\"{ presets: { default: false, media_center: true, audio: false, archiving: true } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</section><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -353,12 +337,12 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Type:  "toggle",
 			Label: "Download Series Images",
 			Help:  "Downloads poster and banner images for use with Plex, Jellyfin, Kodi, etc. Only works for full channels (not playlists)",
-			Rest:  templ.Attributes{"x-init": "$watch('selectedPreset', p => p && (enabled = presets[p]))"},
+			Rest:  templ.Attributes{"data-presets": `{"default": false, "media_center": true, "audio": false, "archiving": true}`},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</section><h3 class=\"mt-8 section-title\">SponsorBlock Options</h3><section x-data=\"{ sponsorblockBehaviour: null }\"><section x-data=\"{ presets: { default: 'disabled', media_center: 'disabled', audio: 'disabled', archiving: 'disabled' } }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</section><h3 class=\"mt-8 section-title\">SponsorBlock Options</h3><section><section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -369,14 +353,15 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 			Label:   "SponsorBlock Behaviour",
 			Help:    "Action to take when SponsorBlock segments are found. 'Disabled' won't take any action",
 			Rest: templ.Attributes{
-				"x-model": "sponsorblockBehaviour",
-				"x-init":  "\n            sponsorblockBehaviour = $el.value\n            $watch('selectedPreset', p => p && ($el.value = presets[p]))\n          ",
+				"data-presets":     `{"default":"disabled","media_center":"disabled","audio":"disabled","archiving":"disabled"}`,
+				"data-hide-target": "#sponsorblock-categories",
+				"data-hide-value":  "disabled",
 			},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "</section><section x-show=\"sponsorblockBehaviour !== 'disabled'\" x-transition>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</section><section id=\"sponsorblock-categories\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -389,7 +374,7 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</section></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "</section></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -397,7 +382,7 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</section><div class=\"rounded-sm dark:bg-meta-4 p-4 md:p-6 mb-5\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</section><div class=\"rounded-sm dark:bg-meta-4 p-4 md:p-6 mb-5\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -405,7 +390,7 @@ func MediaProfilesHTMLMediaProfileForm(f *Form, action string, method string) te
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</div></form>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</div></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -429,12 +414,12 @@ func mediaProfilesSaveButtonLabel() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var4 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var4 == nil {
-			templ_7745c5c3_Var4 = templ.NopComponent
+		templ_7745c5c3_Var3 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var3 == nil {
+			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "Save Media profile")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "Save Media profile")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -458,14 +443,14 @@ func mediaProfilesPresetLoadButton() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var5 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var5 == nil {
-			templ_7745c5c3_Var5 = templ.NopComponent
+		templ_7745c5c3_Var4 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var4 == nil {
+			templ_7745c5c3_Var4 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
 		templ_7745c5c3_Err = ButtonButton("bg-primary", "rounded", "h-13 w-2/5 lg:w-1/5 ml-2 md:ml-4", "button", false, templ.Attributes{
-			"x-on:click":      "selectedPreset = selection; selection = null",
-			"x-bind:disabled": "!selection",
+			"data-preset-load": true,
+			"disabled":         true,
 		}, mediaProfilesPresetLoadButtonLabel()).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -490,12 +475,12 @@ func mediaProfilesPresetLoadButtonLabel() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var6 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var6 == nil {
-			templ_7745c5c3_Var6 = templ.NopComponent
+		templ_7745c5c3_Var5 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var5 == nil {
+			templ_7745c5c3_Var5 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<span x-text=\"selection ? 'Load' : 'Select'\">Select</span><span class=\"hidden lg:inline ml-1\">Preset</span>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<span data-preset-label>Select</span><span class=\"hidden lg:inline ml-1\">Preset</span>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

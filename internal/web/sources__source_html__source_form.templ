@@ -1,15 +1,13 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/sources/source_html/source_form.html.heex.
-
 import (
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // SourceFormProps is source_form/1's assigns.
 type SourceFormProps struct {
-	Changeset     *core.Changeset
-	MediaProfiles []*core.MediaProfile
+	Form          *Form
+	MediaProfiles []*store.MediaProfile
 	Action        string
 	Method        string
 }
@@ -19,8 +17,6 @@ templ SourceHTMLSourceForm(props SourceFormProps) {
 		templ.Attributes{
 			"action":  props.Action,
 			"method":  "post",
-			"x-data":  "{ advancedMode: !!JSON.parse(localStorage.getItem('advancedMode')) }",
-			"x-init":  "$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))",
 		},
 		sourceFormBody(props),
 		nil,
@@ -31,17 +27,17 @@ templ sourceFormBody(props SourceFormProps) {
 	if props.Method == "patch" {
 		<input type="hidden" name="_method" value="patch"/>
 	}
-	if props.Changeset.Action != "" {
+	if props.Form.HasErrors() {
 		@CoreError("Oops, something went wrong! Please check the errors below.")
 	}
-	{{ f := FormFor(props.Changeset, "source") }}
-	<section x-data="{ mediaProfileId: null }">
+	{{ f := props.Form }}
+	<section>
 		<section class="flex justify-between items-center mt-4">
 			<h3 class="section-title">
 				General Options
 			</h3>
-			<span class="cursor-pointer hover:underline" x-on:click="advancedMode = !advancedMode">
-				Editing Mode: <span x-text="advancedMode ? 'Advanced' : 'Standard'"></span>
+			<span class="cursor-pointer hover:underline" data-advanced-toggle>
+				Editing Mode: <span data-advanced-label>Standard</span>
 			</span>
 		</section>
 		@CoreInput(CoreInputProps{
@@ -49,7 +45,7 @@ templ sourceFormBody(props SourceFormProps) {
 			Type:  "text",
 			Label: "Source URL",
 			Help:  "URL of a channel or playlist (required)",
-			Rest:  templ.Attributes{"x-init": "$el.focus()"},
+			Rest:  templ.Attributes{"autofocus": true},
 		})
 		@CoreInput(CoreInputProps{
 			Field: ptrField(f.Field("custom_name")),
@@ -63,22 +59,18 @@ templ sourceFormBody(props SourceFormProps) {
 			Type:    "select",
 			Label:   "Media Profile",
 			Help:    "Sets your preferences for what media to look for and how to store it",
-			Rest:    templ.Attributes{"x-model.fill": "mediaProfileId"},
+			
 		})
 		<h3 class="mt-6 section-title">
 			Indexing Options
 		</h3>
-		<section x-data="{ fastIndexingEnabled: null }">
+		<section>
 			@CoreInput(CoreInputProps{
 				Field:   ptrField(f.Field("index_frequency_minutes")),
 				Options: FriendlyIndexFrequencyOptions(),
 				Type:    "select",
 				Label:   "Index Frequency",
 				Help:    "Indexing is the process of checking for media to download. For best results, set this to the longest delay you can tolerate for this source",
-				Rest: templ.Attributes{
-					"x-bind:disabled": "fastIndexingEnabled == true",
-					"x-init":          "$watch('fastIndexingEnabled', v => v && ($el.value = 30 * 24 * 60))",
-				},
 			})
 			<div>
 				@CoreInput(CoreInputProps{
@@ -87,7 +79,8 @@ templ sourceFormBody(props SourceFormProps) {
 					Label:       "Use Fast Indexing",
 					Help:        "Not recommended for playlists. Overrides 'Index Frequency'. See below for more details (seriously, there's a TL;DR that's worth reading)",
 					Rest: templ.Attributes{
-						"x-init": "fastIndexingEnabled = enabled; $watch('enabled', value => fastIndexingEnabled = !!value)",
+						"data-disables":   `[name="source[index_frequency_minutes]"]`,
+						"data-sets-value": "43200",
 					},
 				})
 			</div>
@@ -108,7 +101,7 @@ templ sourceFormBody(props SourceFormProps) {
 			Label:   "Cookie Behaviour",
 			Help:    "Uses your YouTube cookies for this source (if configured). 'When Needed' tries to minimize cookie usage except for certain indexing and downloading tasks. See docs",
 		})
-		<section x-show="advancedMode">
+		<section data-advanced-only hidden>
 			@CoreInput(CoreInputProps{
 				Field: ptrField(f.Field("min_duration_seconds")),
 				Type:  "number",
@@ -124,7 +117,7 @@ templ sourceFormBody(props SourceFormProps) {
 				Rest:  templ.Attributes{"min": "0"},
 			})
 		</section>
-		<section x-data={ "{ cutoffDate: '" + InputValue(f.Field("download_cutoff_date").Value) + "' }" }>
+		<section>
 			@CoreInput(CoreInputProps{
 				Field:   ptrField(f.Field("download_cutoff_date")),
 				Type:    "text",
@@ -135,7 +128,6 @@ templ sourceFormBody(props SourceFormProps) {
 					"maxlength":   "10",
 					"pattern":     `((?:19|20)[0-9][0-9])-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])`,
 					"title":       "YYYY-MM-DD",
-					"x-model":     "cutoffDate",
 				},
 				InputAppend: sourceFormCutoffDatePreset(f),
 			})
@@ -148,7 +140,7 @@ templ sourceFormBody(props SourceFormProps) {
 			HTMLHelp: true,
 			Rest:     templ.Attributes{"min": "0"},
 		})
-		<section x-show="advancedMode">
+		<section data-advanced-only hidden>
 			<h3 class="mt-6 section-title">
 				Advanced Options
 			</h3>
@@ -163,10 +155,7 @@ templ sourceFormBody(props SourceFormProps) {
 				HTMLHelp: true,
 				Rest:     templ.Attributes{"placeholder": "(?i)^How to Bike$"},
 			})
-			<section
-				x-data={ "{ placeholders: JSON.parse('" + OutputPathTemplateOverridePlaceholders(props.MediaProfiles) + "'), inputValue: null }" }
-				x-on:load-template="inputValue = placeholders[mediaProfileId]"
-			>
+			<section>
 				@CoreInput(CoreInputProps{
 					Field:      ptrField(f.Field("output_path_template_override")),
 					Type:       "text",
@@ -175,8 +164,8 @@ templ sourceFormBody(props SourceFormProps) {
 					Help:       OutputPathTemplateOverrideHelp(),
 					HTMLHelp:   true,
 					Rest: templ.Attributes{
-						"x-bind:placeholder": "placeholders[mediaProfileId]",
-						"x-model.fill":       "inputValue",
+						"data-placeholders":   OutputPathTemplateOverridePlaceholders(props.MediaProfiles),
+						"data-profile-select": `[name="source[media_profile_id]"]`,
 					},
 				})
 			</section>
@@ -201,7 +190,8 @@ templ sourceFormCutoffDatePreset(f *Form) {
 		Type:       "select",
 		InputClass: "w-30 lg:w-60 ml-2 md:ml-4",
 		Rest: templ.Attributes{
-			"x-on:change": "cutoffDate = $event.target.value || '" + InputValue(f.Field("download_cutoff_date").Value) + "'",
+			"data-fills":    `[name="source[download_cutoff_date]"]`,
+			"data-fallback": InputValue(f.Field("download_cutoff_date").Value),
 		},
 	})
 }

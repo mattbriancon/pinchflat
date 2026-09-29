@@ -1,16 +1,14 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/media_items/media_item_html.ex
-
 import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // mediaFileExists checks if a media file exists on disk.
-func mediaFileExists(mediaItem *core.MediaItem) bool {
+func mediaFileExists(mediaItem *store.MediaItem) bool {
 	if mediaItem == nil || mediaItem.MediaFilepath == nil || *mediaItem.MediaFilepath == "" {
 		return false
 	}
@@ -19,7 +17,7 @@ func mediaFileExists(mediaItem *core.MediaItem) bool {
 
 // mediaType returns the type of media based on file extension.
 // Returns "video", "audio", or "unknown".
-func mediaType(mediaItem *core.MediaItem) string {
+func mediaType(mediaItem *store.MediaItem) string {
 	if mediaItem == nil || mediaItem.MediaFilepath == nil || *mediaItem.MediaFilepath == "" {
 		return "unknown"
 	}

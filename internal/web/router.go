@@ -1,93 +1,89 @@
 package web
 
-// Port of lib/pinchflat_web/router.ex. Every public URL is unchanged.
-// There are no htmx fragment routes (STRATEGY.md decision 4: every page
-// renders everything on first load); the two mutations that used to be
-// LiveView events are plain form POSTs that redirect back.
-// Hand-written W4 infrastructure.
+// Every public URL is unchanged. There are no htmx fragment routes: every
+// page renders everything on first load, and the two mutations that used
+// to be LiveView events are plain form POSTs that redirect back.
 
-import (
-	"net/http"
-
-	"github.com/go-chi/chi/v5"
-)
+import "net/http"
 
 // Router builds the route table.
 func (s *Server) Router() http.Handler {
-	r := chi.NewRouter()
-	r.NotFound(s.NotFound)
-	r.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) { s.NotFound(w, req) })
+	mux := http.NewServeMux()
+	handle := func(pattern string, h http.HandlerFunc, mw ...func(http.Handler) http.Handler) {
+		var handler http.Handler = h
+		for i := len(mw) - 1; i >= 0; i-- {
+			handler = mw[i](handler)
+		}
+		mux.Handle(pattern, handler)
+	}
+
+	// Anything unmatched, including a known path with the wrong method, is a 404.
+	handle("/", s.NotFound)
 
 	// scope "/" pipe_through [:maybe_basic_auth, :token_protected_route]
-	r.Group(func(r chi.Router) {
-		r.Use(s.maybeBasicAuth, s.tokenProtectedRoute)
-		r.Get("/sources/opml", s.PodcastControllerOpmlFeed)
-	})
+	handle("GET /sources/opml", s.PodcastControllerOpmlFeed, s.maybeBasicAuth, s.tokenProtectedRoute)
 
 	// scope "/" pipe_through :maybe_basic_auth
-	r.Group(func(r chi.Router) {
-		r.Use(s.maybeBasicAuth)
-		r.Get("/sources/{uuid}/feed", s.PodcastControllerRssFeed)
-		r.Get("/sources/{uuid}/feed_image", s.PodcastControllerFeedImage)
-		r.Get("/media/{uuid}/episode_image", s.PodcastControllerEpisodeImage)
-		r.Get("/media/{uuid}/stream", s.MediaItemControllerStream)
-	})
+	for pattern, h := range map[string]http.HandlerFunc{
+		"GET /sources/{uuid}/feed":        s.PodcastControllerRssFeed,
+		"GET /sources/{uuid}/feed_image":  s.PodcastControllerFeedImage,
+		"GET /media/{uuid}/episode_image": s.PodcastControllerEpisodeImage,
+		"GET /media/{uuid}/stream":        s.MediaItemControllerStream,
+	} {
+		handle(pattern, h, s.maybeBasicAuth)
+	}
 
 	// scope "/" pipe_through :api
-	r.Get("/healthcheck", s.HealthControllerCheck)
+	handle("GET /healthcheck", s.HealthControllerCheck)
 
 	// scope "/" pipe_through :browser
-	r.Group(func(r chi.Router) {
-		r.Use(s.basicAuth, secureBrowserHeaders, protectFromForgery)
-
-		r.Get("/", s.PageControllerHome)
+	for pattern, h := range map[string]http.HandlerFunc{
+		"GET /{$}": s.PageControllerHome,
 
 		// resources "/media_profiles"
-		r.Get("/media_profiles", s.MediaProfileControllerIndex)
-		r.Get("/media_profiles/new", s.MediaProfileControllerNew)
-		r.Post("/media_profiles", s.MediaProfileControllerCreate)
-		r.Get("/media_profiles/{id}", s.MediaProfileControllerShow)
-		r.Get("/media_profiles/{id}/edit", s.MediaProfileControllerEdit)
-		r.Patch("/media_profiles/{id}", s.MediaProfileControllerUpdate)
-		r.Put("/media_profiles/{id}", s.MediaProfileControllerUpdate)
-		r.Delete("/media_profiles/{id}", s.MediaProfileControllerDelete)
+		"GET /media_profiles":           s.MediaProfileControllerIndex,
+		"GET /media_profiles/new":       s.MediaProfileControllerNew,
+		"POST /media_profiles":          s.MediaProfileControllerCreate,
+		"GET /media_profiles/{id}":      s.MediaProfileControllerShow,
+		"GET /media_profiles/{id}/edit": s.MediaProfileControllerEdit,
+		"PATCH /media_profiles/{id}":    s.MediaProfileControllerUpdate,
+		"PUT /media_profiles/{id}":      s.MediaProfileControllerUpdate,
+		"DELETE /media_profiles/{id}":   s.MediaProfileControllerDelete,
 
-		r.Get("/search", s.SearchControllerShow)
+		"GET /search": s.SearchControllerShow,
 
-		r.Get("/settings", s.SettingControllerShow)
-		r.Patch("/settings", s.SettingControllerUpdate)
-		r.Put("/settings", s.SettingControllerUpdate)
-		r.Get("/app_info", s.SettingControllerAppInfo)
-		r.Get("/download_logs", s.SettingControllerDownloadLogs)
+		"GET /settings":      s.SettingControllerShow,
+		"PATCH /settings":    s.SettingControllerUpdate,
+		"PUT /settings":      s.SettingControllerUpdate,
+		"GET /app_info":      s.SettingControllerAppInfo,
+		"GET /download_logs": s.SettingControllerDownloadLogs,
 
 		// resources "/sources" + nested actions
-		r.Get("/sources", s.SourceControllerIndex)
-		r.Get("/sources/new", s.SourceControllerNew)
-		r.Post("/sources", s.SourceControllerCreate)
-		r.Get("/sources/{id}", s.SourceControllerShow)
-		r.Get("/sources/{id}/edit", s.SourceControllerEdit)
-		r.Patch("/sources/{id}", s.SourceControllerUpdate)
-		r.Put("/sources/{id}", s.SourceControllerUpdate)
-		r.Delete("/sources/{id}", s.SourceControllerDelete)
-		r.Post("/sources/{source_id}/force_download_pending", s.SourceControllerForceDownloadPending)
-		r.Post("/sources/{source_id}/force_redownload", s.SourceControllerForceRedownload)
-		r.Post("/sources/{source_id}/force_index", s.SourceControllerForceIndex)
-		r.Post("/sources/{source_id}/force_metadata_refresh", s.SourceControllerForceMetadataRefresh)
-		r.Post("/sources/{source_id}/sync_files_on_disk", s.SourceControllerSyncFilesOnDisk)
-		r.Post("/sources/{id}/enabled", s.SourceEnableToggleUpdate)
+		"GET /sources":           s.SourceControllerIndex,
+		"GET /sources/new":       s.SourceControllerNew,
+		"POST /sources":          s.SourceControllerCreate,
+		"GET /sources/{id}":      s.SourceControllerShow,
+		"GET /sources/{id}/edit": s.SourceControllerEdit,
+		"PATCH /sources/{id}":    s.SourceControllerUpdate,
+		"PUT /sources/{id}":      s.SourceControllerUpdate,
+		"DELETE /sources/{id}":   s.SourceControllerDelete,
+		"POST /sources/{source_id}/force_download_pending": s.SourceControllerForceDownloadPending,
+		"POST /sources/{source_id}/force_redownload":       s.SourceControllerForceRedownload,
+		"POST /sources/{source_id}/force_index":            s.SourceControllerForceIndex,
+		"POST /sources/{source_id}/force_metadata_refresh": s.SourceControllerForceMetadataRefresh,
+		"POST /sources/{source_id}/sync_files_on_disk":     s.SourceControllerSyncFilesOnDisk,
+		"POST /sources/{id}/enabled":                       s.SourceEnableToggleUpdate,
 
 		// resources "/media", only: [:show, :edit, :update, :delete], nested under sources
-		r.Get("/sources/{source_id}/media/{id}", s.MediaItemControllerShow)
-		r.Get("/sources/{source_id}/media/{id}/edit", s.MediaItemControllerEdit)
-		r.Patch("/sources/{source_id}/media/{id}", s.MediaItemControllerUpdate)
-		r.Put("/sources/{source_id}/media/{id}", s.MediaItemControllerUpdate)
-		r.Delete("/sources/{source_id}/media/{id}", s.MediaItemControllerDelete)
-		r.Post("/sources/{source_id}/media/{media_item_id}/force_download", s.MediaItemControllerForceDownload)
+		"GET /sources/{source_id}/media/{id}":                            s.MediaItemControllerShow,
+		"GET /sources/{source_id}/media/{id}/edit":                       s.MediaItemControllerEdit,
+		"PATCH /sources/{source_id}/media/{id}":                          s.MediaItemControllerUpdate,
+		"PUT /sources/{source_id}/media/{id}":                            s.MediaItemControllerUpdate,
+		"DELETE /sources/{source_id}/media/{id}":                         s.MediaItemControllerDelete,
+		"POST /sources/{source_id}/media/{media_item_id}/force_download": s.MediaItemControllerForceDownload,
+	} {
+		handle(pattern, h, s.basicAuth, secureBrowserHeaders, protectFromForgery)
+	}
 
-	})
-
-	return r
+	return mux
 }
-
-// URLParam returns a route parameter ({id}, {uuid}, ...).
-func URLParam(r *http.Request, name string) string { return chi.URLParam(r, name) }

@@ -1,17 +1,15 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/sources/source_html.ex: the helper
-// functions and template-property definitions.
+// Helper functions and template-property definitions for the sources pages.
 
 import (
 	"context"
 	"fmt"
 	"net/url"
-	"slices"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // FriendlyIndexFrequencies is friendly_index_frequencies/0: a list of
@@ -60,7 +58,7 @@ func FriendlyCookieBehaviourOptions() []CoreSelectOption {
 
 // MediaProfileOptions turns media profiles into select options
 // (Enum.map(@media_profiles, &{&1.name, &1.id})).
-func MediaProfileOptions(mediaProfiles []*core.MediaProfile) []CoreSelectOption {
+func MediaProfileOptions(mediaProfiles []*store.MediaProfile) []CoreSelectOption {
 	out := make([]CoreSelectOption, 0, len(mediaProfiles))
 	for _, p := range mediaProfiles {
 		out = append(out, CoreSelectOption{Label: p.Name, Value: fmt.Sprint(p.ID)})
@@ -110,8 +108,8 @@ func sourcesHTMLNow(ctx context.Context) time.Time {
 // separate concatenation (rather than a single ~p sigil) works around a
 // Phoenix bug (see the Elixir source); it has no effect in the Go port but
 // is kept for parity.
-func RssFeedURL(ctx context.Context, source *core.Source) string {
-	return URL(ctx, "/sources/%v/feed", core.Deref(source.UUID)) + ".xml"
+func RssFeedURL(ctx context.Context, source *store.Source) string {
+	return URL(ctx, "/sources/%v/feed", store.Deref(source.UUID)) + ".xml"
 }
 
 // OpmlFeedURL is opml_feed_url/1: the absolute, route-token-protected OPML
@@ -119,7 +117,7 @@ func RssFeedURL(ctx context.Context, source *core.Source) string {
 func OpmlFeedURL(ctx context.Context) string {
 	token := ""
 	if a := layoutsApp(ctx); a != nil {
-		if v, err := a.SettingsGetBang(ctx, "route_token"); err == nil {
+		if v, err := a.GetSettingBang(ctx, "route_token"); err == nil {
 			token, _ = v.(string)
 		}
 	}
@@ -127,7 +125,7 @@ func OpmlFeedURL(ctx context.Context) string {
 }
 
 // OutputPathTemplateOverridePlaceholders returns a JSON map of media profile output path templates.
-func OutputPathTemplateOverridePlaceholders(mediaProfiles []*core.MediaProfile) string {
+func OutputPathTemplateOverridePlaceholders(mediaProfiles []*store.MediaProfile) string {
 	m := make(map[int64]string)
 	for _, p := range mediaProfiles {
 		m[p.ID] = p.OutputPathTemplate
@@ -149,7 +147,7 @@ func TitleFilterRegexHelp() string {
 // OutputPathTemplateOverrideHelp returns HTML help text for output path template override.
 func OutputPathTemplateOverrideHelp() string {
 	helpButtonClasses := "underline decoration-bodydark decoration-1 hover:decoration-white cursor-pointer"
-	helpButton := fmt.Sprintf(`<span class="%s" x-on:click="$dispatch('load-template')">Click here</span>`, helpButtonClasses)
+	helpButton := fmt.Sprintf(`<span class="%s" data-load-template>Click here</span>`, helpButtonClasses)
 	return fmt.Sprintf(
 		`Must end with .{{ ext }}. Same rules as Media Profile output path templates. %s to load your media profile's output template`,
 		helpButton,
@@ -160,31 +158,4 @@ func OutputPathTemplateOverrideHelp() string {
 func computeDateOffset(t time.Time, days int) string {
 	offset := t.AddDate(0, 0, -days)
 	return offset.Format("2006-01-02")
-}
-
-// Friendly frequency value: convert minutes to display text.
-func friendlyFrequencyValue(minutes int64) string {
-	freqs := FriendlyIndexFrequencies()
-	for _, pair := range freqs {
-		if pair[1].(int64) == minutes {
-			return pair[0].(string)
-		}
-	}
-	return fmt.Sprintf("%d minutes", minutes)
-}
-
-// FindProfileByID finds a media profile by ID in the list.
-func FindProfileByID(profiles []*core.MediaProfile, id int64) *core.MediaProfile {
-	idx := slices.IndexFunc(profiles, func(p *core.MediaProfile) bool { return p.ID == id })
-	if idx >= 0 {
-		return profiles[idx]
-	}
-	return nil
-}
-
-// sourcesJSONLiteral is String.raw`#{Jason.Formatter.pretty_print(Jason.encode!(@source))}`
-// for the "Copy JSON" action. Source's encoder includes its media_profile,
-// so the caller must have preloaded it.
-func sourcesJSONLiteral(source *core.Source) string {
-	return "String.raw`" + prettyJSON(source) + "`"
 }

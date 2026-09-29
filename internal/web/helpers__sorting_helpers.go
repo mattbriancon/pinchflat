@@ -1,6 +1,5 @@
 package web
 
-// Port of lib/pinchflat_web/helpers/sorting_helpers.ex.
 // Methods for working with sorting, usually in the context of LiveViews or LiveComponents.
 
 // GetSortDirection returns the sort direction given the old sort attribute,

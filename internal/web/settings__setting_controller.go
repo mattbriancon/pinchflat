@@ -5,78 +5,101 @@ import (
 	"os"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
-// Port of lib/pinchflat_web/controllers/settings/setting_controller.ex.
-
-// SettingControllerShow: show(conn, _params)
+// SettingControllerShow renders the settings page.
 func (s *Server) SettingControllerShow(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	setting, err := s.App.SettingsRecord(ctx)
+	setting, err := s.App.GetSettingsRecord(ctx)
 	if err != nil {
 		s.Fail(w, r, err)
 		return
 	}
 
-	changeset := s.App.SettingsChangeSetting(ctx, setting, core.Attrs{})
-	s.Render(w, r, http.StatusOK, LayoutApp, SettingHTMLShow(changeset))
+	values := map[string]any{
+		"onboarding":                       setting.Onboarding,
+		"yt_dlp_version":                   setting.YtDlpVersion,
+		"video_codec_preference":           setting.VideoCodecPreference,
+		"audio_codec_preference":           setting.AudioCodecPreference,
+		"youtube_api_key":                  setting.YoutubeAPIKey,
+		"extractor_sleep_interval_seconds": setting.ExtractorSleepIntervalSeconds,
+		"download_throughput_limit":        setting.DownloadThroughputLimit,
+		"restrict_filenames":               setting.RestrictFilenames,
+	}
+	form := NewForm("setting", values, nil)
+	s.Render(w, r, http.StatusOK, LayoutApp, SettingHTMLShowWithForm(form))
 }
 
-// SettingControllerUpdate: update(conn, %{"setting" => setting_params})
+// SettingControllerUpdate updates the app settings.
 func (s *Server) SettingControllerUpdate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	setting, err := s.App.SettingsRecord(ctx)
+	setting, err := s.App.GetSettingsRecord(ctx)
 	if err != nil {
 		s.Fail(w, r, err)
 		return
 	}
 
-	settingParams := ParseForm(r, "setting")
-
-	_, err = s.App.SettingsUpdateSetting(ctx, setting, settingParams)
-	if err != nil {
-		// Failed changeset re-renders with status 200
-		cs, ok := core.AsChangesetError(err)
-		if ok && cs != nil {
-			s.Render(w, r, http.StatusOK, LayoutApp, SettingHTMLShow(cs))
-			return
+	_ = r.ParseForm()
+	p, parseErrs := store.ParseSettingParams(r.PostForm)
+	if len(parseErrs) > 0 {
+		// Build Values map for form redisplay
+		values := map[string]any{
+			"onboarding":                       p.Onboarding,
+			"yt_dlp_version":                   p.YtDlpVersion,
+			"video_codec_preference":           p.VideoCodecPreference,
+			"audio_codec_preference":           p.AudioCodecPreference,
+			"youtube_api_key":                  p.YoutubeAPIKey,
+			"extractor_sleep_interval_seconds": p.ExtractorSleepIntervalSeconds,
+			"download_throughput_limit":        p.DownloadThroughputLimit,
+			"restrict_filenames":               p.RestrictFilenames,
 		}
+		form := NewForm("setting", values, parseErrs)
+		s.Render(w, r, http.StatusOK, LayoutApp, SettingHTMLShowWithForm(form))
+		return
+	}
+
+	updated, errs, err := s.App.UpdateSetting(ctx, setting, p)
+	if err != nil {
 		s.Fail(w, r, err)
 		return
 	}
 
+	if len(errs) > 0 {
+		// Build Values map for form redisplay
+		values := map[string]any{
+			"onboarding":                       p.Onboarding,
+			"yt_dlp_version":                   p.YtDlpVersion,
+			"video_codec_preference":           p.VideoCodecPreference,
+			"audio_codec_preference":           p.AudioCodecPreference,
+			"youtube_api_key":                  p.YoutubeAPIKey,
+			"extractor_sleep_interval_seconds": p.ExtractorSleepIntervalSeconds,
+			"download_throughput_limit":        p.DownloadThroughputLimit,
+			"restrict_filenames":               p.RestrictFilenames,
+		}
+		form := NewForm("setting", values, errs)
+		s.Render(w, r, http.StatusOK, LayoutApp, SettingHTMLShowWithForm(form))
+		return
+	}
+
+	// Update succeeded
+	_ = updated
 	s.PutFlash(w, r, "info", "Settings updated successfully.")
 	s.Redirect(w, r, P(ctx, "/settings"))
 }
 
-// SettingControllerAppInfo: app_info(conn, _params)
+// SettingControllerAppInfo renders the app info page.
 func (s *Server) SettingControllerAppInfo(w http.ResponseWriter, r *http.Request) {
 	s.Render(w, r, http.StatusOK, LayoutApp, SettingHTMLAppInfo())
 }
 
-// SettingControllerDownloadLogs: download_logs(conn, _params)
+// SettingControllerDownloadLogs streams the configured log file as a download.
 func (s *Server) SettingControllerDownloadLogs(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
 	logPath := s.App.Config.LogPath
-
-	if logPath == "" {
-		// No log path configured
-		s.PutFlash(w, r, "error", "Log file couldn't be found")
-		s.Redirect(w, r, P(ctx, "/app_info"))
-		return
-	}
-
-	// Check if file exists
-	if _, err := os.Stat(logPath); err != nil {
-		s.PutFlash(w, r, "error", "Log file couldn't be found")
-		s.Redirect(w, r, P(ctx, "/app_info"))
-		return
-	}
-
-	// Open the file
-	file, err := os.Open(logPath)
+	file, stat, err := openLogFile(logPath)
 	if err != nil {
 		s.PutFlash(w, r, "error", "Log file couldn't be found")
 		s.Redirect(w, r, P(ctx, "/app_info"))
@@ -84,19 +107,25 @@ func (s *Server) SettingControllerDownloadLogs(w http.ResponseWriter, r *http.Re
 	}
 	defer file.Close()
 
-	// Get file info for size/modtime
-	stat, err := file.Stat()
-	if err != nil {
-		s.PutFlash(w, r, "error", "Log file couldn't be found")
-		s.Redirect(w, r, P(ctx, "/app_info"))
-		return
-	}
-
-	// Set download headers
 	filename := "pinchflat-logs-" + time.Now().UTC().Format("2006-01-02") + ".txt"
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
-
-	// Serve the file
 	http.ServeContent(w, r, filename, stat.ModTime(), file)
+}
+
+// openLogFile opens logPath for reading, failing if it's empty or missing.
+func openLogFile(logPath string) (*os.File, os.FileInfo, error) {
+	if logPath == "" {
+		return nil, nil, os.ErrNotExist
+	}
+	file, err := os.Open(logPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	stat, err := file.Stat()
+	if err != nil {
+		file.Close()
+		return nil, nil, err
+	}
+	return file, stat, nil
 }

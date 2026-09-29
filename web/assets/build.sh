@@ -13,8 +13,5 @@ if [ ! -x "$TAILWIND" ]; then
   chmod +x tailwindcss
 fi
 "$TAILWIND" -c tailwind.config.js -i css/app.css -o "$out/app.css" ${1:-}
-# No bundler: scripts are concatenated in dependency order. Alpine goes last
-# and starts itself.
-cat js/tabs.js js/alpine_helpers.js js/app.js > "$out/app.js"
-cp vendor/alpine.min.js "$out/alpine.min.js"
+cp js/app.js "$out/app.js"
 echo "built $out"

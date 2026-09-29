@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/a-h/templ"
-	"github.com/mattbriancon/pinchflat/internal/core"
-	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/app/apptest"
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
@@ -17,24 +17,20 @@ import (
 func TestSourceEnableToggle_InitialRendering(t *testing.T) {
 	t.Run("renders a toggle in the on position if the source is enabled", func(t *testing.T) {
 		html, err := templ.ToGoHTML(context.Background(), web.SourceEnableToggleRender(1, true))
-		if err != nil {
-			t.Fatalf("render failed: %v", err)
-		}
+		must(t, err)
 
-		// This is checking the Alpine attrs which is a good-enough proxy for the toggle position
-		if !strings.Contains(string(html), "{ enabled: true }") {
-			t.Errorf("expected '{ enabled: true }' in response, got: %s", html)
+		// The checkbox carries the toggle position
+		if !strings.Contains(string(html), ` checked`) {
+			t.Errorf("expected a checked checkbox in response, got: %s", html)
 		}
 	})
 
 	t.Run("renders a toggle in the off position if the source is disabled", func(t *testing.T) {
 		html, err := templ.ToGoHTML(context.Background(), web.SourceEnableToggleRender(1, false))
-		if err != nil {
-			t.Fatalf("render failed: %v", err)
-		}
+		must(t, err)
 
-		if !strings.Contains(string(html), "{ enabled: false }") {
-			t.Errorf("expected '{ enabled: false }' in response, got: %s", html)
+		if strings.Contains(string(html), ` checked`) {
+			t.Errorf("expected an unchecked checkbox in response, got: %s", html)
 		}
 	})
 }
@@ -45,9 +41,9 @@ func TestSourceEnableToggle_InitialRendering(t *testing.T) {
 func TestSourceEnableToggle_Update(t *testing.T) {
 	t.Run("updates the source's enabled status and redirects to /sources by default", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{"enabled": true})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{Enabled: store.Ptr(true)})
 
-		res := c.Post(fmt.Sprintf("/sources/%d/enabled", source.ID), "source", core.Attrs{"enabled": false})
+		res := c.Post(fmt.Sprintf("/sources/%d/enabled", source.ID), "source", map[string]any{"enabled": false})
 
 		if res.Status != 303 {
 			t.Fatalf("expected a 303, got %d", res.Status)
@@ -56,10 +52,8 @@ func TestSourceEnableToggle_Update(t *testing.T) {
 			t.Errorf("expected redirect to /sources, got %q", got)
 		}
 
-		reloaded, err := c.App.SourcesGetSource(c.Ctx, source.ID)
-		if err != nil {
-			t.Fatalf("reload failed: %v", err)
-		}
+		reloaded, err := c.App.GetSource(c.Ctx, source.ID)
+		must(t, err)
 		if reloaded.Enabled {
 			t.Errorf("expected source to be disabled")
 		}
@@ -67,7 +61,7 @@ func TestSourceEnableToggle_Update(t *testing.T) {
 
 	t.Run("redirects back to a same-origin Referer under BASE_ROUTE_PATH", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{"enabled": true})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{Enabled: store.Ptr(true)})
 
 		req := httptest.NewRequest("POST", fmt.Sprintf("/sources/%d/enabled", source.ID), strings.NewReader("source[enabled]=false"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -84,7 +78,7 @@ func TestSourceEnableToggle_Update(t *testing.T) {
 
 	t.Run("ignores a cross-origin Referer", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{"enabled": true})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{Enabled: store.Ptr(true)})
 
 		req := httptest.NewRequest("POST", fmt.Sprintf("/sources/%d/enabled", source.ID), strings.NewReader("source[enabled]=false"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")

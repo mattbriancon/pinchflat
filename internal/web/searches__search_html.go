@@ -2,8 +2,6 @@ package web
 
 import "regexp"
 
-// Port of lib/pinchflat_web/controllers/searches/search_html.ex.
-
 type searchFragment struct {
 	text        string
 	highlighted bool

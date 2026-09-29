@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
-	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/app"
+	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
 )
 
@@ -17,7 +18,7 @@ func TestMediaProfileController_Index(t *testing.T) {
 	t.Run("lists all media_profiles", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
 
 		res := c.Get("/media_profiles")
 		html := res.HTML(t, http.StatusOK)
@@ -33,8 +34,8 @@ func TestMediaProfileController_Index(t *testing.T) {
 	t.Run("omits profiles that have marked_for_deletion_at set", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{
-			"marked_for_deletion_at": time.Now().UTC(),
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{
+			MarkedForDeletionAt: store.Ptr(time.Now().UTC()),
 		})
 
 		res := c.Get("/media_profiles")
@@ -60,7 +61,7 @@ func TestMediaProfileController_New(t *testing.T) {
 
 	t.Run("renders correct layout when onboarding", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SettingsSet(c.Ctx, core.KW{core.Opt("onboarding", true)})
+		c.App.SetSetting(c.Ctx, "onboarding", true)
 
 		res := c.Get("/media_profiles/new")
 		html := res.HTML(t, http.StatusOK)
@@ -72,9 +73,9 @@ func TestMediaProfileController_New(t *testing.T) {
 
 	t.Run("preloads some attributes when using a template", func(t *testing.T) {
 		c := webtest.New(t)
-		profile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{
-			"name":      "My first profile",
-			"sub_langs": "de",
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{
+			Name:     store.Ptr("My first profile"),
+			SubLangs: store.Ptr("de"),
 		})
 
 		res := c.Get("/media_profiles/new", map[string]string{
@@ -97,16 +98,16 @@ func TestMediaProfileController_New(t *testing.T) {
 func TestMediaProfileController_Create(t *testing.T) {
 	t.Run("redirects to show when data is valid", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SettingsSet(c.Ctx, core.KW{core.Opt("onboarding", false)})
+		c.App.SetSetting(c.Ctx, "onboarding", false)
 
-		attrs := core.Attrs{
+		attrs := map[string]any{
 			"name":                 "test profile",
 			"output_path_template": "output.{{ ext }}",
 		}
 
 		res := c.Post("/media_profiles", "media_profile", attrs)
 
-		profiles, err := c.App.ProfilesListMediaProfiles(c.Ctx)
+		profiles, err := c.App.ListMediaProfiles(c.Ctx)
 		if err != nil || len(profiles) != 1 {
 			t.Fatalf("expected exactly one created media profile, got %v (err=%v)", profiles, err)
 		}
@@ -128,7 +129,7 @@ func TestMediaProfileController_Create(t *testing.T) {
 	t.Run("renders errors when data is invalid", func(t *testing.T) {
 		c := webtest.New(t)
 
-		attrs := core.Attrs{
+		attrs := map[string]any{
 			"name":                 nil,
 			"output_path_template": nil,
 		}
@@ -143,9 +144,9 @@ func TestMediaProfileController_Create(t *testing.T) {
 
 	t.Run("redirects to onboarding when onboarding", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SettingsSet(c.Ctx, core.KW{core.Opt("onboarding", true)})
+		c.App.SetSetting(c.Ctx, "onboarding", true)
 
-		attrs := core.Attrs{
+		attrs := map[string]any{
 			"name":                 "test profile",
 			"output_path_template": "output.{{ ext }}",
 		}
@@ -160,9 +161,9 @@ func TestMediaProfileController_Create(t *testing.T) {
 
 	t.Run("renders correct layout on error when onboarding", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SettingsSet(c.Ctx, core.KW{core.Opt("onboarding", true)})
+		c.App.SetSetting(c.Ctx, "onboarding", true)
 
-		attrs := core.Attrs{
+		attrs := map[string]any{
 			"name":                 nil,
 			"output_path_template": nil,
 		}
@@ -180,7 +181,7 @@ func TestMediaProfileController_Edit(t *testing.T) {
 	t.Run("renders form for editing chosen media_profile", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
 
 		res := c.Get("/media_profiles/" + fmt.Sprint(profile.ID) + "/edit")
 		html := res.HTML(t, http.StatusOK)
@@ -195,9 +196,9 @@ func TestMediaProfileController_Update(t *testing.T) {
 	t.Run("redirects when data is valid", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
 
-		attrs := core.Attrs{
+		attrs := map[string]any{
 			"name":                 "updated name",
 			"output_path_template": "new_template.{{ ext }}",
 		}
@@ -214,9 +215,9 @@ func TestMediaProfileController_Update(t *testing.T) {
 	t.Run("renders errors when data is invalid", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
 
-		attrs := core.Attrs{
+		attrs := map[string]any{
 			"name":                 nil,
 			"output_path_template": nil,
 		}
@@ -234,7 +235,7 @@ func TestMediaProfileController_Delete(t *testing.T) {
 	t.Run("redirects to the media_profiles page", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
 
 		res := c.Delete("/media_profiles/" + fmt.Sprint(profile.ID))
 		redirectTo := res.RedirectedTo(t)
@@ -247,14 +248,12 @@ func TestMediaProfileController_Delete(t *testing.T) {
 	t.Run("sets marked_for_deletion_at", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
 
 		c.Delete("/media_profiles/" + fmt.Sprint(profile.ID))
 
-		updated, err := c.App.ProfilesGetMediaProfile(c.Ctx, profile.ID)
-		if err != nil {
-			t.Fatalf("failed to reload profile: %v", err)
-		}
+		updated, err := c.App.GetMediaProfile(c.Ctx, profile.ID)
+		must(t, err)
 
 		if updated.MarkedForDeletionAt == nil {
 			t.Errorf("expected marked_for_deletion_at to be set")
@@ -264,12 +263,12 @@ func TestMediaProfileController_Delete(t *testing.T) {
 	t.Run("enqueues a job without the delete_files arg", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
 
 		c.Delete("/media_profiles/" + fmt.Sprint(profile.ID))
 
 		job := c.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: core.MediaProfileDeletionWorkerName,
+			Worker: app.MediaProfileDeletionWorkerName,
 			Args:   map[string]any{"delete_files": false},
 		})
 
@@ -281,12 +280,12 @@ func TestMediaProfileController_Delete(t *testing.T) {
 	t.Run("enqueues a job with the delete_files arg", func(t *testing.T) {
 		c := webtest.New(t)
 
-		profile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{})
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
 
 		c.Delete("/media_profiles/" + fmt.Sprint(profile.ID) + "?delete_files=true")
 
 		job := c.Oban.AssertEnqueued(t, obanlite.Match{
-			Worker: core.MediaProfileDeletionWorkerName,
+			Worker: app.MediaProfileDeletionWorkerName,
 			Args:   map[string]any{"delete_files": true},
 		})
 

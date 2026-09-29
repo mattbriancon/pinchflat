@@ -2,13 +2,16 @@ package web_test
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
+	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
-	"github.com/mattbriancon/pinchflat/internal/core/coretest"
+	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web/webtest"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 func TestSourceController_Index(t *testing.T) {
@@ -35,9 +38,19 @@ func TestSourceController_New(t *testing.T) {
 		}
 	})
 
+	t.Run("starts from the source defaults", func(t *testing.T) {
+		c := webtest.New(t)
+		html := c.Get("/sources/new").HTML(t, 200)
+		for _, id := range []string{"source_download_media"} {
+			if !regexp.MustCompile(`id="` + id + `"[^>]*checked`).MatchString(html) {
+				t.Errorf("%s should be checked by default", id)
+			}
+		}
+	})
+
 	t.Run("renders correct layout when onboarding", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SettingsSet(c.Ctx, core.KW{core.Opt("onboarding", true)})
+		c.App.SetSetting(c.Ctx, "onboarding", true)
 
 		res := c.Get("/sources/new")
 
@@ -49,9 +62,9 @@ func TestSourceController_New(t *testing.T) {
 
 	t.Run("preloads some attributes when using a template", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{
-			"custom_name":          "My first source",
-			"download_cutoff_date": "2021-01-01",
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{
+			CustomName:         store.Ptr("My first source"),
+			DownloadCutoffDate: store.Ptr(time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)),
 		})
 
 		res := c.Get("/sources/new", map[string]string{"template_id": fmt.Sprint(source.ID)})
@@ -72,13 +85,13 @@ func TestSourceController_New(t *testing.T) {
 func TestSourceController_Create(t *testing.T) {
 	t.Run("redirects to show when data is valid", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SettingsSet(c.Ctx, core.KW{core.Opt("onboarding", false)})
-		profile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{})
-		c.YtDlpMock.Run.ExpectN(1, func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		c.App.SetSetting(c.Ctx, "onboarding", false)
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
+		c.YtDlpMock.Run.ExpectN(1, func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "{\"channel\":\"test\",\"channel_id\":\"ch123\",\"playlist_id\":\"pl123\",\"playlist_title\":\"test\"}", nil
 		})
 
-		res := c.Post("/sources", "source", core.Attrs{
+		res := c.Post("/sources", "source", map[string]any{
 			"media_profile_id": profile.ID,
 			"collection_type":  "channel",
 			"original_url":     "https://www.youtube.com/source/abc123",
@@ -95,7 +108,7 @@ func TestSourceController_Create(t *testing.T) {
 	t.Run("renders errors when data is invalid", func(t *testing.T) {
 		c := webtest.New(t)
 
-		res := c.Post("/sources", "source", core.Attrs{
+		res := c.Post("/sources", "source", map[string]any{
 			"original_url":     nil,
 			"media_profile_id": nil,
 		})
@@ -108,13 +121,13 @@ func TestSourceController_Create(t *testing.T) {
 
 	t.Run("redirects to onboarding when onboarding", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SettingsSet(c.Ctx, core.KW{core.Opt("onboarding", true)})
-		profile := coretest.MediaProfileFixture(t, c.TestApp, core.Attrs{})
-		c.YtDlpMock.Run.ExpectN(1, func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		c.App.SetSetting(c.Ctx, "onboarding", true)
+		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
+		c.YtDlpMock.Run.ExpectN(1, func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "{\"channel\":\"test\",\"channel_id\":\"ch123\",\"playlist_id\":\"pl123\",\"playlist_title\":\"test\"}", nil
 		})
 
-		res := c.Post("/sources", "source", core.Attrs{
+		res := c.Post("/sources", "source", map[string]any{
 			"media_profile_id": profile.ID,
 			"collection_type":  "channel",
 			"original_url":     "https://www.youtube.com/source/abc123",
@@ -127,9 +140,9 @@ func TestSourceController_Create(t *testing.T) {
 
 	t.Run("renders correct layout on error when onboarding", func(t *testing.T) {
 		c := webtest.New(t)
-		c.App.SettingsSet(c.Ctx, core.KW{core.Opt("onboarding", true)})
+		c.App.SetSetting(c.Ctx, "onboarding", true)
 
-		res := c.Post("/sources", "source", core.Attrs{
+		res := c.Post("/sources", "source", map[string]any{
 			"original_url":     nil,
 			"media_profile_id": nil,
 		})
@@ -144,7 +157,7 @@ func TestSourceController_Create(t *testing.T) {
 func TestSourceController_Edit(t *testing.T) {
 	t.Run("renders form for editing chosen source", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		res := c.Get(fmt.Sprintf("/sources/%d/edit", source.ID))
 
@@ -158,15 +171,15 @@ func TestSourceController_Edit(t *testing.T) {
 func TestSourceController_Update(t *testing.T) {
 	t.Run("redirects when data is valid", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		c.YtDlpMock.Run.ExpectN(1, func(url, action string, opts core.KW, ot string, addl core.KW) (string, error) {
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
+		c.YtDlpMock.Run.ExpectN(1, func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
 			return "{\"channel\":\"test\",\"channel_id\":\"ch123\",\"playlist_id\":\"pl123\",\"playlist_title\":\"test\"}", nil
 		})
 
 		res := c.Patch(
 			fmt.Sprintf("/sources/%d", source.ID),
 			"source",
-			core.Attrs{"original_url": "https://www.youtube.com/source/321xyz"},
+			map[string]any{"original_url": "https://www.youtube.com/source/321xyz"},
 		)
 
 		if res.RedirectedTo(t) != fmt.Sprintf("/sources/%d", source.ID) {
@@ -183,12 +196,12 @@ func TestSourceController_Update(t *testing.T) {
 
 	t.Run("renders errors when data is invalid", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		res := c.Patch(
 			fmt.Sprintf("/sources/%d", source.ID),
 			"source",
-			core.Attrs{"original_url": nil, "media_profile_id": nil},
+			map[string]any{"original_url": nil, "media_profile_id": nil},
 		)
 
 		html := res.HTML(t, 200)
@@ -201,7 +214,7 @@ func TestSourceController_Update(t *testing.T) {
 func TestSourceController_Delete_InAllCases(t *testing.T) {
 	t.Run("redirects to the sources page", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		res := c.Delete(fmt.Sprintf("/sources/%d", source.ID))
 
@@ -212,11 +225,11 @@ func TestSourceController_Delete_InAllCases(t *testing.T) {
 
 	t.Run("sets marked_for_deletion_at", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		c.Delete(fmt.Sprintf("/sources/%d", source.ID))
 
-		reloaded, _ := c.App.SourcesGetSource(c.Ctx, source.ID)
+		reloaded, _ := c.App.GetSource(c.Ctx, source.ID)
 		if reloaded.MarkedForDeletionAt == nil {
 			t.Errorf("expected marked_for_deletion_at to be set")
 		}
@@ -226,7 +239,7 @@ func TestSourceController_Delete_InAllCases(t *testing.T) {
 func TestSourceController_Delete_JustDeletingRecords(t *testing.T) {
 	t.Run("enqueues a job without the delete_files arg", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		c.Delete(fmt.Sprintf("/sources/%d", source.ID))
 
@@ -240,7 +253,7 @@ func TestSourceController_Delete_JustDeletingRecords(t *testing.T) {
 func TestSourceController_Delete_DeletingRecordsAndFiles(t *testing.T) {
 	t.Run("enqueues a job without the delete_files arg", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		c.Delete(fmt.Sprintf("/sources/%d?delete_files=true", source.ID))
 
@@ -254,8 +267,8 @@ func TestSourceController_Delete_DeletingRecordsAndFiles(t *testing.T) {
 func TestSourceController_ForceDownloadPending(t *testing.T) {
 	t.Run("enqueues pending download tasks", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		coretest.MediaItemFixture(t, c.TestApp, core.Attrs{"source_id": source.ID, "media_filepath": nil})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
+		apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		initialJobs := len(c.Oban.Enqueued(t, obanlite.Match{}))
 		c.Post(fmt.Sprintf("/sources/%d/force_download_pending", source.ID), "", nil)
@@ -268,7 +281,7 @@ func TestSourceController_ForceDownloadPending(t *testing.T) {
 
 	t.Run("redirects to the source page", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		res := c.Post(fmt.Sprintf("/sources/%d/force_download_pending", source.ID), "", nil)
 
@@ -281,10 +294,10 @@ func TestSourceController_ForceDownloadPending(t *testing.T) {
 func TestSourceController_ForceRedownload(t *testing.T) {
 	t.Run("enqueues re-download tasks", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		coretest.MediaItemFixture(t, c.TestApp, core.Attrs{
-			"source_id":           source.ID,
-			"media_downloaded_at": coretest.Now(),
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
+		apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{
+			SourceID:          store.Ptr(source.ID),
+			MediaDownloadedAt: store.Ptr(apptest.Now()),
 		})
 
 		initialJobs := len(c.Oban.Enqueued(t, obanlite.Match{}))
@@ -298,7 +311,7 @@ func TestSourceController_ForceRedownload(t *testing.T) {
 
 	t.Run("redirects to the source page", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		res := c.Post(fmt.Sprintf("/sources/%d/force_redownload", source.ID), "", nil)
 
@@ -311,7 +324,7 @@ func TestSourceController_ForceRedownload(t *testing.T) {
 func TestSourceController_ForceIndex(t *testing.T) {
 	t.Run("forces an index", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		initialJobs := len(c.Oban.Enqueued(t, obanlite.Match{}))
 		c.Post(fmt.Sprintf("/sources/%d/force_index", source.ID), "", nil)
@@ -324,9 +337,9 @@ func TestSourceController_ForceIndex(t *testing.T) {
 
 	t.Run("forces an index even if one wouldn't normally run", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{
-			"index_frequency_minutes": int64(0),
-			"last_indexed_at":         coretest.Now(),
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{
+			IndexFrequencyMinutes: store.Ptr(0),
+			LastIndexedAt:         store.Ptr(apptest.Now()),
 		})
 
 		c.Post(fmt.Sprintf("/sources/%d/force_index", source.ID), "", nil)
@@ -339,11 +352,9 @@ func TestSourceController_ForceIndex(t *testing.T) {
 
 	t.Run("deletes pending indexing tasks", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
-		task, err := c.App.SlowIndexingHelpersKickoffIndexingTask(c.Ctx, source, core.Attrs{}, core.KW{})
-		if err != nil {
-			t.Fatalf("kickoff failed: %v", err)
-		}
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
+		task, err := c.App.SlowIndexingHelpersKickoffIndexingTask(c.Ctx, source, map[string]any{})
+		must(t, err)
 		task, _ = c.App.PreloadTaskJob(c.Ctx, task)
 
 		if task.Job.State != "available" {
@@ -353,9 +364,7 @@ func TestSourceController_ForceIndex(t *testing.T) {
 		c.Post(fmt.Sprintf("/sources/%d/force_index", source.ID), "", nil)
 
 		reloadedJob, err := c.Oban.GetJob(c.Ctx, task.Job.ID)
-		if err != nil {
-			t.Fatalf("reload job failed: %v", err)
-		}
+		must(t, err)
 		if reloadedJob.State != "cancelled" {
 			t.Errorf("expected job state 'cancelled', got %s", reloadedJob.State)
 		}
@@ -363,7 +372,7 @@ func TestSourceController_ForceIndex(t *testing.T) {
 
 	t.Run("redirects to the source page", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		res := c.Post(fmt.Sprintf("/sources/%d/force_index", source.ID), "", nil)
 
@@ -376,7 +385,7 @@ func TestSourceController_ForceIndex(t *testing.T) {
 func TestSourceController_ForceMetadataRefresh(t *testing.T) {
 	t.Run("forces a metadata refresh", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		initialJobs := len(c.Oban.Enqueued(t, obanlite.Match{}))
 		c.Post(fmt.Sprintf("/sources/%d/force_metadata_refresh", source.ID), "", nil)
@@ -389,7 +398,7 @@ func TestSourceController_ForceMetadataRefresh(t *testing.T) {
 
 	t.Run("redirects to the source page", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		res := c.Post(fmt.Sprintf("/sources/%d/force_metadata_refresh", source.ID), "", nil)
 
@@ -402,7 +411,7 @@ func TestSourceController_ForceMetadataRefresh(t *testing.T) {
 func TestSourceController_SyncFilesOnDisk(t *testing.T) {
 	t.Run("forces a file sync", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		initialJobs := len(c.Oban.Enqueued(t, obanlite.Match{}))
 		c.Post(fmt.Sprintf("/sources/%d/sync_files_on_disk", source.ID), "", nil)
@@ -415,7 +424,7 @@ func TestSourceController_SyncFilesOnDisk(t *testing.T) {
 
 	t.Run("redirects to the source page", func(t *testing.T) {
 		c := webtest.New(t)
-		source := coretest.SourceFixture(t, c.TestApp, core.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		res := c.Post(fmt.Sprintf("/sources/%d/sync_files_on_disk", source.ID), "", nil)
 

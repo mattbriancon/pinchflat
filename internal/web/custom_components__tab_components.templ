@@ -1,9 +1,7 @@
 package web
 
-// Port of lib/pinchflat_web/components/custom_components/tab_components.ex.
-// tabs.js (web/assets/js/tabs.js) provides getTabFromHash/setTabByName.
-//
-// Tabs are still switched client-side (no reload), but since paging/search
+// web/assets/js/app.js switches tabs client-side (no reload) from the
+// data-tabs/data-tab/data-tab-panel attributes below; since paging/search
 // inside a tab now reloads the whole page (STRATEGY.md decision 4), the
 // selected tab is also carried as the ?tab= query param so a reload lands
 // back on it; tabInitialID reads it, falling back to the URL hash, then the
@@ -14,18 +12,20 @@ package web
 templ TabTabbedLayout(tabs []TabTab, tabAppend templ.Component) {
 	{{ initialTab := tabInitialID(ctx, tabs) }}
 	<div
-		x-data={ "{ openTab: getTabFromHash('" + initialTab + "', '" + initialTab + "'), activeClasses: 'text-white border-meta-5', inactiveClasses: 'border-transparent' }" }
-		x-on:hashchange.window={ "openTab = getTabFromHash(openTab, '" + initialTab + "')" }
+		data-tabs={ initialTab }
 		class="w-full"
 	>
 		<header class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-b border-strokedark">
 			<div class="no-scrollbar -mb-px flex gap-5 overflow-x-auto sm:gap-8">
 				for _, tab := range tabs {
 					<a
-						href="#"
-						x-on:click.prevent={ "openTab = setTabByName('" + tab.ID + "')" }
-						x-bind:class={ "openTab === '" + tab.ID + "' ? activeClasses : inactiveClasses" }
-						class="border-b-2 py-2.5 whitespace-nowrap font-medium hover:text-meta-5"
+						href={ templ.SafeURL("#tab-" + tab.ID) }
+						data-tab={ tab.ID }
+						class={
+							"border-b-2 py-2.5 whitespace-nowrap font-medium hover:text-meta-5",
+							templ.KV("text-white border-meta-5", tab.ID == initialTab),
+							templ.KV("border-transparent", tab.ID != initialTab),
+						}
 					>
 						{ tab.Title }
 					</a>
@@ -39,7 +39,7 @@ templ TabTabbedLayout(tabs []TabTab, tabAppend templ.Component) {
 		</header>
 		<div class="mt-3 min-h-40 overflow-x-auto">
 			for _, tab := range tabs {
-				<div x-show={ "openTab === '" + tab.ID + "'" } class="leading-normal">
+				<div data-tab-panel={ tab.ID } hidden?={ tab.ID != initialTab } class="leading-normal">
 					@tab.Content
 				</div>
 			}

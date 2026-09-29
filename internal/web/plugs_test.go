@@ -130,7 +130,7 @@ func TestBasicAuth(t *testing.T) {
 func TestTokenProtectedRoute(t *testing.T) {
 	t.Run("allows access when the route token is correct", func(t *testing.T) {
 		c := webtest.New(t)
-		token, _ := c.App.SettingsGetBang(c.Ctx, "route_token")
+		token, _ := c.App.GetSettingBang(c.Ctx, "route_token")
 		tokenStr := token.(string)
 
 		res := c.Get("/sources/opml", map[string]string{"route_token": tokenStr})

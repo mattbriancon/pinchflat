@@ -1,9 +1,8 @@
 package web
 
-// Port of lib/pinchflat_web/components/layouts/partials/footer.html.heex.
 // Application.spec(:pinchflat)[:vsn] becomes web.Options.Version (see
-// layoutsVersion in layouts.go); markVersionAsSeen/isVersionSeen are in
-// web/assets/js/alpine_helpers.js.
+// layoutsVersion in layouts.go); the NEW badge is un-hidden by
+// web/assets/js/app.js until the version has been clicked once.
 
 templ LayoutsPartialsFooter() {
 	<footer class="border-t border-strokedark">
@@ -14,14 +13,14 @@ templ LayoutsPartialsFooter() {
 				@LayoutsFooterLink("si-discord", "Discord", "https://discord.gg/j7T6dCuwU4")
 			</nav>
 			<div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-				<span class="flex items-center gap-2" x-on:click={ "markVersionAsSeen('" + layoutsVersion(ctx) + "')" }>
+				<span class="flex items-center gap-2" data-version={ layoutsVersion(ctx) }>
 					<span>Pinchflat { layoutsVersion(ctx) }</span>
 					<a
 						href="https://github.com/kieraneglin/pinchflat/releases"
 						target="_blank"
 						class="bg-primary text-white px-1.5 rounded-full text-[10px] font-semibold"
-						x-cloak
-						x-show={ "!isVersionSeen('" + layoutsVersion(ctx) + "')" }
+						hidden
+						data-new-badge={ layoutsVersion(ctx) }
 					>
 						NEW
 					</a>

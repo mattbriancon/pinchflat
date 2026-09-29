@@ -8,7 +8,6 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Port of lib/pinchflat_web/controllers/pages/page_html/job_table_live.ex.
 // Rendered inline on the home page's first load (STRATEGY.md decision 4: no
 // htmx, no fragment endpoint); there's nothing to page or sort here, so no
 // query params are needed.
@@ -17,12 +16,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mattbriancon/pinchflat/internal/core"
 	"github.com/mattbriancon/pinchflat/internal/db"
+	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
 // PagesPageHTMLJobTableContent renders the content of the job table.
-func PagesPageHTMLJobTableContent(ctx context.Context, tasks []*core.Task) templ.Component {
+func PagesPageHTMLJobTableContent(ctx context.Context, tasks []*store.Task) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -61,7 +60,7 @@ func PagesPageHTMLJobTableContent(ctx context.Context, tasks []*core.Task) templ
 				var templ_7745c5c3_Var2 string
 				templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(mapWorkerToTaskName(task.Job.Worker))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__job_table.templ`, Line: 37, Col: 46}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__job_table.templ`, Line: 36, Col: 46}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 				if templ_7745c5c3_Err != nil {
@@ -74,7 +73,7 @@ func PagesPageHTMLJobTableContent(ctx context.Context, tasks []*core.Task) templ
 				var templ_7745c5c3_Var3 templ.SafeURL
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(taskToLink(ctx, task)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__job_table.templ`, Line: 40, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__job_table.templ`, Line: 39, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -87,7 +86,7 @@ func PagesPageHTMLJobTableContent(ctx context.Context, tasks []*core.Task) templ
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(taskToRecordName(task))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__job_table.templ`, Line: 41, Col: 33}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__job_table.templ`, Line: 40, Col: 33}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -100,7 +99,7 @@ func PagesPageHTMLJobTableContent(ctx context.Context, tasks []*core.Task) templ
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(task.Job.Attempt))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__job_table.templ`, Line: 45, Col: 38}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__job_table.templ`, Line: 44, Col: 38}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -113,7 +112,7 @@ func PagesPageHTMLJobTableContent(ctx context.Context, tasks []*core.Task) templ
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(jobTableFormatDatetime(task.Job.AttemptedAt))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__job_table.templ`, Line: 48, Col: 54}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages__page_html__job_table.templ`, Line: 47, Col: 54}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {

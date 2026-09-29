@@ -1,11 +1,9 @@
 package web
 
-// Port of lib/pinchflat_web/controllers/media_profiles/media_profile_html/actions_dropdown.html.heex.
-
-import "github.com/mattbriancon/pinchflat/internal/core"
+import "github.com/mattbriancon/pinchflat/internal/store"
 
 // MediaProfilesHTMLActionsDropdown is actions_dropdown/1.
-templ MediaProfilesHTMLActionsDropdown(mediaProfile *core.MediaProfile) {
+templ MediaProfilesHTMLActionsDropdown(mediaProfile *store.MediaProfile) {
 	@ButtonButtonDropdown("Actions", "justify-center w-full sm:w-50", []ButtonButtonOption{
 		{Content: mediaProfilesCopyJSONOption(mediaProfile)},
 		{Content: mediaProfilesUseAsTemplateOption(mediaProfile)},
@@ -15,16 +13,16 @@ templ MediaProfilesHTMLActionsDropdown(mediaProfile *core.MediaProfile) {
 	})
 }
 
-templ mediaProfilesCopyJSONOption(mediaProfile *core.MediaProfile) {
-	<span x-data="{ copied: false }" x-on:click={ mediaProfilesCopyWithCallbacksJS(mediaProfile) }>
+templ mediaProfilesCopyJSONOption(mediaProfile *store.MediaProfile) {
+	<span data-copy={ prettyJSON(mediaProfile) }>
 		Copy JSON
-		<span x-show="copied" x-transition.duration.150ms>
+		<span data-copied hidden>
 			@CoreIcon("hero-check", "ml-2 h-4 w-4", nil)
 		</span>
 	</span>
 }
 
-templ mediaProfilesUseAsTemplateOption(mediaProfile *core.MediaProfile) {
+templ mediaProfilesUseAsTemplateOption(mediaProfile *store.MediaProfile) {
 	<a href={ templ.SafeURL(P(ctx, "/media_profiles/new?template_id=%v", mediaProfile.ID)) }>
 		Use as Template
 	</a>
@@ -34,7 +32,7 @@ templ mediaProfilesDividerOption() {
 	<div class="my-1 h-px w-full bg-strokedark"></div>
 }
 
-templ mediaProfilesDeleteOption(mediaProfile *core.MediaProfile) {
+templ mediaProfilesDeleteOption(mediaProfile *store.MediaProfile) {
 	@CoreLinkButton(
 		P(ctx, "/media_profiles/%v", mediaProfile.ID),
 		"delete",
@@ -48,7 +46,7 @@ templ mediaProfilesDeleteProfileLabel() {
 	Delete Profile
 }
 
-templ mediaProfilesDeleteWithFilesOption(mediaProfile *core.MediaProfile) {
+templ mediaProfilesDeleteWithFilesOption(mediaProfile *store.MediaProfile) {
 	@CoreLinkButton(
 		P(ctx, "/media_profiles/%v?delete_files=true", mediaProfile.ID),
 		"delete",
