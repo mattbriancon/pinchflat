@@ -199,7 +199,9 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 		want    bool
 	}{
 		{"includes base config file if it's present", base, "base config", true},
-		{"includes media profile config file if it's present", func(m *store.MediaItem) string { return fmt.Sprintf("media-profile-%d-config.txt", m.Source.MediaProfileID) }, "profile config", true},
+		{"includes media profile config file if it's present", func(m *store.MediaItem) string {
+			return fmt.Sprintf("media-profile-%d-config.txt", m.Source.MediaProfileID)
+		}, "profile config", true},
 		{"includes source config file if it's present", func(m *store.MediaItem) string { return fmt.Sprintf("source-%d-config.txt", m.SourceID) }, "source config", true},
 		{"includes media item config file if it's present", func(m *store.MediaItem) string { return fmt.Sprintf("media-item-%d-config.txt", m.ID) }, "media item config", true},
 		{"does not include config file options if they are not present", func(*store.MediaItem) string { return "" }, "", false},

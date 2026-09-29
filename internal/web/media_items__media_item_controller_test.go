@@ -287,9 +287,7 @@ func TestMediaItemController_Stream(t *testing.T) {
 			}
 
 			stat, err := os.Stat(*mediaItem.MediaFilepath)
-			if err != nil {
-				t.Fatalf("stat media file: %v", err)
-			}
+			must(t, err)
 			expected := fmt.Sprint(stat.Size())
 
 			res := c.Get(fmt.Sprintf("/media/%s/stream", uuid))
@@ -314,9 +312,7 @@ func TestMediaItemController_StreamRangeValid(t *testing.T) {
 			c, mediaItem := newFixture(t)
 
 			stat, err := os.Stat(*mediaItem.MediaFilepath)
-			if err != nil {
-				t.Fatalf("stat media file: %v", err)
-			}
+			must(t, err)
 			filesize := stat.Size()
 
 			uuid := *mediaItem.UUID
@@ -357,9 +353,7 @@ func TestMediaItemController_StreamRangeValid(t *testing.T) {
 			c, mediaItem := newFixture(t)
 
 			contents, err := os.ReadFile(*mediaItem.MediaFilepath)
-			if err != nil {
-				t.Fatalf("read media file: %v", err)
-			}
+			must(t, err)
 			expected := string(contents[100:201])
 
 			uuid := *mediaItem.UUID
@@ -376,9 +370,7 @@ func TestMediaItemController_StreamRangeValid(t *testing.T) {
 			c, mediaItem := newFixture(t)
 
 			contents, err := os.ReadFile(*mediaItem.MediaFilepath)
-			if err != nil {
-				t.Fatalf("read media file: %v", err)
-			}
+			must(t, err)
 			filesize := int64(len(contents))
 
 			uuid := *mediaItem.UUID
@@ -402,9 +394,7 @@ func TestMediaItemController_StreamRangeValid(t *testing.T) {
 			c, mediaItem := newFixture(t)
 
 			contents, err := os.ReadFile(*mediaItem.MediaFilepath)
-			if err != nil {
-				t.Fatalf("read media file: %v", err)
-			}
+			must(t, err)
 
 			uuid := *mediaItem.UUID
 			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/media/%s/stream", uuid), nil)
@@ -420,9 +410,7 @@ func TestMediaItemController_StreamRangeValid(t *testing.T) {
 			c, mediaItem := newFixture(t)
 
 			contents, err := os.ReadFile(*mediaItem.MediaFilepath)
-			if err != nil {
-				t.Fatalf("read media file: %v", err)
-			}
+			must(t, err)
 			expected := string(contents[100:])
 
 			uuid := *mediaItem.UUID
@@ -449,9 +437,7 @@ func TestMediaItemController_StreamRangeInvalid(t *testing.T) {
 			c, mediaItem := newFixture(t)
 
 			stat, err := os.Stat(*mediaItem.MediaFilepath)
-			if err != nil {
-				t.Fatalf("stat media file: %v", err)
-			}
+			must(t, err)
 			filesize := stat.Size()
 
 			uuid := *mediaItem.UUID
@@ -477,9 +463,7 @@ func TestMediaItemController_StreamRangeInvalid(t *testing.T) {
 			c, mediaItem := newFixture(t)
 
 			contents, err := os.ReadFile(*mediaItem.MediaFilepath)
-			if err != nil {
-				t.Fatalf("read media file: %v", err)
-			}
+			must(t, err)
 
 			uuid := *mediaItem.UUID
 			res := c.Get(fmt.Sprintf("/media/%s/stream", uuid))
@@ -493,9 +477,7 @@ func TestMediaItemController_StreamRangeInvalid(t *testing.T) {
 			c, mediaItem := newFixture(t)
 
 			contents, err := os.ReadFile(*mediaItem.MediaFilepath)
-			if err != nil {
-				t.Fatalf("read media file: %v", err)
-			}
+			must(t, err)
 
 			uuid := *mediaItem.UUID
 			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/media/%s/stream", uuid), nil)

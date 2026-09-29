@@ -28,9 +28,7 @@ func TestExistsAndNonEmpty(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			path := filepath.Join(dir, tc.name+".txt")
 			if tc.exists {
-				if err := os.WriteFile(path, tc.content, 0644); err != nil {
-					t.Fatal(err)
-				}
+				must(t, os.WriteFile(path, tc.content, 0644))
 			}
 			if got := fsutil.ExistsAndNonEmpty(path); got != tc.want {
 				t.Errorf("got %v, want %v", got, tc.want)
@@ -42,9 +40,7 @@ func TestExistsAndNonEmpty(t *testing.T) {
 func TestSameFile(t *testing.T) {
 	t.Run("returns true if the files are the same", func(t *testing.T) {
 		tmpfile, err := os.CreateTemp("", "test-*.txt")
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		defer os.Remove(tmpfile.Name())
 		tmpfile.Close()
 
@@ -55,9 +51,7 @@ func TestSameFile(t *testing.T) {
 
 	t.Run("returns true if different filepaths point to the same file", func(t *testing.T) {
 		tmpfile, err := os.CreateTemp("", "test-*.txt")
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		defer os.Remove(tmpfile.Name())
 		tmpfile.Close()
 
@@ -71,9 +65,7 @@ func TestSameFile(t *testing.T) {
 	t.Run("returns true if the files are symlinked", func(t *testing.T) {
 		dir := t.TempDir()
 		sourceFile := filepath.Join(dir, "source.json")
-		if err := os.WriteFile(sourceFile, nil, 0644); err != nil {
-			t.Fatal(err)
-		}
+		must(t, os.WriteFile(sourceFile, nil, 0644))
 		symlinkPath := filepath.Join(dir, "symlink.json")
 		if err := os.Symlink(sourceFile, symlinkPath); err != nil {
 			t.Skip("symlink creation failed, skipping test")
@@ -86,16 +78,12 @@ func TestSameFile(t *testing.T) {
 
 	t.Run("returns false if the files are different", func(t *testing.T) {
 		tmpfile1, err := os.CreateTemp("", "test1-*.txt")
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		defer os.Remove(tmpfile1.Name())
 		tmpfile1.Close()
 
 		tmpfile2, err := os.CreateTemp("", "test2-*.txt")
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		defer os.Remove(tmpfile2.Name())
 		tmpfile2.Close()
 
@@ -109,9 +97,7 @@ func TestGenerateTmpfile(t *testing.T) {
 	t.Run("creates a tmpfile and returns its path", func(t *testing.T) {
 		dir := t.TempDir()
 		res, err := fsutil.GenerateTmpfile(dir, "json")
-		if err != nil {
-			t.Fatal(err)
-		}
+		must(t, err)
 		if !strings.HasSuffix(res, ".json") {
 			t.Errorf("expected path to end with .json, got %q", res)
 		}
@@ -136,14 +122,10 @@ func TestWriteFileAll(t *testing.T) {
 			path := filepath.Join(dir, tc.rel)
 			content := "{}"
 
-			if err := fsutil.WriteFileAll(path, content); err != nil {
-				t.Fatal(err)
-			}
+			must(t, fsutil.WriteFileAll(path, content))
 
 			data, err := os.ReadFile(path)
-			if err != nil {
-				t.Fatal(err)
-			}
+			must(t, err)
 			if string(data) != content {
 				t.Errorf("expected %q, got %q", content, string(data))
 			}
@@ -157,9 +139,7 @@ func TestDeleteFileAndRemoveEmptyDirs(t *testing.T) {
 		path := filepath.Join(dir, "test.json")
 		os.WriteFile(path, []byte(""), 0644)
 
-		if err := fsutil.DeleteFileAndRemoveEmptyDirs(path); err != nil {
-			t.Fatal(err)
-		}
+		must(t, fsutil.DeleteFileAndRemoveEmptyDirs(path))
 		if _, err := os.Stat(path); err == nil {
 			t.Error("file should not exist")
 		}
@@ -170,9 +150,7 @@ func TestDeleteFileAndRemoveEmptyDirs(t *testing.T) {
 		path := filepath.Join(dir, "foo", "bar", "baz", "qux.json")
 		fsutil.WriteFileAll(path, "")
 
-		if err := fsutil.DeleteFileAndRemoveEmptyDirs(path); err != nil {
-			t.Fatal(err)
-		}
+		must(t, fsutil.DeleteFileAndRemoveEmptyDirs(path))
 		if _, err := os.Stat(path); err == nil {
 			t.Error("file should not exist")
 		}
@@ -189,9 +167,7 @@ func TestDeleteFileAndRemoveEmptyDirs(t *testing.T) {
 		fsutil.WriteFileAll(path1, "")
 		fsutil.WriteFileAll(path2, "")
 
-		if err := fsutil.DeleteFileAndRemoveEmptyDirs(path1); err != nil {
-			t.Fatal(err)
-		}
+		must(t, fsutil.DeleteFileAndRemoveEmptyDirs(path1))
 		if _, err := os.Stat(path1); err == nil {
 			t.Error("file should not exist")
 		}
@@ -223,14 +199,10 @@ func TestCopyFile(t *testing.T) {
 			fsutil.WriteFileAll(source, "TEST")
 			destination := filepath.Join(dir, tc.dest)
 
-			if err := fsutil.CopyFile(source, destination); err != nil {
-				t.Fatal(err)
-			}
+			must(t, fsutil.CopyFile(source, destination))
 
 			data, err := os.ReadFile(destination)
-			if err != nil {
-				t.Fatal(err)
-			}
+			must(t, err)
 			if string(data) != "TEST" {
 				t.Errorf("expected 'TEST', got %q", string(data))
 			}

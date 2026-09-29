@@ -253,9 +253,7 @@ func TestMediaProfileController_Delete(t *testing.T) {
 		c.Delete("/media_profiles/" + fmt.Sprint(profile.ID))
 
 		updated, err := c.App.GetMediaProfile(c.Ctx, profile.ID)
-		if err != nil {
-			t.Fatalf("failed to reload profile: %v", err)
-		}
+		must(t, err)
 
 		if updated.MarkedForDeletionAt == nil {
 			t.Errorf("expected marked_for_deletion_at to be set")

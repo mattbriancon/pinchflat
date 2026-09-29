@@ -17,9 +17,7 @@ var alpineMarkup = regexp.MustCompile(`x-data|x-on:|x-bind:|x-show|x-model|x-tex
 // pages use native HTML plus web/assets/js/app.js).
 func TestNoAlpine(t *testing.T) {
 	c := webtest.New(t)
-	if _, err := c.App.SetSetting(c.Ctx, "onboarding", false); err != nil {
-		t.Fatalf("SetSetting: %v", err)
-	}
+	mustOK(t)(c.App.SetSetting(c.Ctx, "onboarding", false))
 	profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
 	source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 	item := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID)})

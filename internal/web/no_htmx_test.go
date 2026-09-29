@@ -22,9 +22,7 @@ var literalComponent = regexp.MustCompile(`@[A-Z][A-Za-z]+\(`)
 // there's nothing left for htmx to fetch.
 func TestNoHTMX(t *testing.T) {
 	c := webtest.New(t)
-	if _, err := c.App.SetSetting(c.Ctx, "onboarding", false); err != nil {
-		t.Fatalf("SettingsSet: %v", err)
-	}
+	mustOK(t)(c.App.SetSetting(c.Ctx, "onboarding", false))
 	source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 	apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 	apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})

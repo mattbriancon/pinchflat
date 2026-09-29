@@ -13,9 +13,7 @@ func TestSettingsRecord(t *testing.T) {
 	ts := storetest.NewStore(t)
 
 	setting, err := ts.GetSettingsRecord(ts.Ctx)
-	if err != nil {
-		t.Fatalf("SettingsRecord failed: %v", err)
-	}
+	must(t, err)
 	if setting == nil {
 		t.Fatalf("expected store.Setting")
 	}
@@ -27,17 +25,13 @@ func TestSettingsSet(t *testing.T) {
 	t.Run("updates setting", func(t *testing.T) {
 		t.Parallel()
 		val, err := ts.SetSetting(ts.Ctx, "onboarding", true)
-		if err != nil {
-			t.Fatalf("SettingsSet failed: %v", err)
-		}
+		must(t, err)
 		if val != true {
 			t.Errorf("expected true")
 		}
 
 		val, err = ts.GetSetting(ts.Ctx, "onboarding")
-		if err != nil {
-			t.Fatalf("SettingsGet failed: %v", err)
-		}
+		must(t, err)
 		if val != true {
 			t.Errorf("expected onboarding=true")
 		}
@@ -72,14 +66,10 @@ func TestSettingsGet(t *testing.T) {
 	t.Run("returns value", func(t *testing.T) {
 		t.Parallel()
 		_, err := ts.SetSetting(ts.Ctx, "onboarding", false)
-		if err != nil {
-			t.Fatalf("setup failed: %v", err)
-		}
+		must(t, err)
 
 		val, err := ts.GetSetting(ts.Ctx, "onboarding")
-		if err != nil {
-			t.Fatalf("SettingsGet failed: %v", err)
-		}
+		must(t, err)
 		if val != false {
 			t.Errorf("expected false")
 		}
@@ -103,14 +93,10 @@ func TestSettingsGetBang(t *testing.T) {
 	t.Run("returns value", func(t *testing.T) {
 		t.Parallel()
 		_, err := ts.SetSetting(ts.Ctx, "onboarding", false)
-		if err != nil {
-			t.Fatalf("setup failed: %v", err)
-		}
+		must(t, err)
 
 		val, err := ts.GetSettingBang(ts.Ctx, "onboarding")
-		if err != nil {
-			t.Fatalf("SettingsGetBang failed: %v", err)
-		}
+		must(t, err)
 		if val != false {
 			t.Errorf("expected false")
 		}
@@ -133,9 +119,7 @@ func TestSettingParamsValidate(t *testing.T) {
 	ts := storetest.NewStore(t)
 
 	setting, err := ts.GetSettingsRecord(ts.Ctx)
-	if err != nil {
-		t.Fatalf("SettingsRecord failed: %v", err)
-	}
+	must(t, err)
 
 	tests := []struct {
 		name     string
