@@ -15,7 +15,6 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/db/dbtest"
 	"github.com/mattbriancon/pinchflat/internal/store"
-	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
 func TestMedia_Schema(t *testing.T) {
@@ -303,9 +302,7 @@ func TestMedia_PendingDownload(t *testing.T) {
 // files stored and attached to its metadata record.
 func itemWithMetadataFiles(t *testing.T, ta *apptest.TestApp) *store.MediaItem {
 	t.Helper()
-	ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-		return "", nil
-	})
+	ta.YtDlpMock.Run.Stub(ytReturns(""))
 	mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{})
 	mustOK(t)(ta.PreloadMediaItemFull(ta.Ctx, mediaItem))
 

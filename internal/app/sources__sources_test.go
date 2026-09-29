@@ -264,9 +264,7 @@ func TestSources_CreateSource(t *testing.T) {
 
 	t.Run("adds an error if the runner succeeds but the result was invalid JSON", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		ta.YtDlpMock.Run.Expect(func(_, _ string, _ ytdlp.Args, _ string, _ ytdlp.CallOptions) (string, error) {
-			return "store.Not JSON", nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns("store.Not JSON"))
 
 		validAttrs := newSourceAttrs(t, ta)
 

@@ -129,9 +129,7 @@ func TestMetadataFileHelpers_DownloadAndStoreThumbnailFor(t *testing.T) {
 		mediaItem, err := ta.App.PreloadMediaItemSource(ta.Ctx, mediaItem)
 		must(t, err)
 
-		ta.YtDlpMock.Run.Stub(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return "", nil
-		})
+		ta.YtDlpMock.Run.Stub(ytReturns(""))
 
 		result, err := ta.App.MetadataFileHelpersDownloadAndStoreThumbnailFor(ta.Ctx, mediaItem)
 		must(t, err)

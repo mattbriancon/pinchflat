@@ -312,9 +312,7 @@ func TestSlowIndexingHelpers_IndexAndEnqueueDownloadForMediaItems(t *testing.T) 
 		t.Run(c.name, func(t *testing.T) {
 			ta := apptest.NewApp(t)
 			source := apptest.SourceFixture(t, ta, store.SourceParams{})
-			ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-				return c.response, nil
-			})
+			ta.YtDlpMock.Run.Expect(ytReturns(c.response))
 
 			result := indexSource(t, ta, source, false)
 

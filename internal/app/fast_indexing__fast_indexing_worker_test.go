@@ -1,7 +1,6 @@
 package app_test
 
 import (
-	"net/http"
 	"testing"
 
 	"github.com/mattbriancon/pinchflat/internal/app"
@@ -52,9 +51,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(true)})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
-			return "", nil
-		})
+		ta.HTTPMock.Get.Expect(httpReturns(""))
 
 		spec := obanlite.NewJob(app.FastIndexingWorkerName, map[string]any{"id": source.ID})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), spec)
@@ -69,9 +66,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(true)})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
-			return "", nil
-		})
+		ta.HTTPMock.Get.Expect(httpReturns(""))
 
 		spec := obanlite.NewJob(app.FastIndexingWorkerName, map[string]any{"id": source.ID})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), spec)
@@ -91,9 +86,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(true)})
 
-		ta.HTTPMock.Get.Stub(func(url string, headers http.Header) (string, error) {
-			return "", nil
-		})
+		ta.HTTPMock.Get.Stub(httpReturns(""))
 
 		spec := obanlite.NewJob(app.FastIndexingWorkerName, map[string]any{"id": source.ID})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), spec)
@@ -119,9 +112,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(false)})
 
-		ta.HTTPMock.Get.ExpectN(0, func(url string, headers http.Header) (string, error) {
-			return "", nil
-		})
+		ta.HTTPMock.Get.ExpectN(0, httpReturns(""))
 
 		spec := obanlite.NewJob(app.FastIndexingWorkerName, map[string]any{"id": source.ID})
 		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), spec)

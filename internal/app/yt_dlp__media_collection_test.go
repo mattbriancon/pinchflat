@@ -14,9 +14,7 @@ func TestYtDlpMediaCollection_GetMediaAttributesForCollection(t *testing.T) {
 		ta := apptest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return sourceAttributesReturnFixture() + "\n\n", nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns(sourceAttributesReturnFixture() + "\n\n"))
 
 		result, err := ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, nil, ytdlp.CallOptions{}, nil)
 
@@ -109,9 +107,7 @@ func TestYtDlpMediaCollection_GetMediaAttributesForCollection(t *testing.T) {
 			handlerFilename = filename
 		}
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return "", nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns(""))
 
 		ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, nil, ytdlp.CallOptions{}, handler)
 
@@ -127,9 +123,7 @@ func TestYtDlpMediaCollection_GetMediaAttributesForCollection(t *testing.T) {
 		ta := apptest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return "INVALID\n\n" + sourceAttributesReturnFixture() + "\nINVALID\n", nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns("INVALID\n\n" + sourceAttributesReturnFixture() + "\nINVALID\n"))
 
 		result, err := ta.MediaCollectionGetMediaAttributesForCollection(ta.Ctx, channelURL, nil, ytdlp.CallOptions{}, nil)
 
@@ -248,9 +242,7 @@ func TestYtDlpMediaCollection_GetSourceDetails(t *testing.T) {
 		ta := apptest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return "store.Not JSON", nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns("store.Not JSON"))
 
 		_, err := ta.MediaCollectionGetSourceDetails(ta.Ctx, channelURL, nil, ytdlp.CallOptions{})
 
@@ -268,9 +260,7 @@ func TestYtDlpMediaCollection_GetSourceMetadata(t *testing.T) {
 		ta := apptest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return `{"channel": "PinchflatTestChannel"}`, nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns(`{"channel": "PinchflatTestChannel"}`))
 
 		result, err := ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, ytdlp.Args{}.Opt("playlist_items", 0), ytdlp.CallOptions{})
 
@@ -361,9 +351,7 @@ func TestYtDlpMediaCollection_GetSourceMetadata(t *testing.T) {
 		ta := apptest.NewApp(t)
 		channelURL := "https://www.youtube.com/c/PinchflatTestChannel"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return "store.Not JSON", nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns("store.Not JSON"))
 
 		_, err := ta.MediaCollectionGetSourceMetadata(ta.Ctx, channelURL, ytdlp.Args{}.Opt("playlist_items", 0), ytdlp.CallOptions{})
 

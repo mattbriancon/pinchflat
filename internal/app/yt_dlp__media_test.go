@@ -75,9 +75,7 @@ func TestYtDlpMedia_Download(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return renderMetadata(t, "media_metadata"), nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns(renderMetadata(t, "media_metadata")))
 
 		result, err := ta.YtDlpMediaDownload(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
 
@@ -108,9 +106,7 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return `{"live_status":"not_live"}`, nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns(`{"live_status":"not_live"}`))
 
 		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
@@ -124,9 +120,7 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return `{"live_status":"was_live"}`, nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns(`{"live_status":"was_live"}`))
 
 		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
@@ -140,9 +134,7 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return `{"live_status":null}`, nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns(`{"live_status":null}`))
 
 		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
@@ -156,9 +148,7 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return `{"live_status":"is_live"}`, nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns(`{"live_status":"is_live"}`))
 
 		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
@@ -172,9 +162,7 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return `{"live_status":"is_upcoming"}`, nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns(`{"live_status":"is_upcoming"}`))
 
 		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
@@ -188,9 +176,7 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return `{"live_status":"post_live"}`, nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns(`{"live_status":"post_live"}`))
 
 		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
@@ -204,9 +190,7 @@ func TestYtDlpMedia_GetDownloadableStatus(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return `{"live_status":"what_tha"}`, nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns(`{"live_status":"what_tha"}`))
 
 		result, err := ta.YtDlpMediaGetDownloadableStatus(ta.Ctx, mediaURL, ytdlp.CallOptions{})
 
@@ -302,9 +286,7 @@ func TestYtDlpMedia_GetMediaAttributes(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaURL := "https://www.youtube.com/watch?v=TiZPUDkDYbk"
 
-		ta.YtDlpMock.Run.Expect(func(url, action string, opts ytdlp.Args, ot string, addl ytdlp.CallOptions) (string, error) {
-			return mediaAttributesReturnFixture(), nil
-		})
+		ta.YtDlpMock.Run.Expect(ytReturns(mediaAttributesReturnFixture()))
 
 		result, err := ta.YtDlpMediaGetMediaAttributes(ta.Ctx, mediaURL, nil, ytdlp.CallOptions{})
 

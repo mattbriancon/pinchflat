@@ -78,9 +78,7 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
-			return "<yt:videoId>test_1</yt:videoId><yt:videoId>test_2</yt:videoId>", nil
-		})
+		ta.HTTPMock.Get.Expect(httpReturns("<yt:videoId>test_1</yt:videoId><yt:videoId>test_2</yt:videoId>"))
 
 		result, err := ta.YoutubeRssGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {
@@ -96,9 +94,7 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
-			return "<yt:videoId> test_1 </yt:videoId><yt:videoId> test_2 </yt:videoId>", nil
-		})
+		ta.HTTPMock.Get.Expect(httpReturns("<yt:videoId> test_1 </yt:videoId><yt:videoId> test_2 </yt:videoId>"))
 
 		result, err := ta.YoutubeRssGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {
@@ -114,9 +110,7 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
-			return "<yt:videoId>test_1</yt:videoId><yt:videoId></yt:videoId>", nil
-		})
+		ta.HTTPMock.Get.Expect(httpReturns("<yt:videoId>test_1</yt:videoId><yt:videoId></yt:videoId>"))
 
 		result, err := ta.YoutubeRssGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {
@@ -132,9 +126,7 @@ func TestYoutubeRss_GetRecentMediaIDs(t *testing.T) {
 		ta := apptest.NewApp(t)
 		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 
-		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
-			return "<yt:videoId>test_1</yt:videoId><yt:videoId>test_1</yt:videoId>", nil
-		})
+		ta.HTTPMock.Get.Expect(httpReturns("<yt:videoId>test_1</yt:videoId><yt:videoId>test_1</yt:videoId>"))
 
 		result, err := ta.YoutubeRssGetRecentMediaIDs(ta.Ctx, source)
 		if err != nil {
