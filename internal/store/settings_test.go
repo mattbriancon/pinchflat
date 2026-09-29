@@ -224,3 +224,80 @@ func TestSettingsChangeSetting(t *testing.T) {
 		}
 	})
 }
+
+func TestSettingParamsValidateMatchesChangeset(t *testing.T) {
+	t.Parallel()
+	ts := storetest.NewStore(t)
+
+	setting, err := ts.GetSettingsRecord(ts.Ctx)
+	if err != nil {
+		t.Fatalf("SettingsRecord failed: %v", err)
+	}
+
+	tests := []struct {
+		name  string
+		attrs store.Attrs
+	}{
+		{"empty attrs", store.Attrs{}},
+		{"negative extractor sleep", store.Attrs{"extractor_sleep_interval_seconds": -1}},
+		{"zero extractor sleep", store.Attrs{"extractor_sleep_interval_seconds": 0}},
+		{"positive extractor sleep", store.Attrs{"extractor_sleep_interval_seconds": 1}},
+		{"valid codec preferences", store.Attrs{"video_codec_preference": "h264", "audio_codec_preference": "aac"}},
+		{"empty video codec", store.Attrs{"video_codec_preference": ""}},
+		{"empty audio codec", store.Attrs{"audio_codec_preference": ""}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cs := store.SettingChangeset(setting, tt.attrs)
+			changesetErrors := cs.ErrorMap()
+
+			// Convert attrs to SettingParams for comparison
+			params := store.SettingParams{}
+			if v, ok := tt.attrs["extractor_sleep_interval_seconds"]; ok {
+				i := v.(int)
+				params.ExtractorSleepIntervalSeconds = &i
+			}
+			if v, ok := tt.attrs["video_codec_preference"]; ok {
+				s := v.(string)
+				params.VideoCodecPreference = &s
+			}
+			if v, ok := tt.attrs["audio_codec_preference"]; ok {
+				s := v.(string)
+				params.AudioCodecPreference = &s
+			}
+
+			paramsErrors := params.Validate(setting)
+
+			// Compare error sets
+			if !errorMapsEqual(changesetErrors, paramsErrors) {
+				t.Errorf("error mismatch\nchangeset: %v\nparams:    %v", changesetErrors, paramsErrors)
+			}
+		})
+	}
+}
+
+func errorMapsEqual(m1, m2 map[string][]string) bool {
+	if len(m1) != len(m2) {
+		return false
+	}
+	for k, v1 := range m1 {
+		v2, ok := m2[k]
+		if !ok || !slicesEqual(v1, v2) {
+			return false
+		}
+	}
+	return true
+}
+
+func slicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
