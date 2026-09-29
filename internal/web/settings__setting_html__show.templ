@@ -3,6 +3,10 @@ package web
 import "github.com/mattbriancon/pinchflat/internal/store"
 
 templ SettingHTMLShow(changeset *store.Changeset) {
+	@SettingHTMLShowWithForm(FormFor(changeset, "setting"))
+}
+
+templ SettingHTMLShowWithForm(f *Form) {
 	<div class="page-header">
 		<div class="flex gap-3 items-center">
 			<h2 class="page-title">
@@ -12,7 +16,7 @@ templ SettingHTMLShow(changeset *store.Changeset) {
 	</div>
 	<div class="card card-body">
 		<div class="max-w-full">
-			@SettingHTMLSettingForm(changeset, "/settings")
+			@SettingHTMLSettingForm(f, "/settings")
 		</div>
 	</div>
 }
