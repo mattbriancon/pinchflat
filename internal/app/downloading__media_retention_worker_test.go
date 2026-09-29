@@ -7,7 +7,6 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/app"
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
-	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
@@ -19,7 +18,7 @@ func TestMediaRetentionWorker_Perform(t *testing.T) {
 		ctx := ta.Ctx
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 
-		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, 2)
+		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, store.Ptr(2))
 
 		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
 			t.Fatalf("PerformJob failed: %v", err)
@@ -47,7 +46,7 @@ func TestMediaRetentionWorker_Perform(t *testing.T) {
 		ctx := ta.Ctx
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 
-		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, 2)
+		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, store.Ptr(2))
 
 		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
 			t.Fatalf("PerformJob failed: %v", err)
@@ -82,7 +81,7 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 		ctx := ta.Ctx
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 
-		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, 2)
+		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, store.Ptr(2))
 
 		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
 			t.Fatalf("PerformJob failed: %v", err)
@@ -116,7 +115,7 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 		ctx := ta.Ctx
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 
-		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, 2)
+		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, store.Ptr(2))
 
 		justOverTwoDaysAgo := apptest.NowMinus(2, "days").Add(-1 * time.Minute)
 		justUnderTwoDaysAgo := apptest.NowMinus(2, "days").Add(1 * time.Minute)
@@ -162,7 +161,7 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 		ctx := ta.Ctx
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 
-		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, 2)
+		_, oldMediaItem, newMediaItem := prepareRecordsForRetentionDate(t, ta, store.Ptr(2))
 
 		if err := ta.Oban.PerformJob(ctx, app.MediaRetentionWorkerName, map[string]any{}); err != nil {
 			t.Fatalf("PerformJob failed: %v", err)
@@ -237,7 +236,7 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 		ctx := ta.Ctx
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 
-		_, oldMediaItem, _ := prepareRecordsForRetentionDate(t, ta, 2)
+		_, oldMediaItem, _ := prepareRecordsForRetentionDate(t, ta, store.Ptr(2))
 
 		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.MediaItemParams{PreventCulling: store.Ptr(true)})
 		if err != nil {
@@ -268,7 +267,7 @@ func TestMediaRetentionWorker_Perform_WhenTestingRetentionPeriodBasedCulling(t *
 		ctx := ta.Ctx
 		ta.UserScriptMock.Run.Stub(func(event string, data any) error { return nil })
 
-		_, oldMediaItem, _ := prepareRecordsForRetentionDate(t, ta, 2)
+		_, oldMediaItem, _ := prepareRecordsForRetentionDate(t, ta, store.Ptr(2))
 
 		_, err := ta.UpdateMediaItem(ctx, oldMediaItem, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		if err != nil {
@@ -512,15 +511,10 @@ func TestMediaRetentionWorker_Perform_WhenTestingSourceCutoffBasedCulling(t *tes
 
 // Helper functions
 
-func prepareRecordsForRetentionDate(t testing.TB, ta *apptest.TestApp, retentionPeriodDays interface{}) (*store.Source, *store.MediaItem, *store.MediaItem) {
+func prepareRecordsForRetentionDate(t testing.TB, ta *apptest.TestApp, retentionPeriodDays *int) (*store.Source, *store.MediaItem, *store.MediaItem) {
 	t.Helper()
 
-	attrs := store.Attrs{}
-	if retentionPeriodDays != nil {
-		attrs["retention_period_days"] = retentionPeriodDays
-	}
-
-	source := apptest.SourceFixture(t, ta, attrs)
+	source := apptest.SourceFixture(t, ta, store.SourceParams{RetentionPeriodDays: retentionPeriodDays})
 
 	oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
 		SourceID:          store.Ptr(source.ID),
@@ -538,13 +532,12 @@ func prepareRecordsForRetentionDate(t testing.TB, ta *apptest.TestApp, retention
 func prepareRecordsForSourceCutoffDate(t testing.TB, ta *apptest.TestApp, downloadCutoffDateDaysAgo interface{}) (*store.Source, *store.MediaItem, *store.MediaItem) {
 	t.Helper()
 
-	attrs := store.Attrs{}
+	var p store.SourceParams
 	if downloadCutoffDateDaysAgo != nil {
-		cutoffDate := apptest.NowMinus(downloadCutoffDateDaysAgo.(int), "days")
-		attrs["download_cutoff_date"] = &db.Date{Time: cutoffDate}
+		p.DownloadCutoffDate = store.Ptr(apptest.NowMinus(downloadCutoffDateDaysAgo.(int), "days"))
 	}
 
-	source := apptest.SourceFixture(t, ta, attrs)
+	source := apptest.SourceFixture(t, ta, p)
 
 	oldMediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
 		SourceID:   store.Ptr(source.ID),

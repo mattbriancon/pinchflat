@@ -18,7 +18,7 @@ import (
 	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
-var invalidSourceAttrs = store.Attrs{"name": nil, "collection_id": nil}
+var invalidSourceAttrs = store.SourceParams{CollectionID: store.Ptr("")}
 
 func sourcesTestPlaylistReturn() string {
 	jsonStr, _ := db.EncodeJSON(map[string]any{
@@ -54,8 +54,8 @@ func TestSources_Schema(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{
-			"metadata": store.Attrs{"metadata_filepath": "/metadata.json.gz"},
+		src := apptest.SourceFixture(t, ta, store.SourceParams{
+			Metadata: &store.SourceMetadata{MetadataFilepath: "/metadata.json.gz"},
 		})
 		src, err := ta.PreloadSourceMetadata(ta.Ctx, src)
 		if err != nil {
@@ -79,7 +79,7 @@ func TestSources_Schema(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		if _, err := json.Marshal(src); err != nil {
 			t.Errorf("json.Marshal failed: %v", err)
@@ -92,8 +92,8 @@ func TestSources_OutputPathTemplate(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{
-			"output_path_template_override": "/override/{{ title }}.{{ ext }}",
+		src := apptest.SourceFixture(t, ta, store.SourceParams{
+			OutputPathTemplateOverride: store.Ptr("/override/{{ title }}.{{ ext }}"),
 		})
 
 		got := ta.App.SourcesOutputPathTemplate(ta.Ctx, src)
@@ -107,7 +107,7 @@ func TestSources_OutputPathTemplate(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("/profile/{{ title }}.{{ ext }}")})
-		src := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 
 		got := ta.App.SourcesOutputPathTemplate(ta.Ctx, src)
 		if got != "/profile/{{ title }}.{{ ext }}" {
@@ -120,9 +120,9 @@ func TestSources_OutputPathTemplate(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("/profile/{{ title }}.{{ ext }}")})
-		src := apptest.SourceFixture(t, ta, store.Attrs{
-			"media_profile_id":              mediaProfile.ID,
-			"output_path_template_override": "  ",
+		src := apptest.SourceFixture(t, ta, store.SourceParams{
+			MediaProfileID:             store.Ptr(mediaProfile.ID),
+			OutputPathTemplateOverride: store.Ptr("  "),
 		})
 
 		got := ta.App.SourcesOutputPathTemplate(ta.Ctx, src)
@@ -174,7 +174,7 @@ func TestSources_ListSources(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		got, err := ta.App.ListSources(ta.Ctx)
 		if err != nil {
@@ -192,7 +192,7 @@ func TestSources_ListSourcesFor(t *testing.T) {
 		defer ta.App.DB.Close()
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		src := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 
 		got, err := ta.App.ListSourcesFor(ta.Ctx, mediaProfile)
 		if err != nil {
@@ -209,7 +209,7 @@ func TestSources_GetSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
 
 		got, err := ta.App.GetSource(ta.Ctx, src.ID)
 		if err != nil {
@@ -228,12 +228,12 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
+		validAttrs := store.SourceParams{
+			MediaProfileID: store.Ptr(mediaProfile.ID),
+			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -248,13 +248,12 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
-			"uuid":             "some_uuid",
+		validAttrs := store.SourceParams{
+			MediaProfileID: store.Ptr(mediaProfile.ID),
+			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -269,12 +268,12 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
+		validAttrs := store.SourceParams{
+			MediaProfileID: store.Ptr(mediaProfile.ID),
+			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -292,12 +291,12 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestPlaylistMock)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/playlist?list=abc123",
+		validAttrs := store.SourceParams{
+			MediaProfileID: store.Ptr(mediaProfile.ID),
+			OriginalURL:    store.Ptr("https://www.youtube.com/playlist?list=abc123"),
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -317,12 +316,12 @@ func TestSources_CreateSource(t *testing.T) {
 		})
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
+		validAttrs := store.SourceParams{
+			MediaProfileID: store.Ptr(mediaProfile.ID),
+			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
 		}
 
-		_, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		_, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -343,12 +342,12 @@ func TestSources_CreateSource(t *testing.T) {
 		})
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
+		validAttrs := store.SourceParams{
+			MediaProfileID: store.Ptr(mediaProfile.ID),
+			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
 		}
 
-		_, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		_, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -367,13 +366,13 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
-			"custom_name":      "some custom name",
+		validAttrs := store.SourceParams{
+			MediaProfileID: store.Ptr(mediaProfile.ID),
+			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
+			CustomName:     store.Ptr("some custom name"),
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -388,12 +387,12 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
+		validAttrs := store.SourceParams{
+			MediaProfileID: store.Ptr(mediaProfile.ID),
+			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -416,16 +415,16 @@ func TestSources_CreateSource(t *testing.T) {
 		})
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validOnceAttrs := store.Attrs{
-			"media_profile_id":   mediaProfile.ID,
-			"original_url":       "https://www.youtube.com/channel/abc123",
-			"title_filter_regex": nil,
+		validOnceAttrs := store.SourceParams{
+			MediaProfileID:   store.Ptr(mediaProfile.ID),
+			OriginalURL:      store.Ptr("https://www.youtube.com/channel/abc123"),
+			TitleFilterRegex: store.Ptr(""),
 		}
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validOnceAttrs), true); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validOnceAttrs, true); err != nil {
 			t.Fatalf("first SourcesCreateSource: %v", err)
 		}
-		_, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validOnceAttrs), true)
+		_, err := ta.App.SourcesCreateSource(ta.Ctx, validOnceAttrs, true)
 		if err == nil {
 			t.Fatal("expected the second create to fail")
 		}
@@ -452,24 +451,18 @@ func TestSources_CreateSource(t *testing.T) {
 		})
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"name":             "some name",
-			"original_url":     "https://www.youtube.com/channel/abc123",
+		validAttrs := store.SourceParams{
+			MediaProfileID: store.Ptr(mediaProfile.ID),
+			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
 		}
-		source1Attrs := store.Attrs{}
-		source2Attrs := store.Attrs{}
-		for k, v := range validAttrs {
-			source1Attrs[k] = v
-			source2Attrs[k] = v
-		}
-		source1Attrs["title_filter_regex"] = "foo"
-		source2Attrs["title_filter_regex"] = "bar"
+		source1Attrs, source2Attrs := validAttrs, validAttrs
+		source1Attrs.TitleFilterRegex = store.Ptr("foo")
+		source2Attrs.TitleFilterRegex = store.Ptr("bar")
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(source1Attrs), true); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, source1Attrs, true); err != nil {
 			t.Fatalf("first SourcesCreateSource: %v", err)
 		}
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(source2Attrs), true); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, source2Attrs, true); err != nil {
 			t.Fatalf("second SourcesCreateSource: %v", err)
 		}
 	})
@@ -487,24 +480,18 @@ func TestSources_CreateSource(t *testing.T) {
 			return jsonStr, nil
 		})
 
-		validAttrs := store.Attrs{
-			"name":               "some name",
-			"original_url":       "https://www.youtube.com/channel/abc123",
-			"title_filter_regex": "TEST",
+		validAttrs := store.SourceParams{
+			OriginalURL:      store.Ptr("https://www.youtube.com/channel/abc123"),
+			TitleFilterRegex: store.Ptr("TEST"),
 		}
-		source1Attrs := store.Attrs{}
-		source2Attrs := store.Attrs{}
-		for k, v := range validAttrs {
-			source1Attrs[k] = v
-			source2Attrs[k] = v
-		}
-		source1Attrs["media_profile_id"] = apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{}).ID
-		source2Attrs["media_profile_id"] = apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{}).ID
+		source1Attrs, source2Attrs := validAttrs, validAttrs
+		source1Attrs.MediaProfileID = store.Ptr(apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{}).ID)
+		source2Attrs.MediaProfileID = store.Ptr(apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{}).ID)
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(source1Attrs), true); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, source1Attrs, true); err != nil {
 			t.Fatalf("first SourcesCreateSource: %v", err)
 		}
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(source2Attrs), true); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, source2Attrs, true); err != nil {
 			t.Fatalf("second SourcesCreateSource: %v", err)
 		}
 	})
@@ -516,16 +503,16 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestPlaylistMock)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
+		validAttrs := store.SourceParams{
+			MediaProfileID: store.Ptr(mediaProfile.ID),
+			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
 		}
 
-		source1, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		source1, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("first SourcesCreateSource: %v", err)
 		}
-		source2, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		source2, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("second SourcesCreateSource: %v", err)
 		}
@@ -542,7 +529,7 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		_, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(invalidSourceAttrs), true)
+		_, err := ta.App.SourcesCreateSource(ta.Ctx, invalidSourceAttrs, true)
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -555,7 +542,7 @@ func TestSources_CreateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		_, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(invalidSourceAttrs), true)
+		_, err := ta.App.SourcesCreateSource(ta.Ctx, invalidSourceAttrs, true)
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -573,12 +560,12 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
+		validAttrs := store.SourceParams{
+			MediaProfileID: store.Ptr(mediaProfile.ID),
+			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -595,13 +582,13 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
-			"fast_index":       true,
+		validAttrs := store.SourceParams{
+			MediaProfileID: store.Ptr(mediaProfile.ID),
+			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
+			FastIndex:      store.Ptr(true),
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -618,13 +605,13 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
-			"fast_index":       false,
+		validAttrs := store.SourceParams{
+			MediaProfileID: store.Ptr(mediaProfile.ID),
+			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
+			FastIndex:      store.Ptr(false),
 		}
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true); err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
 
@@ -637,13 +624,13 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id":        mediaProfile.ID,
-			"original_url":            "https://www.youtube.com/channel/abc123",
-			"index_frequency_minutes": 0,
+		validAttrs := store.SourceParams{
+			MediaProfileID:        store.Ptr(mediaProfile.ID),
+			OriginalURL:           store.Ptr("https://www.youtube.com/channel/abc123"),
+			IndexFrequencyMinutes: store.Ptr(0),
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -660,14 +647,14 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id":        mediaProfile.ID,
-			"original_url":            "https://www.youtube.com/channel/abc123",
-			"fast_index":              true,
-			"index_frequency_minutes": 0,
+		validAttrs := store.SourceParams{
+			MediaProfileID:        store.Ptr(mediaProfile.ID),
+			OriginalURL:           store.Ptr("https://www.youtube.com/channel/abc123"),
+			FastIndex:             store.Ptr(true),
+			IndexFrequencyMinutes: store.Ptr(0),
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -682,14 +669,14 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id":        mediaProfile.ID,
-			"original_url":            "https://www.youtube.com/channel/abc123",
-			"fast_index":              false,
-			"index_frequency_minutes": 0,
+		validAttrs := store.SourceParams{
+			MediaProfileID:        store.Ptr(mediaProfile.ID),
+			OriginalURL:           store.Ptr("https://www.youtube.com/channel/abc123"),
+			FastIndex:             store.Ptr(false),
+			IndexFrequencyMinutes: store.Ptr(0),
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -704,14 +691,14 @@ func TestSources_CreateSource(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id":        mediaProfile.ID,
-			"original_url":            "https://www.youtube.com/channel/abc123",
-			"fast_index":              false,
-			"index_frequency_minutes": 0,
+		validAttrs := store.SourceParams{
+			MediaProfileID:        store.Ptr(mediaProfile.ID),
+			OriginalURL:           store.Ptr("https://www.youtube.com/channel/abc123"),
+			FastIndex:             store.Ptr(false),
+			IndexFrequencyMinutes: store.Ptr(0),
 		}
 
-		src, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true)
+		src, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
@@ -735,13 +722,13 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 		})
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
-			"cookie_behaviour": "all_operations",
+		validAttrs := store.SourceParams{
+			MediaProfileID:  store.Ptr(mediaProfile.ID),
+			OriginalURL:     store.Ptr("https://www.youtube.com/channel/abc123"),
+			CookieBehaviour: store.Ptr(store.SourceCookieBehaviourAllOperations),
 		}
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true); err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
 	})
@@ -757,13 +744,13 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 		})
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
-			"cookie_behaviour": "when_needed",
+		validAttrs := store.SourceParams{
+			MediaProfileID:  store.Ptr(mediaProfile.ID),
+			OriginalURL:     store.Ptr("https://www.youtube.com/channel/abc123"),
+			CookieBehaviour: store.Ptr(store.SourceCookieBehaviourWhenNeeded),
 		}
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true); err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
 	})
@@ -779,13 +766,13 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 		})
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
-			"cookie_behaviour": "disabled",
+		validAttrs := store.SourceParams{
+			MediaProfileID:  store.Ptr(mediaProfile.ID),
+			OriginalURL:     store.Ptr("https://www.youtube.com/channel/abc123"),
+			CookieBehaviour: store.Ptr(store.SourceCookieBehaviourDisabled),
 		}
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true); err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
 	})
@@ -801,12 +788,12 @@ func TestSources_CreateSourceWhenTestingYtDlpOptions(t *testing.T) {
 		})
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
+		validAttrs := store.SourceParams{
+			MediaProfileID: store.Ptr(mediaProfile.ID),
+			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
 		}
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), true); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, true); err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
 	})
@@ -819,12 +806,12 @@ func TestSources_CreateSourceWhenTestingOptions(t *testing.T) {
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		validAttrs := store.Attrs{
-			"media_profile_id": mediaProfile.ID,
-			"original_url":     "https://www.youtube.com/channel/abc123",
+		validAttrs := store.SourceParams{
+			MediaProfileID: store.Ptr(mediaProfile.ID),
+			OriginalURL:    store.Ptr("https://www.youtube.com/channel/abc123"),
 		}
 
-		if _, err := ta.App.SourcesCreateSource(ta.Ctx, store.ParseSourceParams(validAttrs), false); err != nil {
+		if _, err := ta.App.SourcesCreateSource(ta.Ctx, validAttrs, false); err != nil {
 			t.Fatalf("SourcesCreateSource: %v", err)
 		}
 
@@ -838,10 +825,10 @@ func TestSources_UpdateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		updateAttrs := store.Attrs{"collection_name": "some updated name"}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
+		updateAttrs := store.SourceParams{CollectionName: store.Ptr("some updated name")}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true)
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -854,9 +841,9 @@ func TestSources_UpdateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
 
-		_, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(invalidSourceAttrs), true)
+		_, err := ta.App.SourcesUpdateSource(ta.Ctx, src, invalidSourceAttrs, true)
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -873,10 +860,10 @@ func TestSources_UpdateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestChannelMock)
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		updateAttrs := store.Attrs{"original_url": "https://www.youtube.com/channel/abc123"}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
+		updateAttrs := store.SourceParams{OriginalURL: store.Ptr("https://www.youtube.com/channel/abc123")}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true)
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -893,10 +880,10 @@ func TestSources_UpdateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestPlaylistMock)
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		updateAttrs := store.Attrs{"original_url": "https://www.youtube.com/playlist?list=abc123"}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
+		updateAttrs := store.SourceParams{OriginalURL: store.Ptr("https://www.youtube.com/playlist?list=abc123")}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true)
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -912,10 +899,10 @@ func TestSources_UpdateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		updateAttrs := store.Attrs{"custom_name": "some updated name"}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
+		updateAttrs := store.SourceParams{CustomName: store.Ptr("some updated name")}
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		if ta.YtDlpMock.Run.Calls() != 0 {
@@ -927,9 +914,9 @@ func TestSources_UpdateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
 
-		_, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(invalidSourceAttrs), true)
+		_, err := ta.App.SourcesUpdateSource(ta.Ctx, src, invalidSourceAttrs, true)
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -951,10 +938,10 @@ func TestSources_UpdateSource(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.YtDlpMock.Run.Expect(sourcesTestPlaylistMock)
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		updateAttrs := store.Attrs{"original_url": "https://www.youtube.com/channel/cba321"}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
+		updateAttrs := store.SourceParams{OriginalURL: store.Ptr("https://www.youtube.com/channel/cba321")}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true)
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -969,10 +956,10 @@ func TestSources_UpdateSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		updateAttrs := store.Attrs{"custom_name": "some new name"}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
+		updateAttrs := store.SourceParams{CustomName: store.Ptr("some new name")}
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 
@@ -985,12 +972,12 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
-		updateAttrs := store.Attrs{"download_media": true}
+		updateAttrs := store.SourceParams{DownloadMedia: store.Ptr(true)}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.AssertEnqueued(t, obanlite.Match{
@@ -1003,9 +990,9 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"download_media": true, "enabled": true})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(true), Enabled: store.Ptr(true)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
-		updateAttrs := store.Attrs{"download_media": false}
+		updateAttrs := store.SourceParams{DownloadMedia: store.Ptr(false)}
 		if err := ta.App.DownloadingHelpersEnqueuePendingDownloadTasks(ta.Ctx, src, nil); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks: %v", err)
 		}
@@ -1014,7 +1001,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 			Worker: app.MediaDownloadWorkerName,
 			Args:   map[string]any{"id": mediaItem.ID},
 		})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
@@ -1024,12 +1011,12 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false, "enabled": false})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false), Enabled: store.Ptr(false)})
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
-		updateAttrs := store.Attrs{"download_media": true}
+		updateAttrs := store.SourceParams{DownloadMedia: store.Ptr(true)}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
@@ -1039,9 +1026,9 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"download_media": true, "enabled": true})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(true), Enabled: store.Ptr(true)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
-		updateAttrs := store.Attrs{"enabled": false}
+		updateAttrs := store.SourceParams{Enabled: store.Ptr(false)}
 		if err := ta.App.DownloadingHelpersEnqueuePendingDownloadTasks(ta.Ctx, src, nil); err != nil {
 			t.Fatalf("DownloadingHelpersEnqueuePendingDownloadTasks: %v", err)
 		}
@@ -1050,7 +1037,7 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 			Worker: app.MediaDownloadWorkerName,
 			Args:   map[string]any{"id": mediaItem.ID},
 		})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
@@ -1060,12 +1047,12 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"download_media": true, "enabled": false})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(true), Enabled: store.Ptr(false)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
-		updateAttrs := store.Attrs{"enabled": true}
+		updateAttrs := store.SourceParams{Enabled: store.Ptr(true)}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.AssertEnqueued(t, obanlite.Match{
@@ -1078,12 +1065,12 @@ func TestSources_UpdateSourceWhenTestingMediaDownloadTasks(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"download_media": false, "enabled": false})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{DownloadMedia: store.Ptr(false), Enabled: store.Ptr(false)})
 		apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID), Clear: store.ClearMediaFilepath})
-		updateAttrs := store.Attrs{"enabled": true}
+		updateAttrs := store.SourceParams{Enabled: store.Ptr(true)}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
@@ -1095,10 +1082,10 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		updateAttrs := store.Attrs{"index_frequency_minutes": 123}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
+		updateAttrs := store.SourceParams{IndexFrequencyMinutes: store.Ptr(123)}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true)
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -1115,10 +1102,10 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		updateAttrs := store.Attrs{"index_frequency_minutes": 0}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
+		updateAttrs := store.SourceParams{IndexFrequencyMinutes: store.Ptr(0)}
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 
@@ -1132,21 +1119,21 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		updateAttrs := store.Attrs{"index_frequency_minutes": 0}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
+		updateAttrs := store.SourceParams{IndexFrequencyMinutes: store.Ptr(0)}
 
 		job1, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), obanlite.NewJob(app.FastIndexingWorkerName, map[string]any{"id": src.ID}))
 		if err != nil {
 			t.Fatalf("Oban.Insert: %v", err)
 		}
-		task1 := apptest.TaskFixture(t, ta, store.Attrs{"source_id": src.ID, "job_id": job1.ID})
+		task1 := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(src.ID), JobID: store.Ptr(job1.ID)})
 		job2, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), obanlite.NewJob(app.MediaCollectionIndexingWorkerName, map[string]any{"id": src.ID}))
 		if err != nil {
 			t.Fatalf("Oban.Insert: %v", err)
 		}
-		task2 := apptest.TaskFixture(t, ta, store.Attrs{"source_id": src.ID, "job_id": job2.ID})
+		task2 := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(src.ID), JobID: store.Ptr(job2.ID)})
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 
@@ -1162,11 +1149,11 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		task := apptest.TaskFixture(t, ta, store.Attrs{"source_id": src.ID})
-		updateAttrs := store.Attrs{"custom_name": "some updated name"}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
+		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(src.ID)})
+		updateAttrs := store.SourceParams{CustomName: store.Ptr("some updated name")}
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 
@@ -1183,16 +1170,16 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		updateAttrs := store.Attrs{"enabled": false}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
+		updateAttrs := store.SourceParams{Enabled: store.Ptr(false)}
 
 		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), obanlite.NewJob(app.MediaCollectionIndexingWorkerName, map[string]any{"id": src.ID}))
 		if err != nil {
 			t.Fatalf("Oban.Insert: %v", err)
 		}
-		task := apptest.TaskFixture(t, ta, store.Attrs{"source_id": src.ID, "job_id": job.ID})
+		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(src.ID), JobID: store.Ptr(job.ID)})
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 
@@ -1205,11 +1192,11 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"enabled": false})
-		updateAttrs := store.Attrs{"index_frequency_minutes": 123}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{Enabled: store.Ptr(false)})
+		updateAttrs := store.SourceParams{IndexFrequencyMinutes: store.Ptr(123)}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
@@ -1219,11 +1206,11 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"enabled": false, "index_frequency_minutes": 123})
-		updateAttrs := store.Attrs{"enabled": true}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{Enabled: store.Ptr(false), IndexFrequencyMinutes: store.Ptr(123)})
+		updateAttrs := store.SourceParams{Enabled: store.Ptr(true)}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.AssertEnqueued(t, obanlite.Match{
@@ -1236,11 +1223,11 @@ func TestSources_UpdateSourceWhenTestingSlowIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"enabled": false, "index_frequency_minutes": 0})
-		updateAttrs := store.Attrs{"enabled": true}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{Enabled: store.Ptr(false), IndexFrequencyMinutes: store.Ptr(0)})
+		updateAttrs := store.SourceParams{Enabled: store.Ptr(true)}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.MediaCollectionIndexingWorkerName})
@@ -1252,11 +1239,11 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": false})
-		updateAttrs := store.Attrs{"fast_index": true}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(false)})
+		updateAttrs := store.SourceParams{FastIndex: store.Ptr(true)}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.AssertEnqueued(t, obanlite.Match{
@@ -1269,19 +1256,19 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
-		updateAttrs := store.Attrs{"fast_index": false}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(true)})
+		updateAttrs := store.SourceParams{FastIndex: store.Ptr(false)}
 		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), obanlite.NewJob(app.FastIndexingWorkerName, map[string]any{"id": src.ID}))
 		if err != nil {
 			t.Fatalf("Oban.Insert: %v", err)
 		}
-		apptest.TaskFixture(t, ta, store.Attrs{"source_id": src.ID, "job_id": job.ID})
+		apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(src.ID), JobID: store.Ptr(job.ID)})
 
 		ta.Oban.AssertEnqueued(t, obanlite.Match{
 			Worker: app.FastIndexingWorkerName,
 			Args:   map[string]any{"id": src.ID},
 		})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
@@ -1291,10 +1278,10 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
-		updateAttrs := store.Attrs{"index_frequency_minutes": 0}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(true)})
+		updateAttrs := store.SourceParams{IndexFrequencyMinutes: store.Ptr(0)}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true)
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -1307,10 +1294,10 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": false})
-		updateAttrs := store.Attrs{"index_frequency_minutes": 0}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(false)})
+		updateAttrs := store.SourceParams{IndexFrequencyMinutes: store.Ptr(0)}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true)
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -1323,16 +1310,16 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		updateAttrs := store.Attrs{"enabled": false}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
+		updateAttrs := store.SourceParams{Enabled: store.Ptr(false)}
 
 		job, err := ta.Oban.Insert(ta.Ctx, ta.Q(ta.Ctx), obanlite.NewJob(app.FastIndexingWorkerName, map[string]any{"id": src.ID}))
 		if err != nil {
 			t.Fatalf("Oban.Insert: %v", err)
 		}
-		task := apptest.TaskFixture(t, ta, store.Attrs{"source_id": src.ID, "job_id": job.ID})
+		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(src.ID), JobID: store.Ptr(job.ID)})
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 
@@ -1345,11 +1332,11 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"enabled": false, "fast_index": false})
-		updateAttrs := store.Attrs{"fast_index": true}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{Enabled: store.Ptr(false), FastIndex: store.Ptr(false)})
+		updateAttrs := store.SourceParams{FastIndex: store.Ptr(true)}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
@@ -1359,11 +1346,11 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"enabled": false, "fast_index": true})
-		updateAttrs := store.Attrs{"enabled": true}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{Enabled: store.Ptr(false), FastIndex: store.Ptr(true)})
+		updateAttrs := store.SourceParams{Enabled: store.Ptr(true)}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.AssertEnqueued(t, obanlite.Match{
@@ -1376,11 +1363,11 @@ func TestSources_UpdateSourceWhenTestingFastIndexing(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{"enabled": false, "fast_index": false})
-		updateAttrs := store.Attrs{"enabled": true}
+		src := apptest.SourceFixture(t, ta, store.SourceParams{Enabled: store.Ptr(false), FastIndex: store.Ptr(false)})
+		updateAttrs := store.SourceParams{Enabled: store.Ptr(true)}
 
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 		ta.Oban.RefuteEnqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
@@ -1392,18 +1379,18 @@ func TestSources_UpdateSourceWhenTestingOptions(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{
-			"fast_index":              false,
-			"download_media":          false,
-			"index_frequency_minutes": -1,
+		src := apptest.SourceFixture(t, ta, store.SourceParams{
+			FastIndex:             store.Ptr(false),
+			DownloadMedia:         store.Ptr(false),
+			IndexFrequencyMinutes: store.Ptr(-1),
 		})
-		updateAttrs := store.Attrs{
-			"fast_index":              true,
-			"download_media":          true,
-			"index_frequency_minutes": 100,
+		updateAttrs := store.SourceParams{
+			FastIndex:             store.Ptr(true),
+			DownloadMedia:         store.Ptr(true),
+			IndexFrequencyMinutes: store.Ptr(100),
 		}
 
-		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), false); err != nil {
+		if _, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, false); err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
 
@@ -1419,7 +1406,7 @@ func TestSources_DeleteSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
 		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, false); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
 		}
@@ -1432,8 +1419,8 @@ func TestSources_DeleteSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
-		task := apptest.TaskFixture(t, ta, store.Attrs{"source_id": src.ID})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
+		task := apptest.TaskFixture(t, ta, apptest.TaskParams{SourceID: store.Ptr(src.ID)})
 
 		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, false); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
@@ -1447,7 +1434,7 @@ func TestSources_DeleteSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID)})
 
 		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, false); err != nil {
@@ -1462,7 +1449,7 @@ func TestSources_DeleteSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID)})
 
 		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, false); err != nil {
@@ -1477,7 +1464,7 @@ func TestSources_DeleteSource(t *testing.T) {
 		ta := apptest.NewApp(t)
 		defer ta.App.DB.Close()
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
 		src, err := ta.PreloadSourceMetadata(ta.Ctx, src)
 		if err != nil {
 			t.Fatalf("PreloadSourceMetadata: %v", err)
@@ -1487,9 +1474,9 @@ func TestSources_DeleteSource(t *testing.T) {
 		if err != nil {
 			t.Fatalf("MetadataFileHelpersCompressAndStoreMetadataFor: %v", err)
 		}
-		updateAttrs := store.Attrs{"metadata": store.Attrs{"metadata_filepath": metadataFilepath}}
+		updateAttrs := store.SourceParams{Metadata: &store.SourceMetadata{MetadataFilepath: metadataFilepath}}
 
-		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, store.ParseSourceParams(updateAttrs), true)
+		updated, err := ta.App.SourcesUpdateSource(ta.Ctx, src, updateAttrs, true)
 		if err != nil {
 			t.Fatalf("SourcesUpdateSource: %v", err)
 		}
@@ -1514,7 +1501,7 @@ func TestSources_DeleteSource(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GenerateTmpfile: %v", err)
 		}
-		src := apptest.SourceFixture(t, ta, store.Attrs{"nfo_filepath": filepath})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{NfoFilepath: store.Ptr(filepath)})
 
 		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, false); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)
@@ -1532,7 +1519,7 @@ func TestSources_DeleteSourceWhenDeletingFiles(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.UserScriptMock.Run.Stub(func(_ string, _ any) error { return nil })
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID)})
 
 		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, true); err != nil {
@@ -1552,7 +1539,7 @@ func TestSources_DeleteSourceWhenDeletingFiles(t *testing.T) {
 		defer ta.App.DB.Close()
 		ta.UserScriptMock.Run.Stub(func(_ string, _ any) error { return nil })
 
-		src := apptest.SourceFixture(t, ta, store.Attrs{})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(src.ID)})
 
 		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, true); err != nil {
@@ -1573,7 +1560,7 @@ func TestSources_DeleteSourceWhenDeletingFiles(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GenerateTmpfile: %v", err)
 		}
-		src := apptest.SourceFixture(t, ta, store.Attrs{"nfo_filepath": filepath})
+		src := apptest.SourceFixture(t, ta, store.SourceParams{NfoFilepath: store.Ptr(filepath)})
 
 		if _, err := ta.App.SourcesDeleteSource(ta.Ctx, src, true); err != nil {
 			t.Fatalf("SourcesDeleteSource: %v", err)

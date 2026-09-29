@@ -100,7 +100,7 @@ func TestMediaProfileController_Create(t *testing.T) {
 		c := webtest.New(t)
 		c.App.SetSetting(c.Ctx, "onboarding", false)
 
-		attrs := store.Attrs{
+		attrs := map[string]any{
 			"name":                 "test profile",
 			"output_path_template": "output.{{ ext }}",
 		}
@@ -129,7 +129,7 @@ func TestMediaProfileController_Create(t *testing.T) {
 	t.Run("renders errors when data is invalid", func(t *testing.T) {
 		c := webtest.New(t)
 
-		attrs := store.Attrs{
+		attrs := map[string]any{
 			"name":                 nil,
 			"output_path_template": nil,
 		}
@@ -146,7 +146,7 @@ func TestMediaProfileController_Create(t *testing.T) {
 		c := webtest.New(t)
 		c.App.SetSetting(c.Ctx, "onboarding", true)
 
-		attrs := store.Attrs{
+		attrs := map[string]any{
 			"name":                 "test profile",
 			"output_path_template": "output.{{ ext }}",
 		}
@@ -163,7 +163,7 @@ func TestMediaProfileController_Create(t *testing.T) {
 		c := webtest.New(t)
 		c.App.SetSetting(c.Ctx, "onboarding", true)
 
-		attrs := store.Attrs{
+		attrs := map[string]any{
 			"name":                 nil,
 			"output_path_template": nil,
 		}
@@ -198,7 +198,7 @@ func TestMediaProfileController_Update(t *testing.T) {
 
 		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
 
-		attrs := store.Attrs{
+		attrs := map[string]any{
 			"name":                 "updated name",
 			"output_path_template": "new_template.{{ ext }}",
 		}
@@ -217,7 +217,7 @@ func TestMediaProfileController_Update(t *testing.T) {
 
 		profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
 
-		attrs := store.Attrs{
+		attrs := map[string]any{
 			"name":                 nil,
 			"output_path_template": nil,
 		}

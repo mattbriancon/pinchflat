@@ -325,11 +325,3 @@ func utcSecond(t time.Time) db.UTCDateTime {
 func truncateDate(t time.Time) db.Date {
 	return db.Date{Time: time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)}
 }
-
-// timeOf is the time inside an optional db.UTCDateTime.
-func timeOf(v *db.UTCDateTime) *time.Time {
-	if v == nil {
-		return nil
-	}
-	return &v.Time
-}

@@ -3,6 +3,7 @@ package store
 import (
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/mattbriancon/pinchflat/internal/db"
 )
@@ -20,10 +21,10 @@ type SourceParams struct {
 	MediaProfileID             *int64
 	IndexFrequencyMinutes      *int
 	DownloadMedia              *bool
-	LastIndexedAt              *db.UTCDateTime
+	LastIndexedAt              *time.Time
 	CustomName                 *string
 	FastIndex                  *bool
-	DownloadCutoffDate         *db.Date
+	DownloadCutoffDate         *time.Time
 	NfoFilepath                *string
 	SeriesDirectory            *string
 	FanartFilepath             *string
@@ -33,7 +34,7 @@ type SourceParams struct {
 	Description                *string
 	RetentionPeriodDays        *int
 	OutputPathTemplateOverride *string
-	MarkedForDeletionAt        *db.UTCDateTime
+	MarkedForDeletionAt        *time.Time
 	MinDurationSeconds         *int
 	MaxDurationSeconds         *int
 	Enabled                    *bool
@@ -95,16 +96,6 @@ var (
 	}
 )
 
-// SourceFormFields are the source columns the source form shows.
-func SourceFormFields() []string {
-	return []string{
-		"enabled", "custom_name", "original_url", "media_profile_id", "index_frequency_minutes",
-		"fast_index", "download_media", "cookie_behaviour", "download_cutoff_date",
-		"retention_period_days", "min_duration_seconds", "max_duration_seconds",
-		"title_filter_regex", "output_path_template_override",
-	}
-}
-
 // ParseSourceParams reads the source[...] fields of a submitted form. Values
 // that can't be converted are reported by Validate as "is invalid".
 func ParseSourceParams(form url.Values) SourceParams {
@@ -141,7 +132,7 @@ func ParseSourceParams(form url.Values) SourceParams {
 	id, st := f.integer64("media_profile_id")
 	setOrClear(&p.MediaProfileID, id, st, &p.Clear, ClearMediaProfileID)
 	d, st := f.date("download_cutoff_date")
-	setOrClear(&p.DownloadCutoffDate, d, st, &p.Clear, ClearDownloadCutoffDate)
+	setOrClear(&p.DownloadCutoffDate, d.Time, st, &p.Clear, ClearDownloadCutoffDate)
 
 	enumeration(f, "collection_type", &p.CollectionType, SourceCollectionTypeChannel, SourceCollectionTypePlaylist)
 	enumeration(f, "cookie_behaviour", &p.CookieBehaviour,
@@ -182,8 +173,8 @@ func (p SourceParams) apply(existing *Source) (*Source, changes) {
 	setNullable(c, "retention_period_days", &next.RetentionPeriodDays, p.RetentionPeriodDays, clear(ClearRetentionPeriodDays))
 	setNullable(c, "min_duration_seconds", &next.MinDurationSeconds, p.MinDurationSeconds, clear(ClearMinDurationSeconds))
 	setNullable(c, "max_duration_seconds", &next.MaxDurationSeconds, p.MaxDurationSeconds, clear(ClearMaxDurationSeconds))
-	setNullableTime(c, "last_indexed_at", &next.LastIndexedAt, timeOf(p.LastIndexedAt), clear(ClearLastIndexedAt))
-	setNullableTime(c, "marked_for_deletion_at", &next.MarkedForDeletionAt, timeOf(p.MarkedForDeletionAt), clear(ClearMarkedForDeletionAt))
+	setNullableTime(c, "last_indexed_at", &next.LastIndexedAt, p.LastIndexedAt, clear(ClearLastIndexedAt))
+	setNullableTime(c, "marked_for_deletion_at", &next.MarkedForDeletionAt, p.MarkedForDeletionAt, clear(ClearMarkedForDeletionAt))
 	switch {
 	case clear(ClearDownloadCutoffDate):
 		if next.DownloadCutoffDate != nil {
@@ -191,7 +182,7 @@ func (p SourceParams) apply(existing *Source) (*Source, changes) {
 			next.DownloadCutoffDate = nil
 		}
 	case p.DownloadCutoffDate != nil:
-		if d := truncateDate(p.DownloadCutoffDate.Time); next.DownloadCutoffDate == nil || !next.DownloadCutoffDate.Equal(d.Time) {
+		if d := truncateDate(*p.DownloadCutoffDate); next.DownloadCutoffDate == nil || !next.DownloadCutoffDate.Equal(d.Time) {
 			c["download_cutoff_date"] = true
 			next.DownloadCutoffDate = &d
 		}

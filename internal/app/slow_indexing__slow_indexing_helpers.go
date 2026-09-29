@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
@@ -98,7 +97,7 @@ func (a *App) SlowIndexingHelpersIndexAndEnqueueDownloadForMediaItems(ctx contex
 	}
 
 	// Update source's last_indexed_at
-	if _, err := a.SourcesUpdateSource(ctx, source, store.SourceParams{LastIndexedAt: store.Ptr(db.Now())}, true); err != nil {
+	if _, err := a.SourcesUpdateSource(ctx, source, store.SourceParams{LastIndexedAt: store.Ptr(time.Now())}, true); err != nil {
 		return nil, err
 	}
 

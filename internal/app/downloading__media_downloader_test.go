@@ -331,7 +331,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 
 	t.Run("sets use_cookies if the source uses cookies", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "all_operations"})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{CookieBehaviour: store.Ptr(store.SourceCookieBehaviourAllOperations)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -364,7 +364,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 
 	t.Run("does not set use_cookies if the source uses cookies when needed", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "when_needed"})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{CookieBehaviour: store.Ptr(store.SourceCookieBehaviourWhenNeeded)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -397,7 +397,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieUsage(t *testing.
 
 	t.Run("does not set use_cookies if the source does not use cookies", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "disabled"})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{CookieBehaviour: store.Ptr(store.SourceCookieBehaviourDisabled)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -608,7 +608,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 
 	t.Run("retries with cookies if we think it would help and the source allows", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "when_needed"})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{CookieBehaviour: store.Ptr(store.SourceCookieBehaviourWhenNeeded)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -642,7 +642,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 
 	t.Run("does not retry with cookies if we don't think it would help even the source allows", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "when_needed"})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{CookieBehaviour: store.Ptr(store.SourceCookieBehaviourWhenNeeded)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -673,7 +673,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 
 	t.Run("does not retry with cookies even if we think it would help but source doesn't allow", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "disabled"})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{CookieBehaviour: store.Ptr(store.SourceCookieBehaviourDisabled)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -704,7 +704,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingCookieRetries(t *testin
 
 	t.Run("does not retry with cookies if cookies were already used", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"cookie_behaviour": "all_operations"})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{CookieBehaviour: store.Ptr(store.SourceCookieBehaviourAllOperations)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -1091,7 +1091,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNFOGeneration(t *testin
 	t.Run("generates an NFO file if the source is set to download NFOs", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadNfo: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 
@@ -1131,7 +1131,7 @@ func TestMediaDownloader_DownloadForMediaItem_WhenTestingNFOGeneration(t *testin
 	t.Run("does not generate an NFO file if the source is set to not download NFOs", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadNfo: store.Ptr(false)})
-		source := apptest.SourceFixture(t, ta, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
 

@@ -14,7 +14,7 @@ import (
 func TestCoreListItemsFromMap(t *testing.T) {
 	t.Run("renders schema fields but not associations", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"original_url": "https://www.youtube.com/@x"})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{OriginalURL: store.Ptr("https://www.youtube.com/@x")})
 		source, _ = ta.App.PreloadSourceMediaProfile(ta.Ctx, source)
 
 		html, err := templ.ToGoHTML(context.Background(), web.CoreListItemsFromMap(source))

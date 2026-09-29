@@ -24,7 +24,7 @@ func TestMediaProfileDeletionWorker_Kickoff(t *testing.T) {
 			t.Errorf("expected 0 enqueued initially")
 		}
 
-		job, err := ta.App.MediaProfileDeletionWorkerKickoff(ta.Ctx, profile, store.Attrs{})
+		job, err := ta.App.MediaProfileDeletionWorkerKickoff(ta.Ctx, profile, map[string]any{})
 		if err != nil {
 			t.Errorf("kickoff failed: %v", err)
 		}
@@ -45,7 +45,7 @@ func TestMediaProfileDeletionWorker_Kickoff(t *testing.T) {
 		})
 
 		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		jobArgs := store.Attrs{"delete_files": true}
+		jobArgs := map[string]any{"delete_files": true}
 
 		job, err := ta.App.MediaProfileDeletionWorkerKickoff(ta.Ctx, profile, jobArgs)
 		if err != nil {
@@ -74,8 +74,8 @@ func TestMediaProfileDeletionWorker_Perform(t *testing.T) {
 		})
 
 		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		source := apptest.SourceFixture(t, ta, store.Attrs{
-			"media_profile_id": profile.ID,
+		source := apptest.SourceFixture(t, ta, store.SourceParams{
+			MediaProfileID: store.Ptr(profile.ID),
 		})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
 			SourceID: store.Ptr(source.ID),
@@ -114,8 +114,8 @@ func TestMediaProfileDeletionWorker_Perform(t *testing.T) {
 		})
 
 		profile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{})
-		source := apptest.SourceFixture(t, ta, store.Attrs{
-			"media_profile_id": profile.ID,
+		source := apptest.SourceFixture(t, ta, store.SourceParams{
+			MediaProfileID: store.Ptr(profile.ID),
 		})
 		mediaItem := apptest.MediaItemWithAttachmentsFixture(t, ta, store.MediaItemParams{
 			SourceID: store.Ptr(source.ID),

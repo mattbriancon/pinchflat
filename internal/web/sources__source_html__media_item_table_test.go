@@ -37,7 +37,7 @@ func mediaSectionHTML(t *testing.T, html string, sourceID int64, mediaState stri
 func TestMediaItemTableLive_InitialRendering(t *testing.T) {
 	t.Run("shows message when no records", func(t *testing.T) {
 		c := webtest.New(t)
-		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 
 		html := c.Get(fmt.Sprintf("/sources/%d", source.ID)).HTML(t, 200)
 		pending := mediaSectionHTML(t, html, source.ID, "pending")
@@ -52,7 +52,7 @@ func TestMediaItemTableLive_InitialRendering(t *testing.T) {
 
 	t.Run("shows records when present", func(t *testing.T) {
 		c := webtest.New(t)
-		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 		mediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
 		html := c.Get(fmt.Sprintf("/sources/%d", source.ID)).HTML(t, 200)
@@ -73,7 +73,7 @@ func TestMediaItemTableLive_InitialRendering(t *testing.T) {
 func TestMediaItemTableLive_MediaState(t *testing.T) {
 	t.Run("shows pending media when pending", func(t *testing.T) {
 		c := webtest.New(t)
-		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 		downloadedMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		pendingMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
@@ -90,7 +90,7 @@ func TestMediaItemTableLive_MediaState(t *testing.T) {
 
 	t.Run("shows downloaded media when downloaded", func(t *testing.T) {
 		c := webtest.New(t)
-		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 		downloadedMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		pendingMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
 
@@ -108,7 +108,7 @@ func TestMediaItemTableLive_MediaState(t *testing.T) {
 	t.Run("shows records that aren't pending or downloaded when other", func(t *testing.T) {
 		c := webtest.New(t)
 		mediaProfile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{ShortsBehaviour: store.Ptr(store.MediaProfileShortsBehaviourExclude)})
-		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{"media_profile_id": mediaProfile.ID})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
 
 		downloadedMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 		pendingMediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Clear: store.ClearMediaFilepath})
@@ -134,7 +134,7 @@ func TestMediaItemTableLive_MediaState(t *testing.T) {
 
 	t.Run("shows 'Manually Ignored' column when other", func(t *testing.T) {
 		c := webtest.New(t)
-		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 		apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{
 			SourceID:        store.Ptr(source.ID),
 			PreventDownload: store.Ptr(true),
@@ -153,7 +153,7 @@ func TestMediaItemTableLive_MediaState(t *testing.T) {
 func TestMediaItemTableLive_Search(t *testing.T) {
 	t.Run("q filters records and stays on the matching tab", func(t *testing.T) {
 		c := webtest.New(t)
-		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 		match := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Title: store.Ptr("Match Me"), Clear: store.ClearMediaFilepath})
 		other := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID), Title: store.Ptr("Something Else"), Clear: store.ClearMediaFilepath})
 
@@ -175,7 +175,7 @@ func TestMediaItemTableLive_Search(t *testing.T) {
 func TestMediaItemTableLive_Pagination(t *testing.T) {
 	t.Run("paging one tab doesn't reset another's page", func(t *testing.T) {
 		c := webtest.New(t)
-		source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+		source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 		var pendingItems []*store.MediaItem
 		for i := 0; i < 11; i++ {
 			pendingItems = append(pendingItems, apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{

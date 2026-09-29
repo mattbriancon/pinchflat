@@ -17,7 +17,7 @@ func TestFileSyncingWorker_KickoffWithTask(t *testing.T) {
 		t.Fatalf("expected 0 enqueued jobs initially")
 	}
 
-	source := apptest.SourceFixture(t, ta, store.Attrs{})
+	source := apptest.SourceFixture(t, ta, store.SourceParams{})
 	task, err := ta.FileSyncingWorkerKickoffWithTask(ta.Ctx, source)
 	if err != nil {
 		t.Fatalf("KickoffWithTask failed: %v", err)
@@ -36,7 +36,7 @@ func TestFileSyncingWorker_Perform(t *testing.T) {
 	t.Parallel()
 	ta := apptest.NewApp(t)
 
-	source := apptest.SourceFixture(t, ta, store.Attrs{})
+	source := apptest.SourceFixture(t, ta, store.SourceParams{})
 	mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{
 		MediaFilepath: store.Ptr("/tmp/missing.mp4"),
 		SourceID:      store.Ptr(source.ID),

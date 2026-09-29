@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/store"
 )
 
@@ -192,7 +191,7 @@ func (s *Server) SourceControllerDelete(w http.ResponseWriter, r *http.Request) 
 
 	// Mark for deletion
 	_, err := s.App.SourcesUpdateSource(ctx, source, store.SourceParams{
-		MarkedForDeletionAt: store.Ptr(db.UTCDateTime{Time: time.Now().UTC()}),
+		MarkedForDeletionAt: store.Ptr(time.Now().UTC()),
 	}, true)
 	if err != nil {
 		s.Fail(w, r, err)

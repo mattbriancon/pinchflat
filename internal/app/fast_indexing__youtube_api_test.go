@@ -40,7 +40,7 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 	t.Run("rotates keys", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		ta.SetSetting(ta.Ctx, "youtube_api_key", "key1, key2")
 
 		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
@@ -70,7 +70,7 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 	t.Run("builds correct URL", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		ta.SetSetting(ta.Ctx, "youtube_api_key", "key1, key2")
 
 		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
@@ -98,7 +98,7 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 	t.Run("converts channel to playlist ID", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"collection_id": "UC_ABC123"})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{CollectionID: store.Ptr("UC_ABC123")})
 		ta.SetSetting(ta.Ctx, "youtube_api_key", "key1, key2")
 
 		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
@@ -117,7 +117,7 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 	t.Run("returns empty when no media", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		ta.SetSetting(ta.Ctx, "youtube_api_key", "key1, key2")
 
 		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
@@ -136,7 +136,7 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 	t.Run("returns media IDs", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		ta.SetSetting(ta.Ctx, "youtube_api_key", "key1, key2")
 
 		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
@@ -155,7 +155,7 @@ func TestYoutubeApi_GetRecentMediaIDs(t *testing.T) {
 	t.Run("propagates errors", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
 		ta.SetSetting(ta.Ctx, "youtube_api_key", "key1, key2")
 
 		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {

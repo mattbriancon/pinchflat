@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
-	"github.com/mattbriancon/pinchflat/internal/store"
 	"github.com/mattbriancon/pinchflat/internal/web"
 )
 
@@ -83,19 +82,19 @@ func (c *Client) Get(path string, params ...map[string]string) *Response {
 
 // Post is post(conn, path, as: attrs), e.g. Post("/sources", "source", attrs).
 // Pass as == "" for flat params.
-func (c *Client) Post(path, as string, attrs store.Attrs) *Response {
+func (c *Client) Post(path, as string, attrs map[string]any) *Response {
 	return c.send(http.MethodPost, path, as, attrs)
 }
 
 // Patch is patch(conn, path, as: attrs), sent like a browser form (_method).
-func (c *Client) Patch(path, as string, attrs store.Attrs) *Response {
+func (c *Client) Patch(path, as string, attrs map[string]any) *Response {
 	return c.send(http.MethodPatch, path, as, attrs)
 }
 
 // Delete is delete(conn, path).
 func (c *Client) Delete(path string) *Response { return c.send(http.MethodDelete, path, "", nil) }
 
-func (c *Client) send(method, path, as string, attrs store.Attrs) *Response {
+func (c *Client) send(method, path, as string, attrs map[string]any) *Response {
 	c.t.Helper()
 	form := url.Values{}
 	if method != http.MethodPost {
@@ -115,8 +114,6 @@ func encode(form url.Values, prefix string, v any) {
 		if prefix != "" {
 			form.Set(prefix, "")
 		}
-	case store.Attrs:
-		encodeMap(form, prefix, map[string]any(x))
 	case map[string]any:
 		encodeMap(form, prefix, x)
 	case []string:

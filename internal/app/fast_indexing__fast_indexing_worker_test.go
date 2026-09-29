@@ -15,7 +15,7 @@ func TestFastIndexingWorker_KickoffWithTask(t *testing.T) {
 	t.Run("starts worker", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(true)})
 
 		workers := ta.Oban.Enqueued(t, obanlite.Match{Worker: app.FastIndexingWorkerName})
 		if len(workers) != 0 {
@@ -36,7 +36,7 @@ func TestFastIndexingWorker_KickoffWithTask(t *testing.T) {
 	t.Run("creates task with source", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(true)})
 
 		task, err := ta.App.FastIndexingWorkerKickoffWithTask(ta.Ctx, source, 0)
 		if err != nil {
@@ -54,7 +54,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 	t.Run("calls RSS when enabled", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(true)})
 
 		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			return "", nil
@@ -73,7 +73,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 	t.Run("reschedules when enabled", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(true)})
 
 		ta.HTTPMock.Get.Expect(func(url string, headers http.Header) (string, error) {
 			return "", nil
@@ -97,7 +97,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 	t.Run("prevents duplicate reschedules", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": true})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(true)})
 
 		ta.HTTPMock.Get.Stub(func(url string, headers http.Header) (string, error) {
 			return "", nil
@@ -129,7 +129,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 	t.Run("skips RSS when disabled", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": false})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(false)})
 
 		ta.HTTPMock.Get.ExpectN(0, func(url string, headers http.Header) (string, error) {
 			return "", nil
@@ -148,7 +148,7 @@ func TestFastIndexingWorker_Perform(t *testing.T) {
 	t.Run("does not reschedule when disabled", func(t *testing.T) {
 		t.Parallel()
 		ta := apptest.NewApp(t)
-		source := apptest.SourceFixture(t, ta, store.Attrs{"fast_index": false})
+		source := apptest.SourceFixture(t, ta, store.SourceParams{FastIndex: store.Ptr(false)})
 
 		err := ta.Oban.PerformJob(ta.Ctx, app.FastIndexingWorkerName, map[string]any{"id": source.ID})
 		if err != nil {

@@ -79,7 +79,7 @@ func TestMediaItemController_Update(t *testing.T) {
 			c := webtest.New(t)
 			mediaItem := createMediaItem(t, c)
 
-			updateAttrs := store.Attrs{"title": "New Title"}
+			updateAttrs := map[string]any{"title": "New Title"}
 			res := c.Patch(fmt.Sprintf("/sources/%d/media/%d", mediaItem.SourceID, mediaItem.ID), "media_item", updateAttrs)
 
 			expected := fmt.Sprintf("/sources/%d/media/%d", mediaItem.SourceID, mediaItem.ID)
@@ -99,7 +99,7 @@ func TestMediaItemController_Update(t *testing.T) {
 			c := webtest.New(t)
 			mediaItem := createMediaItem(t, c)
 
-			res := c.Patch(fmt.Sprintf("/sources/%d/media/%d", mediaItem.SourceID, mediaItem.ID), "media_item", store.Attrs{"title": nil})
+			res := c.Patch(fmt.Sprintf("/sources/%d/media/%d", mediaItem.SourceID, mediaItem.ID), "media_item", map[string]any{"title": nil})
 			html := res.HTML(t, 200)
 
 			if !strings.Contains(html, "Editing") {
@@ -195,7 +195,7 @@ func TestMediaItemController_ForceDownload(t *testing.T) {
 				t.Errorf("expected no jobs enqueued initially")
 			}
 
-			c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", store.Attrs{})
+			c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", map[string]any{})
 
 			jobs := c.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 			if len(jobs) != 1 {
@@ -207,9 +207,9 @@ func TestMediaItemController_ForceDownload(t *testing.T) {
 			c := webtest.New(t)
 			mediaItem := createMediaItem(t, c)
 
-			c.App.MediaDownloadWorkerKickoffWithTask(c.Ctx, mediaItem, store.Attrs{"force": true}, nil)
+			c.App.MediaDownloadWorkerKickoffWithTask(c.Ctx, mediaItem, map[string]any{"force": true}, nil)
 
-			c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", store.Attrs{})
+			c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", map[string]any{})
 
 			jobs := c.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName})
 			if len(jobs) != 1 {
@@ -221,7 +221,7 @@ func TestMediaItemController_ForceDownload(t *testing.T) {
 			c := webtest.New(t)
 			mediaItem := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 
-			c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", store.Attrs{})
+			c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", map[string]any{})
 
 			jobs := c.Oban.Enqueued(t, obanlite.Match{Worker: app.MediaDownloadWorkerName, Args: map[string]any{"id": mediaItem.ID, "force": true}})
 			if len(jobs) != 1 {
@@ -233,7 +233,7 @@ func TestMediaItemController_ForceDownload(t *testing.T) {
 			c := webtest.New(t)
 			mediaItem := createMediaItem(t, c)
 
-			res := c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", store.Attrs{})
+			res := c.Post(fmt.Sprintf("/sources/%d/media/%d/force_download", mediaItem.SourceID, mediaItem.ID), "", map[string]any{})
 
 			expected := fmt.Sprintf("/sources/%d/media/%d", mediaItem.SourceID, mediaItem.ID)
 			if redirected := res.RedirectedTo(t); redirected != expected {

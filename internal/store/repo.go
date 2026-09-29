@@ -158,10 +158,13 @@ func Update[T Schema](ctx context.Context, q db.Querier, rec *T, cols ...string)
 	if len(cols) == 0 {
 		return nil
 	}
-	setTimestamp(rec, "updated_at", db.Now(), false)
 	set := map[string]any{}
-	for _, c := range append(cols, "updated_at") {
+	for _, c := range cols {
 		set[c] = columnValue(rec, c)
+	}
+	if hasColumn(rec, "updated_at") {
+		setTimestamp(rec, "updated_at", db.Now(), false)
+		set["updated_at"] = columnValue(rec, "updated_at")
 	}
 	if _, err := Exec(ctx, q, SQ.Update((*rec).TableName()).SetMap(set).Where(sq.Eq{"id": idOf(rec)})); err != nil {
 		return uniqueViolation((*rec).TableName(), err)
@@ -265,6 +268,15 @@ func columnValues(rec any, skipZeroID bool) ([]string, []any) {
 		vals = append(vals, fieldValue(rv.FieldByIndex(c.index)))
 	}
 	return cols, vals
+}
+
+func hasColumn(rec any, name string) bool {
+	for _, c := range columnsOf(reflect.TypeOf(rec).Elem()) {
+		if c.name == name {
+			return true
+		}
+	}
+	return false
 }
 
 // columnValue is rec's value for one column.

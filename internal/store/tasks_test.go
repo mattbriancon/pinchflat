@@ -12,7 +12,7 @@ import (
 func TestTasks_Schema(t *testing.T) {
 	t.Run("deletes a task when the job gets deleted", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		task := storetest.TaskFixture(t, ts, store.Attrs{})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{})
 
 		// Delete the job (which should cascade to the task)
 		_, err := store.Exec(ts.Ctx, ts.Q(ts.Ctx), store.SQ.Delete("oban_jobs").Where(sq.Eq{"id": task.JobID}))
@@ -29,7 +29,7 @@ func TestTasks_Schema(t *testing.T) {
 
 	t.Run("does not delete the other record when a job gets deleted", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		task := storetest.TaskFixture(t, ts, store.Attrs{})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{})
 
 		// Get source before deleting job
 		if task.SourceID == nil {
@@ -60,7 +60,7 @@ func TestTasks_Schema(t *testing.T) {
 func TestTasks_ListTasks(t *testing.T) {
 	t.Run("returns all tasks", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		task := storetest.TaskFixture(t, ts, store.Attrs{})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{})
 
 		tasks, err := ts.ListTasks(ts.Ctx)
 		if err != nil {
@@ -78,8 +78,8 @@ func TestTasks_ListTasks(t *testing.T) {
 func TestTasks_ListTasksFor(t *testing.T) {
 	t.Run("lets you specify which record type/ID to join on", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		source := storetest.SourceFixture(t, ts, store.Attrs{})
-		task := storetest.TaskFixture(t, ts, store.Attrs{"source_id": source.ID})
+		source := storetest.SourceFixture(t, ts, store.SourceParams{})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{SourceID: store.Ptr(source.ID)})
 
 		tasks, err := ts.ListTasksFor(ts.Ctx, source, nil, []string{"available"})
 		if err != nil {
@@ -95,8 +95,8 @@ func TestTasks_ListTasksFor(t *testing.T) {
 
 	t.Run("lets you specify which job states to include", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		source := storetest.SourceFixture(t, ts, store.Attrs{})
-		_ = storetest.TaskFixture(t, ts, store.Attrs{"source_id": source.ID})
+		source := storetest.SourceFixture(t, ts, store.SourceParams{})
+		_ = storetest.TaskFixture(t, ts, storetest.TaskParams{SourceID: store.Ptr(source.ID)})
 
 		// Should find task with available state
 		tasks, err := ts.ListTasksFor(ts.Ctx, source, nil, []string{"available"})
@@ -119,8 +119,8 @@ func TestTasks_ListTasksFor(t *testing.T) {
 
 	t.Run("lets you specify which worker to include", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		source := storetest.SourceFixture(t, ts, store.Attrs{})
-		_ = storetest.TaskFixture(t, ts, store.Attrs{"source_id": source.ID})
+		source := storetest.SourceFixture(t, ts, store.SourceParams{})
+		_ = storetest.TaskFixture(t, ts, storetest.TaskParams{SourceID: store.Ptr(source.ID)})
 
 		// Default pending states: available, scheduled, retryable
 		pendingStates := []string{"available", "scheduled", "retryable"}
@@ -146,8 +146,8 @@ func TestTasks_ListTasksFor(t *testing.T) {
 
 	t.Run("includes all workers if no worker is specified", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		source := storetest.SourceFixture(t, ts, store.Attrs{})
-		task := storetest.TaskFixture(t, ts, store.Attrs{"source_id": source.ID})
+		source := storetest.SourceFixture(t, ts, store.SourceParams{})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{SourceID: store.Ptr(source.ID)})
 
 		// Default pending states: available, scheduled, retryable
 		pendingStates := []string{"available", "scheduled", "retryable"}
@@ -169,7 +169,7 @@ func TestTasks_ListTasksFor(t *testing.T) {
 func TestTasks_GetTaskBang(t *testing.T) {
 	t.Run("returns the task with given id", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		task := storetest.TaskFixture(t, ts, store.Attrs{})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{})
 
 		retrievedTask, err := ts.GetTaskBang(ts.Ctx, task.ID)
 		if err != nil {
@@ -201,7 +201,7 @@ func TestTasks_CreateTask(t *testing.T) {
 	t.Run("creation with valid source_id creates a task", func(t *testing.T) {
 		ts := storetest.NewStore(t)
 		job := storetest.JobFixture(t, ts)
-		source := storetest.SourceFixture(t, ts, store.Attrs{})
+		source := storetest.SourceFixture(t, ts, store.SourceParams{})
 
 		task, err := ts.CreateTask(ts.Ctx, job.ID, &source.ID, nil)
 		if err != nil {
@@ -218,7 +218,7 @@ func TestTasks_CreateTask(t *testing.T) {
 	t.Run("accepts a job and source", func(t *testing.T) {
 		ts := storetest.NewStore(t)
 		job := storetest.JobFixture(t, ts)
-		source := storetest.SourceFixture(t, ts, store.Attrs{})
+		source := storetest.SourceFixture(t, ts, store.SourceParams{})
 
 		task, err := ts.CreateTaskWithRecord(ts.Ctx, job, source)
 		if err != nil {
@@ -275,7 +275,7 @@ func TestTasks_CreateJobWithTask(t *testing.T) {
 	t.Run("creates a task record if successful", func(t *testing.T) {
 		ts := storetest.NewStore(t)
 		ts.Oban.Register(storetest.TestJobWorkerName, obanlite.WorkerOpts{Queue: "default"}, storetest.TestJobWorker{})
-		source := storetest.SourceFixture(t, ts, store.Attrs{})
+		source := storetest.SourceFixture(t, ts, store.SourceParams{})
 
 		spec := obanlite.NewJob(storetest.TestJobWorkerName, map[string]any{})
 		task, err := ts.CreateJobWithTask(ts.Ctx, spec, source)
@@ -290,7 +290,7 @@ func TestTasks_CreateJobWithTask(t *testing.T) {
 	t.Run("returns an error if the job already exists", func(t *testing.T) {
 		ts := storetest.NewStore(t)
 		ts.Oban.Register(storetest.TestJobWorkerName, obanlite.WorkerOpts{Queue: "default"}, storetest.TestJobWorker{})
-		source := storetest.SourceFixture(t, ts, store.Attrs{})
+		source := storetest.SourceFixture(t, ts, store.SourceParams{})
 
 		spec := obanlite.NewJob(storetest.TestJobWorkerName, map[string]any{"foo": "bar"})
 		spec.Unique = &obanlite.UniqueOpts{Period: obanlite.Infinity}
@@ -314,7 +314,7 @@ func TestTasks_CreateJobWithTask(t *testing.T) {
 
 	t.Run("returns an error if the job fails to enqueue", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		source := storetest.SourceFixture(t, ts, store.Attrs{})
+		source := storetest.SourceFixture(t, ts, store.SourceParams{})
 
 		// Pass an invalid JobSpec (empty worker should fail)
 		spec := obanlite.JobSpec{Worker: ""}
@@ -328,7 +328,7 @@ func TestTasks_CreateJobWithTask(t *testing.T) {
 func TestTasks_DeleteTask(t *testing.T) {
 	t.Run("deletion deletes the task", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		task := storetest.TaskFixture(t, ts, store.Attrs{})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{})
 
 		_, err := ts.DeleteTask(ts.Ctx, task)
 		if err != nil {
@@ -344,7 +344,7 @@ func TestTasks_DeleteTask(t *testing.T) {
 
 	t.Run("deletion also cancels the attached job", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		task := storetest.TaskFixture(t, ts, store.Attrs{})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{})
 		jobID := task.JobID
 
 		_, err := ts.DeleteTask(ts.Ctx, task)
@@ -367,8 +367,8 @@ func TestTasks_DeleteTask(t *testing.T) {
 func TestTasks_DeleteTasksFor(t *testing.T) {
 	t.Run("deletes tasks attached to a source", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		source := storetest.SourceFixture(t, ts, store.Attrs{})
-		task := storetest.TaskFixture(t, ts, store.Attrs{"source_id": source.ID})
+		source := storetest.SourceFixture(t, ts, store.SourceParams{})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{SourceID: store.Ptr(source.ID)})
 
 		pendingStates := []string{"available", "scheduled", "retryable"}
 		err := ts.DeleteTasksFor(ts.Ctx, source, nil, pendingStates)
@@ -386,7 +386,7 @@ func TestTasks_DeleteTasksFor(t *testing.T) {
 	t.Run("deletes the tasks attached to a media_item", func(t *testing.T) {
 		ts := storetest.NewStore(t)
 		mediaItem := storetest.MediaItemFixture(t, ts, store.MediaItemParams{})
-		task := storetest.TaskFixture(t, ts, store.Attrs{"media_item_id": mediaItem.ID})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{MediaItemID: store.Ptr(mediaItem.ID)})
 
 		pendingStates := []string{"available", "scheduled", "retryable"}
 		err := ts.DeleteTasksFor(ts.Ctx, mediaItem, nil, pendingStates)
@@ -404,7 +404,7 @@ func TestTasks_DeleteTasksFor(t *testing.T) {
 	t.Run("deletion can specify which worker to include", func(t *testing.T) {
 		ts := storetest.NewStore(t)
 		mediaItem := storetest.MediaItemFixture(t, ts, store.MediaItemParams{})
-		task := storetest.TaskFixture(t, ts, store.Attrs{"media_item_id": mediaItem.ID})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{MediaItemID: store.Ptr(mediaItem.ID)})
 
 		pendingStates := []string{"available", "scheduled", "retryable"}
 
@@ -431,8 +431,8 @@ func TestTasks_DeleteTasksFor(t *testing.T) {
 
 	t.Run("deletion can specify which states to include", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		source := storetest.SourceFixture(t, ts, store.Attrs{})
-		task := storetest.TaskFixture(t, ts, store.Attrs{"source_id": source.ID})
+		source := storetest.SourceFixture(t, ts, store.SourceParams{})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{SourceID: store.Ptr(source.ID)})
 
 		// Should not delete with executing state filter
 		err := ts.DeleteTasksFor(ts.Ctx, source, nil, []string{"executing"})
@@ -457,23 +457,23 @@ func TestTasks_DeleteTasksFor(t *testing.T) {
 
 	t.Run("deletion does not impact unintended records", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		source := storetest.SourceFixture(t, ts, store.Attrs{})
-		task := storetest.TaskFixture(t, ts, store.Attrs{"source_id": source.ID})
+		source := storetest.SourceFixture(t, ts, store.SourceParams{})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{SourceID: store.Ptr(source.ID)})
 
 		pendingStates := []string{"available", "scheduled", "retryable"}
 
 		// Delete tasks for different sources
-		err := ts.DeleteTasksFor(ts.Ctx, storetest.SourceFixture(t, ts, store.Attrs{}), nil, pendingStates)
+		err := ts.DeleteTasksFor(ts.Ctx, storetest.SourceFixture(t, ts, store.SourceParams{}), nil, pendingStates)
 		if err != nil {
 			t.Fatalf("first TasksDeleteTasksFor failed: %v", err)
 		}
 
-		err = ts.DeleteTasksFor(ts.Ctx, storetest.SourceFixture(t, ts, store.Attrs{}), store.Ptr("FooBarWorker"), pendingStates)
+		err = ts.DeleteTasksFor(ts.Ctx, storetest.SourceFixture(t, ts, store.SourceParams{}), store.Ptr("FooBarWorker"), pendingStates)
 		if err != nil {
 			t.Fatalf("second TasksDeleteTasksFor failed: %v", err)
 		}
 
-		err = ts.DeleteTasksFor(ts.Ctx, storetest.SourceFixture(t, ts, store.Attrs{}), store.Ptr("TestJobWorker"), pendingStates)
+		err = ts.DeleteTasksFor(ts.Ctx, storetest.SourceFixture(t, ts, store.SourceParams{}), store.Ptr("TestJobWorker"), pendingStates)
 		if err != nil {
 			t.Fatalf("third TasksDeleteTasksFor failed: %v", err)
 		}
@@ -489,8 +489,8 @@ func TestTasks_DeleteTasksFor(t *testing.T) {
 func TestTasks_DeletePendingTasksFor(t *testing.T) {
 	t.Run("deletes pending tasks attached to a source", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		source := storetest.SourceFixture(t, ts, store.Attrs{})
-		task := storetest.TaskFixture(t, ts, store.Attrs{"source_id": source.ID})
+		source := storetest.SourceFixture(t, ts, store.SourceParams{})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{SourceID: store.Ptr(source.ID)})
 
 		err := ts.DeletePendingTasksFor(ts.Ctx, source, nil, false)
 		if err != nil {
@@ -506,8 +506,8 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 
 	t.Run("does not delete non-pending tasks", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		source := storetest.SourceFixture(t, ts, store.Attrs{})
-		task := storetest.TaskFixture(t, ts, store.Attrs{"source_id": source.ID})
+		source := storetest.SourceFixture(t, ts, store.SourceParams{})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{SourceID: store.Ptr(source.ID)})
 
 		// Cancel the job to make it non-pending
 		ts.Oban.CancelJob(ts.Ctx, task.JobID)
@@ -527,8 +527,8 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 	t.Run("works on media_items", func(t *testing.T) {
 		ts := storetest.NewStore(t)
 		mediaItem := storetest.MediaItemFixture(t, ts, store.MediaItemParams{})
-		pendingTask := storetest.TaskFixture(t, ts, store.Attrs{"media_item_id": mediaItem.ID})
-		cancelledTask := storetest.TaskFixture(t, ts, store.Attrs{"media_item_id": mediaItem.ID})
+		pendingTask := storetest.TaskFixture(t, ts, storetest.TaskParams{MediaItemID: store.Ptr(mediaItem.ID)})
+		cancelledTask := storetest.TaskFixture(t, ts, storetest.TaskParams{MediaItemID: store.Ptr(mediaItem.ID)})
 
 		// Cancel one task
 		ts.Oban.CancelJob(ts.Ctx, cancelledTask.JobID)
@@ -554,7 +554,7 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 	t.Run("deletion can specify which worker to include", func(t *testing.T) {
 		ts := storetest.NewStore(t)
 		mediaItem := storetest.MediaItemFixture(t, ts, store.MediaItemParams{})
-		task := storetest.TaskFixture(t, ts, store.Attrs{"media_item_id": mediaItem.ID})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{MediaItemID: store.Ptr(mediaItem.ID)})
 
 		// Should not delete with FooBarWorker filter
 		err := ts.DeletePendingTasksFor(ts.Ctx, mediaItem, store.Ptr("FooBarWorker"), false)
@@ -579,8 +579,8 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 
 	t.Run("deletion can optionally include executing tasks", func(t *testing.T) {
 		ts := storetest.NewStore(t)
-		source := storetest.SourceFixture(t, ts, store.Attrs{})
-		task := storetest.TaskFixture(t, ts, store.Attrs{"source_id": source.ID})
+		source := storetest.SourceFixture(t, ts, store.SourceParams{})
+		task := storetest.TaskFixture(t, ts, storetest.TaskParams{SourceID: store.Ptr(source.ID)})
 
 		// Set the job to executing state
 		_, err := store.Exec(ts.Ctx, ts.Q(ts.Ctx), store.SQ.Update("oban_jobs").Set("state", "executing").Where(sq.Eq{"id": task.JobID}))
@@ -606,18 +606,6 @@ func TestTasks_DeletePendingTasksFor(t *testing.T) {
 		_, err = ts.GetTaskBang(ts.Ctx, task.ID)
 		if err == nil {
 			t.Errorf("expected task to be deleted when include_executing=true")
-		}
-	})
-}
-
-func TestTasks_ChangeTask(t *testing.T) {
-	t.Run("returns a task changeset", func(t *testing.T) {
-		ts := storetest.NewStore(t)
-		task := storetest.TaskFixture(t, ts, store.Attrs{})
-
-		changeset := ts.ChangeTask(ts.Ctx, task, store.Attrs{})
-		if changeset == nil {
-			t.Fatalf("expected store.Changeset, got nil")
 		}
 	})
 }
