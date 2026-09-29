@@ -56,9 +56,17 @@ func (s *Store) GetTaskBang(ctx context.Context, id int64) (*Task, error) {
 	return task, nil
 }
 
-// CreateTask creates a task from attrs.
-func (s *Store) CreateTask(ctx context.Context, attrs Attrs) (*Task, error) {
+// CreateTask creates a task with typed parameters.
+func (s *Store) CreateTask(ctx context.Context, jobID int64, sourceID, mediaItemID *int64) (*Task, error) {
 	task := NewTask()
+	attrs := Attrs{"job_id": jobID}
+	if sourceID != nil {
+		attrs["source_id"] = *sourceID
+	}
+	if mediaItemID != nil {
+		attrs["media_item_id"] = *mediaItemID
+	}
+
 	cs := TaskChangeset(task, attrs)
 	t, err := Insert[Task](ctx, s.Q(ctx), cs)
 	if err != nil {
@@ -69,23 +77,18 @@ func (s *Store) CreateTask(ctx context.Context, attrs Attrs) (*Task, error) {
 
 // CreateTaskWithRecord creates a task attached to job and record.
 func (s *Store) CreateTaskWithRecord(ctx context.Context, job *obanlite.Job, attachedRecord any) (*Task, error) {
-	var attachedRecordAttr Attrs
+	var sourceID, mediaItemID *int64
 
 	switch r := attachedRecord.(type) {
 	case *Source:
-		attachedRecordAttr = Attrs{"source_id": r.ID}
+		sourceID = &r.ID
 	case *MediaItem:
-		attachedRecordAttr = Attrs{"media_item_id": r.ID}
+		mediaItemID = &r.ID
 	default:
 		return nil, fmt.Errorf("unsupported attached record type")
 	}
 
-	attrs := Attrs{"job_id": job.ID}
-	for k, v := range attachedRecordAttr {
-		attrs[k] = v
-	}
-
-	return s.CreateTask(ctx, attrs)
+	return s.CreateTask(ctx, job.ID, sourceID, mediaItemID)
 }
 
 // CreateJobWithTask inserts jobSpec's job (reporting a duplicate_job error
