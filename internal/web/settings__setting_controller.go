@@ -17,8 +17,18 @@ func (s *Server) SettingControllerShow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	changeset := s.App.ChangeSetting(ctx, setting, store.Attrs{})
-	s.Render(w, r, http.StatusOK, LayoutApp, SettingHTMLShow(changeset))
+	values := map[string]any{
+		"onboarding":                       setting.Onboarding,
+		"yt_dlp_version":                   setting.YtDlpVersion,
+		"video_codec_preference":           setting.VideoCodecPreference,
+		"audio_codec_preference":           setting.AudioCodecPreference,
+		"youtube_api_key":                  setting.YoutubeAPIKey,
+		"extractor_sleep_interval_seconds": setting.ExtractorSleepIntervalSeconds,
+		"download_throughput_limit":        setting.DownloadThroughputLimit,
+		"restrict_filenames":               setting.RestrictFilenames,
+	}
+	form := NewForm("setting", values, nil)
+	s.Render(w, r, http.StatusOK, LayoutApp, SettingHTMLShowWithForm(form))
 }
 
 // SettingControllerUpdate updates the app settings.
@@ -50,7 +60,7 @@ func (s *Server) SettingControllerUpdate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	updated, errs, err := s.App.UpdateSettingWithParams(ctx, setting, p)
+	updated, errs, err := s.App.UpdateSetting(ctx, setting, p)
 	if err != nil {
 		s.Fail(w, r, err)
 		return
