@@ -21,7 +21,7 @@ func TestNoAlpine(t *testing.T) {
 		t.Fatalf("SetSetting: %v", err)
 	}
 	profile := apptest.MediaProfileFixture(t, c.TestApp, store.MediaProfileParams{})
-	source := apptest.SourceFixture(t, c.TestApp, store.Attrs{})
+	source := apptest.SourceFixture(t, c.TestApp, store.SourceParams{})
 	item := apptest.MediaItemFixture(t, c.TestApp, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
 	sid := strconv.FormatInt(source.ID, 10)
 
