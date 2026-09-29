@@ -3,928 +3,229 @@ package app_test
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mattbriancon/pinchflat/internal/app"
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
 	"github.com/mattbriancon/pinchflat/internal/fsutil"
 	"github.com/mattbriancon/pinchflat/internal/store"
+	"github.com/mattbriancon/pinchflat/internal/ytdlp"
 )
 
+// newBuildItem creates a profile, source and media item (with everything
+// preloaded) for building download options.
+func newBuildItem(t *testing.T, ta *apptest.TestApp, profile store.MediaProfileParams, src store.SourceParams) *store.MediaItem {
+	t.Helper()
+	src.MediaProfileID = store.Ptr(apptest.MediaProfileFixture(t, ta, profile).ID)
+	source := apptest.SourceFixture(t, ta, src)
+	mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
+	mediaItem, err := ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
+	must(t, err)
+	return mediaItem
+}
+
+func buildOpts(t *testing.T, ta *apptest.TestApp, mediaItem *store.MediaItem, o app.DownloadOverrides) ytdlp.Args {
+	t.Helper()
+	res, err := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, o)
+	must(t, err)
+	return res
+}
+
+// hasOpt reports whether res holds the option described by spec: "key" is a
+// flag option, "key=value" a valued one and "key*" any option with that key.
+func hasOpt(res ytdlp.Args, spec string) bool {
+	if k, v, ok := strings.Cut(spec, "="); ok {
+		return findOption(res, k, v)
+	}
+	if k, ok := strings.CutSuffix(spec, "*"); ok {
+		return hasKey(res, k)
+	}
+	return hasFlag(res, spec)
+}
+
+func wantOpts(t *testing.T, res ytdlp.Args, present, absent []string) {
+	t.Helper()
+	for _, s := range present {
+		if !hasOpt(res, s) {
+			t.Errorf("expected option %q in %v", s, res)
+		}
+	}
+	for _, s := range absent {
+		if hasOpt(res, s) {
+			t.Errorf("option %q should not be in %v", s, res)
+		}
+	}
+}
+
 func TestDownloadOptionBuilder_Build_WhenTestingOutputOptions(t *testing.T) {
-	t.Run("it generates an expanded output path based on the given template", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
+	title := store.Ptr("{{ title }}.%(ext)s")
+	for _, c := range []struct {
+		name         string
+		profile      store.MediaProfileParams
+		src          store.SourceParams
+		prefix, file string
+	}{
+		{"it generates an expanded output path based on the given template", store.MediaProfileParams{OutputPathTemplate: title}, store.SourceParams{}, "", "%(title)S.%(ext)s"},
+		{"it respects custom output path options", store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ source_custom_name }}.%(ext)s")}, store.SourceParams{CustomName: store.Ptr("my custom source")}, "", "my custom source.%(ext)s"},
+		{"respects custom media_item-related output path options", store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ media_upload_date_index }}.%(ext)s")}, store.SourceParams{}, "", "99.%(ext)s"},
+		{"uses source's output override if present", store.MediaProfileParams{OutputPathTemplate: title}, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, "", "override.%(ext)s"},
+		{"appends -thumb to the thumbnail name when download_thumbnail is true", store.MediaProfileParams{DownloadThumbnail: store.Ptr(true), OutputPathTemplate: title}, store.SourceParams{}, "thumbnail:", "%(title)S-thumb.%(ext)s"},
+		{"appends -thumb to source's output path override, if present", store.MediaProfileParams{DownloadThumbnail: store.Ptr(true)}, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, "thumbnail:", "override-thumb.%(ext)s"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := apptest.NewApp(t)
+			mediaItem := newBuildItem(t, ta, c.profile, c.src)
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
+			res := buildOpts(t, ta, mediaItem, app.DownloadOverrides{})
 
-		expected := filepath.Join(ta.Config.MediaDirectory, "%(title)S.%(ext)s")
-		found := false
-		for _, kv := range res {
-			if kv.Key == "output" && kv.Value == expected {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected output option in result, got %v", res)
-		}
-	})
-
-	t.Run("it respects custom output path options", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ source_custom_name }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		expected := filepath.Join(ta.Config.MediaDirectory, mediaItem.Source.CustomName+".%(ext)s")
-		found := false
-		for _, kv := range res {
-			if kv.Key == "output" && kv.Value == expected {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected output option with custom name in result, got %v", res)
-		}
-	})
-
-	t.Run("respects custom media_item-related output path options", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ media_upload_date_index }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		expected := filepath.Join(ta.Config.MediaDirectory, "99.%(ext)s")
-		found := false
-		for _, kv := range res {
-			if kv.Key == "output" && kv.Value == expected {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected output option with upload date index in result, got %v", res)
-		}
-	})
-
-	t.Run("uses source's output override if present", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-		ta.App.SourcesUpdateSource(ta.Ctx, mediaItem.Source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, true)
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		expected := filepath.Join(ta.Config.MediaDirectory, "override.%(ext)s")
-		found := false
-		for _, kv := range res {
-			if kv.Key == "output" && kv.Value == expected {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected output option with override in result, got %v", res)
-		}
-	})
+			wantOpts(t, res, []string{"output=" + c.prefix + filepath.Join(ta.Config.MediaDirectory, c.file)}, nil)
+		})
+	}
 }
 
 func TestDownloadOptionBuilder_Build_WhenTestingDefaultOptions(t *testing.T) {
+	profile := store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")}
+
 	t.Run("it includes default options", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
+		res := buildOpts(t, ta, newBuildItem(t, ta, profile, store.SourceParams{}), app.DownloadOverrides{})
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		hasNoProgress := false
-		hasForceOverwrites := false
-		hasParseMetadata := false
-		for _, kv := range res {
-			if kv.Key == "no_progress" && kv.Flag {
-				hasNoProgress = true
-			}
-			if kv.Key == "force_overwrites" && kv.Flag {
-				hasForceOverwrites = true
-			}
-			if kv.Key == "parse_metadata" && kv.Value == "%(upload_date>%Y-%m-%d)s:(?P<meta_date>.+)" {
-				hasParseMetadata = true
-			}
-		}
-		if !hasNoProgress || !hasForceOverwrites || !hasParseMetadata {
-			t.Errorf("missing default options in result")
-		}
+		wantOpts(t, res, []string{"no_progress", "force_overwrites", "parse_metadata=%(upload_date>%Y-%m-%d)s:(?P<meta_date>.+)"}, nil)
 	})
 
 	t.Run("includes override options if specified", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
+		res := buildOpts(t, ta, newBuildItem(t, ta, profile, store.SourceParams{}), app.DownloadOverrides{OverwriteBehaviour: "no_force_overwrites"})
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{OverwriteBehaviour: "no_force_overwrites"})
-
-		hasForceOverwrites := false
-		hasNoForceOverwrites := false
-		for _, kv := range res {
-			if kv.Key == "force_overwrites" && kv.Flag {
-				hasForceOverwrites = true
-			}
-			if kv.Key == "no_force_overwrites" && kv.Flag {
-				hasNoForceOverwrites = true
-			}
-		}
-		if hasForceOverwrites || !hasNoForceOverwrites {
-			t.Errorf("override options not respected")
-		}
+		wantOpts(t, res, []string{"no_force_overwrites"}, []string{"force_overwrites"})
 	})
 }
 
-func TestDownloadOptionBuilder_Build_WhenTestingSubtitleOptions(t *testing.T) {
-	t.Run("includes :write_subs option when specified", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSubs: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
+// TestDownloadOptionBuilder_Build_ProfileOptions covers how media profile
+// settings (subtitles, thumbnails, metadata, quality, sponsorblock) map to
+// yt-dlp options.
+func TestDownloadOptionBuilder_Build_ProfileOptions(t *testing.T) {
+	yes, no := store.Ptr(true), store.Ptr(false)
+	sponsor := func(b store.MediaProfileSponsorblockBehaviour, cats ...string) store.MediaProfileParams {
+		return store.MediaProfileParams{SponsorblockBehaviour: store.Ptr(b), SponsorblockCategories: store.Ptr(cats)}
+	}
+	audio := store.Ptr(store.MediaProfilePreferredResolutionAudio)
+	const videoQuality = "format_sort=res:1080,+codec:avc:m4a"
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
+	for _, c := range []struct {
+		name            string
+		profile         store.MediaProfileParams
+		present, absent []string
+	}{
+		// subtitles
+		{"includes :write_subs option when specified", store.MediaProfileParams{DownloadSubs: yes}, []string{"write_subs"}, nil},
+		{"forces SRT format when download_subs is true", store.MediaProfileParams{DownloadSubs: yes}, []string{"convert_subs=srt"}, nil},
+		{"includes :write_auto_subs option when download_subs is set", store.MediaProfileParams{DownloadSubs: yes, DownloadAutoSubs: yes}, []string{"write_auto_subs"}, nil},
+		{"includes :write_auto_subs option when embed_subs is set", store.MediaProfileParams{EmbedSubs: yes, DownloadAutoSubs: yes}, []string{"write_auto_subs"}, nil},
+		{"doesn't include :write_auto_subs option when download_subs and embed_subs is false", store.MediaProfileParams{DownloadSubs: no, EmbedSubs: no, DownloadAutoSubs: yes}, nil, []string{"write_auto_subs"}},
+		{"includes :embed_subs option when specified", store.MediaProfileParams{EmbedSubs: yes}, []string{"embed_subs"}, nil},
+		{"doesn't include :embed_subs option when preferred_resolution is :audio", store.MediaProfileParams{EmbedSubs: yes, PreferredResolution: audio}, nil, []string{"embed_subs"}},
+		{"includes sub_langs option when download_subs is true", store.MediaProfileParams{DownloadSubs: yes, SubLangs: store.Ptr("en")}, []string{"sub_langs=en"}, nil},
+		{"includes sub_langs option when embed_subs is true", store.MediaProfileParams{EmbedSubs: yes, SubLangs: store.Ptr("en")}, []string{"sub_langs=en"}, nil},
+		{"doesn't include sub_langs option when neither downloading nor embedding", store.MediaProfileParams{EmbedSubs: no, DownloadSubs: no, SubLangs: store.Ptr("en")}, nil, []string{"sub_langs=en"}},
+		// thumbnails
+		{"includes :write_thumbnail option when specified", store.MediaProfileParams{DownloadThumbnail: yes}, []string{"write_thumbnail"}, nil},
+		{"converts thumbnail to jpg when download_thumbnail is true", store.MediaProfileParams{DownloadThumbnail: yes}, []string{"convert_thumbnail=jpg"}, nil},
+		{"includes :embed_thumbnail option when specified", store.MediaProfileParams{EmbedThumbnail: yes}, []string{"embed_thumbnail"}, nil},
+		{"convertes thumbnail to jpg when embed_thumbnail is true", store.MediaProfileParams{EmbedThumbnail: yes}, []string{"convert_thumbnail=jpg"}, nil},
+		{"doesn't include thumbnail options when not specified", store.MediaProfileParams{EmbedThumbnail: no, DownloadThumbnail: no}, nil, []string{"write_thumbnail", "embed_thumbnail"}},
+		// metadata
+		{"includes :write_info_json option when specified", store.MediaProfileParams{DownloadMetadata: yes}, []string{"write_info_json", "clean_info_json"}, nil},
+		{"includes :embed_metadata option when specified", store.MediaProfileParams{EmbedMetadata: yes}, []string{"embed_metadata"}, nil},
+		{"doesn't include metadata options when not specified", store.MediaProfileParams{EmbedMetadata: no, DownloadMetadata: no}, nil, []string{"write_info_json", "clean_info_json", "embed_metadata"}},
+		// quality and format
+		{"includes video options for video profiles", store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")}, []string{videoQuality, "remux_video=mp4"}, nil},
+		{"includes quality options for audio only", store.MediaProfileParams{PreferredResolution: audio}, []string{"extract_audio", "format_sort=+acodec:m4a"}, []string{"remux_video*"}},
+		// sponsorblock
+		{"includes :sponsorblock_remove option when specified", sponsor(store.MediaProfileSponsorblockBehaviourRemove, "sponsor", "intro"), []string{"sponsorblock_remove=sponsor,intro"}, nil},
+		{"includes :sponsorblock_mark option when specified", sponsor(store.MediaProfileSponsorblockBehaviourMark, "sponsor", "intro"), []string{"sponsorblock_mark=sponsor,intro"}, nil},
+		{"does not include any sponsorblock option without categories", sponsor(store.MediaProfileSponsorblockBehaviourRemove), nil, []string{"sponsorblock_remove*", "sponsorblock_mark*"}},
+		{"does not include any sponsorblock options when disabled", store.MediaProfileParams{SponsorblockBehaviour: store.Ptr(store.MediaProfileSponsorblockBehaviourDisabled)}, nil, []string{"sponsorblock_remove*", "sponsorblock_mark*"}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := apptest.NewApp(t)
+			res := buildOpts(t, ta, newBuildItem(t, ta, c.profile, store.SourceParams{}), app.DownloadOverrides{})
 
-		found := false
-		for _, kv := range res {
-			if kv.Key == "write_subs" && kv.Flag {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected write_subs option in result")
-		}
-	})
-
-	t.Run("forces SRT format when download_subs is true", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSubs: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "convert_subs" && kv.Value == "srt" {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected convert_subs option in result")
-		}
-	})
-
-	t.Run("includes :write_auto_subs option when specified", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile1 := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSubs: store.Ptr(true), DownloadAutoSubs: store.Ptr(true)})
-		mediaProfile2 := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedSubs: store.Ptr(true), DownloadAutoSubs: store.Ptr(true)})
-		source1 := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile1.ID)})
-		source2 := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile2.ID)})
-		mediaItem1 := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source1.ID)})
-		mediaItem2 := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source2.ID)})
-		mediaItem1, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem1)
-		mediaItem2, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem2)
-
-		res1, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem1, app.DownloadOverrides{})
-		res2, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem2, app.DownloadOverrides{})
-
-		found1 := false
-		found2 := false
-		for _, kv := range res1 {
-			if kv.Key == "write_auto_subs" && kv.Flag {
-				found1 = true
-				break
-			}
-		}
-		for _, kv := range res2 {
-			if kv.Key == "write_auto_subs" && kv.Flag {
-				found2 = true
-				break
-			}
-		}
-		if !found1 || !found2 {
-			t.Errorf("expected write_auto_subs option in results")
-		}
-	})
-
-	t.Run("doesn't include :write_auto_subs option when download_subs and embed_subs is false", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSubs: store.Ptr(false), EmbedSubs: store.Ptr(false), DownloadAutoSubs: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "write_auto_subs" && kv.Flag {
-				found = true
-				break
-			}
-		}
-		if found {
-			t.Errorf("write_auto_subs should not be in result")
-		}
-	})
-
-	t.Run("includes :embed_subs option when specified", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedSubs: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "embed_subs" && kv.Flag {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected embed_subs option in result")
-		}
-	})
-
-	t.Run("doesn't include :embed_subs option when preferred_resolution is :audio", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedSubs: store.Ptr(true), PreferredResolution: store.Ptr(store.MediaProfilePreferredResolutionAudio)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "embed_subs" && kv.Flag {
-				found = true
-				break
-			}
-		}
-		if found {
-			t.Errorf("embed_subs should not be in result when audio")
-		}
-	})
-
-	t.Run("includes sub_langs option when download_subs is true", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadSubs: store.Ptr(true), SubLangs: store.Ptr("en")})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "sub_langs" && kv.Value == "en" {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected sub_langs option in result")
-		}
-	})
-
-	t.Run("includes sub_langs option when embed_subs is true", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedSubs: store.Ptr(true), SubLangs: store.Ptr("en")})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "sub_langs" && kv.Value == "en" {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected sub_langs option in result")
-		}
-	})
-
-	t.Run("doesn't include sub_langs option when neither downloading nor embedding", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedSubs: store.Ptr(false), DownloadSubs: store.Ptr(false), SubLangs: store.Ptr("en")})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "sub_langs" && kv.Value == "en" {
-				found = true
-				break
-			}
-		}
-		if found {
-			t.Errorf("sub_langs should not be in result")
-		}
-	})
-}
-
-func TestDownloadOptionBuilder_Build_WhenTestingThumbnailOptions(t *testing.T) {
-	t.Run("includes :write_thumbnail option when specified", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadThumbnail: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "write_thumbnail" && kv.Flag {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected write_thumbnail option in result")
-		}
-	})
-
-	t.Run("appends -thumb to the thumbnail name when download_thumbnail is true", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadThumbnail: store.Ptr(true), OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		expected := "thumbnail:" + filepath.Join(ta.Config.MediaDirectory, "%(title)S-thumb.%(ext)s")
-		found := false
-		for _, kv := range res {
-			if kv.Key == "output" && kv.Value == expected {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected thumbnail output option in result, got %v", res)
-		}
-	})
-
-	t.Run("appends -thumb to source's output path override, if present", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadThumbnail: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		ta.App.SourcesUpdateSource(ta.Ctx, source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, true)
-		source, _ = ta.App.PreloadSourceMediaProfile(ta.Ctx, source)
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		expected := "thumbnail:" + filepath.Join(ta.Config.MediaDirectory, "override-thumb.%(ext)s")
-		found := false
-		for _, kv := range res {
-			if kv.Key == "output" && kv.Value == expected {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected thumbnail output option with override in result, got %v", res)
-		}
-	})
-
-	t.Run("converts thumbnail to jpg when download_thumbnail is true", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadThumbnail: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "convert_thumbnail" && kv.Value == "jpg" {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected convert_thumbnail option in result")
-		}
-	})
-
-	t.Run("includes :embed_thumbnail option when specified", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedThumbnail: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "embed_thumbnail" && kv.Flag {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected embed_thumbnail option in result")
-		}
-	})
-
-	t.Run("convertes thumbnail to jpg when embed_thumbnail is true", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedThumbnail: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "convert_thumbnail" && kv.Value == "jpg" {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected convert_thumbnail option in result")
-		}
-	})
-
-	t.Run("doesn't include these options when not specified", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedThumbnail: store.Ptr(false), DownloadThumbnail: store.Ptr(false)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		hasWriteThumbnail := false
-		hasEmbedThumbnail := false
-		for _, kv := range res {
-			if kv.Key == "write_thumbnail" && kv.Flag {
-				hasWriteThumbnail = true
-			}
-			if kv.Key == "embed_thumbnail" && kv.Flag {
-				hasEmbedThumbnail = true
-			}
-		}
-		if hasWriteThumbnail || hasEmbedThumbnail {
-			t.Errorf("thumbnail options should not be in result")
-		}
-	})
-}
-
-func TestDownloadOptionBuilder_Build_WhenTestingMetadataOptions(t *testing.T) {
-	t.Run("includes :write_info_json option when specified", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{DownloadMetadata: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		hasWriteInfoJson := false
-		hasCleanInfoJson := false
-		for _, kv := range res {
-			if kv.Key == "write_info_json" && kv.Flag {
-				hasWriteInfoJson = true
-			}
-			if kv.Key == "clean_info_json" && kv.Flag {
-				hasCleanInfoJson = true
-			}
-		}
-		if !hasWriteInfoJson || !hasCleanInfoJson {
-			t.Errorf("expected metadata options in result")
-		}
-	})
-
-	t.Run("includes :embed_metadata option when specified", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedMetadata: store.Ptr(true)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "embed_metadata" && kv.Flag {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected embed_metadata option in result")
-		}
-	})
-
-	t.Run("doesn't include these options when not specified", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{EmbedMetadata: store.Ptr(false), DownloadMetadata: store.Ptr(false)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		hasWriteInfoJson := false
-		hasCleanInfoJson := false
-		hasEmbedMetadata := false
-		for _, kv := range res {
-			if kv.Key == "write_info_json" && kv.Flag {
-				hasWriteInfoJson = true
-			}
-			if kv.Key == "clean_info_json" && kv.Flag {
-				hasCleanInfoJson = true
-			}
-			if kv.Key == "embed_metadata" && kv.Flag {
-				hasEmbedMetadata = true
-			}
-		}
-		if hasWriteInfoJson || hasCleanInfoJson || hasEmbedMetadata {
-			t.Errorf("metadata options should not be in result")
-		}
-	})
-}
-
-func TestDownloadOptionBuilder_Build_WhenTestingMediaQualityAndFormatOptions(t *testing.T) {
-	t.Run("includes video options for video profiles", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		hasFormatSort := false
-		hasRemuxVideo := false
-		for _, kv := range res {
-			if kv.Key == "format_sort" && kv.Value == "res:1080,+codec:avc:m4a" {
-				hasFormatSort = true
-			}
-			if kv.Key == "remux_video" && kv.Value == "mp4" {
-				hasRemuxVideo = true
-			}
-		}
-		if !hasFormatSort || !hasRemuxVideo {
-			t.Errorf("expected video quality options in result")
-		}
-	})
-
-	t.Run("includes quality options for audio only", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{PreferredResolution: store.Ptr(store.MediaProfilePreferredResolutionAudio)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		hasExtractAudio := false
-		hasFormatSort := false
-		hasRemuxVideo := false
-		for _, kv := range res {
-			if kv.Key == "extract_audio" && kv.Flag {
-				hasExtractAudio = true
-			}
-			if kv.Key == "format_sort" && kv.Value == "+acodec:m4a" {
-				hasFormatSort = true
-			}
-			if kv.Key == "remux_video" {
-				hasRemuxVideo = true
-			}
-		}
-		if !hasExtractAudio || !hasFormatSort || hasRemuxVideo {
-			t.Errorf("expected audio quality options in result")
-		}
-	})
-}
-
-func TestDownloadOptionBuilder_Build_WhenTestingSponsorblockOptions(t *testing.T) {
-	t.Run("includes :sponsorblock_remove option when specified", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{
-			SponsorblockBehaviour:  store.Ptr(store.MediaProfileSponsorblockBehaviourRemove),
-			SponsorblockCategories: store.Ptr([]string{"sponsor", "intro"}),
+			wantOpts(t, res, c.present, c.absent)
 		})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "sponsorblock_remove" && kv.Value == "sponsor,intro" {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected sponsorblock_remove option in result")
-		}
-	})
-
-	t.Run("includes :sponsorblock_mark option when specified", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{
-			SponsorblockBehaviour:  store.Ptr(store.MediaProfileSponsorblockBehaviourMark),
-			SponsorblockCategories: store.Ptr([]string{"sponsor", "intro"}),
-		})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "sponsorblock_mark" && kv.Value == "sponsor,intro" {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected sponsorblock_mark option in result")
-		}
-	})
-
-	t.Run("does not include any sponsorblock option without categories", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{
-			SponsorblockBehaviour:  store.Ptr(store.MediaProfileSponsorblockBehaviourRemove),
-			SponsorblockCategories: store.Ptr([]string{}),
-		})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		hasSponsorblock := false
-		for _, kv := range res {
-			if kv.Key == "sponsorblock_remove" || kv.Key == "sponsorblock_mark" {
-				hasSponsorblock = true
-				break
-			}
-		}
-		if hasSponsorblock {
-			t.Errorf("sponsorblock options should not be in result")
-		}
-	})
-
-	t.Run("does not include any sponsorblock options when disabled", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{SponsorblockBehaviour: store.Ptr(store.MediaProfileSponsorblockBehaviourDisabled)})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		hasSponsorblock := false
-		for _, kv := range res {
-			if kv.Key == "sponsorblock_remove" || kv.Key == "sponsorblock_mark" {
-				hasSponsorblock = true
-				break
-			}
-		}
-		if hasSponsorblock {
-			t.Errorf("sponsorblock options should not be in result")
-		}
-	})
+	}
 }
 
 func TestDownloadOptionBuilder_BuildOutputPathFor(t *testing.T) {
-	t.Run("builds an output path for a media item", func(t *testing.T) {
+	setup := func(t *testing.T, src store.SourceParams) (*apptest.TestApp, *store.MediaItem) {
 		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		path := ta.App.DownloadOptionBuilderBuildOutputPathForMediaItem(ta.Ctx, mediaItem)
-
-		expected := filepath.Join(ta.Config.MediaDirectory, "%(title)S.%(ext)s")
-		if path != expected {
-			t.Errorf("expected %s, got %s", expected, path)
+		return ta, newBuildItem(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")}, src)
+	}
+	wantPath := func(t *testing.T, ta *apptest.TestApp, got, file string) {
+		t.Helper()
+		if expected := filepath.Join(ta.Config.MediaDirectory, file); got != expected {
+			t.Errorf("expected %s, got %s", expected, got)
 		}
+	}
+
+	t.Run("builds an output path for a media item", func(t *testing.T) {
+		ta, mediaItem := setup(t, store.SourceParams{})
+		wantPath(t, ta, ta.App.DownloadOptionBuilderBuildOutputPathForMediaItem(ta.Ctx, mediaItem), "%(title)S.%(ext)s")
 	})
 
 	t.Run("builds an output path for a source", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-
-		path := ta.App.DownloadOptionBuilderBuildOutputPathForSource(ta.Ctx, mediaItem.Source)
-
-		expected := filepath.Join(ta.Config.MediaDirectory, "%(title)S.%(ext)s")
-		if path != expected {
-			t.Errorf("expected %s, got %s", expected, path)
-		}
+		ta, mediaItem := setup(t, store.SourceParams{})
+		wantPath(t, ta, ta.App.DownloadOptionBuilderBuildOutputPathForSource(ta.Ctx, mediaItem.Source), "%(title)S.%(ext)s")
 	})
 
 	t.Run("uses source's output override if present", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-		updatedSource, _ := ta.App.SourcesUpdateSource(ta.Ctx, mediaItem.Source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, true)
+		ta, mediaItem := setup(t, store.SourceParams{})
+		updatedSource, err := ta.App.SourcesUpdateSource(ta.Ctx, mediaItem.Source, store.SourceParams{OutputPathTemplateOverride: store.Ptr("override.%(ext)s")}, true)
+		must(t, err)
 
-		path := ta.App.DownloadOptionBuilderBuildOutputPathForSource(ta.Ctx, updatedSource)
-
-		expected := filepath.Join(ta.Config.MediaDirectory, "override.%(ext)s")
-		if path != expected {
-			t.Errorf("expected %s, got %s", expected, path)
-		}
+		wantPath(t, ta, ta.App.DownloadOptionBuilderBuildOutputPathForSource(ta.Ctx, updatedSource), "override.%(ext)s")
 	})
 }
 
 func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) {
-	newConfigMediaItem := func(t *testing.T, ta *apptest.TestApp) *store.MediaItem {
-		t.Helper()
-		mediaProfile := apptest.MediaProfileFixture(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")})
-		source := apptest.SourceFixture(t, ta, store.SourceParams{MediaProfileID: store.Ptr(mediaProfile.ID)})
-		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{SourceID: store.Ptr(source.ID)})
-		mediaItem, err := ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-		must(t, err)
-		return mediaItem
+	// configFile names (relative to the configs dir) of a config file to
+	// write, "" for none.
+	base := func(*store.MediaItem) string { return "base-config.txt" }
+	for _, c := range []struct {
+		name    string
+		file    func(*store.MediaItem) string
+		content string
+		want    bool
+	}{
+		{"includes base config file if it's present", base, "base config", true},
+		{"includes media profile config file if it's present", func(m *store.MediaItem) string { return fmt.Sprintf("media-profile-%d-config.txt", m.Source.MediaProfileID) }, "profile config", true},
+		{"includes source config file if it's present", func(m *store.MediaItem) string { return fmt.Sprintf("source-%d-config.txt", m.SourceID) }, "source config", true},
+		{"includes media item config file if it's present", func(m *store.MediaItem) string { return fmt.Sprintf("media-item-%d-config.txt", m.ID) }, "media item config", true},
+		{"does not include config file options if they are not present", func(*store.MediaItem) string { return "" }, "", false},
+		{"does not return a config file if it's blank", base, " \n \n ", false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			ta := apptest.NewApp(t)
+			mediaItem := newBuildItem(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")}, store.SourceParams{})
+			configPath := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs", c.file(mediaItem))
+			if c.file(mediaItem) != "" {
+				must(t, fsutil.WriteFileAll(configPath, c.content))
+			}
+
+			res := buildOpts(t, ta, mediaItem, app.DownloadOverrides{})
+
+			if c.want {
+				wantOpts(t, res, []string{"config_locations=" + configPath}, nil)
+			} else {
+				wantOpts(t, res, nil, []string{"config_locations*"})
+			}
+		})
 	}
-
-	t.Run("includes base config file if it's present", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaItem := newConfigMediaItem(t, ta)
-		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
-		configPath := filepath.Join(baseDir, "base-config.txt")
-		must(t, fsutil.WriteFileAll(configPath, "base config"))
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "config_locations" && kv.Value == configPath {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected config_locations option %q in %v", configPath, res)
-		}
-	})
-
-	t.Run("includes media profile config file if it's present", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaItem := newConfigMediaItem(t, ta)
-		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
-		configPath := filepath.Join(baseDir, fmt.Sprintf("media-profile-%d-config.txt", mediaItem.Source.MediaProfileID))
-		must(t, fsutil.WriteFileAll(configPath, "profile config"))
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "config_locations" && kv.Value == configPath {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected config_locations option %q in %v", configPath, res)
-		}
-	})
-
-	t.Run("includes source config file if it's present", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaItem := newConfigMediaItem(t, ta)
-		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
-		configPath := filepath.Join(baseDir, fmt.Sprintf("source-%d-config.txt", mediaItem.SourceID))
-		must(t, fsutil.WriteFileAll(configPath, "source config"))
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "config_locations" && kv.Value == configPath {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected config_locations option %q in %v", configPath, res)
-		}
-	})
-
-	t.Run("includes media item config file if it's present", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaItem := newConfigMediaItem(t, ta)
-		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
-		configPath := filepath.Join(baseDir, fmt.Sprintf("media-item-%d-config.txt", mediaItem.ID))
-		must(t, fsutil.WriteFileAll(configPath, "media item config"))
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "config_locations" && kv.Value == configPath {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected config_locations option %q in %v", configPath, res)
-		}
-	})
-
-	t.Run("does not include config file options if they are not present", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaItem := newConfigMediaItem(t, ta)
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "config_locations" {
-				found = true
-				break
-			}
-		}
-		if found {
-			t.Errorf("config_locations should not be present")
-		}
-	})
-
-	t.Run("does not return a config file if it's blank", func(t *testing.T) {
-		ta := apptest.NewApp(t)
-		mediaItem := newConfigMediaItem(t, ta)
-		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
-		configPath := filepath.Join(baseDir, "base-config.txt")
-		must(t, fsutil.WriteFileAll(configPath, " \n \n "))
-
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
-		found := false
-		for _, kv := range res {
-			if kv.Key == "config_locations" {
-				found = true
-				break
-			}
-		}
-		if found {
-			t.Errorf("config_locations should not be present for blank file")
-		}
-	})
 
 	t.Run("returns config files in order of precedence", func(t *testing.T) {
 		ta := apptest.NewApp(t)
-		mediaItem := newConfigMediaItem(t, ta)
+		mediaItem := newBuildItem(t, ta, store.MediaProfileParams{OutputPathTemplate: store.Ptr("{{ title }}.%(ext)s")}, store.SourceParams{})
 		baseDir := filepath.Join(ta.Config.ExtrasDirectory, "yt-dlp-configs")
 
 		baseFilepath := filepath.Join(baseDir, "base-config.txt")
@@ -936,10 +237,8 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 			must(t, fsutil.WriteFileAll(p, "config"))
 		}
 
-		res, _ := ta.App.DownloadOptionBuilderBuild(ta.Ctx, mediaItem, app.DownloadOverrides{})
-
 		var gotOrder []string
-		for _, kv := range res {
+		for _, kv := range buildOpts(t, ta, mediaItem, app.DownloadOverrides{}) {
 			if kv.Key == "config_locations" {
 				gotOrder = append(gotOrder, kv.Value.(string))
 			}
@@ -959,48 +258,23 @@ func TestDownloadOptionBuilder_Build_WhenTestingConfigFileOptions(t *testing.T) 
 }
 
 func TestDownloadOptionBuilder_BuildQualityOptionsFor(t *testing.T) {
+	quality := []string{"format_sort=res:1080,+codec:avc:m4a", "remux_video=mp4"}
+
 	t.Run("builds quality options for a media item", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
+		mediaItem, err := ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
+		must(t, err)
 
-		options := ta.App.DownloadOptionBuilderBuildQualityOptionsForMediaItem(ta.Ctx, mediaItem)
-
-		hasFormatSort := false
-		hasRemuxVideo := false
-		for _, kv := range options {
-			if kv.Key == "format_sort" && kv.Value == "res:1080,+codec:avc:m4a" {
-				hasFormatSort = true
-			}
-			if kv.Key == "remux_video" && kv.Value == "mp4" {
-				hasRemuxVideo = true
-			}
-		}
-		if !hasFormatSort || !hasRemuxVideo {
-			t.Errorf("expected quality options in result")
-		}
+		wantOpts(t, ta.App.DownloadOptionBuilderBuildQualityOptionsForMediaItem(ta.Ctx, mediaItem), quality, nil)
 	})
 
 	t.Run("builds quality options for a source", func(t *testing.T) {
 		ta := apptest.NewApp(t)
 		mediaItem := apptest.MediaItemFixture(t, ta, store.MediaItemParams{})
-		mediaItem, _ = ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
-		source := mediaItem.Source
+		mediaItem, err := ta.App.PreloadMediaItemFull(ta.Ctx, mediaItem)
+		must(t, err)
 
-		options := ta.App.DownloadOptionBuilderBuildQualityOptionsForSource(ta.Ctx, source)
-
-		hasFormatSort := false
-		hasRemuxVideo := false
-		for _, kv := range options {
-			if kv.Key == "format_sort" && kv.Value == "res:1080,+codec:avc:m4a" {
-				hasFormatSort = true
-			}
-			if kv.Key == "remux_video" && kv.Value == "mp4" {
-				hasRemuxVideo = true
-			}
-		}
-		if !hasFormatSort || !hasRemuxVideo {
-			t.Errorf("expected quality options in result")
-		}
+		wantOpts(t, ta.App.DownloadOptionBuilderBuildQualityOptionsForSource(ta.Ctx, mediaItem.Source), quality, nil)
 	})
 }
