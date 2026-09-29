@@ -48,10 +48,8 @@ func (st *Store) PreloadSourceTasks(ctx context.Context, s *Source) (*Source, er
 	if err != nil {
 		return s, err
 	}
-	for _, t := range tasks {
-		if _, err := st.PreloadTaskJob(ctx, t); err != nil {
-			return s, err
-		}
+	if err := st.PreloadTasksJobs(ctx, tasks); err != nil {
+		return s, err
 	}
 	s.Tasks = tasks
 	return s, nil
@@ -93,10 +91,8 @@ func (st *Store) PreloadMediaItemTasks(ctx context.Context, m *MediaItem) (*Medi
 	if err != nil {
 		return m, err
 	}
-	for _, t := range tasks {
-		if _, err := st.PreloadTaskJob(ctx, t); err != nil {
-			return m, err
-		}
+	if err := st.PreloadTasksJobs(ctx, tasks); err != nil {
+		return m, err
 	}
 	m.Tasks = tasks
 	return m, nil
@@ -130,6 +126,44 @@ func (st *Store) PreloadTaskJob(ctx context.Context, t *Task) (*Task, error) {
 	}
 	t.Job = &job
 	return t, nil
+}
+
+// PreloadTasksJobs loads jobs for multiple tasks in one query.
+func (st *Store) PreloadTasksJobs(ctx context.Context, tasks []*Task) error {
+	if len(tasks) == 0 {
+		return nil
+	}
+
+	// Collect job IDs from tasks
+	jobIDs := make([]interface{}, len(tasks))
+	for i, t := range tasks {
+		jobIDs[i] = t.JobID
+	}
+
+	// Load all jobs in one query
+	jobs, err := All[obanlite.Job](ctx, st.Q(ctx),
+		SQ.Select("id", "state", "queue", "worker", "args", "meta", "tags", "errors", "attempt", "max_attempts", "priority",
+			"inserted_at", "scheduled_at", "attempted_at", "attempted_by", "cancelled_at", "completed_at", "discarded_at").
+			From("oban_jobs").
+			Where(sq.Eq{"id": jobIDs}))
+	if err != nil {
+		return err
+	}
+
+	// Create a map for fast lookup
+	jobMap := make(map[int64]*obanlite.Job)
+	for _, job := range jobs {
+		jobMap[job.ID] = job
+	}
+
+	// Attach jobs to tasks
+	for _, t := range tasks {
+		if job, ok := jobMap[t.JobID]; ok {
+			t.Job = job
+		}
+	}
+
+	return nil
 }
 
 // PreloadTaskSource loads task.source (nil when source_id is nil).
