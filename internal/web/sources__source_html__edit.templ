@@ -2,7 +2,7 @@ package web
 
 import "github.com/mattbriancon/pinchflat/internal/store"
 
-templ SourceHTMLEdit(source *store.Source, changeset *store.Changeset, mediaProfiles []*store.MediaProfile) {
+templ SourceHTMLEdit(source *store.Source, form *Form, mediaProfiles []*store.MediaProfile) {
 	<div class="page-header justify-start">
 		<a href={ templ.URL(P(ctx, "/sources")) }>
 			@CoreIcon("hero-arrow-left", "back-link", nil)
@@ -16,7 +16,7 @@ templ SourceHTMLEdit(source *store.Source, changeset *store.Changeset, mediaProf
 		<div class="max-w-full">
 			<div class="flex flex-col gap-6">
 				@SourceHTMLSourceForm(SourceFormProps{
-					Changeset:     changeset,
+					Form:          form,
 					MediaProfiles: mediaProfiles,
 					Action:        P(ctx, "/sources/%v", source.ID),
 					Method:        "patch",

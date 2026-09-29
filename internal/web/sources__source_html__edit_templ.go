@@ -10,7 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import "github.com/mattbriancon/pinchflat/internal/store"
 
-func SourceHTMLEdit(source *store.Source, changeset *store.Changeset, mediaProfiles []*store.MediaProfile) templ.Component {
+func SourceHTMLEdit(source *store.Source, form *Form, mediaProfiles []*store.MediaProfile) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -70,7 +70,7 @@ func SourceHTMLEdit(source *store.Source, changeset *store.Changeset, mediaProfi
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = SourceHTMLSourceForm(SourceFormProps{
-			Changeset:     changeset,
+			Form:          form,
 			MediaProfiles: mediaProfiles,
 			Action:        P(ctx, "/sources/%v", source.ID),
 			Method:        "patch",

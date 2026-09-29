@@ -45,11 +45,11 @@ func SourceFixture(t testing.TB, ts *TestStore, attrs store.Attrs) *store.Source
 		defaults[k] = v
 	}
 
-	// Like Elixir: Source.changeset(:pre_insert) |> Repo.insert(), not
+	// Like Elixir: a pre_insert insert, not
 	// Sources.create_source (which would kick off indexing jobs).
-	source, err := store.Insert[store.Source](ts.Ctx, ts.Q(ts.Ctx), store.SourceChangeset(store.NewSource(), defaults, "pre_insert"))
-	if err != nil {
-		t.Fatalf("SourceFixture: %v", err)
+	source, errs, err := ts.CreateSource(ts.Ctx, store.ParseSourceParams(defaults))
+	if err != nil || len(errs) > 0 {
+		t.Fatalf("SourceFixture: %v %v", err, errs)
 	}
 	return source
 }

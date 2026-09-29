@@ -14,7 +14,7 @@ import (
 
 // SourceFormProps is source_form/1's assigns.
 type SourceFormProps struct {
-	Changeset     *store.Changeset
+	Form          *Form
 	MediaProfiles []*store.MediaProfile
 	Action        string
 	Method        string
@@ -85,13 +85,13 @@ func sourceFormBody(props SourceFormProps) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		if props.Changeset.Action != "" {
+		if props.Form.HasErrors() {
 			templ_7745c5c3_Err = CoreError("Oops, something went wrong! Please check the errors below.").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		f := FormFor(props.Changeset, "source")
+		f := props.Form
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<section x-data=\"{ mediaProfileId: null }\"><section class=\"flex justify-between items-center mt-4\"><h3 class=\"section-title\">General Options</h3><span class=\"cursor-pointer hover:underline\" x-on:click=\"advancedMode = !advancedMode\">Editing Mode: <span x-text=\"advancedMode ? 'Advanced' : 'Standard'\"></span></span></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

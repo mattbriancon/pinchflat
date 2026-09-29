@@ -110,7 +110,7 @@ func (a *App) SourceMetadataStorageWorkerPerform(ctx context.Context, job *obanl
 		updateAttrs[k] = v
 	}
 
-	_, err = a.SourcesUpdateSource(ctx, source, updateAttrs, store.KW{store.Opt("run_post_commit_tasks", false)})
+	_, err = a.SourcesUpdateSource(ctx, source, store.ParseSourceParams(updateAttrs), store.KW{store.Opt("run_post_commit_tasks", false)})
 	return err
 }
 

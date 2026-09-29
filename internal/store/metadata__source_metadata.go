@@ -20,24 +20,6 @@ type SourceMetadata struct {
 
 func (SourceMetadata) TableName() string { return "source_metadata" }
 
-var sourceMetadataAllowedFields = []string{
-	"metadata_filepath",
-	"fanart_filepath",
-	"poster_filepath",
-	"banner_filepath",
-}
-
-var sourceMetadataRequiredFields = []string{
-	"metadata_filepath",
-}
-
-// SourceMetadataChangeset/2
-func SourceMetadataChangeset(sourceMetadata *SourceMetadata, attrs Attrs) *Changeset {
-	return Cast(sourceMetadata, attrs, sourceMetadataAllowedFields).
-		ValidateRequired(sourceMetadataRequiredFields...).
-		UniqueConstraint([]string{"source_id"}, "source_id")
-}
-
 // SourceMetadataFilepathAttributes/0
 func SourceMetadataFilepathAttributes() []string {
 	return []string{"metadata_filepath", "fanart_filepath", "poster_filepath", "banner_filepath"}
