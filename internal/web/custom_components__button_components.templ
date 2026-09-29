@@ -21,19 +21,12 @@ templ ButtonButton(color string, rounding string, class string, typ string, disa
 
 // ButtonButtonDropdown is button_dropdown/1.
 templ ButtonButtonDropdown(text string, class string, options []ButtonButtonOption) {
-	<div x-data="{ dropdownOpen: false }" class={ "relative flex", class }>
-		<span
-			x-on:click.prevent="dropdownOpen = !dropdownOpen"
-			class="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm whitespace-nowrap font-medium text-white hover:bg-opacity-95"
-		>
+	<details class={ "dropdown group relative flex", class }>
+		<summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm whitespace-nowrap font-medium text-white hover:bg-opacity-95">
 			{ text }
-			@CoreIcon("hero-chevron-down", "fill-current duration-200 ease-linear h-4 w-4", templ.Attributes{"x-bind:class": "dropdownOpen && 'rotate-180'"})
-		</span>
-		<div
-			x-show="dropdownOpen"
-			x-on:click.outside="dropdownOpen = false"
-			class="absolute right-0 top-full z-40 mt-1 min-w-full w-max rounded-lg border border-strokedark bg-graydark py-1 shadow-lg"
-		>
+			@CoreIcon("hero-chevron-down", "fill-current duration-200 ease-linear h-4 w-4 group-open:rotate-180", nil)
+		</summary>
+		<div class="absolute right-0 top-full z-40 mt-1 min-w-full w-max rounded-lg border border-strokedark bg-graydark py-1 shadow-lg">
 			<ul class="flex flex-col">
 				for _, option := range options {
 					<li>
@@ -44,7 +37,7 @@ templ ButtonButtonDropdown(text string, class string, options []ButtonButtonOpti
 				}
 			</ul>
 		</div>
-	</div>
+	</details>
 }
 
 // ButtonIconButton is icon_button/1.

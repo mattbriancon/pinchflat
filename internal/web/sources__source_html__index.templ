@@ -6,11 +6,10 @@ templ SourceHTMLIndex(state *sourceIndexTableState) {
 		<nav class="flex items-center justify-between gap-6">
 			<a
 				href={ templ.URL(OpmlFeedURL(ctx)) }
-				x-data="{ copied: false }"
-				x-on:click={ "$event.preventDefault(); copyWithCallbacks('" + OpmlFeedURL(ctx) + "', () => copied = true, () => copied = false)" }
+				data-copy={ OpmlFeedURL(ctx) }
 			>
 				Copy OPML <span class="hidden sm:inline">Feed</span>
-				<span x-show="copied" x-transition.duration.150ms>
+				<span data-copied hidden>
 					@CoreIcon("hero-check", "ml-2 h-4 w-4", nil)
 				</span>
 			</a>

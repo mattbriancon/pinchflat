@@ -147,7 +147,7 @@ func TitleFilterRegexHelp() string {
 // OutputPathTemplateOverrideHelp returns HTML help text for output path template override.
 func OutputPathTemplateOverrideHelp() string {
 	helpButtonClasses := "underline decoration-bodydark decoration-1 hover:decoration-white cursor-pointer"
-	helpButton := fmt.Sprintf(`<span class="%s" x-on:click="$dispatch('load-template')">Click here</span>`, helpButtonClasses)
+	helpButton := fmt.Sprintf(`<span class="%s" data-load-template>Click here</span>`, helpButtonClasses)
 	return fmt.Sprintf(
 		`Must end with .{{ ext }}. Same rules as Media Profile output path templates. %s to load your media profile's output template`,
 		helpButton,
@@ -158,11 +158,4 @@ func OutputPathTemplateOverrideHelp() string {
 func computeDateOffset(t time.Time, days int) string {
 	offset := t.AddDate(0, 0, -days)
 	return offset.Format("2006-01-02")
-}
-
-// sourcesJSONLiteral is String.raw`#{Jason.Formatter.pretty_print(Jason.encode!(@source))}`
-// for the "Copy JSON" action. Source's encoder includes its media_profile,
-// so the caller must have preloaded it.
-func sourcesJSONLiteral(source *store.Source) string {
-	return "String.raw`" + prettyJSON(source) + "`"
 }

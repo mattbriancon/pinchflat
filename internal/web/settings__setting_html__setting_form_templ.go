@@ -36,13 +36,13 @@ func SettingHTMLSettingForm(f *Form, action string) templ.Component {
 		var templ_7745c5c3_Var2 templ.SafeURL
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(action)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `settings__setting_html__setting_form.templ`, Line: 6, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `settings__setting_html__setting_form.templ`, Line: 4, Col: 36}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" x-data=\"{advancedMode: !!JSON.parse(localStorage.getItem('advancedMode'))}\" x-init=\"$watch('advancedMode', value => localStorage.setItem('advancedMode', JSON.stringify(value)))\"><input type=\"hidden\" name=\"_method\" value=\"put\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><input type=\"hidden\" name=\"_method\" value=\"put\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -119,7 +119,7 @@ func formContent(f *Form) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<section class=\"mt-4\"><section><section class=\"flex justify-between items-center\"><h3 class=\"section-title\">Extractor Settings</h3><span class=\"cursor-pointer hover:underline\" x-on:click=\"advancedMode = !advancedMode\">Editing Mode: <span x-text=\"advancedMode ? 'Advanced' : 'Standard'\"></span></span></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<section class=\"mt-4\"><section><section class=\"flex justify-between items-center\"><h3 class=\"section-title\">Extractor Settings</h3><span class=\"cursor-pointer hover:underline\" data-advanced-toggle>Editing Mode: <span data-advanced-label>Standard</span></span></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -139,7 +139,7 @@ func formContent(f *Form) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</section></section><section class=\"mt-8\" x-show=\"advancedMode\"><section><h3 class=\"section-title\">Codec Options</h3><p class=\"text-sm mt-2 max-w-prose\">The best available codec will be used if your preferred codecs are not found</p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</section></section><section class=\"mt-8\" data-advanced-only hidden><section><h3 class=\"section-title\">Codec Options</h3><p class=\"text-sm mt-2 max-w-prose\">The best available codec will be used if your preferred codecs are not found</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

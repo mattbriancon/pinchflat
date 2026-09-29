@@ -5,7 +5,7 @@
 @import './satoshi';
 
 /* This file is for your main application CSS */
-[x-cloak] {
+[hidden] {
   display: none !important;
 }
 

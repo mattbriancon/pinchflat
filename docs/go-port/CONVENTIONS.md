@@ -319,7 +319,7 @@ Infrastructure already written, which you use but must not change:
 - `<.link href=...>` → `<a href=...>`. `<.link method="delete" href=... data-confirm=...>` → a small form with `_method=delete` (use the `CoreLinkButton` component from core_components once it exists).
 - Heroicons: `<.icon name="hero-x">` → `@CoreIcon("hero-x", "classes")`, which renders `<span class="hero-x ...">`. The Tailwind plugin provides those classes, as before.
 - Forms: `f := FormFor(changeset, "source")`, then `@CoreInput(CoreInputProps{Field: f.Field("custom_name"), Label: "...", Type: "text"})`. Show the error banner when `f.HasErrors()`.
-- Alpine attributes (`x-data`, `@click`, `x-show`, ...) are kept exactly.
+- No Alpine: interactivity is native HTML (`<details>`, checkboxes) plus `web/assets/js/app.js`, driven by `data-*` attributes.
 - After editing `.templ` files, run `templ generate -path internal/web` (the binary is at `~/go/bin/templ`) and commit the generated `_templ.go` files.
 
 ### LiveViews → no htmx
@@ -347,13 +347,13 @@ normal navigation.
   page's history tables) each get their own query param
   (`<name>_page`, `<name>_q`, ...) so paging or searching one doesn't reset
   another.
-- Tabs (`TabTabbedLayout`) stay client-side (Alpine + `web/assets/js/tabs.js`
+- Tabs (`TabTabbedLayout`) stay client-side (`web/assets/js/app.js`
   hash tracking), but since a paging/search link inside a tab now reloads the
   whole page, pass `?tab=<id>` on those links/forms so the reload reselects
   the right tab; `TabTabbedLayout` reads it (`tabInitialID`) as the initial
   tab, falling back to the URL hash, then the first tab.
 - A mutation (a toggle, a button) is a plain HTML `<form method="post"
-  action="...">`; Alpine may auto-submit it (`x-on:change="$el.form.requestSubmit()"`).
+  action="...">`; app.js auto-submits it on change (`data-submit-on-change`).
   The handler redirects back (303) to the `Referer` when it's this app's own
   origin and under BASE_ROUTE_PATH (`s.redirectBack`), else a fallback path.
 - `reload_page` / `media_table` broadcasts have no equivalent (no server

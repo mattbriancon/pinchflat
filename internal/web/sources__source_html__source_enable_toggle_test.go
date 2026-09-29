@@ -21,9 +21,9 @@ func TestSourceEnableToggle_InitialRendering(t *testing.T) {
 			t.Fatalf("render failed: %v", err)
 		}
 
-		// This is checking the Alpine attrs which is a good-enough proxy for the toggle position
-		if !strings.Contains(string(html), "{ enabled: true }") {
-			t.Errorf("expected '{ enabled: true }' in response, got: %s", html)
+		// The checkbox carries the toggle position
+		if !strings.Contains(string(html), ` checked`) {
+			t.Errorf("expected a checked checkbox in response, got: %s", html)
 		}
 	})
 
@@ -33,8 +33,8 @@ func TestSourceEnableToggle_InitialRendering(t *testing.T) {
 			t.Fatalf("render failed: %v", err)
 		}
 
-		if !strings.Contains(string(html), "{ enabled: false }") {
-			t.Errorf("expected '{ enabled: false }' in response, got: %s", html)
+		if strings.Contains(string(html), ` checked`) {
+			t.Errorf("expected an unchecked checkbox in response, got: %s", html)
 		}
 	})
 }

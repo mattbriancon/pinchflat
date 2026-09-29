@@ -86,7 +86,7 @@ templ TextDatetimeInZone(datetime time.Time, format string, timezone string) {
 // TextLocalizedNumber is localized_number/1: rendered with the raw number as
 // a fallback and reformatted client-side via Intl.NumberFormat.
 templ TextLocalizedNumber(number int) {
-	<span x-data x-text={ fmt.Sprintf("Intl.NumberFormat().format(%d)", number) }>{ fmt.Sprint(number) }</span>
+	<span data-localize>{ fmt.Sprint(number) }</span>
 }
 
 // TextPluralize is pluralize/1.
@@ -103,7 +103,7 @@ templ TextReadableFilesize(byteSize int64) {
 // TextLocalizedNumberFloat backs TextReadableFilesize (the num there is a
 // rounded float, e.g. "12.34").
 templ TextLocalizedNumberFloat(number float64) {
-	<span x-data x-text={ fmt.Sprintf("Intl.NumberFormat().format(%v)", number) }>{ fmt.Sprint(number) }</span>
+	<span data-localize>{ fmt.Sprint(number) }</span>
 }
 
 // TextTooltip is tooltip/1 (all three clauses: position "bottom-right",

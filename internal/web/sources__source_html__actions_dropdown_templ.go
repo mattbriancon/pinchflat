@@ -99,20 +99,20 @@ func sourcesActionsCopyRSS(source *store.Source) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" x-data=\"{ copied: false }\" x-on:click=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" data-copy=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
-		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue("$event.preventDefault(); copyWithCallbacks('" + RssFeedURL(ctx, source) + "', () => copied = true, () => copied = false)")
+		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(RssFeedURL(ctx, source))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 39, Col: 137}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 38, Col: 37}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\">Copy RSS Feed <span x-show=\"copied\" x-transition.duration.150ms>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\">Copy RSS Feed <span data-copied hidden>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -149,20 +149,20 @@ func sourcesActionsCopyJSON(source *store.Source) templ.Component {
 			templ_7745c5c3_Var5 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span x-data=\"{ copied: false }\" x-on:click=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span data-copy=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var6 string
-		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue("copyWithCallbacks(" + sourcesJSONLiteral(source) + ", () => copied = true, () => copied = false)")
+		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(prettyJSON(source))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 51, Col: 113}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 48, Col: 37}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\">Copy JSON <span x-show=\"copied\" x-transition.duration.150ms>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\">Copy JSON <span data-copied hidden>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -206,7 +206,7 @@ func sourcesActionsUseAsTemplate(source *store.Source) templ.Component {
 		var templ_7745c5c3_Var8 templ.SafeURL
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(P(ctx, "/sources/new") + "?template_id=" + fmt.Sprint(source.ID)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 61, Col: 86}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 57, Col: 86}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
@@ -518,7 +518,7 @@ func sourcesActionsText(s string) templ.Component {
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(s)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 141, Col: 4}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `sources__source_html__actions_dropdown.templ`, Line: 137, Col: 4}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
