@@ -102,6 +102,7 @@ templ mediaItemsShowTasksTab(mediaItem *store.MediaItem) {
 				{Label: "Worker", Render: mediaItemsTaskWorkerCell},
 				{Label: "State", Render: mediaItemsTaskStateCell},
 				{Label: "Scheduled At", Render: mediaItemsTaskScheduledAtCell},
+				{Label: "", Render: mediaItemsTaskActionsCell},
 			},
 		})
 	} else {
@@ -125,13 +126,19 @@ templ mediaItemsTaskWorkerCell(row any) {
 
 templ mediaItemsTaskStateCell(row any) {
 	if task, ok := row.(*store.Task); ok && task.Job != nil {
-		{ task.Job.State }
+		@TaskHTMLStateCell(task)
 	}
 }
 
 templ mediaItemsTaskScheduledAtCell(row any) {
 	if task, ok := row.(*store.Task); ok && task.Job != nil {
-		@TextDatetimeInZone(task.Job.ScheduledAt.Time, "", "")
+		@TaskHTMLScheduledAtCell(task)
+	}
+}
+
+templ mediaItemsTaskActionsCell(row any) {
+	if task, ok := row.(*store.Task); ok {
+		@TaskHTMLActionsCell(task)
 	}
 }
 
