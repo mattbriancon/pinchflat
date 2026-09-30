@@ -30,10 +30,12 @@ func (a *App) MediaQualityUpgradeWorkerPerform(ctx context.Context, job *obanlit
 
 	slog.Info(fmt.Sprintf("Redownloading %d media items", len(upgradableMedia)))
 
+	// Like the Elixir worker, a failed kickoff (typically duplicate_job, when
+	// the item already has a download queued) doesn't stop the rest.
 	for _, mediaItem := range upgradableMedia {
 		_, err := a.MediaDownloadWorkerKickoffWithTask(ctx, mediaItem, map[string]any{"quality_upgrade?": true}, nil)
-		if err != nil {
-			return err
+		if err != nil && err.Error() != "duplicate_job" {
+			slog.Warn(fmt.Sprintf("Could not kick off quality upgrade for media item %d: %v", mediaItem.ID, err))
 		}
 	}
 
