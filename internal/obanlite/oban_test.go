@@ -300,3 +300,65 @@ func TestAssertEnqueuedArgsSubset(t *testing.T) {
 	o.AssertEnqueued(t, obanlite.Match{Args: map[string]any{"force": "_"}})
 	o.RefuteEnqueued(t, obanlite.Match{Args: map[string]any{"id": 8}})
 }
+
+func TestRetryJob(t *testing.T) {
+	ctx := context.Background()
+	future := "2999-01-01T00:00:00.000000Z"
+
+	t.Run("retryable job runs now", func(t *testing.T) {
+		o, d := setup(t, noop)
+		job, _ := o.Insert(ctx, nil, obanlite.NewJob(downloadWorker, map[string]any{"id": 1}))
+		d.Exec(`UPDATE oban_jobs SET state = 'retryable', attempt = 3, max_attempts = 20, scheduled_at = ? WHERE id = ?`, future, job.ID)
+
+		must(t, o.RetryJob(ctx, job.ID))
+
+		got, _ := o.GetJob(ctx, job.ID)
+		if got.State != "available" || got.ScheduledAt.Time.After(time.Now()) {
+			t.Fatalf("state %s scheduled_at %v", got.State, got.ScheduledAt.Time)
+		}
+		if got.Attempt != 3 || got.MaxAttempts != 20 {
+			t.Fatalf("attempt %d/%d", got.Attempt, got.MaxAttempts)
+		}
+	})
+
+	t.Run("scheduled job is staged immediately", func(t *testing.T) {
+		o, d := setup(t, noop)
+		job, _ := o.Insert(ctx, nil, obanlite.NewJob(downloadWorker, map[string]any{"id": 1}))
+		d.Exec(`UPDATE oban_jobs SET state = 'scheduled', scheduled_at = ? WHERE id = ?`, future, job.ID)
+
+		must(t, o.RetryJob(ctx, job.ID))
+
+		got, _ := o.GetJob(ctx, job.ID)
+		if got.State != "available" {
+			t.Fatalf("state %s", got.State)
+		}
+	})
+
+	t.Run("a job out of attempts gets one more", func(t *testing.T) {
+		o, d := setup(t, noop)
+		job, _ := o.Insert(ctx, nil, obanlite.NewJob(downloadWorker, map[string]any{"id": 1}))
+		d.Exec(`UPDATE oban_jobs SET state = 'discarded', attempt = 5, max_attempts = 5, discarded_at = ? WHERE id = ?`, future, job.ID)
+
+		must(t, o.RetryJob(ctx, job.ID))
+
+		got, _ := o.GetJob(ctx, job.ID)
+		if got.State != "available" || got.MaxAttempts != 6 || got.DiscardedAt != nil {
+			t.Fatalf("%+v", got)
+		}
+	})
+
+	t.Run("available, executing and missing jobs are not retryable", func(t *testing.T) {
+		o, d := setup(t, noop)
+		job, _ := o.Insert(ctx, nil, obanlite.NewJob(downloadWorker, map[string]any{"id": 1}))
+		if err := o.RetryJob(ctx, job.ID); !errors.Is(err, obanlite.ErrNotRetryable) {
+			t.Fatalf("available: %v", err)
+		}
+		d.Exec(`UPDATE oban_jobs SET state = 'executing' WHERE id = ?`, job.ID)
+		if err := o.RetryJob(ctx, job.ID); !errors.Is(err, obanlite.ErrNotRetryable) {
+			t.Fatalf("executing: %v", err)
+		}
+		if err := o.RetryJob(ctx, 99999); !errors.Is(err, obanlite.ErrNotRetryable) {
+			t.Fatalf("missing: %v", err)
+		}
+	})
+}
