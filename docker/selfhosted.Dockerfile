@@ -1,6 +1,6 @@
 # Pinchflat (Go). The runtime layer matches the former Elixir image: same
 # tools (minus apprise), volumes, env, port and healthcheck.
-ARG GO_VERSION=1.25
+ARG GO_VERSION=1.27
 ARG DEBIAN_VERSION=bookworm-20250428-slim
 ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
 
