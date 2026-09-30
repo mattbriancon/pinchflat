@@ -20,12 +20,15 @@ type Media struct {
 	DurationSeconds        *int       `json:"duration_seconds"`
 	PredictedMediaFilepath string     `json:"predicted_media_filepath"`
 	PlaylistIndex          *int       `json:"playlist_index"`
+	// RequiresMembership is set for channel-members-only and YouTube
+	// Premium-only media, which can't be downloaded without a paid account.
+	RequiresMembership bool `json:"requires_membership"`
 }
 
 // IndexingOutputTemplate is the --print-to-file template used to fetch a
 // Media's attributes.
 func IndexingOutputTemplate() string {
-	return "%(.{id,title,live_status,original_url,description,aspect_ratio,duration,upload_date,timestamp,playlist_index,filename})j"
+	return "%(.{id,title,live_status,original_url,description,aspect_ratio,duration,upload_date,timestamp,playlist_index,filename,availability})j"
 }
 
 // ResponseToStruct converts a decoded yt-dlp JSON response into a Media.
@@ -58,6 +61,11 @@ func ResponseToStruct(response map[string]any) *Media {
 	}
 
 	media.PredictedMediaFilepath = getString(response, "filename")
+
+	switch getString(response, "availability") {
+	case "subscriber_only", "premium_only":
+		media.RequiresMembership = true
+	}
 
 	return media
 }

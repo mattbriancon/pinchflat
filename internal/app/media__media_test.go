@@ -556,6 +556,62 @@ func TestMedia_UpsertMediaItemFromYtDlp(t *testing.T) {
 			t.Errorf("playlist_index = %v, want %v (unchanged)", reloaded.PlaylistIndex, store.Deref(mediaAttrs.PlaylistIndex))
 		}
 	})
+
+	membersOnly := func(t *testing.T) *app.YtDlpMedia {
+		attrsMap := mediaAttrsMap(t)
+		attrsMap["availability"] = "subscriber_only"
+		return app.YtDlpMediaResponseToStruct(attrsMap)
+	}
+	upsertAndReload := func(t *testing.T, ta *apptest.TestApp, source *store.Source, attrs *app.YtDlpMedia) *store.MediaItem {
+		t.Helper()
+		mediaItem, err := ta.UpsertMediaItemFromYtDlp(ta.Ctx, source, attrs)
+		must(t, err)
+		reloaded, err := store.Reload[store.MediaItem](ta.Ctx, ta.Q(ta.Ctx), mediaItem)
+		must(t, err)
+		return reloaded
+	}
+
+	t.Run("prevents download of members-only media", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
+
+		if !upsertAndReload(t, ta, source, membersOnly(t)).PreventDownload {
+			t.Error("expected prevent_download for members-only media")
+		}
+	})
+
+	t.Run("prevents download when existing media becomes members-only", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
+
+		mustOK(t)(ta.UpsertMediaItemFromYtDlp(ta.Ctx, source, app.YtDlpMediaResponseToStruct(mediaAttrsMap(t))))
+		if !upsertAndReload(t, ta, source, membersOnly(t)).PreventDownload {
+			t.Error("expected prevent_download after re-indexing as members-only")
+		}
+	})
+
+	t.Run("doesn't prevent download of members-only media for sources using cookies", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		source := apptest.SourceFixture(t, ta, store.SourceParams{CookieBehaviour: store.Ptr(store.SourceCookieBehaviourAllOperations)})
+
+		if upsertAndReload(t, ta, source, membersOnly(t)).PreventDownload {
+			t.Error("expected no prevent_download when the source uses cookies")
+		}
+	})
+
+	t.Run("doesn't clear prevent_download on re-index", func(t *testing.T) {
+		ta := apptest.NewApp(t)
+		source := apptest.SourceFixture(t, ta, store.SourceParams{})
+		attrs := app.YtDlpMediaResponseToStruct(mediaAttrsMap(t))
+
+		mediaItem, err := ta.UpsertMediaItemFromYtDlp(ta.Ctx, source, attrs)
+		must(t, err)
+		mustOK(t)(ta.UpdateMediaItem(ta.Ctx, mediaItem, store.MediaItemParams{PreventDownload: store.Ptr(true)}))
+
+		if !upsertAndReload(t, ta, source, attrs).PreventDownload {
+			t.Error("expected prevent_download to survive re-indexing")
+		}
+	})
 }
 
 func TestMedia_UpdateMediaItem(t *testing.T) {

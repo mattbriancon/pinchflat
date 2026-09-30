@@ -9,6 +9,7 @@ import (
 
 	"github.com/mattbriancon/pinchflat/internal/app"
 	"github.com/mattbriancon/pinchflat/internal/app/apptest"
+	"github.com/mattbriancon/pinchflat/internal/cmdrun"
 	"github.com/mattbriancon/pinchflat/internal/db"
 	"github.com/mattbriancon/pinchflat/internal/obanlite"
 	"github.com/mattbriancon/pinchflat/internal/store"
@@ -176,6 +177,7 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 		{"does not set the job to retryable if retrying wouldn't fix the issue", "Something something Video unavailable something something", false, quality, false},
 		{"does not set the job to retryable if youtube thinks you're a bot", "Sign in to confirm you're not a bot", false, quality, false},
 		{"does not set the job to retryable you aren't a member", "This video is available to this channel's members on level: foo", false, quality, false},
+		{"does not set the job to retryable for members-only content", "Join this channel to get access to members-only content like this video, and other exclusive perks.", false, quality, false},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			ta := downloadWorkerApp(t)
@@ -195,6 +197,20 @@ func TestMediaDownloadWorker_Perform(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("prevents future downloads of members-only media", func(t *testing.T) {
+		ta := downloadWorkerApp(t)
+		ta.YtDlpMock.Run.ExpectN(2, downloadMock(dlActions{"download": retErr(&cmdrun.Error{Output: "ERROR: [youtube] abc: Join this channel to get access to members-only content like this video", Status: 1})}))
+		mediaItem := apptest.MediaItemFixture(t, ta, cleared)
+
+		must(t, performDownload(ta, mediaItem.ID, nil))
+
+		reloaded, err := store.Reload[store.MediaItem](ta.Ctx, ta.Q(ta.Ctx), mediaItem)
+		must(t, err)
+		if !reloaded.PreventDownload {
+			t.Error("expected prevent_download to be set")
+		}
+	})
 
 	t.Run("saves the file's size to the database", func(t *testing.T) {
 		ta := downloadWorkerApp(t)

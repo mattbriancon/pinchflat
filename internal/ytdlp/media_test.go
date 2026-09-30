@@ -13,7 +13,7 @@ func ptr[T any](v T) *T { return &v }
 
 func TestIndexingOutputTemplate(t *testing.T) {
 	template := ytdlp.IndexingOutputTemplate()
-	expected := "%(.{id,title,live_status,original_url,description,aspect_ratio,duration,upload_date,timestamp,playlist_index,filename})j"
+	expected := "%(.{id,title,live_status,original_url,description,aspect_ratio,duration,upload_date,timestamp,playlist_index,filename,availability})j"
 	if template != expected {
 		t.Errorf("expected %q, got %q", expected, template)
 	}
@@ -51,6 +51,21 @@ func TestResponseToStruct(t *testing.T) {
 		got := ytdlp.ResponseToStruct(response)
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("ResponseToStruct mismatch\n got: %+v\nwant: %+v", *got, *want)
+		}
+	})
+
+	t.Run("sets requires_membership from availability", func(t *testing.T) {
+		for availability, want := range map[string]bool{
+			"subscriber_only": true,
+			"premium_only":    true,
+			"public":          false,
+			"needs_auth":      false,
+			"":                false,
+		} {
+			result := ytdlp.ResponseToStruct(map[string]any{"availability": availability, "upload_date": "20210101"})
+			if result.RequiresMembership != want {
+				t.Errorf("availability %q: requires_membership = %v, want %v", availability, result.RequiresMembership, want)
+			}
 		}
 	})
 
