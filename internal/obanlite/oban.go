@@ -269,6 +269,34 @@ func (o *Oban) CancelJob(ctx context.Context, id int64) error {
 	return nil
 }
 
+// ErrNotRetryable is returned by RetryJob when the job doesn't exist or is
+// already available or executing.
+var ErrNotRetryable = errors.New("obanlite: job is not retryable")
+
+// RetryJob makes a job run as soon as possible (Oban.retry_job/1): it becomes
+// available with scheduled_at set to now, so a scheduled or retryable job
+// skips the rest of its backoff. A job that has used all its attempts gets
+// one more, as in Oban. Jobs that are already available or executing are
+// left alone and yield ErrNotRetryable.
+func (o *Oban) RetryJob(ctx context.Context, id int64) error {
+	now := nowUsec()
+	res, err := o.db.ExecContext(ctx, `UPDATE oban_jobs SET state = 'available', scheduled_at = ?,
+		max_attempts = CASE WHEN max_attempts = attempt THEN max_attempts + 1 ELSE max_attempts END,
+		completed_at = NULL, cancelled_at = NULL, discarded_at = NULL
+		WHERE id = ? AND state NOT IN ('available', 'executing')`, now, id)
+	if err != nil {
+		return err
+	}
+	if n, err := res.RowsAffected(); err == nil && n == 0 {
+		return ErrNotRetryable
+	}
+	var queue string
+	if err := o.db.GetContext(ctx, &queue, `SELECT queue FROM oban_jobs WHERE id = ?`, id); err == nil {
+		o.poke(queue)
+	}
+	return nil
+}
+
 // GetJob loads a job by id.
 func (o *Oban) GetJob(ctx context.Context, id int64) (*Job, error) {
 	job := &Job{}

@@ -70,8 +70,9 @@ templ sourceHTMLShowTasksTab(pendingTasks []*store.Task) {
 			TableClass: "text-black dark:text-white",
 			Columns: []TableColumn{
 				{Label: "Worker", Render: func(row any) templ.Component { return sourceHTMLTaskWorkerCell(row.(*store.Task)) }},
-				{Label: "State", Render: func(row any) templ.Component { return sourceHTMLTaskStateCell(row.(*store.Task)) }},
-				{Label: "Scheduled At", Render: func(row any) templ.Component { return sourceHTMLTaskScheduledAtCell(row.(*store.Task)) }},
+				{Label: "State", Render: func(row any) templ.Component { return TaskHTMLStateCell(row.(*store.Task)) }},
+				{Label: "Scheduled At", Render: func(row any) templ.Component { return TaskHTMLScheduledAtCell(row.(*store.Task)) }},
+				{Label: "", Render: func(row any) templ.Component { return TaskHTMLActionsCell(row.(*store.Task)) }},
 			},
 		})
 	} else {
@@ -89,12 +90,4 @@ func sourceHTMLTaskRows(tasks []*store.Task) []any {
 
 templ sourceHTMLTaskWorkerCell(task *store.Task) {
 	{ task.Job.Worker }
-}
-
-templ sourceHTMLTaskStateCell(task *store.Task) {
-	{ task.Job.State }
-}
-
-templ sourceHTMLTaskScheduledAtCell(task *store.Task) {
-	@TextDatetimeInZone(task.Job.ScheduledAt.Time, "", "")
 }

@@ -1,0 +1,57 @@
+package web
+
+// Cells shared by the source and media item task tables.
+
+import (
+	"fmt"
+
+	"github.com/mattbriancon/pinchflat/internal/obanlite"
+	"github.com/mattbriancon/pinchflat/internal/store"
+)
+
+// taskRetryable reports whether a task's job is waiting on a schedule (or a
+// retry backoff) that "Retry now" can skip.
+func taskRetryable(task *store.Task) bool {
+	return task != nil && task.Job != nil &&
+		(task.Job.State == obanlite.StateScheduled || task.Job.State == obanlite.StateRetryable)
+}
+
+// taskStateText is the job's state, plus which attempt the next run will be
+// for a job that's backing off after failures.
+func taskStateText(job *obanlite.Job) string {
+	if job.State == obanlite.StateRetryable {
+		return fmt.Sprintf("%s (attempt %d of %d)", job.State, job.Attempt, job.MaxAttempts)
+	}
+	return job.State
+}
+
+templ TaskHTMLStateCell(task *store.Task) {
+	if task != nil && task.Job != nil {
+		{ taskStateText(task.Job) }
+	}
+}
+
+// TaskHTMLScheduledAtCell shows when the job is scheduled to run; for a
+// scheduled or retryable job that's when it will next run.
+templ TaskHTMLScheduledAtCell(task *store.Task) {
+	if task != nil && task.Job != nil {
+		@TextDatetimeInZone(task.Job.ScheduledAt.Time, "%Y-%m-%d %H:%M:%S", "")
+	}
+}
+
+// TaskHTMLActionsCell holds the "Retry now" button for jobs that are waiting.
+templ TaskHTMLActionsCell(task *store.Task) {
+	if taskRetryable(task) {
+		@CoreLinkButton(
+			P(ctx, "/tasks/%v/retry", task.ID),
+			"post",
+			"",
+			"underline",
+			taskRetryNowText(),
+		)
+	}
+}
+
+templ taskRetryNowText() {
+	Retry now
+}

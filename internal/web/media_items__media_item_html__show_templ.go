@@ -333,6 +333,7 @@ func mediaItemsShowTasksTab(mediaItem *store.MediaItem) templ.Component {
 					{Label: "Worker", Render: mediaItemsTaskWorkerCell},
 					{Label: "State", Render: mediaItemsTaskStateCell},
 					{Label: "Scheduled At", Render: mediaItemsTaskScheduledAtCell},
+					{Label: "", Render: mediaItemsTaskActionsCell},
 				},
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
@@ -381,7 +382,7 @@ func mediaItemsTaskWorkerCell(row any) templ.Component {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(task.Job.Worker)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 122, Col: 19}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 123, Col: 19}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -414,12 +415,7 @@ func mediaItemsTaskStateCell(row any) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if task, ok := row.(*store.Task); ok && task.Job != nil {
-			var templ_7745c5c3_Var14 string
-			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(task.Job.State)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 128, Col: 18}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
+			templ_7745c5c3_Err = TaskHTMLStateCell(task).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -444,13 +440,44 @@ func mediaItemsTaskScheduledAtCell(row any) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var14 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var14 == nil {
+			templ_7745c5c3_Var14 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		if task, ok := row.(*store.Task); ok && task.Job != nil {
+			templ_7745c5c3_Err = TaskHTMLScheduledAtCell(task).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		return nil
+	})
+}
+
+func mediaItemsTaskActionsCell(row any) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
 		templ_7745c5c3_Var15 := templ.GetChildren(ctx)
 		if templ_7745c5c3_Var15 == nil {
 			templ_7745c5c3_Var15 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		if task, ok := row.(*store.Task); ok && task.Job != nil {
-			templ_7745c5c3_Err = TextDatetimeInZone(task.Job.ScheduledAt.Time, "", "").Render(ctx, templ_7745c5c3_Buffer)
+		if task, ok := row.(*store.Task); ok {
+			templ_7745c5c3_Err = TaskHTMLActionsCell(task).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -483,7 +510,7 @@ func miText(s string) templ.Component {
 		var templ_7745c5c3_Var17 string
 		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(s)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 139, Col: 4}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `media_items__media_item_html__show.templ`, Line: 146, Col: 4}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 		if templ_7745c5c3_Err != nil {

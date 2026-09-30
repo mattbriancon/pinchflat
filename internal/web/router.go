@@ -81,6 +81,8 @@ func (s *Server) Router() http.Handler {
 		"PUT /sources/{source_id}/media/{id}":                            s.MediaItemControllerUpdate,
 		"DELETE /sources/{source_id}/media/{id}":                         s.MediaItemControllerDelete,
 		"POST /sources/{source_id}/media/{media_item_id}/force_download": s.MediaItemControllerForceDownload,
+
+		"POST /tasks/{id}/retry": s.TaskControllerRetry,
 	} {
 		handle(pattern, h, s.basicAuth, secureBrowserHeaders, protectFromForgery)
 	}
