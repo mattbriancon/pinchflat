@@ -184,6 +184,14 @@ func (a *App) downloadMediaAndScheduleJobs(ctx context.Context, mediaItem *store
 		return nil
 	}
 
+	// Members-only media won't become downloadable by retrying, so take it
+	// out of pending rather than re-attempting it after every index.
+	if mediaDownloadWorkerRequiresMembership(mdErr.Message) {
+		if _, err := a.UpdateMediaItem(ctx, mediaItem, store.MediaItemParams{PreventDownload: store.Ptr(true)}); err != nil {
+			return err
+		}
+	}
+
 	// Handle action on error
 	return a.actionOnError(downloadErr)
 }
@@ -218,6 +226,7 @@ func (a *App) actionOnError(err error) error {
 		"Video unavailable",
 		"Sign in to confirm",
 		"This video is available to this channel's members",
+		"members-only content",
 	}
 
 	errStr := err.Error()
@@ -231,4 +240,11 @@ func (a *App) actionOnError(err error) error {
 
 	// Return an error to retry
 	return errors.New("download_failed")
+}
+
+// mediaDownloadWorkerRequiresMembership reports whether a yt-dlp error means
+// the media is for channel members only.
+func mediaDownloadWorkerRequiresMembership(message string) bool {
+	return strings.Contains(message, "This video is available to this channel's members") ||
+		strings.Contains(message, "members-only content")
 }

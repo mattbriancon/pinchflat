@@ -117,6 +117,11 @@ func (s *Store) UpsertMediaItemFromYtDlp(ctx context.Context, source *Source, m 
 	if m.UploadedAt == nil {
 		p.Clear |= ClearUploadedAt
 	}
+	// Members-only media would only ever fail to download, so keep it out of
+	// pending. A source with cookies may belong to a member, so leave those.
+	if m.RequiresMembership && source.CookieBehaviour == SourceCookieBehaviourDisabled {
+		p.PreventDownload = Ptr(true)
+	}
 
 	rec, _, err := s.prepareMediaItem(ctx, NewMediaItem(), p)
 	if err != nil {
@@ -131,6 +136,10 @@ func (s *Store) UpsertMediaItemFromYtDlp(ctx context.Context, source *Source, m 
 		set = append(set, `"`+c+`" = ?`)
 		setVals = append(setVals, columnValue(rec, c))
 	}
+	// prevent_download can be set by indexing but never cleared, so a user's
+	// choice survives re-indexing.
+	set = append(set, `"prevent_download" = MAX("prevent_download", ?)`)
+	setVals = append(setVals, rec.PreventDownload)
 	conflict := " ON CONFLICT (source_id, media_id) DO UPDATE SET " + strings.Join(set, ", ")
 	if err := insertRow(ctx, s.Q(ctx), rec, conflict, setVals...); err != nil {
 		return nil, err
