@@ -172,12 +172,16 @@ func (a *App) downloadMediaAndScheduleJobs(ctx context.Context, mediaItem *store
 		return nil // No error
 	}
 
-	// Check if it's a MediaDownloaderError
-	if mdErr, ok := downloadErr.(*MediaDownloaderError); ok {
-		if mdErr.Reason == "unsuitable_for_download" {
-			// This is non-retryable, return nil
-			return nil
-		}
+	// Only {:error, reason, message} results go through action_on_error;
+	// anything else (e.g. a failed media item update) is returned as-is, as
+	// the Elixir case would raise on it.
+	mdErr, ok := downloadErr.(*MediaDownloaderError)
+	if !ok {
+		return downloadErr
+	}
+	if mdErr.Reason == "unsuitable_for_download" {
+		// This is non-retryable, return nil
+		return nil
 	}
 
 	// Handle action on error

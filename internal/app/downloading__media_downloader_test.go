@@ -131,6 +131,27 @@ func TestMediaDownloader_DownloadForMediaItem(t *testing.T) {
 		dlOK(t, ta, mediaItem, app.DownloadOverrides{})
 	})
 
+	t.Run("doesn't share the download's output file with the status check", func(t *testing.T) {
+		ta, mediaItem := dlSetup(t, store.MediaProfileParams{}, store.SourceParams{}, store.MediaItemParams{Clear: store.ClearMediaFilepath})
+
+		var statusOutput, downloadOutput string
+		ta.YtDlpMock.Run.ExpectN(3, downloadMock(dlActions{
+			"get_downloadable_status": func(c ytCall) (string, error) {
+				statusOutput = c.addl.OutputFilepath
+				return "{}", nil
+			},
+			"download": func(c ytCall) (string, error) {
+				downloadOutput = c.addl.OutputFilepath
+				return retMetadata(c)
+			},
+		}))
+
+		dlOK(t, ta, mediaItem, app.DownloadOverrides{})
+		if statusOutput != "" && statusOutput == downloadOutput {
+			t.Errorf("status check and download both wrote to %s", statusOutput)
+		}
+	})
+
 	t.Run("saves the metadata filepath to the database", func(t *testing.T) {
 		ta, mediaItem := dlSetup(t, store.MediaProfileParams{}, store.SourceParams{}, store.MediaItemParams{Clear: store.ClearMediaFilepath})
 		ta.YtDlpMock.Run.ExpectN(3, downloadMock(nil))

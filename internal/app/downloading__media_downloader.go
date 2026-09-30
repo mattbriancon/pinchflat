@@ -177,8 +177,10 @@ func mediaDownloaderDownloadWithOptions(ctx context.Context, a *App, url string,
 
 	runnerOpts := ytdlp.CallOptions{OutputFilepath: outputFilepath, UseCookies: shouldUseCookies}
 
-	// Check downloadable status
-	statusStr, statusErr := a.YtDlpMediaGetDownloadableStatus(ctx, url, runnerOpts)
+	// Check downloadable status. It gets its own output file: yt-dlp appends
+	// to --print-to-file, so sharing outputFilepath would leave the status
+	// JSON ahead of the download's.
+	statusStr, statusErr := a.YtDlpMediaGetDownloadableStatus(ctx, url, ytdlp.CallOptions{UseCookies: shouldUseCookies})
 	if statusErr != nil {
 		if !shouldUseCookies {
 			// Try with cookies if it might help
